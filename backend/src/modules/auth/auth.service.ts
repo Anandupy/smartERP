@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -9,8 +10,8 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async generateTokens(userId: string, email?: string) {
-    const payload = { sub: userId, email };
+  async generateTokens(userId: string, email?: string, role: Role = Role.SUPER_ADMIN) {
+    const payload = { sub: userId, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {

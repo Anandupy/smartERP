@@ -9,23 +9,20 @@ import {
   UseGuards,
   Headers,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrganizationService } from './organization.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { GetUser } from '@/common/decorators/get-user.decorator';
 import { Role } from '@prisma/client';
 
 @ApiTags('Organizations')
-@ApiHeader({
-  name: 'x-role',
-  description: 'Role of the user making the request (Simulation)',
-  required: true,
-  enum: Role,
-})
+@ApiBearerAuth()
 @Controller('organizations')
-@UseGuards(RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
@@ -34,7 +31,7 @@ export class OrganizationController {
   @ApiOperation({ summary: 'Create a new organization (Super Admin only)' })
   async create(
     @Body() dto: CreateOrganizationDto,
-    @Headers('x-user-id') userId?: string,
+    @GetUser('userId') userId: string,
   ) {
     const data = await this.organizationService.createOrganization(dto, userId);
     return { data, message: 'Organization created successfully' };
@@ -62,7 +59,7 @@ export class OrganizationController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateOrganizationDto,
-    @Headers('x-user-id') userId?: string,
+    @GetUser('userId') userId: string,
   ) {
     const data = await this.organizationService.updateOrganization(
       id,
@@ -75,7 +72,7 @@ export class OrganizationController {
   @Delete(':id')
   @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Soft delete organization (Super Admin only)' })
-  async remove(@Param('id') id: string, @Headers('x-user-id') userId?: string) {
+  async remove(@Param('id') id: string, @GetUser('userId') userId: string) {
     const data = await this.organizationService.softDeleteOrganization(
       id,
       userId,

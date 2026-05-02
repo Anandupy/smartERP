@@ -23,19 +23,13 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const roleHeader = request.headers['x-role'];
+    const user = request.user;
 
-    if (!roleHeader) {
-      throw new ForbiddenException('Role header (x-role) is missing');
+    if (!user || !user.role) {
+      throw new ForbiddenException('Authentication required to access this resource');
     }
 
-    const userRole = roleHeader.toString().toUpperCase() as Role;
-
-    if (!Object.values(Role).includes(userRole)) {
-      throw new ForbiddenException(
-        `Invalid role provided in header: ${roleHeader}`,
-      );
-    }
+    const userRole = user.role as Role;
 
     const hasPermission = requiredRoles.includes(userRole);
 

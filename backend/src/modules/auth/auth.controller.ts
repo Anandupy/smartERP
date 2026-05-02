@@ -3,6 +3,8 @@ import { AuthService } from '@/modules/auth/auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
 
+import { Role } from '@prisma/client';
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -12,8 +14,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() body: any) {
     // Placeholder logic for database user verification
-    const dummyUserId = '12345-uuid'; 
-    const tokens = await this.authService.generateTokens(dummyUserId, body.email);
+    const dummyUserId = '12345-uuid';
+    const tokens = await this.authService.generateTokens(
+      dummyUserId,
+      body.email,
+      body.role || Role.SUPER_ADMIN,
+    );
     return {
       message: 'Login successful',
       data: tokens,
