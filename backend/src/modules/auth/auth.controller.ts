@@ -1,36 +1,32 @@
-import { Controller, Post, Body, Req, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { AuthService } from '@/modules/auth/auth.service';
-import { AuthGuard } from '@nestjs/passport';
-import type { Request } from 'express';
+import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // Demonstration endpoint for login. You will replace the body with DTOs.
   @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() body: any) {
-    // Placeholder logic for database user verification
-    const dummyUserId = '12345-uuid'; 
-    const tokens = await this.authService.generateTokens(dummyUserId, body.email);
-    return {
-      message: 'Login successful',
-      data: tokens,
-    };
+  @ApiOperation({ summary: 'Login with email/username/phone' })
+  async login(@Body() dto: LoginDto) {
+    const data = await this.authService.login(dto);
+    return { data, message: 'Login successful' };
   }
 
-  // Endpoint to refresh token using the 'jwt-refresh' guard.
   @Post('refresh')
-  @UseGuards(AuthGuard('jwt-refresh'))
-  @HttpCode(HttpStatus.OK)
-  async refreshTokens(@Req() req: Request) {
-    const user = req.user as any; 
-    // user.refreshToken is appended by RefreshTokenStrategy
-    const tokens = await this.authService.refreshTokens(user.sub, user.refreshToken);
-    return {
-      message: 'Tokens refreshed successfully',
-      data: tokens,
-    };
+  @ApiOperation({ summary: 'Refresh access token' })
+  async refresh(@Body('refreshToken') token: string) {
+    if (!token) throw new UnauthorizedException('Refresh token required');
+    const data = await this.authService.refreshToken(token);
+    return { data, message: 'Token refreshed' };
+  }
+
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout and revoke refresh token' })
+  async logout(@Body('refreshToken') token: string) {
+    if (token) await this.authService.logout(token);
+    return { message: 'Logged out successfully' };
   }
 }

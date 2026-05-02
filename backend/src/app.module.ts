@@ -10,6 +10,8 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { SystemSettingsModule } from '@/modules/system-settings/system-settings.module';
 import { OrganizationModule } from '@/modules/organization/organization.module';
 import { BranchModule } from '@/modules/branch/branch.module';
+import { UserModule } from '@/modules/user/user.module';
+import { SecurityModule } from '@/common/services/security.module';
 
 @Module({
   imports: [
@@ -20,7 +22,9 @@ import { BranchModule } from '@/modules/branch/branch.module';
     }),
     LoggerModule,
     PrismaModule,
+    SecurityModule,
     AuthModule,
+    UserModule,
     SystemSettingsModule,
     OrganizationModule,
     BranchModule,

@@ -27,18 +27,21 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const role = request.headers['x-role'] as UserRole;
-    const userId = request.headers['x-user-id'];
+    
+    // Get role and userId from user object (JWT) or headers (simulation)
+    const user = request.user;
+    const role = (user?.role || request.headers['x-role']) as UserRole;
+    const userId = user?.id || request.headers['x-user-id'];
 
     if (!role) {
-      throw new ForbiddenException('No role provided in x-role header');
+      throw new ForbiddenException('No role provided');
     }
 
     if (!Object.values(UserRole).includes(role)) {
       throw new ForbiddenException('Invalid role provided');
     }
 
-    // Check hierarchy: allow if user's role is equal to or higher than any of the required roles
+    // Check hierarchy
     const userRoleWeight = this.roleHierarchy[role];
     const hasRole = requiredRoles.some((r) => this.roleHierarchy[r] <= userRoleWeight);
     
@@ -46,7 +49,7 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('You do not have permission to access this resource');
     }
 
-    // Attach userId to request for service logic
+    // Ensure userId is attached for audit
     request.userId = userId;
 
     return true;

@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/client"
+  output   = "./generated"
 }
 
 datasource db {
@@ -9,10 +9,53 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  fullName             String
+  username             String   @unique
+  email                String   @unique
+  phone                String   @unique
+  passwordHash         String
+  role                 RoleType
+  organizationId       String?
+  branchId             String?
+  status               UserStatus @default(ACTIVE)
+  failedLoginAttempts  Int      @default(0)
+  lockUntil            DateTime?
+  isTwoFactorEnabled   Boolean  @default(false)
+  twoFactorSecret      String?
+  lastLoginAt          DateTime?
+  createdBy            String?
+  updatedBy            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  refreshTokens        RefreshToken[]
+}
+
+model RefreshToken {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique
+  isRevoked    Boolean  @default(false)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user         User @relation(fields: [userId], references: [id])
+}
+
+enum RoleType {
+  SUPER_ADMIN
+  ORG_ADMIN
+  BRANCH_ADMIN
+  STAFF
+  STUDENT
+  PARENT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
 }
 
 model SystemSetting {
