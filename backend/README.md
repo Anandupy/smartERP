@@ -108,6 +108,7 @@ Detailed documentation about the project structure and modules can be found belo
 - **Module Specifications:**
   - [System Settings](./docs/modules/system-settings.md)
   - [Organization Management](./docs/modules/organization-settings.md)
+  - [Branch Management](./docs/modules/branch-settings.md)
 
 ## 🤝 Contributing
 

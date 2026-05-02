@@ -57,3 +57,4 @@ modules/feature-name/
 Detailed specifications for each module can be found in the `docs/modules/` directory:
 - [System Settings](./modules/system-settings.md)
 - [Organization Management](./modules/organization-settings.md)
+- [Branch Management](./modules/branch-settings.md)
