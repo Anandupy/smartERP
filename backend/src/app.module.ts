@@ -9,6 +9,7 @@ import { RequestContextMiddleware } from '@/middleware/request-context.middlewar
 import { AuthModule } from '@/modules/auth/auth.module';
 import { SystemSettingsModule } from '@/modules/system-settings/system-settings.module';
 import { OrganizationModule } from '@/modules/organization/organization.module';
+import { BranchModule } from '@/modules/branch/branch.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { OrganizationModule } from '@/modules/organization/organization.module';
     AuthModule,
     SystemSettingsModule,
     OrganizationModule,
+    BranchModule,
   ],
   controllers: [],
   providers: [],
