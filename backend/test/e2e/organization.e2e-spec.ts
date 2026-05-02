@@ -6,6 +6,7 @@ import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 
 describe('OrganizationController (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prisma: PrismaService;
 

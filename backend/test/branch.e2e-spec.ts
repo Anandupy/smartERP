@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { describe, it } from 'node:test';
 
 describe('BranchController (e2e)', () => {
   let app: INestApplication;
@@ -79,3 +80,15 @@ describe('BranchController (e2e)', () => {
     });
   });
 });
+function beforeAll(arg0: () => Promise<void>) {
+  throw new Error('Function not implemented.');
+}
+
+function afterAll(arg0: () => Promise<void>) {
+  throw new Error('Function not implemented.');
+}
+
+function expect(status: number) {
+  throw new Error('Function not implemented.');
+}
+
