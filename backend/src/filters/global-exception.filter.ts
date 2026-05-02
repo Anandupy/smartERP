@@ -6,7 +6,6 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { AuthenticatedRequest } from '@/middleware/request-context.middleware';
 import { LoggerService } from '@/infrastructure/logger/logger.service';
 
 @Catch()
@@ -16,8 +15,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<AuthenticatedRequest>();
-    const traceId = request.context?.requestId || 'unknown';
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
@@ -53,8 +50,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     response.status(status).json({
       success: false,
       message,
-      traceId,
-      ...(errorDetail && { error: errorDetail }),
+      data: null,
+      meta: {},
+      error: {
+        code: exception instanceof HttpException ? exception.constructor.name : 'InternalServerError',
+        details: errorDetail || (exception instanceof Error ? exception.message : exception),
+      },
     });
   }
 }
