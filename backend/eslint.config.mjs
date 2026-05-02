@@ -35,7 +35,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'warn',
       '@typescript-eslint/no-unsafe-return': 'warn',
       '@typescript-eslint/require-await': 'warn',
-      "prettier/prettier": ["warn", { endOfLine: "auto" }],
+      "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
 );
