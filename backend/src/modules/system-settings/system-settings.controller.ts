@@ -1,11 +1,22 @@
-import { Controller, Get, Post, Patch, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { SystemSettingsService } from './system-settings.service';
 import { CreateSystemDto } from './dto/create-system.dto';
 import { UpdateSystemDto } from './dto/update-system.dto';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('System Settings')
+@ApiHeader({
+  name: 'x-role',
+  description: 'Role of the user making the request (Simulation)',
+  required: true,
+  enum: Role,
+})
 @Controller('system-settings')
+@UseGuards(RolesGuard)
+@Roles(Role.SUPER_ADMIN)
 export class SystemSettingsController {
   constructor(private readonly systemSettingsService: SystemSettingsService) {}
 

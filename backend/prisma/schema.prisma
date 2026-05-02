@@ -39,3 +39,41 @@ enum Environment {
   STAGING
   PROD
 }
+
+model Organization {
+  id               String             @id @default(uuid())
+  name             String
+  code             String             @unique
+  logoUrl          String?
+  contactEmail     String
+  contactPhone     String
+  addressLine1     String?
+  addressLine2     String?
+  city             String?
+  state            String?
+  country          String?
+  pincode          String?
+  masterExpiryDate DateTime
+  status           OrganizationStatus @default(ACTIVE)
+  timezone         String?
+  currency         String?
+  createdBy        String?
+  updatedBy        String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum Role {
+  SUPER_ADMIN
+  ORG_ADMIN
+  BRANCH_ADMIN
+  STAFF
+  STUDENT
+  PARENT
+}
