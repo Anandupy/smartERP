@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsEmail, IsOptional, IsEnum, Matches } from 'class-validator';
-import { StructureMode } from '@prisma/client';
+import { StructureMode } from '@/generated/client';
 
 export class CreateBranchDto {
   @IsString()

@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, ConflictException }
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
-import { OrganizationStatus } from '@prisma/client';
+import { OrganizationStatus } from '@/generated/client';
 
 @Injectable()
 export class OrganizationService {

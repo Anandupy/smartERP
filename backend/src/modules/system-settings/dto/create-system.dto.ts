@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsEnum, IsBoolean, IsOptional, IsEmail, IsPhoneNumber } from 'class-validator';
-import { Environment } from '@prisma/client';
+import { Environment } from '@/generated/client';
 
 export class CreateSystemDto {
   @IsString()
