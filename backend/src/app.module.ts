@@ -7,6 +7,7 @@ import { LoggerModule } from '@/infrastructure/logger/logger.module';
 import { RequestContextMiddleware } from '@/middleware/request-context.middleware';
 
 import { AuthModule } from '@/modules/auth/auth.module';
+import { SystemSettingsModule } from '@/modules/system-settings/system-settings.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuthModule } from '@/modules/auth/auth.module';
     LoggerModule,
     PrismaModule,
     AuthModule,
+    SystemSettingsModule,
   ],
   controllers: [],
   providers: [],
