@@ -52,3 +52,8 @@ modules/feature-name/
 - Classes: `PascalCase` (e.g., `UserController`)
 - Variables/Functions: `camelCase`
 - Folders: `kebab-case`
+
+## Module Documentation
+Detailed specifications for each module can be found in the `docs/modules/` directory:
+- [System Settings](./modules/system-settings.md)
+- [Organization Management](./modules/organization-settings.md)

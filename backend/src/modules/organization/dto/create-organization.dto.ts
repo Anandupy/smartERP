@@ -1,12 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsEmail,
-  IsOptional,
-  IsDateString,
-  IsEnum,
-} from 'class-validator';
-import { OrganizationStatus } from '@prisma/client';
+import { IsString, IsNotEmpty, IsEmail, IsOptional, IsDateString, Matches } from 'class-validator';
 
 export class CreateOrganizationDto {
   @IsString()
@@ -15,6 +7,9 @@ export class CreateOrganizationDto {
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'Code must be lowercase and contain only alphanumeric characters and hyphens',
+  })
   code: string;
 
   @IsString()
@@ -28,6 +23,10 @@ export class CreateOrganizationDto {
   @IsString()
   @IsNotEmpty()
   contactPhone: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  masterExpiryDate: string;
 
   @IsString()
   @IsOptional()
@@ -52,14 +51,6 @@ export class CreateOrganizationDto {
   @IsString()
   @IsOptional()
   pincode?: string;
-
-  @IsDateString()
-  @IsNotEmpty()
-  masterExpiryDate: string;
-
-  @IsEnum(OrganizationStatus)
-  @IsOptional()
-  status?: OrganizationStatus;
 
   @IsString()
   @IsOptional()

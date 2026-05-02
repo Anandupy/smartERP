@@ -68,12 +68,3 @@ enum OrganizationStatus {
   INACTIVE
   SUSPENDED
 }
-
-enum Role {
-  SUPER_ADMIN
-  ORG_ADMIN
-  BRANCH_ADMIN
-  STAFF
-  STUDENT
-  PARENT
-}

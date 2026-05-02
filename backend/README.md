@@ -52,10 +52,26 @@ This backend system is designed to handle complex business logic for SMEs, featu
    PORT=3000
    ```
 
-4. **Prisma Setup**
+4. **Database & Prisma Setup**
+
+   Always ensure your database is running before executing these commands.
+
+   **For Development (with Migrations):**
    ```bash
-   pnpm run prisma:generate
-   pnpm run prisma:migrate
+   # Create and apply migrations
+   npx prisma migrate dev --name init
+   ```
+
+   **For Quick Sync (Development only, skips migration history):**
+   ```bash
+   # Sync schema directly to database
+   npx prisma db push
+   ```
+
+   **Generate Prisma Client:**
+   ```bash
+   # Generate/Regenerate Prisma Client
+   npx prisma generate
    ```
 
 ## 🏃 Running the App
@@ -86,9 +102,12 @@ $ pnpm run test:cov
 
 ## 📚 Documentation
 
-Detailed documentation about the project structure and architecture can be found in the [docs/](./docs) directory.
+Detailed documentation about the project structure and modules can be found below:
 
-- [Project Structure](./docs/document.md)
+- [Project Architecture](./docs/document.md)
+- **Module Specifications:**
+  - [System Settings](./docs/modules/system-settings.md)
+  - [Organization Management](./docs/modules/organization-settings.md)
 
 ## 🤝 Contributing
 

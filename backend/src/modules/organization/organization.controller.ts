@@ -1,82 +1,56 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  UseGuards,
-  Headers,
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Headers } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { OrganizationService } from './organization.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
-import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { GetUser } from '@/common/decorators/get-user.decorator';
-import { Role } from '@prisma/client';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Organizations')
-@ApiBearerAuth()
+@ApiHeader({ name: 'x-role', description: 'User role for simulation', required: true })
 @Controller('organizations')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(RolesGuard)
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Create a new organization (Super Admin only)' })
-  async create(
-    @Body() dto: CreateOrganizationDto,
-    @GetUser('userId') userId: string,
-  ) {
-    const data = await this.organizationService.createOrganization(dto, userId);
+  async create(@Body() dto: CreateOrganizationDto) {
+    const data = await this.organizationService.createOrganization(dto);
     return { data, message: 'Organization created successfully' };
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get all organizations (Super Admin only)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
+  @ApiOperation({ summary: 'Get all organizations' })
   async findAll() {
     const data = await this.organizationService.getAllOrganizations();
     return { data, message: 'Organizations retrieved successfully' };
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization by ID' })
   async findOne(@Param('id') id: string) {
     const data = await this.organizationService.getOrganizationById(id);
-    return { data, message: 'Organization details retrieved successfully' };
+    return { data, message: 'Organization retrieved successfully' };
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN)
-  @ApiOperation({ summary: 'Update organization details' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateOrganizationDto,
-    @GetUser('userId') userId: string,
-  ) {
-    const data = await this.organizationService.updateOrganization(
-      id,
-      dto,
-      userId,
-    );
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
+  @ApiOperation({ summary: 'Update organization' })
+  async update(@Param('id') id: string, @Body() dto: UpdateOrganizationDto) {
+    const data = await this.organizationService.updateOrganization(id, dto);
     return { data, message: 'Organization updated successfully' };
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Soft delete organization (Super Admin only)' })
-  async remove(@Param('id') id: string, @GetUser('userId') userId: string) {
-    const data = await this.organizationService.softDeleteOrganization(
-      id,
-      userId,
-    );
+  async remove(@Param('id') id: string) {
+    const data = await this.organizationService.softDeleteOrganization(id);
     return { data, message: 'Organization deactivated successfully' };
   }
 }

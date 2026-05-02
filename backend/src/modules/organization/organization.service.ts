@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -13,23 +9,21 @@ export class OrganizationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createOrganization(dto: CreateOrganizationDto, userId?: string) {
-    const normalizedCode = dto.code.toLowerCase().trim();
+    const code = dto.code.trim().toLowerCase();
 
-    const existingOrg = await this.prisma.organization.findUnique({
-      where: { code: normalizedCode },
+    const existing = await this.prisma.organization.findUnique({
+      where: { code },
     });
 
-    if (existingOrg) {
-      throw new ConflictException(
-        `Organization with code ${normalizedCode} already exists`,
-      );
+    if (existing) {
+      throw new ConflictException('Organization with this code already exists');
     }
 
     return this.prisma.organization.create({
       data: {
         ...dto,
-        code: normalizedCode,
-        status: dto.status || OrganizationStatus.ACTIVE,
+        code,
+        status: OrganizationStatus.ACTIVE,
         createdBy: userId,
       },
     });
@@ -37,41 +31,35 @@ export class OrganizationService {
 
   async getAllOrganizations() {
     return this.prisma.organization.findMany({
-      orderBy: { createdAt: 'desc' },
+      where: { status: { not: OrganizationStatus.INACTIVE } },
     });
   }
 
   async getOrganizationById(id: string) {
-    const org = await this.prisma.organization.findUnique({
+    const organization = await this.prisma.organization.findUnique({
       where: { id },
     });
 
-    if (!org) {
-      throw new NotFoundException(`Organization with ID ${id} not found`);
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
     }
 
-    return org;
+    return organization;
   }
 
-  async updateOrganization(
-    id: string,
-    dto: UpdateOrganizationDto,
-    userId?: string,
-  ) {
-    await this.getOrganizationById(id);
+  async updateOrganization(id: string, dto: UpdateOrganizationDto, userId?: string) {
+    const organization = await this.getOrganizationById(id);
 
     if (dto.code) {
-      const normalizedCode = dto.code.toLowerCase().trim();
-      const existingOrg = await this.prisma.organization.findFirst({
-        where: { code: normalizedCode, NOT: { id } },
-      });
-
-      if (existingOrg) {
-        throw new ConflictException(
-          `Organization with code ${normalizedCode} already exists`,
-        );
+      const code = dto.code.trim().toLowerCase();
+      if (code !== organization.code) {
+        const existing = await this.prisma.organization.findUnique({
+          where: { code },
+        });
+        if (existing) {
+          throw new ConflictException('Organization with this code already exists');
+        }
       }
-      dto.code = normalizedCode;
     }
 
     return this.prisma.organization.update({
