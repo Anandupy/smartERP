@@ -33,14 +33,21 @@ model User {
 }
 
 model RefreshToken {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   userId       String
-  token        String   @unique
-  isRevoked    Boolean  @default(false)
+  token        String    @unique
+  tokenHash    String?   @unique
+  device       String?
+  ipAddress    String?
+  userAgent    String?
+  isRevoked    Boolean   @default(false)
+  revokedAt    DateTime?
   expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   user         User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 enum RoleType {
