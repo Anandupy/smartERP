@@ -11,6 +11,7 @@ import { SystemSettingsModule } from '@/modules/system-settings/system-settings.
 import { OrganizationModule } from '@/modules/organization/organization.module';
 import { BranchModule } from '@/modules/branch/branch.module';
 import { UserModule } from '@/modules/user/user.module';
+import { AcademicYearModule } from '@/modules/academic-year/academic-year.module';
 import { SecurityModule } from '@/common/services/security.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { SecurityModule } from '@/common/services/security.module';
     SystemSettingsModule,
     OrganizationModule,
     BranchModule,
+    AcademicYearModule,
   ],
   controllers: [],
   providers: [],
