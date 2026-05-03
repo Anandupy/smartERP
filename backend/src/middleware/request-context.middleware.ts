@@ -17,8 +17,9 @@ export interface AuthenticatedRequest extends Request {
 export class RequestContextMiddleware implements NestMiddleware {
   use(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     const requestId = uuidv4();
-    const branchId = req.headers['x-branch-id'] as string || null;
-    const academicYearId = req.headers['x-academic-year-id'] as string || null;
+    const branchId = (req.headers['x-branch-id'] as string) || null;
+    const academicYearId =
+      (req.headers['x-academic-year-id'] as string) || null;
 
     req.context = {
       requestId,

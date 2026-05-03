@@ -4,15 +4,15 @@ import request from 'supertest';
 import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { PasswordService } from '@/common/services/password.service';
 
 describe('AcademicYearController (e2e)', () => {
+  jest.setTimeout(30000);
   let app: INestApplication;
   let prisma: PrismaService;
+  let passwordService: PasswordService;
   let branchId: string;
-  const adminHeaders = {
-    'x-role': UserRole.SUPER_ADMIN,
-    'x-user-id': 'test-admin-id',
-  };
+  let accessToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -22,7 +22,29 @@ describe('AcademicYearController (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     prisma = app.get(PrismaService);
+    passwordService = app.get(PasswordService);
     await app.init();
+
+    // Create a real admin user for testing
+    const password = 'Password123!';
+    const hash = await passwordService.hash(password);
+    const user = await prisma.user.create({
+      data: {
+        fullName: 'Admin User',
+        username: 'admin-' + Date.now(),
+        email: 'admin-' + Date.now() + '@test.com',
+        phone: '111' + Date.now(),
+        passwordHash: hash,
+        role: UserRole.SUPER_ADMIN,
+      },
+    });
+
+    // Login to get token
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: user.email, password });
+
+    accessToken = loginResponse.body.data.accessToken;
 
     // Create a branch for testing
     const org = await prisma.organization.create({
@@ -40,6 +62,7 @@ describe('AcademicYearController (e2e)', () => {
         organizationId: org.id,
         name: 'Test Branch',
         code: 'TBR-' + Date.now(),
+        institutionType: 'SCHOOL',
         contactEmail: 'branch@test.com',
         contactPhone: '1234567890',
         addressLine1: 'Test Address',
@@ -62,7 +85,7 @@ describe('AcademicYearController (e2e)', () => {
     it('should create an academic year and auto-select it', async () => {
       const response = await request(app.getHttpServer())
         .post('/academic-years')
-        .set(adminHeaders)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: '2025-26',
           startDate: '2025-04-01T00:00:00.000Z',
@@ -78,7 +101,7 @@ describe('AcademicYearController (e2e)', () => {
     it('should fetch all academic years for branch', async () => {
       const response = await request(app.getHttpServer())
         .get(`/academic-years?branchId=${branchId}`)
-        .set(adminHeaders);
+        .set('Authorization', `Bearer ${accessToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.data).toHaveLength(1);
@@ -87,7 +110,7 @@ describe('AcademicYearController (e2e)', () => {
     it('should fetch current academic year', async () => {
       const response = await request(app.getHttpServer())
         .get(`/academic-years/current?branchId=${branchId}`)
-        .set(adminHeaders);
+        .set('Authorization', `Bearer ${accessToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.data.id).toBe(yearId);
@@ -96,12 +119,12 @@ describe('AcademicYearController (e2e)', () => {
     it('should lock academic year and prevent updates', async () => {
       await request(app.getHttpServer())
         .patch(`/academic-years/${yearId}/lock`)
-        .set(adminHeaders)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send();
 
       const response = await request(app.getHttpServer())
         .patch(`/academic-years/${yearId}`)
-        .set(adminHeaders)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send({ name: 'Updated Name' });
 
       expect(response.status).toBe(403);
@@ -111,7 +134,7 @@ describe('AcademicYearController (e2e)', () => {
     it('should prevent overlapping years', async () => {
       const response = await request(app.getHttpServer())
         .post('/academic-years')
-        .set(adminHeaders)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send({
           name: '2025-26 Overlap',
           startDate: '2025-06-01T00:00:00.000Z',

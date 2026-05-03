@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsEnum, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEmail,
+  IsOptional,
+  IsEnum,
+  Matches,
+} from 'class-validator';
 import { StructureMode } from '@/generated/client';
 
 export class CreateBranchDto {
@@ -13,9 +20,26 @@ export class CreateBranchDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^[a-z0-9-]+$/, {
-    message: 'Code must be lowercase and contain only alphanumeric characters and hyphens',
+    message:
+      'Code must be lowercase and contain only alphanumeric characters and hyphens',
   })
   code: string;
+
+  @IsString()
+  @IsOptional()
+  registrationNumber?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  institutionType: string; // Using string here to avoid circular dependency or import issues if enums are in Prisma
+
+  @IsString()
+  @IsOptional()
+  affiliationType?: string;
+
+  @IsString()
+  @IsOptional()
+  affiliationName?: string;
 
   @IsString()
   @IsOptional()

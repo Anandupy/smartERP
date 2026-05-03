@@ -4,11 +4,15 @@ import request from 'supertest';
 import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { PasswordService } from '@/common/services/password.service';
 
 describe('OrganizationController (e2e)', () => {
   jest.setTimeout(30000);
   let app: INestApplication;
   let prisma: PrismaService;
+  let passwordService: PasswordService;
+  let superAdminToken: string;
+  let orgAdminToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -18,11 +22,46 @@ describe('OrganizationController (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     prisma = app.get(PrismaService);
+    passwordService = app.get(PasswordService);
     await app.init();
+
+    const password = 'Password123!';
+    const hash = await passwordService.hash(password);
+
+    const superAdmin = await prisma.user.create({
+      data: {
+        fullName: 'Super Admin',
+        username: 'super-' + Date.now(),
+        email: 'super-' + Date.now() + '@test.com',
+        phone: '444' + Date.now(),
+        passwordHash: hash,
+        role: UserRole.SUPER_ADMIN,
+      },
+    });
+
+    const orgAdmin = await prisma.user.create({
+      data: {
+        fullName: 'Org Admin',
+        username: 'org-' + Date.now(),
+        email: 'org-' + Date.now() + '@test.com',
+        phone: '555' + Date.now(),
+        passwordHash: hash,
+        role: UserRole.ORG_ADMIN,
+      },
+    });
+
+    const superLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: superAdmin.email, password });
+    superAdminToken = superLogin.body.data.accessToken;
+
+    const orgLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: orgAdmin.email, password });
+    orgAdminToken = orgLogin.body.data.accessToken;
   });
 
   afterAll(async () => {
-    // Cleanup if needed
     await app.close();
   });
 
@@ -38,9 +77,9 @@ describe('OrganizationController (e2e)', () => {
     it('should create organization for SUPER_ADMIN', async () => {
       const response = await request(app.getHttpServer())
         .post('/organizations')
-        .set('x-role', UserRole.SUPER_ADMIN)
+        .set('Authorization', `Bearer ${superAdminToken}`)
         .send(createDto);
-      
+
       expect(response.status).toBe(201);
       expect(response.body.data.name).toBe(createDto.name);
     });
@@ -48,7 +87,7 @@ describe('OrganizationController (e2e)', () => {
     it('should return 403 for ORG_ADMIN', () => {
       return request(app.getHttpServer())
         .post('/organizations')
-        .set('x-role', UserRole.ORG_ADMIN)
+        .set('Authorization', `Bearer ${orgAdminToken}`)
         .send(createDto)
         .expect(403);
     });
@@ -58,7 +97,7 @@ describe('OrganizationController (e2e)', () => {
     it('should allow ORG_ADMIN to list organizations', () => {
       return request(app.getHttpServer())
         .get('/organizations')
-        .set('x-role', UserRole.ORG_ADMIN)
+        .set('Authorization', `Bearer ${orgAdminToken}`)
         .expect(200);
     });
   });

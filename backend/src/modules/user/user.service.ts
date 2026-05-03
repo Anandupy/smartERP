@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -26,9 +30,12 @@ export class UserService {
     });
 
     if (existing) {
-      if (existing.email === dto.email) throw new ConflictException('Email already exists');
-      if (existing.username === dto.username) throw new ConflictException('Username already exists');
-      if (existing.phone === dto.phone) throw new ConflictException('Phone number already exists');
+      if (existing.email === dto.email)
+        throw new ConflictException('Email already exists');
+      if (existing.username === dto.username)
+        throw new ConflictException('Username already exists');
+      if (existing.phone === dto.phone)
+        throw new ConflictException('Phone number already exists');
     }
 
     const passwordHash = await this.passwordService.hash(password);

@@ -7,20 +7,20 @@ import {
   Delete,
   Param,
   Req,
-  UseGuards,
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('login')
   @ApiOperation({ summary: 'Login with email/username/phone' })
   async login(@Body() dto: LoginDto, @Req() req: Request) {
@@ -33,6 +33,7 @@ export class AuthController {
     return { data, message: 'Login successful' };
   }
 
+  @Public()
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Body('refreshToken') token: string) {
@@ -42,6 +43,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and revoke refresh token' })
   async logout(
     @Body('refreshToken') token: string,
@@ -54,7 +56,6 @@ export class AuthController {
   }
 
   @Get('sessions')
-  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get active sessions for current user' })
   async getSessions(@Req() req: any) {
@@ -63,7 +64,6 @@ export class AuthController {
   }
 
   @Delete('sessions/:id')
-  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke a specific session' })
   async revokeSession(@Param('id') id: string, @Req() req: any) {
@@ -72,7 +72,6 @@ export class AuthController {
   }
 
   @Delete('sessions')
-  @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke all sessions' })
   async revokeAllSessions(@Req() req: any) {

@@ -1,24 +1,22 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { RolesGuard } from '@/common/guards/roles.guard';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
-@UseGuards(RolesGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Create user (Admin only)' })
-  async create(@Body() dto: CreateUserDto, @Headers('x-user-id') creatorId?: string) {
-    const data = await this.userService.createUser(dto, creatorId);
+  async create(@Body() dto: CreateUserDto, @Req() req: any) {
+    const data = await this.userService.createUser(dto, req.userId);
     return { data, message: 'User created successfully' };
   }
 
@@ -36,9 +34,9 @@ export class UserController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
-    @Headers('x-user-id') updaterId?: string,
+    @Req() req: any,
   ) {
-    const data = await this.userService.updateUser(id, dto, updaterId);
+    const data = await this.userService.updateUser(id, dto, req.userId);
     return { data, message: 'User updated successfully' };
   }
 }

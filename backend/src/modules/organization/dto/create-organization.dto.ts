@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsDateString, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEmail,
+  IsOptional,
+  IsDateString,
+  Matches,
+} from 'class-validator';
 
 export class CreateOrganizationDto {
   @IsString()
@@ -8,7 +15,8 @@ export class CreateOrganizationDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^[a-z0-9-]+$/, {
-    message: 'Code must be lowercase and contain only alphanumeric characters and hyphens',
+    message:
+      'Code must be lowercase and contain only alphanumeric characters and hyphens',
   })
   code: string;
 

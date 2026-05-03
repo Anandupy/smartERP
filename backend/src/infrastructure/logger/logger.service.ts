@@ -10,15 +10,29 @@ export class LoggerService implements NestLoggerService {
     const logFormat = winston.format.combine(
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
       winston.format.errors({ stack: true }),
-      winston.format.json()
+      winston.format.json(),
     );
 
     const consoleFormat = winston.format.combine(
       winston.format.colorize(),
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      winston.format.printf(({ timestamp, level, message, context, trace }) => {
-        return `[${timestamp}] ${level} [${context || 'App'}]: ${typeof message === 'object' ? JSON.stringify(message) : message}${trace ? `\n${trace}` : ''}`;
-      })
+
+      winston.format.printf((info: any) => {
+        const { timestamp, level, message, context, trace } = info;
+        const ts =
+          typeof timestamp === 'string' ? timestamp : new Date().toISOString();
+        const lvl = typeof level === 'string' ? level : 'info';
+        const ctx = typeof context === 'string' ? context : 'App';
+        const msg =
+          typeof message === 'object'
+            ? JSON.stringify(message)
+            : String(message);
+        const tr = trace
+          ? `\n${typeof trace === 'object' ? JSON.stringify(trace, null, 2) : String(trace)}`
+          : '';
+
+        return `[${ts}] ${lvl} [${ctx}]: ${msg}${tr}`;
+      }),
     );
 
     this.logger = winston.createLogger({
@@ -76,9 +90,12 @@ export class LoggerService implements NestLoggerService {
     userId: string | null;
     branchId: string | null;
   }) {
-    this.logger.info(`[HTTP] ${data.method} ${data.url} ${data.statusCode} - ${data.responseTime}ms`, {
-      context: 'HTTP',
-      ...data,
-    });
+    this.logger.info(
+      `[HTTP] ${data.method} ${data.url} ${data.statusCode} - ${data.responseTime}ms`,
+      {
+        context: 'HTTP',
+        ...data,
+      },
+    );
   }
 }

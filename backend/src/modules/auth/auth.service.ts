@@ -170,7 +170,18 @@ export class AuthService {
     role: string,
     sessionInfo?: { ipAddress?: string; userAgent?: string; device?: string },
   ) {
-    const payload = { sub: userId, email, role };
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true, branchId: true },
+    });
+
+    const payload = {
+      sub: userId,
+      email,
+      role,
+      organizationId: user?.organizationId,
+      branchId: user?.branchId,
+    };
 
     const accessToken = this.jwtService.sign(payload);
 

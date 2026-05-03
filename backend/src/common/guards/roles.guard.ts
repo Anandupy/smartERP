@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { UserRole } from '../enums/role.enum';
@@ -17,21 +22,21 @@ export class RolesGuard implements CanActivate {
   };
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!requiredRoles) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest();
-    
-    // Get role and userId from user object (JWT) or headers (simulation)
+
+    // Get role and userId from user object (JWT or DB)
     const user = request.user;
-    const role = (user?.role || request.headers['x-role']) as UserRole;
-    const userId = user?.id || request.headers['x-user-id'];
+    const role = user?.role as UserRole;
+    const userId = user?.id || user?.sub;
 
     if (!role) {
       throw new ForbiddenException('No role provided');
@@ -43,10 +48,14 @@ export class RolesGuard implements CanActivate {
 
     // Check hierarchy
     const userRoleWeight = this.roleHierarchy[role];
-    const hasRole = requiredRoles.some((r) => this.roleHierarchy[r] <= userRoleWeight);
-    
+    const hasRole = requiredRoles.some(
+      (r) => this.roleHierarchy[r] <= userRoleWeight,
+    );
+
     if (!hasRole) {
-      throw new ForbiddenException('You do not have permission to access this resource');
+      throw new ForbiddenException(
+        'You do not have permission to access this resource',
+      );
     }
 
     // Ensure userId is attached for audit

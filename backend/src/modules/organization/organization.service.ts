@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -47,7 +51,11 @@ export class OrganizationService {
     return organization;
   }
 
-  async updateOrganization(id: string, dto: UpdateOrganizationDto, userId?: string) {
+  async updateOrganization(
+    id: string,
+    dto: UpdateOrganizationDto,
+    userId?: string,
+  ) {
     const organization = await this.getOrganizationById(id);
 
     if (dto.code) {
@@ -57,7 +65,9 @@ export class OrganizationService {
           where: { code },
         });
         if (existing) {
-          throw new ConflictException('Organization with this code already exists');
+          throw new ConflictException(
+            'Organization with this code already exists',
+          );
         }
       }
     }

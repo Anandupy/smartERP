@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsEmail, IsEnum, IsOptional, IsPhoneNumber, MinLength, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsPhoneNumber,
+  MinLength,
+  Matches,
+} from 'class-validator';
 import { RoleType } from '@/generated/client';
 
 export class CreateUserDto {
@@ -9,7 +18,8 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^[a-zA-Z0-9_]+$/, {
-    message: 'Username can only contain letters, numbers, and underscores (no spaces)',
+    message:
+      'Username can only contain letters, numbers, and underscores (no spaces)',
   })
   username: string;
 

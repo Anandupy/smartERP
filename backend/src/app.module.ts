@@ -1,5 +1,6 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import envConfig from '@/config/env.config';
 import databaseConfig from '@/config/database.config';
 import { PrismaModule } from '@/infrastructure/database/prisma.module';
@@ -13,6 +14,8 @@ import { BranchModule } from '@/modules/branch/branch.module';
 import { UserModule } from '@/modules/user/user.module';
 import { AcademicYearModule } from '@/modules/academic-year/academic-year.module';
 import { SecurityModule } from '@/common/services/security.module';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
 
 @Module({
   imports: [
@@ -32,7 +35,16 @@ import { SecurityModule } from '@/common/services/security.module';
     AcademicYearModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

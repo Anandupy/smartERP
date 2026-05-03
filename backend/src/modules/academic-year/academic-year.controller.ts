@@ -7,32 +7,26 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
-  Headers,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AcademicYearService } from './academic-year.service';
 import { CreateAcademicYearDto } from './dto/create-academic-year.dto';
 import { UpdateAcademicYearDto } from './dto/update-academic-year.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { RolesGuard } from '@/common/guards/roles.guard';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Academic Years')
 @ApiBearerAuth()
 @Controller('academic-years')
-@UseGuards(RolesGuard)
 export class AcademicYearController {
   constructor(private readonly academicYearService: AcademicYearService) {}
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Create academic year' })
-  async create(
-    @Body() dto: CreateAcademicYearDto,
-    @Headers('x-user-id') creatorId?: string,
-  ) {
-    const data = await this.academicYearService.create(dto, creatorId);
+  async create(@Body() dto: CreateAcademicYearDto, @Req() req: any) {
+    const data = await this.academicYearService.create(dto, req.userId);
     return { data, message: 'Academic year created successfully' };
   }
 
@@ -70,9 +64,9 @@ export class AcademicYearController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateAcademicYearDto,
-    @Headers('x-user-id') updaterId?: string,
+    @Req() req: any,
   ) {
-    const data = await this.academicYearService.update(id, dto, updaterId);
+    const data = await this.academicYearService.update(id, dto, req.userId);
     return { data, message: 'Academic year updated successfully' };
   }
 

@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
@@ -14,7 +18,9 @@ export class BranchService {
     });
 
     if (!org) {
-      throw new NotFoundException(`Organization with ID ${dto.organizationId} not found`);
+      throw new NotFoundException(
+        `Organization with ID ${dto.organizationId} not found`,
+      );
     }
 
     const code = dto.code.trim().toLowerCase();
@@ -28,10 +34,24 @@ export class BranchService {
       throw new ConflictException('Branch with this code already exists');
     }
 
+    // Ensure unique registration number if provided
+    if (dto.registrationNumber) {
+      const existingReg = await this.prisma.branch.findUnique({
+        where: { registrationNumber: dto.registrationNumber },
+      });
+      if (existingReg) {
+        throw new ConflictException(
+          'Branch with this registration number already exists',
+        );
+      }
+    }
+
     return this.prisma.branch.create({
       data: {
         ...dto,
         code,
+        institutionType: dto.institutionType as any,
+        affiliationType: dto.affiliationType as any,
         createdBy: userId,
         updatedBy: userId,
       },
@@ -79,10 +99,26 @@ export class BranchService {
       }
     }
 
+    if (
+      dto.registrationNumber &&
+      dto.registrationNumber !== branch.registrationNumber
+    ) {
+      const existingReg = await this.prisma.branch.findUnique({
+        where: { registrationNumber: dto.registrationNumber },
+      });
+      if (existingReg) {
+        throw new ConflictException(
+          'Branch with this registration number already exists',
+        );
+      }
+    }
+
     return this.prisma.branch.update({
       where: { id },
       data: {
         ...dto,
+        institutionType: dto.institutionType as any,
+        affiliationType: dto.affiliationType as any,
         updatedBy: userId,
       },
     });

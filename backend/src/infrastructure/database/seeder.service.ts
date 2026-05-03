@@ -23,7 +23,9 @@ export class SeederService implements OnApplicationBootstrap {
     const adminPassword = this.configService.get<string>('ADMIN_PASSWORD');
 
     if (!adminEmail || !adminPassword) {
-      this.logger.warn('ADMIN_EMAIL or ADMIN_PASSWORD not set. Skipping Super Admin seeding.');
+      this.logger.warn(
+        'ADMIN_EMAIL or ADMIN_PASSWORD not set. Skipping Super Admin seeding.',
+      );
       return;
     }
 

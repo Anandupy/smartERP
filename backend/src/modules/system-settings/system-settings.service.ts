@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { CreateSystemDto } from './dto/create-system.dto';
 import { UpdateSystemDto } from './dto/update-system.dto';
@@ -9,7 +13,7 @@ export class SystemSettingsService {
 
   async initSystem(dto: CreateSystemDto, userId?: string) {
     const existingSystem = await this.prisma.systemSetting.findFirst();
-    
+
     if (existingSystem) {
       throw new BadRequestException('System already initialized');
     }
@@ -25,7 +29,9 @@ export class SystemSettingsService {
   async getSystem() {
     const system = await this.prisma.systemSetting.findFirst();
     if (!system) {
-      throw new NotFoundException('System settings not found. Please initialize the system.');
+      throw new NotFoundException(
+        'System settings not found. Please initialize the system.',
+      );
     }
     return system;
   }

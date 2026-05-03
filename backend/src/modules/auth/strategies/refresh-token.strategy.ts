@@ -5,7 +5,10 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 
 @Injectable()
-export class RefreshTokenStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
+export class RefreshTokenStrategy extends PassportStrategy(
+  Strategy,
+  'jwt-refresh',
+) {
   constructor(configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -17,7 +20,8 @@ export class RefreshTokenStrategy extends PassportStrategy(Strategy, 'jwt-refres
 
   async validate(req: Request, payload: any) {
     const refreshToken = req.get('Authorization')?.replace('Bearer', '').trim();
-    if (!refreshToken) throw new UnauthorizedException('Refresh token malformed');
+    if (!refreshToken)
+      throw new UnauthorizedException('Refresh token malformed');
     return { ...payload, refreshToken };
   }
 }

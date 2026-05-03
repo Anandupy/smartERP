@@ -1,4 +1,4 @@
-import { IsString, IsBoolean, IsOptional, IsEmail, IsPhoneNumber } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsEmail } from 'class-validator';
 
 export class UpdateSystemDto {
   @IsString()

@@ -122,29 +122,47 @@ enum OrganizationStatus {
 }
 
 model Branch {
-  id               String   @id @default(uuid())
-  organizationId   String
-  name             String
-  code             String   @unique
-  logoUrl          String?
-  contactEmail     String
-  contactPhone     String
-  addressLine1     String
-  addressLine2     String?
-  city             String
-  state            String
-  country          String
-  pincode          String
-  structureMode    StructureMode @default(DEFAULT)
-  isActive         Boolean  @default(true)
-  isDeleted        Boolean  @default(false)
-  createdBy        String?
-  updatedBy        String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  organizationId     String
+  name               String
+  code               String   @unique
+  registrationNumber String?  @unique
+  institutionType    InstitutionType
+  affiliationType    AffiliationType?
+  affiliationName    String?
+  logoUrl            String?
+  contactEmail       String
+  contactPhone       String
+  addressLine1       String
+  addressLine2       String?
+  city               String
+  state              String
+  country            String
+  pincode            String
+  structureMode      StructureMode @default(DEFAULT)
+  isActive           Boolean  @default(true)
+  isDeleted          Boolean  @default(false)
+  createdBy          String?
+  updatedBy          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  academicYears    AcademicYear[]
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  academicYears      AcademicYear[]
+}
+
+enum InstitutionType {
+  SCHOOL
+  JUNIOR_COLLEGE
+  DEGREE_COLLEGE
+  UNIVERSITY
+  OTHER
+}
+
+enum AffiliationType {
+  BOARD
+  UNIVERSITY
+  OTHER
 }
 
 enum StructureMode {

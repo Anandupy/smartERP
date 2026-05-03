@@ -8,7 +8,11 @@ import { RolesGuard } from '@/common/guards/roles.guard';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('System Settings')
-@ApiHeader({ name: 'x-role', description: 'User role for simulation', required: true })
+@ApiHeader({
+  name: 'x-role',
+  description: 'User role for simulation',
+  required: true,
+})
 @Controller('system-settings')
 @UseGuards(RolesGuard)
 @Roles(UserRole.SUPER_ADMIN)

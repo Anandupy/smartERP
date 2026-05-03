@@ -26,10 +26,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null
+      ) {
         message = (exceptionResponse as any).message || message;
         errorDetail = (exceptionResponse as any).error;
-        
+
         if (Array.isArray(message)) {
           message = message.join(', ');
         }
@@ -44,7 +47,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     this.logger.error(
       `Exception thrown: ${exception instanceof Error ? exception.message : message}`,
       exception instanceof Error ? exception.stack : undefined,
-      'GlobalExceptionFilter'
+      'GlobalExceptionFilter',
     );
 
     response.status(status).json({
@@ -53,8 +56,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       data: null,
       meta: {},
       error: {
-        code: exception instanceof HttpException ? exception.constructor.name : 'InternalServerError',
-        details: errorDetail || (exception instanceof Error ? exception.message : exception),
+        code:
+          exception instanceof HttpException
+            ? exception.constructor.name
+            : 'InternalServerError',
+        details:
+          errorDetail ||
+          (exception instanceof Error ? exception.message : exception),
       },
     });
   }
