@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
+import { Program } from '@/generated/client';
 
 @Injectable()
 export class ProgramService {
@@ -123,10 +124,11 @@ export class ProgramService {
           throw new BadRequestException('Circular hierarchy detected');
         }
         visited.add(currentParentId);
-        const p = await this.prisma.program.findUnique({
-          where: { id: currentParentId },
-        });
-        currentParentId = p?.parentId || null;
+        const parentRecord: Program | null =
+          await this.prisma.program.findUnique({
+            where: { id: currentParentId },
+          });
+        currentParentId = parentRecord?.parentId || null;
       }
     }
 
