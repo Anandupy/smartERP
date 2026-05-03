@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { createHash } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
@@ -17,7 +22,10 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async login(dto: LoginDto) {
+  async login(
+    dto: LoginDto,
+    sessionInfo?: { ipAddress?: string; userAgent?: string; device?: string },
+  ) {
     const user = await this.userService.findByIdentifier(dto.identifier);
 
     if (!user) {
@@ -26,11 +34,18 @@ export class AuthService {
 
     // Check account lock
     if (user.lockUntil && user.lockUntil > new Date()) {
-      const minutesLeft = Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000);
-      throw new ForbiddenException(`Account locked. Try again after ${minutesLeft} minutes`);
+      const minutesLeft = Math.ceil(
+        (user.lockUntil.getTime() - Date.now()) / 60000,
+      );
+      throw new ForbiddenException(
+        `Account locked. Try again after ${minutesLeft} minutes`,
+      );
     }
 
-    const isPasswordValid = await this.passwordService.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await this.passwordService.compare(
+      dto.password,
+      user.passwordHash,
+    );
 
     if (!isPasswordValid) {
       await this.handleFailedLogin(user);
@@ -40,38 +55,127 @@ export class AuthService {
     // Reset failed attempts on success
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { failedLoginAttempts: 0, lockUntil: null, lastLoginAt: new Date() },
+      data: {
+        failedLoginAttempts: 0,
+        lockUntil: null,
+        lastLoginAt: new Date(),
+      },
     });
 
-    return this.generateTokens(user.id, user.email, user.role);
+    return this.generateTokens(user.id, user.email, user.role, sessionInfo);
   }
 
   async refreshToken(token: string) {
-    const refreshToken = await this.prisma.refreshToken.findUnique({
-      where: { token },
+    const tokenHash = this.hashToken(token);
+
+    const refreshToken = await this.prisma.refreshToken.findFirst({
+      where: {
+        OR: [
+          { tokenHash },
+          { token }, // Fallback for old tokens
+        ],
+      },
       include: { user: true },
     });
 
-    if (!refreshToken || refreshToken.isRevoked || refreshToken.expiresAt < new Date()) {
+    if (
+      !refreshToken ||
+      refreshToken.isRevoked ||
+      refreshToken.expiresAt < new Date()
+    ) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    return this.generateTokens(refreshToken.user.id, refreshToken.user.email, refreshToken.user.role);
+    // Token Rotation: mark old token as revoked
+    await this.prisma.refreshToken.update({
+      where: { id: refreshToken.id },
+      data: {
+        isRevoked: true,
+        revokedAt: new Date(),
+      },
+    });
+
+    // Create new refresh token, maintaining session info
+    return this.generateTokens(
+      refreshToken.user.id,
+      refreshToken.user.email,
+      refreshToken.user.role,
+      {
+        ipAddress: refreshToken.ipAddress || undefined,
+        userAgent: refreshToken.userAgent || undefined,
+        device: refreshToken.device || undefined,
+      },
+    );
   }
 
-  async logout(token: string) {
-    await this.prisma.refreshToken.update({
-      where: { token },
-      data: { isRevoked: true },
+  async logout(token: string, allDevices = false) {
+    const tokenHash = this.hashToken(token);
+
+    const refreshToken = await this.prisma.refreshToken.findFirst({
+      where: {
+        OR: [{ tokenHash }, { token }],
+      },
+    });
+
+    if (!refreshToken) return;
+
+    if (allDevices) {
+      await this.prisma.refreshToken.updateMany({
+        where: { userId: refreshToken.userId, isRevoked: false },
+        data: { isRevoked: true, revokedAt: new Date() },
+      });
+    } else {
+      await this.prisma.refreshToken.update({
+        where: { id: refreshToken.id },
+        data: { isRevoked: true, revokedAt: new Date() },
+      });
+    }
+  }
+
+  async getSessions(userId: string) {
+    return this.prisma.refreshToken.findMany({
+      where: { userId, isRevoked: false, expiresAt: { gt: new Date() } },
+      select: {
+        id: true,
+        device: true,
+        ipAddress: true,
+        userAgent: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
+  async revokeSession(userId: string, sessionId: string) {
+    await this.prisma.refreshToken.updateMany({
+      where: { id: sessionId, userId, isRevoked: false },
+      data: { isRevoked: true, revokedAt: new Date() },
+    });
+  }
+
+  async revokeAllSessions(userId: string) {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, isRevoked: false },
+      data: { isRevoked: true, revokedAt: new Date() },
+    });
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    sessionInfo?: { ipAddress?: string; userAgent?: string; device?: string },
+  ) {
     const payload = { sub: userId, email, role };
-    
+
     const accessToken = this.jwtService.sign(payload);
-    
+
     const refreshTokenValue = uuidv4();
+    const tokenHash = this.hashToken(refreshTokenValue);
     const refreshTokenExpiry = new Date();
     refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7); // 7 days
 
@@ -79,6 +183,10 @@ export class AuthService {
       data: {
         userId,
         token: refreshTokenValue,
+        tokenHash,
+        ipAddress: sessionInfo?.ipAddress,
+        userAgent: sessionInfo?.userAgent,
+        device: sessionInfo?.device || 'Unknown',
         expiresAt: refreshTokenExpiry,
       },
     });

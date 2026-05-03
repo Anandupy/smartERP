@@ -4,8 +4,10 @@ The Auth module handles user identification, authentication via JWT, and secure 
 
 ## Architecture
 - **JWT Based**: Uses short-lived Access Tokens (15m) and long-lived Refresh Tokens (7d).
-- **Refresh Tokens**: Stored in the database and can be revoked upon logout.
-- **Password Security**: Uses Bcrypt with a work factor of 12. Abstracted via `PasswordService` to allow future migration to Argon2.
+- **Multi-Device Support**: Users can have multiple active sessions (different devices/browsers).
+- **Secure Sessions**: Refresh tokens are hashed before being stored in the database.
+- **Session Tracking**: IP address, user-agent, and device type are tracked for each session.
+- **Password Security**: Uses Bcrypt with a work factor of 12. Abstracted via `PasswordService`.
 - **Account Protection**: Implements a brute-force protection mechanism (lock account for 10m after 5 failed attempts).
 
 ## User Identity
@@ -19,20 +21,54 @@ The `User` model represents an authentication identity. It is decoupled from bus
 1. User provides `identifier` (email/username/phone) and `password`.
 2. System checks if account is locked.
 3. System verifies password hash.
-4. On success: Generate JWT + Refresh Token.
+4. On success:
+   - Capture IP, User-Agent, and Device.
+   - Generate JWT + Refresh Token.
+   - Store hashed Refresh Token with session info.
 5. On failure: Increment `failedLoginAttempts`.
 
-### Token Refresh Flow
+### Token Refresh Flow (Rotation)
 1. Client sends `refreshToken`.
-2. System verifies token existence and revocation status.
-3. If valid: Issue new Access Token + new Refresh Token (Token Rotation).
+2. System hashes the token and verifies existence and revocation status (with fallback for legacy tokens).
+3. If valid:
+   - Revoke the old token (set `isRevoked = true` and `revokedAt`).
+   - Issue new Access Token + new Refresh Token (Hashed).
+   - Maintain the original session information (IP, Device).
+
+## Token Security
+- **Hashing**: All new refresh tokens are hashed using SHA-256 before storage. The raw token is only sent to the client once.
+- **Rotation**: Refresh tokens are rotated on every use, limiting the window of opportunity for stolen tokens.
+- **Backward Compatibility**: Tokens created before the migration are still supported via the legacy `token` field.
+
+## Session Management
+Users can manage their active sessions via the following APIs:
+
+### GET /v1/auth/sessions
+Returns a list of active sessions for the authenticated user, including device info and IP address.
+
+### DELETE /v1/auth/sessions/:id
+Revokes a specific session by its ID.
+
+### DELETE /v1/auth/sessions
+Revokes all active sessions for the user (effectively a "logout from all devices").
 
 ## API Endpoints
 
-### Auth Endpoints
-- `POST /v1/auth/login`: Authenticate and receive tokens.
-- `POST /v1/auth/refresh`: Exchange refresh token for new access token.
-- `POST /v1/auth/logout`: Revoke refresh token.
+### POST /v1/auth/login
+- Public
+- Body: `LoginDto`
+- Response: `Tokens` + Session info
+
+### POST /v1/auth/refresh
+- Public
+- Body: `{ refreshToken: string }`
+- Response: New `Tokens`
+
+### POST /v1/auth/logout
+- Public (requires refreshToken)
+- Query: `allDevices=true` (optional)
+- Body: `{ refreshToken: string }`
+- Response: Success message
 
 ### User Endpoints
 - `POST /v1/users`: Create a new user (Admin only).
