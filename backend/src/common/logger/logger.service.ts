@@ -44,36 +44,56 @@ export class LoggerService implements NestLoggerService {
 
     const streams: pino.StreamEntry[] = [];
 
+    // Common pretty options for Dev (both console and file)
+    const prettyOptions = {
+      colorize: true,
+      translateTime: 'SYS:standard',
+      ignore: 'pid,hostname', // Hide internal noise
+      messageFormat: (log: Record<string, unknown>, messageKey: string) => {
+        const message = log[messageKey];
+        const context = log.context;
+        if (context) {
+          return `[\x1b[33m${context as string}\x1b[0m] ${message as string}`;
+        }
+        return message as string;
+      },
+    };
+
     // Console Stream
     if (isDev) {
       streams.push({
         level: 'info',
-        stream: pinoPretty({
-          colorize: true,
-          translateTime: 'SYS:standard',
-          ignore: 'pid,hostname,context',
-          messageFormat: (log: Record<string, unknown>, messageKey: string) => {
-            const message = log[messageKey];
-            const context = log.context;
-            if (context) {
-              return `[\x1b[33m${context as string}\x1b[0m] ${message as string}`;
-            }
-            return message as string;
-          },
-        }),
+        stream: pinoPretty(prettyOptions),
       });
     } else {
       streams.push({ level: 'info', stream: process.stdout });
     }
 
-    // File Streams
+    // File Streams - Use pretty printing in dev for readability, JSON in prod
+    const fileStream = isDev
+      ? pinoPretty({
+          ...prettyOptions,
+          colorize: false, // No colors in files
+        })
+      : undefined;
+
     streams.push({
       level: 'info',
-      stream: fs.createWriteStream(path.join(logsDir, 'app.log'), {
-        flags: 'a',
-      }),
+      stream:
+        fileStream ||
+        fs.createWriteStream(path.join(logsDir, 'app.log'), {
+          flags: 'a',
+        }),
     });
 
+    if (fileStream) {
+      // In dev, we also want the pretty output saved to app.log
+      (fileStream as any).pipe(
+        fs.createWriteStream(path.join(logsDir, 'app.log'), { flags: 'a' }),
+      );
+    }
+
+    // Error-specific file stream
     streams.push({
       level: 'error',
       stream: fs.createWriteStream(path.join(logsDir, 'error.log'), {
@@ -84,6 +104,7 @@ export class LoggerService implements NestLoggerService {
     this.logger = pino(
       {
         level: process.env.LOG_LEVEL || 'info',
+        base: undefined, // Remove pid and hostname from the base object
       },
       pino.multistream(streams),
     );

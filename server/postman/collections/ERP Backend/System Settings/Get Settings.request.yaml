@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/system-settings"
+method: GET
+order: 2000

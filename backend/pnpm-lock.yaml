@@ -72,8 +72,8 @@ importers:
         specifier: ^7.8.1
         version: 7.8.2
       uuid:
-        specifier: ^14.0.0
-        version: 14.0.0
+        specifier: ^11.0.0
+        version: 11.0.0
       winston:
         specifier: ^3.19.0
         version: 3.19.0
@@ -3435,6 +3435,10 @@ packages:
   utils-merge@1.0.1:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
+
+  uuid@11.0.0:
+    resolution: {integrity: sha512-iE8Fa5fgBY4rN5GvNUJ8TSwO1QG7TzdPfhrJczf6XJ6mZUxh/GX433N70fCiJL9h8EKP5ayEIo0Q6EBQGWHFqA==}
+    hasBin: true
 
   uuid@14.0.0:
     resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
@@ -7205,6 +7209,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   utils-merge@1.0.1: {}
+
+  uuid@11.0.0: {}
 
   uuid@14.0.0: {}
 

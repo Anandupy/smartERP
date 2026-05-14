@@ -1,0 +1,28 @@
+$kind: http-request
+name: Login
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: ""
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      if (response.success && response.data) {\r
+
+      \    pm.environment.set(\"accessToken\", response.data.accessToken);\r
+
+      \    pm.environment.set(\"refreshToken\", response.data.refreshToken);\r
+
+      \    pm.test(\"Login successful and tokens stored\", () => {\r
+
+      \        pm.expect(response.data.accessToken).to.be.a('string');\r
+
+      \    });\r
+
+      }"
+    language: text/javascript
+order: 5000
