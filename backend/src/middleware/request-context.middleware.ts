@@ -6,7 +6,9 @@ export interface RequestContext {
   requestId: string;
   branchId: string | null;
   academicYearId: string | null;
+  organizationId: string | null;
   userId: string | null;
+  role: string | null;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -25,7 +27,9 @@ export class RequestContextMiddleware implements NestMiddleware {
       requestId,
       branchId,
       academicYearId,
+      organizationId: null,
       userId: null,
+      role: null,
     };
 
     next();

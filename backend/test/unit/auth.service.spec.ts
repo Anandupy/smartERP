@@ -20,7 +20,7 @@ describe('AuthService', () => {
   };
 
   const mockPrisma = {
-    user: { update: jest.fn() },
+    user: { update: jest.fn(), findUnique: jest.fn() },
     refreshToken: {
       create: jest.fn(),
       findFirst: jest.fn(),

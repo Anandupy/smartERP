@@ -61,6 +61,19 @@ export class RolesGuard implements CanActivate {
     // Ensure userId is attached for audit
     request.userId = userId;
 
+    // Populate context from authenticated user
+    if (request.context) {
+      request.context.userId = userId;
+      request.context.role = role;
+      request.context.organizationId = user?.organizationId || null;
+
+      // Security: If not SUPER_ADMIN, enforce the user's assigned branchId
+      // This prevents header/query spoofing for multi-tenancy
+      if (role !== UserRole.SUPER_ADMIN && user?.branchId) {
+        request.context.branchId = user.branchId;
+      }
+    }
+
     return true;
   }
 }

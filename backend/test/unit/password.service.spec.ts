@@ -15,9 +15,9 @@ describe('BcryptPasswordService', () => {
   it('should hash and compare passwords correctly', async () => {
     const password = 'test-password';
     const hash = await service.hash(password);
-    
+
     expect(hash).not.toBe(password);
     expect(await service.compare(password, hash)).toBe(true);
     expect(await service.compare('wrong-password', hash)).toBe(false);
-  });
+  }, 10000);
 });

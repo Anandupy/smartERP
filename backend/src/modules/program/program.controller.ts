@@ -26,6 +26,10 @@ export class ProgramController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Create a new program' })
   async create(@Body() createProgramDto: CreateProgramDto, @Req() req: any) {
+    // If not super admin, enforce branchId from context
+    if (req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId) {
+      createProgramDto.branchId = req.context.branchId;
+    }
     const data = await this.programService.createProgram(
       createProgramDto,
       req.userId,
@@ -41,8 +45,14 @@ export class ProgramController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get all programs for a branch' })
-  async findAll(@Query('branchId') branchId: string) {
-    const data = await this.programService.getProgramsByBranch(branchId);
+  async findAll(@Query('branchId') branchId: string, @Req() req: any) {
+    // If not super admin, enforce branchId from context
+    const targetBranchId =
+      req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId
+        ? req.context.branchId
+        : branchId;
+
+    const data = await this.programService.getProgramsByBranch(targetBranchId);
     return { data, message: 'Programs retrieved successfully' };
   }
 
@@ -54,8 +64,14 @@ export class ProgramController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get hierarchical program tree for a branch' })
-  async getTree(@Query('branchId') branchId: string) {
-    const data = await this.programService.getProgramTree(branchId);
+  async getTree(@Query('branchId') branchId: string, @Req() req: any) {
+    // If not super admin, enforce branchId from context
+    const targetBranchId =
+      req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId
+        ? req.context.branchId
+        : branchId;
+
+    const data = await this.programService.getProgramTree(targetBranchId);
     return { data, message: 'Program tree retrieved successfully' };
   }
 

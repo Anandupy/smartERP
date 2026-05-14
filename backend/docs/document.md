@@ -59,3 +59,10 @@ Detailed specifications for each module can be found in the `docs/modules/` dire
 - [Organization Management](./modules/organization-settings.md)
 - [Branch Management](./modules/branch-settings.md)
 - [Authentication & Identity](./modules/auth.md)
+- [Program Structure](./modules/program.md)
+- [Academic Year](./modules/academic-year.md)
+
+## Domain Terminology
+- **Branch**: Legal entity representing a campus or administrative unit.
+- **Program**: Internal course structure (e.g., Grade 10, B.Tech).
+- **Academic Unit**: Operational hierarchy (Planned: Departments, Wings, Sections).

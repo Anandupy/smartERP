@@ -6,7 +6,11 @@ import {
   IsEnum,
   Matches,
 } from 'class-validator';
-import { StructureMode } from '@/generated/client';
+import {
+  StructureMode,
+  InstitutionType,
+  AffiliationType,
+} from '@/generated/client';
 
 export class CreateBranchDto {
   @IsString()
@@ -29,13 +33,13 @@ export class CreateBranchDto {
   @IsOptional()
   registrationNumber?: string;
 
-  @IsString()
+  @IsEnum(InstitutionType)
   @IsNotEmpty()
-  institutionType: string; // Using string here to avoid circular dependency or import issues if enums are in Prisma
+  institutionType: InstitutionType;
 
-  @IsString()
+  @IsEnum(AffiliationType)
   @IsOptional()
-  affiliationType?: string;
+  affiliationType?: AffiliationType;
 
   @IsString()
   @IsOptional()

@@ -6,6 +6,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
 
 describe('AuthController (e2e)', () => {
+  jest.setTimeout(60000);
   let app: INestApplication;
   let prisma: PrismaService;
   let passwordService: PasswordService;

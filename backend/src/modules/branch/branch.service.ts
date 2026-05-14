@@ -50,8 +50,8 @@ export class BranchService {
       data: {
         ...dto,
         code,
-        institutionType: dto.institutionType as any,
-        affiliationType: dto.affiliationType as any,
+        institutionType: dto.institutionType,
+        affiliationType: dto.affiliationType,
         createdBy: userId,
         updatedBy: userId,
       },
@@ -117,8 +117,8 @@ export class BranchService {
       where: { id },
       data: {
         ...dto,
-        institutionType: dto.institutionType as any,
-        affiliationType: dto.affiliationType as any,
+        institutionType: dto.institutionType,
+        affiliationType: dto.affiliationType,
         updatedBy: userId,
       },
     });

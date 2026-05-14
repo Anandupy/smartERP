@@ -10,6 +10,8 @@ To support diverse educational institutions, the Branch model includes specific 
 - **JUNIOR_COLLEGE**: Higher secondary or pre-university education.
 - **DEGREE_COLLEGE**: Undergraduate and postgraduate studies.
 - **UNIVERSITY**: Higher education and research institutions.
+- **ENGINEERING**: Engineering colleges and technical institutes.
+- **MEDICAL**: Medical, dental, and nursing colleges.
 - **OTHER**: Specialized training centers or vocational schools.
 
 ### Affiliations

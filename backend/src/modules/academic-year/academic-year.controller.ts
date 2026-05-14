@@ -26,6 +26,10 @@ export class AcademicYearController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Create academic year' })
   async create(@Body() dto: CreateAcademicYearDto, @Req() req: any) {
+    // If not super admin, enforce branchId from context
+    if (req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId) {
+      dto.branchId = req.context.branchId;
+    }
     const data = await this.academicYearService.create(dto, req.userId);
     return { data, message: 'Academic year created successfully' };
   }
@@ -38,8 +42,14 @@ export class AcademicYearController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get all academic years for a branch' })
-  async findAll(@Query('branchId') branchId: string) {
-    const data = await this.academicYearService.findAll(branchId);
+  async findAll(@Query('branchId') branchId: string, @Req() req: any) {
+    // If not super admin, enforce branchId from context
+    const targetBranchId =
+      req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId
+        ? req.context.branchId
+        : branchId;
+
+    const data = await this.academicYearService.findAll(targetBranchId);
     return { data, message: 'Academic years retrieved successfully' };
   }
 
@@ -53,8 +63,14 @@ export class AcademicYearController {
     UserRole.PARENT,
   )
   @ApiOperation({ summary: 'Get current (selected) academic year' })
-  async findCurrent(@Query('branchId') branchId: string) {
-    const data = await this.academicYearService.findCurrent(branchId);
+  async findCurrent(@Query('branchId') branchId: string, @Req() req: any) {
+    // If not super admin, enforce branchId from context
+    const targetBranchId =
+      req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId
+        ? req.context.branchId
+        : branchId;
+
+    const data = await this.academicYearService.findCurrent(targetBranchId);
     return { data, message: 'Current academic year retrieved successfully' };
   }
 

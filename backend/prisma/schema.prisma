@@ -30,6 +30,9 @@ model User {
   updatedAt            DateTime @updatedAt
 
   refreshTokens        RefreshToken[]
+
+  @@index([organizationId])
+  @@index([branchId])
 }
 
 model RefreshToken {
@@ -157,6 +160,8 @@ enum InstitutionType {
   JUNIOR_COLLEGE
   DEGREE_COLLEGE
   UNIVERSITY
+  ENGINEERING
+  MEDICAL
   OTHER
 }
 
