@@ -11,18 +11,30 @@ export interface RequestContext {
   role: string | null;
 }
 
+export interface AuthenticatedUser {
+  id?: string;
+  sub?: string;
+  role?: string;
+  organizationId?: string;
+  branchId?: string;
+}
+
 export interface AuthenticatedRequest extends Request {
   context: RequestContext;
+  requestId: string;
+  user?: AuthenticatedUser;
 }
 
 @Injectable()
 export class RequestContextMiddleware implements NestMiddleware {
   use(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    const requestId = uuidv4();
+    const requestId = (req.headers['x-request-id'] as string) || uuidv4();
+
     const branchId = (req.headers['x-branch-id'] as string) || null;
     const academicYearId =
       (req.headers['x-academic-year-id'] as string) || null;
 
+    req.requestId = requestId;
     req.context = {
       requestId,
       branchId,
@@ -31,6 +43,9 @@ export class RequestContextMiddleware implements NestMiddleware {
       userId: null,
       role: null,
     };
+
+    // Add to response header
+    res.setHeader('x-request-id', requestId);
 
     next();
   }

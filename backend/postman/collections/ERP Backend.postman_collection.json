@@ -463,6 +463,10 @@
 					"pm.test(\"Success flag is true\", function () {",
 					"    const jsonData = pm.response.json();",
 					"    pm.expect(jsonData.success).to.eql(true);",
+					"});",
+					"",
+					"pm.test(\"Response has x-request-id header\", function () {",
+					"    pm.response.to.have.header(\"x-request-id\");",
 					"});"
 				]
 			}

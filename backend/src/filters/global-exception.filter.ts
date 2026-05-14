@@ -6,7 +6,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { LoggerService } from '@/infrastructure/logger/logger.service';
+import { LoggerService } from '@/common/logger/logger.service';
+import { AuthenticatedRequest } from '@/common/logger/request-context.middleware';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -15,10 +16,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<AuthenticatedRequest>();
+
+    const requestId = request.requestId || 'unknown';
+    const url = request.url;
+    const method = request.method;
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
-    let errorDetail = undefined;
+    let errorDetail: unknown = undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -30,22 +36,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         typeof exceptionResponse === 'object' &&
         exceptionResponse !== null
       ) {
-        message = (exceptionResponse as any).message || message;
-        errorDetail = (exceptionResponse as any).error;
+        const resObj = exceptionResponse as Record<string, unknown>;
+        message = (resObj.message as string) || message;
+        errorDetail = resObj.error;
 
         if (Array.isArray(message)) {
           message = message.join(', ');
         }
       }
     } else if (exception instanceof Error) {
-      // It's a standard error, hide it from the client in production,
-      // but for consistency we use a generic message or the error message if needed.
-      // Usually, we shouldn't expose internal error messages.
-      message = 'Internal server error';
+      message = exception.message;
     }
 
+    const isDev = process.env.NODE_ENV !== 'production';
+
     this.logger.error(
-      `Exception thrown: ${exception instanceof Error ? exception.message : message}`,
+      `Exception [${method} ${url}]: ${message}`,
       exception instanceof Error ? exception.stack : undefined,
       'GlobalExceptionFilter',
     );
@@ -54,15 +60,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       success: false,
       message,
       data: null,
-      meta: {},
+      meta: {
+        requestId,
+      },
       error: {
         code:
           exception instanceof HttpException
             ? exception.constructor.name
             : 'InternalServerError',
-        details:
-          errorDetail ||
-          (exception instanceof Error ? exception.message : exception),
+        details: isDev
+          ? errorDetail ||
+            (exception instanceof Error ? exception.message : exception)
+          : undefined,
       },
     });
   }

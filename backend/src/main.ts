@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@/app.module';
 import { ConfigService } from '@nestjs/config';
-import { LoggerService } from '@/infrastructure/logger/logger.service';
+import { LoggerService } from '@/common/logger/logger.service';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -9,18 +9,20 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalResponseInterceptor } from '@/interceptors/global-response.interceptor';
 import { GlobalExceptionFilter } from '@/filters/global-exception.filter';
-import { LoggingInterceptor } from '@/interceptors/logging.interceptor';
+import { RequestLoggingInterceptor } from '@/common/logger/request-logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    bufferLogs: true,
+    logger: ['error', 'warn'], // Only show critical Nest logs during boot
   });
 
-  const logger = app.get(LoggerService);
+  const logger = await app.resolve(LoggerService);
   app.useLogger(logger);
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('env.port', 3000);
+  const port = configService.get<number>('env.port', 3000) || 3000;
+  const env =
+    configService.get<string>('env.nodeEnv', 'development') || 'development';
 
   // Security setup
   app.use(helmet());
@@ -43,7 +45,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalInterceptors(
-    new LoggingInterceptor(logger),
+    new RequestLoggingInterceptor(logger),
     new GlobalResponseInterceptor(),
   );
   app.useGlobalFilters(new GlobalExceptionFilter(logger));
@@ -59,6 +61,20 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   await app.listen(port);
-  logger.log(`Application is running on port ${port}`, 'Bootstrap');
+
+  // Clean Startup Banner using stdout instead of console to avoid ESLint error
+  process.stdout.write('\n' + '='.repeat(50) + '\n');
+  process.stdout.write(`🚀 ERP Backend Started\n`);
+  process.stdout.write(`🌍 Environment: ${env}\n`);
+  process.stdout.write(`📦 Version: v1\n`);
+  process.stdout.write(`✅ Server running on http://localhost:${port}\n`);
+  process.stdout.write('='.repeat(50) + '\n\n');
+
+  logger.log(`Application successfully started on port ${port}`, 'Bootstrap');
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error('Failed to start application:', err);
+  process.exit(1);
+});
