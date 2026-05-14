@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import pino from 'pino';
 import pinoPretty from 'pino-pretty';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface LogPayload {
   [key: string]: any;
@@ -33,9 +35,20 @@ export class LoggerService implements NestLoggerService {
 
   constructor() {
     const isDev = process.env.NODE_ENV !== 'production';
+    const logsDir = path.join(process.cwd(), 'logs');
 
-    const stream = isDev
-      ? pinoPretty({
+    // Ensure logs directory exists
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+
+    const streams: pino.StreamEntry[] = [];
+
+    // Console Stream
+    if (isDev) {
+      streams.push({
+        level: 'info',
+        stream: pinoPretty({
           colorize: true,
           translateTime: 'SYS:standard',
           ignore: 'pid,hostname,context',
@@ -47,14 +60,32 @@ export class LoggerService implements NestLoggerService {
             }
             return message as string;
           },
-        })
-      : undefined;
+        }),
+      });
+    } else {
+      streams.push({ level: 'info', stream: process.stdout });
+    }
+
+    // File Streams
+    streams.push({
+      level: 'info',
+      stream: fs.createWriteStream(path.join(logsDir, 'app.log'), {
+        flags: 'a',
+      }),
+    });
+
+    streams.push({
+      level: 'error',
+      stream: fs.createWriteStream(path.join(logsDir, 'error.log'), {
+        flags: 'a',
+      }),
+    });
 
     this.logger = pino(
       {
         level: process.env.LOG_LEVEL || 'info',
       },
-      stream as any,
+      pino.multistream(streams),
     );
   }
 
