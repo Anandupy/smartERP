@@ -1,0 +1,23 @@
+model Program {
+  id            String   @id @default(uuid())
+  branchId      String
+  name          String
+  level         ProgramLevel?
+  medium        String?
+  stream        String?
+  parentId      String?
+  isActive      Boolean  @default(true)
+  isDeleted     Boolean  @default(false)
+  createdBy     String?
+  updatedBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  branch        Branch @relation(fields: [branchId], references: [id])
+  parent        Program? @relation("ProgramHierarchy", fields: [parentId], references: [id])
+  children      Program[] @relation("ProgramHierarchy")
+
+  @@index([branchId])
+  @@index([parentId])
+  @@unique([branchId, name, medium, stream])
+}

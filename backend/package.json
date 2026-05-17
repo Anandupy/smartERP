@@ -18,8 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:build": "node scripts/merge-prisma.js",
+    "prisma:generate": "npm run prisma:build && prisma generate",
+    "prisma:migrate": "npm run prisma:build && prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prepare": "cd .. && husky backend/.husky"
   },

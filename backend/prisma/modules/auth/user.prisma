@@ -1,0 +1,26 @@
+model User {
+  id                   String   @id @default(uuid())
+  fullName             String
+  username             String   @unique
+  email                String   @unique
+  phone                String   @unique
+  passwordHash         String
+  role                 RoleType
+  organizationId       String?
+  branchId             String?
+  status               UserStatus @default(ACTIVE)
+  failedLoginAttempts  Int      @default(0)
+  lockUntil            DateTime?
+  isTwoFactorEnabled   Boolean  @default(false)
+  twoFactorSecret      String?
+  lastLoginAt          DateTime?
+  createdBy            String?
+  updatedBy            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  refreshTokens        RefreshToken[]
+
+  @@index([organizationId])
+  @@index([branchId])
+}

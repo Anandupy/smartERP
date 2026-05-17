@@ -1,0 +1,5 @@
+enum AffiliationType {
+  BOARD
+  UNIVERSITY
+  OTHER
+}

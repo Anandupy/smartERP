@@ -1,0 +1,8 @@
+enum RoleType {
+  SUPER_ADMIN
+  ORG_ADMIN
+  BRANCH_ADMIN
+  STAFF
+  STUDENT
+  PARENT
+}

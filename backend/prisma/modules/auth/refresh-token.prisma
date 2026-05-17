@@ -1,0 +1,17 @@
+model RefreshToken {
+  id           String    @id @default(uuid())
+  userId       String
+  token        String    @unique
+  tokenHash    String?   @unique
+  device       String?
+  ipAddress    String?
+  userAgent    String?
+  isRevoked    Boolean   @default(false)
+  revokedAt    DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  user         User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}

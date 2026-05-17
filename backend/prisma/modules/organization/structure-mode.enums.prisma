@@ -1,0 +1,4 @@
+enum StructureMode {
+  DEFAULT
+  CUSTOM
+}

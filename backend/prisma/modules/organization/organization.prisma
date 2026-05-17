@@ -1,0 +1,23 @@
+model Organization {
+  id               String             @id @default(uuid())
+  name             String
+  code             String             @unique
+  logoUrl          String?
+  contactEmail     String
+  contactPhone     String
+  addressLine1     String?
+  addressLine2     String?
+  city             String?
+  state            String?
+  country          String?
+  pincode          String?
+  masterExpiryDate DateTime
+  status           OrganizationStatus @default(ACTIVE)
+  timezone         String?
+  currency         String?
+  createdBy        String?
+  updatedBy        String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  branches         Branch[]
+}
