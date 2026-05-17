@@ -14,6 +14,68 @@ datasource db {
 }
 
 
+// --- FROM: modules/academic/academic-unit-type.enums.prisma ---
+
+enum AcademicUnitType {
+  SECTION
+  CLASS
+  DIVISION
+  STREAM
+  DEPARTMENT
+  YEAR
+  SEMESTER
+  BATCH
+  CUSTOM
+}
+
+
+// --- FROM: modules/academic/academic-unit.prisma ---
+
+model AcademicUnit {
+  id                String   @id @default(uuid())
+
+  branchId          String
+  programId         String
+  academicYearId    String
+
+  parentId          String?
+
+  name              String
+  code              String?
+
+  unitType          AcademicUnitType
+
+  level             Int
+
+  displayOrder      Int?
+
+  isActive          Boolean  @default(true)
+  isDeleted         Boolean  @default(false)
+
+  metadata          Json?
+
+  createdBy         String?
+  updatedBy         String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  branch            Branch @relation(fields: [branchId], references: [id])
+  program           Program @relation(fields: [programId], references: [id])
+  academicYear      AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  parent            AcademicUnit? @relation("AcademicUnitHierarchy", fields: [parentId], references: [id])
+  children          AcademicUnit[] @relation("AcademicUnitHierarchy")
+
+  @@index([branchId])
+  @@index([programId])
+  @@index([academicYearId])
+  @@index([parentId])
+
+  @@unique([academicYearId, parentId, name])
+}
+
+
 // --- FROM: modules/academic/academic-year.prisma ---
 
 model AcademicYear {
@@ -32,6 +94,7 @@ model AcademicYear {
   updatedAt     DateTime @updatedAt
 
   branch        Branch @relation(fields: [branchId], references: [id])
+  academicUnits AcademicUnit[]
 
   @@index([branchId])
 }
@@ -66,6 +129,7 @@ model Program {
   branch        Branch @relation(fields: [branchId], references: [id])
   parent        Program? @relation("ProgramHierarchy", fields: [parentId], references: [id])
   children      Program[] @relation("ProgramHierarchy")
+  academicUnits AcademicUnit[]
 
   @@index([branchId])
   @@index([parentId])
@@ -185,6 +249,7 @@ model Branch {
   organization       Organization @relation(fields: [organizationId], references: [id])
   academicYears      AcademicYear[]
   programs           Program[]
+  academicUnits      AcademicUnit[]
 }
 
 

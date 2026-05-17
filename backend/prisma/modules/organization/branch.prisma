@@ -27,4 +27,5 @@ model Branch {
   organization       Organization @relation(fields: [organizationId], references: [id])
   academicYears      AcademicYear[]
   programs           Program[]
+  academicUnits      AcademicUnit[]
 }

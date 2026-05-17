@@ -1,475 +1,605 @@
 {
-	"info": {
-		"_postman_id": "a1b2c3d4-e5f6-4a5b-6c7d-8e9f0a1b2c3d",
-		"name": "ERP Backend",
-		"description": "API collection for ERP Backend system modules including Auth, Organizations, Branches, and Academic Years.",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Auth",
-			"item": [
-				{
-					"name": "Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"const response = pm.response.json();",
-									"if (response.success && response.data) {",
-									"    pm.environment.set(\"accessToken\", response.data.accessToken);",
-									"    pm.environment.set(\"refreshToken\", response.data.refreshToken);",
-									"    pm.test(\"Login successful and tokens stored\", () => {",
-									"        pm.expect(response.data.accessToken).to.be.a('string');",
-									"    });",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"identifier\": \"admin@gmail.com\",\n    \"password\": \"AdminPassword123!\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"login"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Refresh Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"const response = pm.response.json();",
-									"if (response.success && response.data) {",
-									"    pm.environment.set(\"accessToken\", response.data.accessToken);",
-									"    pm.environment.set(\"refreshToken\", response.data.refreshToken);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/refresh",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"refresh"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Logout",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/logout",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"logout"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Active Sessions",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/auth/sessions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"sessions"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "System Settings",
-			"item": [
-				{
-					"name": "Initialize System",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"productName\": \"ERP Pro\",\n    \"productCode\": \"ERP-PRO-01\",\n    \"version\": \"1.0.0\",\n    \"environment\": \"DEV\",\n    \"supportEmail\": \"support@erp.com\",\n    \"supportPhone\": \"+919876543210\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/system-settings/init",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"system-settings",
-								"init"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Settings",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/system-settings",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"system-settings"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Organizations",
-			"item": [
-				{
-					"name": "Create Organization",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"const response = pm.response.json();",
-									"if (response.success && response.data) {",
-									"    pm.environment.set(\"organizationId\", response.data.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Global Education Trust\",\n    \"code\": \"GET-001\",\n    \"contactEmail\": \"admin@get.org\",\n    \"contactPhone\": \"+919000011111\",\n    \"masterExpiryDate\": \"2027-12-31T23:59:59.999Z\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/organizations",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"organizations"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List Organizations",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/organizations",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"organizations"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Branches",
-			"item": [
-				{
-					"name": "Create Branch",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"const response = pm.response.json();",
-									"if (response.success && response.data) {",
-									"    pm.environment.set(\"branchId\", response.data.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"organizationId\": \"{{organizationId}}\",\n    \"name\": \"Main Campus\",\n    \"code\": \"MC-01\",\n    \"institutionType\": \"SCHOOL\",\n    \"contactEmail\": \"main@branch.com\",\n    \"contactPhone\": \"+918888877777\",\n    \"addressLine1\": \"123 Education Lane\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"country\": \"India\",\n    \"pincode\": \"400001\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/branches",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"branches"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All Branches",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/branches",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"branches"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Branch By ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/branches/{{branchId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"branches",
-								"{{branchId}}"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Academic Years",
-			"item": [
-				{
-					"name": "Create Academic Year",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"const response = pm.response.json();",
-									"if (response.success && response.data) {",
-									"    pm.environment.set(\"academicYearId\", response.data.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"branchId\": \"{{branchId}}\",\n    \"name\": \"2025-26\",\n    \"startDate\": \"2025-04-01T00:00:00.000Z\",\n    \"endDate\": \"2026-03-31T23:59:59.999Z\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/academic-years",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"academic-years"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List Academic Years",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": {
-								"raw": "{{baseUrl}}/academic-years?branchId={{branchId}}",
-								"host": [
-									"{{baseUrl}}"
-								],
-								"path": [
-									"academic-years"
-								],
-								"query": [
-									{
-										"key": "branchId",
-										"value": "{{branchId}}"
-									}
-								]
-							}
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Current Year",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": {
-								"raw": "{{baseUrl}}/academic-years/current?branchId={{branchId}}",
-								"host": [
-									"{{baseUrl}}"
-								],
-								"path": [
-									"academic-years",
-									"current"
-								],
-								"query": [
-									{
-										"key": "branchId",
-										"value": "{{branchId}}"
-									}
-								]
-							}
-						}
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{accessToken}}",
-				"type": "string"
-			}
-		]
-	},
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					"pm.test(\"Status code is 2xx\", function () {",
-					"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-					"});",
-					"",
-					"pm.test(\"Success flag is true\", function () {",
-					"    const jsonData = pm.response.json();",
-					"    pm.expect(jsonData.success).to.eql(true);",
-					"});",
-					"",
-					"pm.test(\"Response has x-request-id header\", function () {",
-					"    pm.response.to.have.header(\"x-request-id\");",
-					"});"
-				]
-			}
-		}
-	]
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-4a5b-6c7d-8e9f0a1b2c3d",
+    "name": "ERP Backend",
+    "description": "API collection for ERP Backend system modules including Auth, Organizations, Branches, and Academic Years.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data) {",
+                  "    pm.environment.set(\"accessToken\", response.data.accessToken);",
+                  "    pm.environment.set(\"refreshToken\", response.data.refreshToken);",
+                  "    pm.test(\"Login successful and tokens stored\", () => {",
+                  "        pm.expect(response.data.accessToken).to.be.a('string');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"identifier\": \"admin@gmail.com\",\n    \"password\": \"AdminPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data) {",
+                  "    pm.environment.set(\"accessToken\", response.data.accessToken);",
+                  "    pm.environment.set(\"refreshToken\", response.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "sessions"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System Settings",
+      "item": [
+        {
+          "name": "Initialize System",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"productName\": \"ERP Pro\",\n    \"productCode\": \"ERP-PRO-01\",\n    \"version\": \"1.0.0\",\n    \"environment\": \"DEV\",\n    \"supportEmail\": \"support@erp.com\",\n    \"supportPhone\": \"+919876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/system-settings/init",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "system-settings",
+                "init"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/system-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "system-settings"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "Create Organization",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data) {",
+                  "    pm.environment.set(\"organizationId\", response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Global Education Trust\",\n    \"code\": \"GET-001\",\n    \"contactEmail\": \"admin@get.org\",\n    \"contactPhone\": \"+919000011111\",\n    \"masterExpiryDate\": \"2027-12-31T23:59:59.999Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Organizations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "item": [
+        {
+          "name": "Create Branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data) {",
+                  "    pm.environment.set(\"branchId\", response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"organizationId\": \"{{organizationId}}\",\n    \"name\": \"Main Campus\",\n    \"code\": \"MC-01\",\n    \"institutionType\": \"SCHOOL\",\n    \"contactEmail\": \"main@branch.com\",\n    \"contactPhone\": \"+918888877777\",\n    \"addressLine1\": \"123 Education Lane\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"country\": \"India\",\n    \"pincode\": \"400001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "branches"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Branches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "branches"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Branch By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/branches/{{branchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "branches",
+                "{{branchId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Academic Years",
+      "item": [
+        {
+          "name": "Create Academic Year",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data) {",
+                  "    pm.environment.set(\"academicYearId\", response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"branchId\": \"{{branchId}}\",\n    \"name\": \"2025-26\",\n    \"startDate\": \"2025-04-01T00:00:00.000Z\",\n    \"endDate\": \"2026-03-31T23:59:59.999Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic-years",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "academic-years"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Academic Years",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": {
+                "raw": "{{baseUrl}}/academic-years?branchId={{branchId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "academic-years"
+                ],
+                "query": [
+                  {
+                    "key": "branchId",
+                    "value": "{{branchId}}"
+                  }
+                ]
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": {
+                "raw": "{{baseUrl}}/academic-years/current?branchId={{branchId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "academic-years",
+                  "current"
+                ],
+                "query": [
+                  {
+                    "key": "branchId",
+                    "value": "{{branchId}}"
+                  }
+                ]
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Academic Units",
+      "item": [
+        {
+          "name": "Create Academic Unit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"programId\": \"{{program_id}}\",\n  \"academicYearId\": \"{{academic_year_id}}\",\n  \"name\": \"Std 1\",\n  \"unitType\": \"CLASS\",\n  \"parentId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/academic-units",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academic-units"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Academic Units",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academic-units?branchId={{branch_id}}&academicYearId={{academic_year_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academic-units"
+              ],
+              "query": [
+                {
+                  "key": "branchId",
+                  "value": "{{branch_id}}"
+                },
+                {
+                  "key": "academicYearId",
+                  "value": "{{academic_year_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Academic Tree",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/academic-units/tree?branchId={{branch_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academic-units",
+                "tree"
+              ],
+              "query": [
+                {
+                  "key": "branchId",
+                  "value": "{{branch_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Move Academic Unit",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parentId\": \"new_parent_id\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/academic-units/{{academic_unit_id}}/move",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "academic-units",
+                "{{academic_unit_id}}",
+                "move"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"Status code is 2xx\", function () {",
+          "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+          "});",
+          "",
+          "pm.test(\"Success flag is true\", function () {",
+          "    const jsonData = pm.response.json();",
+          "    pm.expect(jsonData.success).to.eql(true);",
+          "});",
+          "",
+          "pm.test(\"Response has x-request-id header\", function () {",
+          "    pm.response.to.have.header(\"x-request-id\");",
+          "});"
+        ]
+      }
+    }
+  ]
 }

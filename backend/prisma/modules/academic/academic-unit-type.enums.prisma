@@ -1,0 +1,11 @@
+enum AcademicUnitType {
+  SECTION
+  CLASS
+  DIVISION
+  STREAM
+  DEPARTMENT
+  YEAR
+  SEMESTER
+  BATCH
+  CUSTOM
+}

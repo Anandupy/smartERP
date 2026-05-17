@@ -14,6 +14,7 @@ import { BranchModule } from '@/modules/branch/branch.module';
 import { UserModule } from '@/modules/user/user.module';
 import { AcademicYearModule } from '@/modules/academic-year/academic-year.module';
 import { ProgramModule } from '@/modules/program/program.module';
+import { AcademicUnitModule } from '@/modules/academic-unit/academic-unit.module';
 import { SecurityModule } from '@/common/services/security.module';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -35,6 +36,7 @@ import { RolesGuard } from '@/common/guards/roles.guard';
     BranchModule,
     AcademicYearModule,
     ProgramModule,
+    AcademicUnitModule,
   ],
   controllers: [],
   providers: [
