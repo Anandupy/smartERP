@@ -1,4 +1,0 @@
-$kind: http-request
-url: "{{baseUrl}}/auth/sessions"
-method: GET
-order: 4000
