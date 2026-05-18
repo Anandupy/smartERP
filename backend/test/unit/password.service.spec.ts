@@ -1,23 +1,42 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { PasswordService } from '@/common/services/password.service';
 import { BcryptPasswordService } from '@/common/services/bcrypt-password.service';
 
-describe('BcryptPasswordService', () => {
-  let service: BcryptPasswordService;
+describe('PasswordService (Unit)', () => {
+  let service: PasswordService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [BcryptPasswordService],
+      providers: [
+        {
+          provide: PasswordService,
+          useClass: BcryptPasswordService,
+        },
+      ],
     }).compile();
 
-    service = module.get<BcryptPasswordService>(BcryptPasswordService);
+    service = module.get<PasswordService>(PasswordService);
   });
 
-  it('should hash and compare passwords correctly', async () => {
-    const password = 'test-password';
-    const hash = await service.hash(password);
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
 
-    expect(hash).not.toBe(password);
-    expect(await service.compare(password, hash)).toBe(true);
-    expect(await service.compare('wrong-password', hash)).toBe(false);
-  }, 10000);
+  it('should hash a password', async () => {
+    const hash = await service.hash('Test@123');
+    expect(hash).toBeDefined();
+    expect(hash).not.toBe('Test@123');
+  });
+
+  it('should verify a correct password', async () => {
+    const hash = await service.hash('Test@123');
+    const isMatch = await service.compare('Test@123', hash);
+    expect(isMatch).toBe(true);
+  });
+
+  it('should reject an incorrect password', async () => {
+    const hash = await service.hash('Test@123');
+    const isMatch = await service.compare('Wrong@123', hash);
+    expect(isMatch).toBe(false);
+  });
 });

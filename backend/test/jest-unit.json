@@ -1,0 +1,20 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".spec.ts$",
+  "testPathIgnorePatterns": [
+    ".e2e-spec.ts$",
+    ".integration-spec.ts$"
+  ],
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "@/generated/client": "<rootDir>/../prisma/generated",
+    "^@/(.*)$": "<rootDir>/../src/$1"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!\\.pnpm|uuid)"
+  ]
+}

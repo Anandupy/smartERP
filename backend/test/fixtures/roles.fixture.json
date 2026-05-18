@@ -1,0 +1,8 @@
+{
+  "SUPER_ADMIN": ["read", "write", "delete", "manage_all"],
+  "ORG_ADMIN": ["read_org", "write_org", "manage_org_branches"],
+  "BRANCH_ADMIN": ["read_branch", "write_branch", "manage_branch_users"],
+  "STAFF": ["read_branch_data", "write_branch_data"],
+  "STUDENT": ["read_own_data"],
+  "PARENT": ["read_child_data"]
+}

@@ -12,5 +12,7 @@
   },
   "transformIgnorePatterns": [
     "node_modules/(?!\\.pnpm|uuid)"
-  ]
+  ],
+  "globalSetup": "<rootDir>/setup/global-setup.ts",
+  "globalTeardown": "<rootDir>/setup/global-teardown.ts"
 }
