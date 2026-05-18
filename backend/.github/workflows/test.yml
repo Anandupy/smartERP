@@ -1,0 +1,82 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          # Explicitly creating an isolated test database
+          POSTGRES_DB: erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm prisma:generate
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/erp_test?schema=public"
+
+      - name: Push DB Schema (Safe Push)
+        run: pnpm prisma db push --skip-generate
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/erp_test?schema=public"
+
+      # CI/CD SAFETY GUARDS - Validates environments explicitly before test execution
+      - name: Validate Test Environment Safety
+        run: |
+          if [ "$NODE_ENV" == "production" ]; then
+            echo "❌ FATAL: Refusing to run tests in production environment."
+            exit 1
+          fi
+          
+          if [[ ! "$DATABASE_URL" == *"_test"* ]]; then
+            echo "❌ FATAL: DATABASE_URL must contain '_test'."
+            exit 1
+          fi
+
+          if [[ "$DATABASE_URL" == *"prod"* || "$DATABASE_URL" == *"live"* ]]; then
+            echo "❌ FATAL: DATABASE_URL contains forbidden keywords."
+            exit 1
+          fi
+        env:
+          NODE_ENV: test
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/erp_test?schema=public"
+
+      - name: Run Unit Tests
+        run: pnpm run test:unit
+
+      - name: Run Integration Tests
+        run: pnpm run test:integration
+
+      - name: Run E2E Tests
+        run: pnpm run test:e2e

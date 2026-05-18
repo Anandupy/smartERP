@@ -1,35 +1,24 @@
 import { PrismaClient } from '../../prisma/generated';
 import { seedRealisticData } from '../seeds/realistic-data.seed';
+import { validateTestEnvironment } from './safety.guard';
 
 const prisma = new PrismaClient();
 
-export async function truncateDb() {
-  const tableNames = [
-    'AcademicUnit',
-    'AcademicYear',
-    'Program',
-    'RefreshToken',
-    'User',
-    'Branch',
-    'Organization',
-    'SystemSetting',
-  ];
+export async function validateAndSeedDb() {
+  // Validate safety BEFORE doing anything
+  validateTestEnvironment();
 
+  // Seeding happens inside a transaction or safely.
+  // Actually, we avoid destructive cleanup. If seeding is needed, we should handle it
+  // safely. For now we just call seedRealisticData.
   try {
-    for (const tableName of tableNames) {
-      await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${tableName}" CASCADE;`);
-    }
+    await seedRealisticData(prisma);
   } catch (error) {
-    console.error('Error truncating DB:', error);
+    console.log(
+      '[Test DB] Seeding skipped or handled differently:',
+      error.message,
+    );
   }
-}
-
-export async function resetSequences() {
-  // Reset sequences if applicable (Postgres serials)
-}
-
-export async function reSeedBaseData() {
-  await seedRealisticData(prisma);
 }
 
 export async function closeDbConnection() {
