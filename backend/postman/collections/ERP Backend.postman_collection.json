@@ -454,9 +454,9 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/academic-units",
+              "raw": "{{baseUrl}}/academic-units",
               "host": [
-                "{{base_url}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "academic-units"
@@ -476,9 +476,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/academic-units?branchId={{branch_id}}&academicYearId={{academic_year_id}}",
+              "raw": "{{baseUrl}}/academic-units?branchId={{branch_id}}&academicYearId={{academic_year_id}}",
               "host": [
-                "{{base_url}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "academic-units"
@@ -508,9 +508,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/academic-units/tree?branchId={{branch_id}}",
+              "raw": "{{baseUrl}}/academic-units/tree?branchId={{branch_id}}",
               "host": [
-                "{{base_url}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "academic-units",
@@ -546,9 +546,9 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/academic-units/{{academic_unit_id}}/move",
+              "raw": "{{baseUrl}}/academic-units/{{academic_unit_id}}/move",
               "host": [
-                "{{base_url}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "academic-units",
