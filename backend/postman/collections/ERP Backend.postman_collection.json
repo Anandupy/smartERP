@@ -567,129 +567,1304 @@
           "name": "Masters",
           "item": [
             {
-              "name": "Create Religion",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"code\": \"HIND\",\n    \"name\": \"Hinduism\",\n    \"displayOrder\": 1\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+              "name": "Admission Source",
+              "item": [
+                {
+                  "name": "Create Admission Source",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"admissionSourceId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"WKIN\",\n    \"name\": \"Walk-in\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/admission-sources",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "admission-sources"
+                      ]
                     }
                   }
                 },
-                "url": {
-                  "raw": "{{baseUrl}}/admissions/masters/religions",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "admissions",
-                    "masters",
-                    "religions"
-                  ]
-                }
-              },
-              "event": [
                 {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "const response = pm.response.json();",
-                      "if (response.success && response.data) {",
-                      "    pm.environment.set('religionId', response.data.id);",
-                      "}"
-                    ],
-                    "type": "text/javascript"
+                  "name": "List Admission Sources",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/admission-sources",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "admission-sources"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Admission Source By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/admission-sources/{{admissionSourceId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "admission-sources",
+                        "{{admissionSourceId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Admission Source",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"Walk-in Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/admission-sources/{{admissionSourceId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "admission-sources",
+                        "{{admissionSourceId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Admission Source",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/admission-sources/{{admissionSourceId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "admission-sources",
+                        "{{admissionSourceId}}"
+                      ]
+                    }
                   }
                 }
               ]
             },
             {
-              "name": "List Religions",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/admissions/masters/religions",
-                  "host": [
-                    "{{baseUrl}}"
+              "name": "Blood Group",
+              "item": [
+                {
+                  "name": "Create Blood Group",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"bloodGroupId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
                   ],
-                  "path": [
-                    "admissions",
-                    "masters",
-                    "religions"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get Religion By ID",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "admissions",
-                    "masters",
-                    "religions",
-                    "{{religionId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Update Religion",
-              "request": {
-                "method": "PATCH",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Hinduism Updated\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"OPOS\",\n    \"name\": \"O+\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/blood-groups",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "blood-groups"
+                      ]
                     }
                   }
                 },
-                "url": {
-                  "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "admissions",
-                    "masters",
-                    "religions",
-                    "{{religionId}}"
-                  ]
+                {
+                  "name": "List Blood Groups",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/blood-groups",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "blood-groups"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Blood Group By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/blood-groups/{{bloodGroupId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "blood-groups",
+                        "{{bloodGroupId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Blood Group",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"O+ Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/blood-groups/{{bloodGroupId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "blood-groups",
+                        "{{bloodGroupId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Blood Group",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/blood-groups/{{bloodGroupId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "blood-groups",
+                        "{{bloodGroupId}}"
+                      ]
+                    }
+                  }
                 }
-              }
+              ]
             },
             {
-              "name": "Delete Religion",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
-                  "host": [
-                    "{{baseUrl}}"
+              "name": "Caste",
+              "item": [
+                {
+                  "name": "Create Caste",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"casteId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
                   ],
-                  "path": [
-                    "admissions",
-                    "masters",
-                    "religions",
-                    "{{religionId}}"
-                  ]
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"GEN\",\n    \"name\": \"General\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/castes",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "castes"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "List Castes",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/castes",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "castes"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Caste By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/castes/{{casteId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "castes",
+                        "{{casteId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Caste",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"General Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/castes/{{casteId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "castes",
+                        "{{casteId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Caste",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/castes/{{casteId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "castes",
+                        "{{casteId}}"
+                      ]
+                    }
+                  }
                 }
-              }
+              ]
+            },
+            {
+              "name": "Category",
+              "item": [
+                {
+                  "name": "Create Category",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"categoryId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"OPEN\",\n    \"name\": \"Open Category\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/categories",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "categories"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "List Categorys",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/categories",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "categories"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Category By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/categories/{{categoryId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "categories",
+                        "{{categoryId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Category",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"Open Category Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/categories/{{categoryId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "categories",
+                        "{{categoryId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Category",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/categories/{{categoryId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "categories",
+                        "{{categoryId}}"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Disability",
+              "item": [
+                {
+                  "name": "Create Disability",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"disabilityId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"NONE\",\n    \"name\": \"None\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/disabilities",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "disabilities"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "List Disabilitys",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/disabilities",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "disabilities"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Disability By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/disabilities/{{disabilityId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "disabilities",
+                        "{{disabilityId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Disability",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"None Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/disabilities/{{disabilityId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "disabilities",
+                        "{{disabilityId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Disability",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/disabilities/{{disabilityId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "disabilities",
+                        "{{disabilityId}}"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Gender",
+              "item": [
+                {
+                  "name": "Create Gender",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"genderId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"MALE\",\n    \"name\": \"Male\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/genders",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "genders"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "List Genders",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/genders",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "genders"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Gender By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/genders/{{genderId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "genders",
+                        "{{genderId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Gender",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"Male Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/genders/{{genderId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "genders",
+                        "{{genderId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Gender",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/genders/{{genderId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "genders",
+                        "{{genderId}}"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Language",
+              "item": [
+                {
+                  "name": "Create Language",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"languageId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"EN\",\n    \"name\": \"English\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/languages",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "languages"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "List Languages",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/languages",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "languages"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Language By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/languages/{{languageId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "languages",
+                        "{{languageId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Language",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"English Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/languages/{{languageId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "languages",
+                        "{{languageId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Language",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/languages/{{languageId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "languages",
+                        "{{languageId}}"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Quota",
+              "item": [
+                {
+                  "name": "Create Quota",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"quotaId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"MGMT\",\n    \"name\": \"Management Quota\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/quotas",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "quotas"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "List Quotas",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/quotas",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "quotas"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Quota By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/quotas/{{quotaId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "quotas",
+                        "{{quotaId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Quota",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"Management Quota Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/quotas/{{quotaId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "quotas",
+                        "{{quotaId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Quota",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/quotas/{{quotaId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "quotas",
+                        "{{quotaId}}"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Relation Type",
+              "item": [
+                {
+                  "name": "Create Relation Type",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"relationTypeId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"FATH\",\n    \"name\": \"Father\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/relation-types",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "relation-types"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "List Relation Types",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/relation-types",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "relation-types"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Relation Type By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/relation-types/{{relationTypeId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "relation-types",
+                        "{{relationTypeId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Relation Type",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"Father Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/relation-types/{{relationTypeId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "relation-types",
+                        "{{relationTypeId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Relation Type",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/relation-types/{{relationTypeId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "relation-types",
+                        "{{relationTypeId}}"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Religion",
+              "item": [
+                {
+                  "name": "Create Religion",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "const response = pm.response.json();",
+                          "if (response.success && response.data) {",
+                          "    pm.environment.set(\"religionId\", response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"code\": \"HIND\",\n    \"name\": \"Hinduism\",\n    \"displayOrder\": 1\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/religions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "religions"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "List Religions",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/religions",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "religions"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Get Religion By ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "religions",
+                        "{{religionId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Update Religion",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"name\": \"Hinduism Updated\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "religions",
+                        "{{religionId}}"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "name": "Delete Religion",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "admissions",
+                        "masters",
+                        "religions",
+                        "{{religionId}}"
+                      ]
+                    }
+                  }
+                }
+              ]
             }
           ]
         },
