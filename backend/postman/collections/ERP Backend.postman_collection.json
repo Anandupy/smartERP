@@ -559,6 +559,103 @@
           }
         }
       ]
+    },
+    {
+      "name": "Admissions",
+      "item": [
+        {
+          "name": "Masters",
+          "item": [
+            {
+              "name": "Create Religion",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"code\": \"HIND\",\n    \"name\": \"Hinduism\",\n    \"displayOrder\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admissions/masters/religions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admissions",
+                    "masters",
+                    "religions"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Religions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admissions/masters/religions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admissions",
+                    "masters",
+                    "religions"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Applicants",
+          "item": [
+            {
+              "name": "Register Applicant",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "x-branch-id",
+                    "value": "{{branchId}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-academic-year-id",
+                    "value": "{{academicYearId}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"firstName\": \"Alice\",\n    \"lastName\": \"Smith\",\n    \"dob\": \"2020-05-15\",\n    \"genderId\": \"{{genderId}}\",\n    \"primaryMobile\": \"9876543210\",\n    \"currentAddressLine1\": \"456 Main St\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"country\": \"India\",\n    \"pincode\": \"400001\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admissions/applicants",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admissions",
+                    "applicants"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "auth": {

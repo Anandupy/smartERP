@@ -20,4 +20,7 @@ model Organization {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   branches         Branch[]
+  applicants       Applicant[]
+  enrollments      Enrollment[]
+  guardians        Guardian[]
 }

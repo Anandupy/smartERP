@@ -1,0 +1,66 @@
+model Guardian {
+  id              String                     @id @default(uuid())
+  organizationId  String
+  branchId        String
+
+  // Identity
+  firstName       String
+  middleName      String?
+  lastName        String
+
+  // Contact
+  mobilePrimary   String
+  mobileSecondary String?
+  email           String?
+
+  // Professional
+  occupation      String?
+  income          Float?
+
+  // Government
+  aadhaarNo       String?
+
+  // Address
+  addressLine1    String?
+  addressLine2    String?
+  city            String?
+  state           String?
+  country         String?
+  pincode         String?
+
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  deletedAt       DateTime?
+
+  applicants      ApplicantGuardianMapping[]
+  branch          Branch                     @relation(fields: [branchId], references: [id])
+  organization    Organization               @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([mobilePrimary])
+  @@index([aadhaarNo])
+}
+
+model ApplicantGuardianMapping {
+  id                  String       @id @default(uuid())
+  applicantId         String
+  guardianId          String
+  relationTypeId      String
+  isPrimary           Boolean      @default(false)
+  isEmergencyContact  Boolean      @default(false)
+  isFinancialGuardian Boolean      @default(false)
+  pickupAllowed       Boolean      @default(true)
+  priority            Int          @default(1)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  applicant           Applicant    @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  guardian            Guardian     @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  relationType        RelationType @relation(fields: [relationTypeId], references: [id])
+
+  @@unique([applicantId, guardianId])
+  @@index([applicantId])
+  @@index([guardianId])
+  @@index([relationTypeId])
+}

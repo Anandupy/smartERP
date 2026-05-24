@@ -1,0 +1,114 @@
+model Applicant {
+  id                    String                   @id @default(uuid())
+  organizationId        String
+  branchId              String
+  academicYearId        String
+
+  // Identity
+  admissionFormNo       String
+  applicationNo         String
+  firstName             String
+  middleName            String?
+  lastName              String
+  displayName           String
+  dob                   DateTime
+  genderId              String
+  birthPlace            String?
+  photoFileId           String?
+
+  // Demographic
+  religionId            String?
+  casteId               String?
+  categoryId            String?
+  motherTongueId        String?
+  bloodGroupId          String?
+  disabilityStatus      Boolean                  @default(false)
+  disabilityTypeId      String?
+  disabilityNotes       String?
+
+  // Government Details
+  aadhaarNo             String?
+  penNo                 String?
+  apaarId               String?
+
+  // Contact Details
+  primaryMobile         String
+  alternateMobile       String?
+  primaryEmail          String?
+
+  // Address Details
+  currentAddressLine1   String
+  currentAddressLine2   String?
+  city                  String
+  district              String?
+  state                 String
+  country               String
+  pincode               String
+
+  // Previous Education Details
+  previousSchoolName    String?
+  previousBoard         String?
+  previousClass         String?
+  previousPercentage    Float?
+  tcNumber              String?
+
+  // Admission Details
+  admissionSourceId     String?
+  quotaId               String?
+  admissionStatus       String                   @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, etc.
+  internalRemarks       String?
+  counsellorRemarks     String?
+  assignedCounsellorId  String?
+  transportRequired     Boolean                  @default(false)
+  hostelRequired        Boolean                  @default(false)
+
+  // Workflow Timeline
+  submittedAt           DateTime?
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  cancelledAt           DateTime?
+
+  // Extensibility Placeholders
+  customFieldData       Json?
+  checklistStatus       Json?
+  tags                  Json?
+  formTemplateVersion   String?
+
+  // Audit
+  createdBy             String?
+  updatedBy             String?
+  approvedBy            String?
+  rejectedBy            String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  organization          Organization             @relation(fields: [organizationId], references: [id])
+  branch                Branch                   @relation(fields: [branchId], references: [id])
+  academicYear          AcademicYear             @relation(fields: [academicYearId], references: [id])
+  gender                Gender                   @relation(fields: [genderId], references: [id])
+  religion              Religion?                @relation(fields: [religionId], references: [id])
+  caste                 Caste?                   @relation(fields: [casteId], references: [id])
+  category              Category?                @relation(fields: [categoryId], references: [id])
+  motherTongue          Language?                @relation(fields: [motherTongueId], references: [id])
+  bloodGroup            BloodGroup?              @relation(fields: [bloodGroupId], references: [id])
+  disabilityType        Disability?              @relation(fields: [disabilityTypeId], references: [id])
+  admissionSource       AdmissionSource?         @relation(fields: [admissionSourceId], references: [id])
+  quota                 Quota?                   @relation(fields: [quotaId], references: [id])
+
+  guardians             ApplicantGuardianMapping[]
+  enrollment            Enrollment?
+  workflowHistory       WorkflowHistory[]
+
+  @@unique([branchId, academicYearId, admissionFormNo])
+  @@unique([branchId, academicYearId, applicationNo])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@index([displayName])
+  @@index([primaryMobile])
+  @@index([aadhaarNo])
+  @@index([applicationNo])
+  @@index([admissionFormNo])
+}

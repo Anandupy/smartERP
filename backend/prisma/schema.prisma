@@ -66,6 +66,7 @@ model AcademicUnit {
 
   parent            AcademicUnit? @relation("AcademicUnitHierarchy", fields: [parentId], references: [id])
   children          AcademicUnit[] @relation("AcademicUnitHierarchy")
+  enrollments       Enrollment[]
 
   @@index([branchId])
   @@index([programId])
@@ -95,6 +96,8 @@ model AcademicYear {
 
   branch        Branch @relation(fields: [branchId], references: [id])
   academicUnits AcademicUnit[]
+  applicants    Applicant[]
+  enrollments   Enrollment[]
 
   @@index([branchId])
 }
@@ -130,10 +133,512 @@ model Program {
   parent        Program? @relation("ProgramHierarchy", fields: [parentId], references: [id])
   children      Program[] @relation("ProgramHierarchy")
   academicUnits AcademicUnit[]
+  enrollments   Enrollment[]
 
   @@index([branchId])
   @@index([parentId])
   @@unique([branchId, name, medium, stream])
+}
+
+
+// --- FROM: modules/admissions/applicant.prisma ---
+
+model Applicant {
+  id                    String                   @id @default(uuid())
+  organizationId        String
+  branchId              String
+  academicYearId        String
+
+  // Identity
+  admissionFormNo       String
+  applicationNo         String
+  firstName             String
+  middleName            String?
+  lastName              String
+  displayName           String
+  dob                   DateTime
+  genderId              String
+  birthPlace            String?
+  photoFileId           String?
+
+  // Demographic
+  religionId            String?
+  casteId               String?
+  categoryId            String?
+  motherTongueId        String?
+  bloodGroupId          String?
+  disabilityStatus      Boolean                  @default(false)
+  disabilityTypeId      String?
+  disabilityNotes       String?
+
+  // Government Details
+  aadhaarNo             String?
+  penNo                 String?
+  apaarId               String?
+
+  // Contact Details
+  primaryMobile         String
+  alternateMobile       String?
+  primaryEmail          String?
+
+  // Address Details
+  currentAddressLine1   String
+  currentAddressLine2   String?
+  city                  String
+  district              String?
+  state                 String
+  country               String
+  pincode               String
+
+  // Previous Education Details
+  previousSchoolName    String?
+  previousBoard         String?
+  previousClass         String?
+  previousPercentage    Float?
+  tcNumber              String?
+
+  // Admission Details
+  admissionSourceId     String?
+  quotaId               String?
+  admissionStatus       String                   @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, etc.
+  internalRemarks       String?
+  counsellorRemarks     String?
+  assignedCounsellorId  String?
+  transportRequired     Boolean                  @default(false)
+  hostelRequired        Boolean                  @default(false)
+
+  // Workflow Timeline
+  submittedAt           DateTime?
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  cancelledAt           DateTime?
+
+  // Extensibility Placeholders
+  customFieldData       Json?
+  checklistStatus       Json?
+  tags                  Json?
+  formTemplateVersion   String?
+
+  // Audit
+  createdBy             String?
+  updatedBy             String?
+  approvedBy            String?
+  rejectedBy            String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  organization          Organization             @relation(fields: [organizationId], references: [id])
+  branch                Branch                   @relation(fields: [branchId], references: [id])
+  academicYear          AcademicYear             @relation(fields: [academicYearId], references: [id])
+  gender                Gender                   @relation(fields: [genderId], references: [id])
+  religion              Religion?                @relation(fields: [religionId], references: [id])
+  caste                 Caste?                   @relation(fields: [casteId], references: [id])
+  category              Category?                @relation(fields: [categoryId], references: [id])
+  motherTongue          Language?                @relation(fields: [motherTongueId], references: [id])
+  bloodGroup            BloodGroup?              @relation(fields: [bloodGroupId], references: [id])
+  disabilityType        Disability?              @relation(fields: [disabilityTypeId], references: [id])
+  admissionSource       AdmissionSource?         @relation(fields: [admissionSourceId], references: [id])
+  quota                 Quota?                   @relation(fields: [quotaId], references: [id])
+
+  guardians             ApplicantGuardianMapping[]
+  enrollment            Enrollment?
+  workflowHistory       WorkflowHistory[]
+
+  @@unique([branchId, academicYearId, admissionFormNo])
+  @@unique([branchId, academicYearId, applicationNo])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@index([displayName])
+  @@index([primaryMobile])
+  @@index([aadhaarNo])
+  @@index([applicationNo])
+  @@index([admissionFormNo])
+}
+
+
+// --- FROM: modules/admissions/enrollment.prisma ---
+
+model Enrollment {
+  id              String       @id @default(uuid())
+  organizationId  String
+  branchId        String
+  academicYearId  String
+  programId       String
+  academicUnitId  String
+  applicantId     String       @unique
+  futureStudentId String?
+  rollNumber      String?
+  enrollmentStatus String       // ACTIVE, PROMOTED, COMPLETED, CANCELLED, etc.
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  applicant       Applicant    @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  branch          Branch       @relation(fields: [branchId], references: [id])
+  academicYear    AcademicYear @relation(fields: [academicYearId], references: [id])
+  program         Program      @relation(fields: [programId], references: [id])
+  academicUnit    AcademicUnit @relation(fields: [academicUnitId], references: [id])
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@index([programId])
+  @@index([academicUnitId])
+}
+
+
+// --- FROM: modules/admissions/guardian.prisma ---
+
+model Guardian {
+  id              String                     @id @default(uuid())
+  organizationId  String
+  branchId        String
+
+  // Identity
+  firstName       String
+  middleName      String?
+  lastName        String
+
+  // Contact
+  mobilePrimary   String
+  mobileSecondary String?
+  email           String?
+
+  // Professional
+  occupation      String?
+  income          Float?
+
+  // Government
+  aadhaarNo       String?
+
+  // Address
+  addressLine1    String?
+  addressLine2    String?
+  city            String?
+  state           String?
+  country         String?
+  pincode         String?
+
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  deletedAt       DateTime?
+
+  applicants      ApplicantGuardianMapping[]
+  branch          Branch                     @relation(fields: [branchId], references: [id])
+  organization    Organization               @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([mobilePrimary])
+  @@index([aadhaarNo])
+}
+
+model ApplicantGuardianMapping {
+  id                  String       @id @default(uuid())
+  applicantId         String
+  guardianId          String
+  relationTypeId      String
+  isPrimary           Boolean      @default(false)
+  isEmergencyContact  Boolean      @default(false)
+  isFinancialGuardian Boolean      @default(false)
+  pickupAllowed       Boolean      @default(true)
+  priority            Int          @default(1)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  applicant           Applicant    @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  guardian            Guardian     @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  relationType        RelationType @relation(fields: [relationTypeId], references: [id])
+
+  @@unique([applicantId, guardianId])
+  @@index([applicantId])
+  @@index([guardianId])
+  @@index([relationTypeId])
+}
+
+
+// --- FROM: modules/admissions/masters.prisma ---
+
+model Religion {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Caste {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Category {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Gender {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model BloodGroup {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Language {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Disability {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model RelationType {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  mappings       ApplicantGuardianMapping[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Quota {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model AdmissionSource {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+
+// --- FROM: modules/admissions/numbering.prisma ---
+
+model NumberSequenceConfig {
+  id                  String   @id @default(uuid())
+  organizationId      String
+  branchId            String
+  purpose             String   // e.g. "ADMISSION_FORM", "APPLICATION", "STUDENT_CODE", "RECEIPT"
+  prefix              String?
+  suffix              String?
+  includeBranchCode   Boolean  @default(false)
+  includeAcademicYear Boolean  @default(false)
+  sequencePadding     Int      @default(4)
+  format              String   // e.g., "{prefix}-{branchCode}-{year}-{sequence}"
+  resetStrategy       String   @default("NEVER") // "YEARLY", "NEVER"
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
+
+  counters            NumberSequenceCounter[]
+
+  @@unique([branchId, purpose])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model NumberSequenceCounter {
+  id             String               @id @default(uuid())
+  configId       String
+  academicYearId String?
+  currentValue   Int                  @default(0)
+  updatedAt      DateTime             @updatedAt
+
+  config         NumberSequenceConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, academicYearId])
+  @@index([configId])
+}
+
+
+// --- FROM: modules/admissions/workflow.prisma ---
+
+model WorkflowHistory {
+  id          String    @id @default(uuid())
+  applicantId String
+  oldStatus   String?
+  newStatus   String
+  actionType  String
+  remarks     String?
+  actionBy    String?
+  timestamp   DateTime  @default(now())
+
+  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@index([applicantId])
 }
 
 
@@ -250,6 +755,9 @@ model Branch {
   academicYears      AcademicYear[]
   programs           Program[]
   academicUnits      AcademicUnit[]
+  applicants         Applicant[]
+  enrollments        Enrollment[]
+  guardians          Guardian[]
 }
 
 
@@ -299,6 +807,9 @@ model Organization {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   branches         Branch[]
+  applicants       Applicant[]
+  enrollments      Enrollment[]
+  guardians        Guardian[]
 }
 
 

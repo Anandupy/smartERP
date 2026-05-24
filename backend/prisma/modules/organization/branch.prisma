@@ -28,4 +28,7 @@ model Branch {
   academicYears      AcademicYear[]
   programs           Program[]
   academicUnits      AcademicUnit[]
+  applicants         Applicant[]
+  enrollments        Enrollment[]
+  guardians          Guardian[]
 }

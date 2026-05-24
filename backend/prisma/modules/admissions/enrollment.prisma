@@ -1,0 +1,28 @@
+model Enrollment {
+  id              String       @id @default(uuid())
+  organizationId  String
+  branchId        String
+  academicYearId  String
+  programId       String
+  academicUnitId  String
+  applicantId     String       @unique
+  futureStudentId String?
+  rollNumber      String?
+  enrollmentStatus String       // ACTIVE, PROMOTED, COMPLETED, CANCELLED, etc.
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  applicant       Applicant    @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  branch          Branch       @relation(fields: [branchId], references: [id])
+  academicYear    AcademicYear @relation(fields: [academicYearId], references: [id])
+  program         Program      @relation(fields: [programId], references: [id])
+  academicUnit    AcademicUnit @relation(fields: [academicUnitId], references: [id])
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@index([programId])
+  @@index([academicUnitId])
+}

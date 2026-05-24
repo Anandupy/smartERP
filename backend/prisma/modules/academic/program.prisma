@@ -17,6 +17,7 @@ model Program {
   parent        Program? @relation("ProgramHierarchy", fields: [parentId], references: [id])
   children      Program[] @relation("ProgramHierarchy")
   academicUnits AcademicUnit[]
+  enrollments   Enrollment[]
 
   @@index([branchId])
   @@index([parentId])

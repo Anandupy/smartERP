@@ -16,6 +16,7 @@ import { AcademicYearModule } from '@/modules/academic-year/academic-year.module
 import { ProgramModule } from '@/modules/program/program.module';
 import { AcademicUnitModule } from '@/modules/academic-unit/academic-unit.module';
 import { SecurityModule } from '@/common/services/security.module';
+import { AdmissionsModule } from '@/modules/admissions/admissions.module';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 
@@ -37,6 +38,7 @@ import { RolesGuard } from '@/common/guards/roles.guard';
     AcademicYearModule,
     ProgramModule,
     AcademicUnitModule,
+    AdmissionsModule,
   ],
   controllers: [],
   providers: [

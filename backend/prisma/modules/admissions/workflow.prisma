@@ -1,0 +1,14 @@
+model WorkflowHistory {
+  id          String    @id @default(uuid())
+  applicantId String
+  oldStatus   String?
+  newStatus   String
+  actionType  String
+  remarks     String?
+  actionBy    String?
+  timestamp   DateTime  @default(now())
+
+  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@index([applicantId])
+}

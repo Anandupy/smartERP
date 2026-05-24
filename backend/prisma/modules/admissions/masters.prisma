@@ -1,0 +1,219 @@
+model Religion {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Caste {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Category {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Gender {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model BloodGroup {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Language {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Disability {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model RelationType {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  mappings       ApplicantGuardianMapping[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model Quota {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+model AdmissionSource {
+  id             String      @id @default(uuid())
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+  displayOrder   Int         @default(0)
+  isActive       Boolean     @default(true)
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  applicants     Applicant[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
