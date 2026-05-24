@@ -440,13 +440,13 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{access_token}}",
+                "value": "Bearer {{accessToken}}",
                 "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"programId\": \"{{program_id}}\",\n  \"academicYearId\": \"{{academic_year_id}}\",\n  \"name\": \"Std 1\",\n  \"unitType\": \"CLASS\",\n  \"parentId\": null\n}",
+              "raw": "{\n  \"branchId\": \"{{branchId}}\",\n  \"programId\": \"{{programId}}\",\n  \"academicYearId\": \"{{academicYearId}}\",\n  \"name\": \"Std 1\",\n  \"unitType\": \"CLASS\",\n  \"parentId\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -471,12 +471,12 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{access_token}}",
+                "value": "Bearer {{accessToken}}",
                 "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/academic-units?branchId={{branch_id}}&academicYearId={{academic_year_id}}",
+              "raw": "{{baseUrl}}/academic-units?branchId={{branchId}}&academicYearId={{academicYearId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -486,11 +486,11 @@
               "query": [
                 {
                   "key": "branchId",
-                  "value": "{{branch_id}}"
+                  "value": "{{branchId}}"
                 },
                 {
                   "key": "academicYearId",
-                  "value": "{{academic_year_id}}"
+                  "value": "{{academicYearId}}"
                 }
               ]
             }
@@ -503,12 +503,12 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{access_token}}",
+                "value": "Bearer {{accessToken}}",
                 "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/academic-units/tree?branchId={{branch_id}}",
+              "raw": "{{baseUrl}}/academic-units/tree?branchId={{branchId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -519,7 +519,7 @@
               "query": [
                 {
                   "key": "branchId",
-                  "value": "{{branch_id}}"
+                  "value": "{{branchId}}"
                 }
               ]
             }
@@ -532,7 +532,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{access_token}}",
+                "value": "Bearer {{accessToken}}",
                 "type": "text"
               }
             ],
@@ -546,13 +546,13 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/academic-units/{{academic_unit_id}}/move",
+              "raw": "{{baseUrl}}/academic-units/{{academicUnitId}}/move",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "academic-units",
-                "{{academic_unit_id}}",
+                "{{academicUnitId}}",
                 "move"
               ]
             }
@@ -1909,6 +1909,173 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Programs",
+      "item": [
+        {
+          "name": "Create Program",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.success && response.data) {",
+                  "    pm.environment.set(\"programId\", response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"branchId\": \"{{branchId}}\",\n    \"name\": \"Standard 10\",\n    \"level\": \"SECONDARY\",\n    \"medium\": \"English\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/programs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Programs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/programs?branchId={{branchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programs"
+              ],
+              "query": [
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Program Tree",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/programs/tree?branchId={{branchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programs",
+                "tree"
+              ],
+              "query": [
+                {
+                  "key": "branchId",
+                  "value": "{{branchId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Program By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/programs/{{programId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programs",
+                "{{programId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Program",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Standard 10 Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/programs/{{programId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programs",
+                "{{programId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Program",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/programs/{{programId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programs",
+                "{{programId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle Program Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/programs/{{programId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "programs",
+                "{{programId}}",
+                "status"
+              ]
+            }
+          }
         }
       ]
     }
