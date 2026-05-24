@@ -1,0 +1,43 @@
+{
+  "id": "c1f7a2db-6512-4211-b0db-6e6b010c71a3",
+  "name": "ERP - Local",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "tenantId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "organizationId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "branchId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "academicYearId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

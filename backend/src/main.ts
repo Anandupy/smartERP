@@ -60,6 +60,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
+  // Expose /api-json endpoint directly for Postman automation
+  app.getHttpAdapter().get('/api-json', (req: any, res: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    res.json(document);
+  });
+
   await app.listen(port);
 
   // Clean Startup Banner using stdout instead of console to avoid ESLint error
