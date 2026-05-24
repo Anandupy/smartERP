@@ -6,7 +6,7 @@ import {
   IsOptional,
   IsEmail,
 } from 'class-validator';
-import { Environment } from '@/generated/client';
+import { Environment } from '@prisma/client';
 
 export class CreateSystemDto {
   @IsString()

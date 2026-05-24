@@ -10,7 +10,7 @@ import {
   StructureMode,
   InstitutionType,
   AffiliationType,
-} from '@/generated/client';
+} from '@prisma/client';
 
 export class CreateBranchDto {
   @IsString()

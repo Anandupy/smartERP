@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsUUID,
 } from 'class-validator';
-import { ProgramLevel } from '@/generated/client';
+import { ProgramLevel } from '@prisma/client';
 
 export class CreateProgramDto {
   @IsUUID()

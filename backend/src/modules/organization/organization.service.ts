@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
-import { OrganizationStatus } from '@/generated/client';
+import { OrganizationStatus } from '@prisma/client';
 
 @Injectable()
 export class OrganizationService {

@@ -591,7 +591,21 @@
                     "religions"
                   ]
                 }
-              }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const response = pm.response.json();",
+                      "if (response.success && response.data) {",
+                      "    pm.environment.set('religionId', response.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
             },
             {
               "name": "List Religions",
@@ -607,6 +621,72 @@
                     "admissions",
                     "masters",
                     "religions"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Religion By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admissions",
+                    "masters",
+                    "religions",
+                    "{{religionId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update Religion",
+              "request": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Hinduism Updated\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admissions",
+                    "masters",
+                    "religions",
+                    "{{religionId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Delete Religion",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admissions/masters/religions/{{religionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admissions",
+                    "masters",
+                    "religions",
+                    "{{religionId}}"
                   ]
                 }
               }

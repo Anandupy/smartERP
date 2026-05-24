@@ -8,7 +8,7 @@ import {
   MinLength,
   Matches,
 } from 'class-validator';
-import { RoleType } from '@/generated/client';
+import { RoleType } from '@prisma/client';
 
 export class CreateUserDto {
   @IsString()

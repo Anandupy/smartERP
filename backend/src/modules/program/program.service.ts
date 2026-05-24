@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
-import { Program } from '@/generated/client';
+import { Program } from '@prisma/client';
 
 @Injectable()
 export class ProgramService {

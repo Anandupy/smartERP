@@ -1,6 +1,6 @@
 import { IsString, IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ProgramLevel } from '@/generated/client';
+import { ProgramLevel } from '@prisma/client';
 
 export class UpdateProgramDto {
   @ApiPropertyOptional()
