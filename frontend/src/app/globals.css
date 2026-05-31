@@ -1,0 +1,358 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   EduOS Design Tokens — CSS Custom Properties
+   These are the source of truth for the design system.
+   Override via Theme Studio per-organization at runtime.
+   ============================================================ */
+
+@layer base {
+  :root {
+    /* ── Brand Colors (overridden by Theme Studio) ─────────── */
+    --color-primary: 10 10 10;
+    /* #0A0A0A */
+    --color-primary-foreground: 255 255 255;
+    /* #FFFFFF */
+    --color-secondary: 75 65 225;
+    /* #4B41E1 */
+    --color-secondary-foreground: 255 255 255;
+    --color-accent: 75 65 225;
+    --color-accent-foreground: 255 255 255;
+
+    /* ── Surface Colors ────────────────────────────────────── */
+    --color-background: 255 255 255;
+    /* #FFFFFF */
+    --color-surface: 247 249 251;
+    /* #F7F9FB */
+    --color-surface-2: 240 242 245;
+    /* #F0F2F5 */
+    --color-border: 226 230 234;
+    /* #E2E6EA */
+    --color-border-strong: 200 205 212;
+    /* #C8CDD4 */
+
+    /* ── Text Colors ───────────────────────────────────────── */
+    --color-text-primary: 10 10 10;
+    /* #0A0A0A */
+    --color-text-secondary: 74 85 104;
+    /* #4A5568 */
+    --color-text-muted: 113 128 150;
+    /* #718096 */
+    --color-text-disabled: 160 173 184;
+    /* #A0ADB8 */
+
+    /* ── Semantic Colors ───────────────────────────────────── */
+    --color-success: 21 128 61;
+    /* #15803D */
+    --color-success-bg: 240 253 244;
+    /* #F0FDF4 */
+    --color-warning: 180 83 9;
+    /* #B45309 */
+    --color-warning-bg: 255 251 235;
+    /* #FFFBEB */
+    --color-error: 186 26 26;
+    /* #BA1A1A */
+    --color-error-bg: 255 241 240;
+    /* #FFF1F0 */
+    --color-info: 29 78 216;
+    /* #1D4ED8 */
+    --color-info-bg: 239 246 255;
+    /* #EFF6FF */
+
+    /* ── Status Badge Colors ───────────────────────────────── */
+    --color-status-active: 21 128 61;
+    --color-status-inactive: 113 128 150;
+    --color-status-pending: 180 83 9;
+    --color-status-suspended: 186 26 26;
+    --color-status-locked: 75 65 225;
+    --color-status-trial: 217 119 6;
+
+    /* ── Typography ────────────────────────────────────────── */
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* ── Border Radius ─────────────────────────────────────── */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-2xl: 16px;
+    --radius-full: 9999px;
+
+    /* Alias for shadcn/ui compatibility */
+    --radius: 0.625rem;
+
+    /* ── Shadows ────────────────────────────────────────────── */
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.06);
+    --shadow-md: 0 4px 6px rgb(0 0 0 / 0.07), 0 2px 4px rgb(0 0 0 / 0.06);
+    --shadow-lg: 0 10px 15px rgb(0 0 0 / 0.1), 0 4px 6px rgb(0 0 0 / 0.05);
+    --shadow-xl: 0 20px 25px rgb(0 0 0 / 0.1), 0 10px 10px rgb(0 0 0 / 0.04);
+    --shadow-drawer: -8px 0 32px rgb(0 0 0 / 0.12);
+
+    /* ── Layout Dimensions ─────────────────────────────────── */
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 56px;
+    --topbar-height: 56px;
+    --contextbar-height: 40px;
+    --drawer-width: 420px;
+    --drawer-width-wide: 560px;
+
+    /* ── Animation ──────────────────────────────────────────── */
+    --duration-fast: 100ms;
+    --duration-normal: 200ms;
+    --duration-slow: 300ms;
+    --duration-slower: 500ms;
+    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* ── Data Density (ERP Dense — default) ─────────────────── */
+    --table-row-height: 40px;
+    --card-padding: 12px;
+    --data-font-size: 13px;
+    --data-line-height: 1.375;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+  }
+
+  /* ── Dark Mode Overrides ─────────────────────────────────── */
+  .dark {
+    --color-primary: 255 255 255;
+    --color-primary-foreground: 10 10 10;
+    --color-secondary: 109 100 235;
+    --color-secondary-foreground: 255 255 255;
+    --color-accent: 109 100 235;
+    --color-accent-foreground: 255 255 255;
+
+    --color-background: 15 15 15;
+    --color-surface: 24 24 27;
+    --color-surface-2: 32 32 35;
+    --color-border: 45 45 50;
+    --color-border-strong: 65 65 75;
+
+    --color-text-primary: 240 240 245;
+    --color-text-secondary: 180 185 200;
+    --color-text-muted: 130 135 150;
+    --color-text-disabled: 80 85 95;
+
+    --color-success: 74 222 128;
+    --color-success-bg: 5 46 22;
+    --color-warning: 251 191 36;
+    --color-warning-bg: 66 32 6;
+    --color-error: 248 113 113;
+    --color-error-bg: 69 10 10;
+    --color-info: 96 165 250;
+    --color-info-bg: 23 37 84;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+
+  /* ── Density Modes ───────────────────────────────────────── */
+  [data-density='erp-dense'] {
+    --table-row-height: 40px;
+    --card-padding: 12px;
+    --data-font-size: 13px;
+    --data-line-height: 1.375;
+  }
+
+  [data-density='compact'] {
+    --table-row-height: 44px;
+    --card-padding: 14px;
+    --data-font-size: 13px;
+    --data-line-height: 1.375;
+  }
+
+  [data-density='comfortable'] {
+    --table-row-height: 52px;
+    --card-padding: 20px;
+    --data-font-size: 14px;
+    --data-line-height: 1.5;
+  }
+
+  /* ── Base Resets ─────────────────────────────────────────── */
+  * {
+    border-color: rgb(var(--color-border));
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* @apply font-sans; */
+    font-family: var(--font-body);
+  }
+
+  body {
+    background-color: rgb(var(--color-background));
+    color: rgb(var(--color-text-primary));
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    /* @apply bg-background text-foreground; */
+    background-color: rgb(var(--color-background));
+    color: rgb(var(--color-text-primary));
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border-strong));
+    border-radius: var(--radius-full);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-text-muted));
+  }
+
+  /* Focus styles */
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-primary));
+    outline-offset: 2px;
+  }
+
+  /* Reduce motion support */
+  @media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+}
+
+/* ── Utility Classes ───────────────────────────────────────── */
+@layer utilities {
+
+  /* Text colors using CSS variables */
+  .text-primary {
+    color: rgb(var(--color-text-primary));
+  }
+
+  .text-secondary {
+    color: rgb(var(--color-text-secondary));
+  }
+
+  .text-muted-erp {
+    color: rgb(var(--color-text-muted));
+  }
+
+  .text-disabled {
+    color: rgb(var(--color-text-disabled));
+  }
+
+  /* Surface backgrounds */
+  .bg-surface {
+    background-color: rgb(var(--color-surface));
+  }
+
+  .bg-surface-2 {
+    background-color: rgb(var(--color-surface-2));
+  }
+
+  /* Borders */
+  .border-erp {
+    border-color: rgb(var(--color-border));
+  }
+
+  .border-strong {
+    border-color: rgb(var(--color-border-strong));
+  }
+
+  /* Data density text */
+  .text-data {
+    font-size: var(--data-font-size);
+    line-height: var(--data-line-height);
+  }
+
+  /* Monospace for codes and IDs */
+  .font-code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    letter-spacing: 0.025em;
+  }
+
+  /* Smooth sidebar transition */
+  .sidebar-transition {
+    transition: width var(--duration-slow) var(--ease-default);
+  }
+}
