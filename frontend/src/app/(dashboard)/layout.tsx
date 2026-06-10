@@ -1,31 +1,25 @@
 import type { Metadata } from 'next';
 import { AuthGuard } from '@/core/guards/auth-guard';
-import { AppShell } from '@/components/layout/app-shell';
+import { AppShell } from '@/ui/v1/components/layout/AppShell';
 import { CommandMenu } from '@/components/shared/command-menu';
 
 export const metadata: Metadata = {
   title: {
     template: '%s | EduOS',
-    default: 'Dashboard | EduOS',
+    default: 'EduOS',
   },
 };
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
 /**
- * Dashboard layout — wraps all protected ERP routes.
+ * Authenticated app layout — wraps all protected ERP routes.
  *
- * Provider order (inner-most here, outer providers in root layout):
- * AuthGuard → AppShell → CommandMenu
+ * Uses UI v1 AppShell (Sidebar + TopBar + ContextBar).
+ * To switch UI versions: change the AppShell import to '@/ui/v2/...'
+ * Routes never change — only the UI implementation.
  *
- * AuthGuard handles client-side auth verification.
- * AppShell renders Sidebar + TopBar + ContextBar + content area.
- * CommandMenu provides global CMD+K search (rendered at layout level
- * so it persists across page navigations).
+ * Provider chain: AuthGuard → AppShell → CommandMenu
  */
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       <AppShell>
