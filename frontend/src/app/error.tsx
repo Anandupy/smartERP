@@ -14,17 +14,17 @@ export default function GlobalError({ error, reset }: ErrorProps) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center bg-surface">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive-bg">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center bg-background">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10">
         <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden />
       </div>
       <div className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">Something went wrong</h1>
-        <p className="text-sm text-muted-erp max-w-sm">
+        <p className="text-sm text-text-muted max-w-sm">
           An unexpected error occurred. Please try again or contact your system administrator if the problem persists.
         </p>
         {error.digest && (
-          <p className="font-mono text-xs text-muted-erp">
+          <p className="font-mono text-xs text-text-muted">
             Error ID: {error.digest}
           </p>
         )}

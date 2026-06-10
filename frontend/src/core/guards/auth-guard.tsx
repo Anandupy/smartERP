@@ -54,14 +54,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
 function AuthLoadingScreen() {
   return (
     <div
-      className="flex h-screen w-full items-center justify-center bg-surface"
+      className="flex h-screen w-full items-center justify-center bg-background"
       role="status"
       aria-label="Authenticating..."
     >
       <div className="flex flex-col items-center gap-3">
         {/* Spinner */}
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-secondary" />
-        <p className="text-sm text-muted-erp">Loading EduOS...</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent" />
+        <p className="text-sm text-text-muted">Loading EduOS...</p>
       </div>
     </div>
   );
