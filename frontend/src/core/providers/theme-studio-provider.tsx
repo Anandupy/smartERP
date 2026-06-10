@@ -5,66 +5,53 @@ import { useThemeStore } from '@/stores/theme.store';
 import type { ThemeConfig } from '@/stores/theme.store';
 import type { DataDensity } from '@/types/ui.types';
 
-// ── CSS Variable Application ──────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────
 
-/**
- * Convert a hex color to RGB space-separated values for CSS vars.
- * @example hexToRgb('#4B41E1') → '75 65 225'
- */
+/** Convert hex color (#RRGGBB) to "R G B" space-separated string for CSS vars */
 function hexToRgb(hex: string): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return '0 0 0';
-  return `${parseInt(result[1] ?? '0', 16)} ${parseInt(result[2] ?? '0', 16)} ${parseInt(result[3] ?? '0', 16)}`;
+  if (!result) return '10 10 10';
+  return [
+    parseInt(result[1] ?? '0', 16),
+    parseInt(result[2] ?? '0', 16),
+    parseInt(result[3] ?? '0', 16),
+  ].join(' ');
 }
 
+// ── Theme Application ─────────────────────────────────────────
+
 /**
- * Apply a ThemeConfig to CSS custom properties on the document root.
- * This is the core of the Theme Engine.
+ * Applies a ThemeConfig to the EduOS CSS design tokens.
+ *
+ * Sets --eduos-* variables (RGB triples) which flow through the
+ * shadcn bridge and Tailwind @theme inline into all utilities.
+ *
+ * Theme Studio → --eduos-* → --primary/--background/... → bg-primary/text-foreground/...
  */
 export function applyTheme(theme: Partial<ThemeConfig>): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
 
-  if (theme.primaryColor) {
-    root.style.setProperty('--color-primary', hexToRgb(theme.primaryColor));
-  }
-  if (theme.primaryForeground) {
-    root.style.setProperty(
-      '--color-primary-foreground',
-      hexToRgb(theme.primaryForeground),
-    );
-  }
-  if (theme.secondaryColor) {
-    root.style.setProperty(
-      '--color-secondary',
-      hexToRgb(theme.secondaryColor),
-    );
-  }
-  if (theme.secondaryForeground) {
-    root.style.setProperty(
-      '--color-secondary-foreground',
-      hexToRgb(theme.secondaryForeground),
-    );
-  }
+  const set = (variable: string, value: string) =>
+    root.style.setProperty(variable, value);
+
+  if (theme.primaryColor)     set('--eduos-primary',     hexToRgb(theme.primaryColor));
+  if (theme.primaryForeground) set('--eduos-primary-fg', hexToRgb(theme.primaryForeground));
+  if (theme.secondaryColor)   set('--eduos-secondary',   hexToRgb(theme.secondaryColor));
+  if (theme.secondaryForeground) set('--eduos-secondary-fg', hexToRgb(theme.secondaryForeground));
   if (theme.accentColor) {
-    root.style.setProperty('--color-accent', hexToRgb(theme.accentColor));
+    set('--eduos-accent',     hexToRgb(theme.accentColor));
+    set('--eduos-secondary',  hexToRgb(theme.accentColor)); // secondary = accent in default theme
   }
+  if (theme.accentForeground) set('--eduos-accent-fg', hexToRgb(theme.accentForeground));
+
   if (theme.fontFamily) {
-    root.style.setProperty(
-      '--font-display',
-      `'${theme.fontFamily}', system-ui, sans-serif`,
-    );
-    root.style.setProperty(
-      '--font-body',
-      `'${theme.fontFamily}', system-ui, sans-serif`,
-    );
+    set('--font-body',           `'${theme.fontFamily}'`);
+    set('--font-display-family', `'${theme.fontFamily}'`);
   }
 }
 
-/**
- * Apply data density to the <html> element via data attribute.
- * CSS rules in globals.css respond to [data-density="..."].
- */
+/** Apply data density via data attribute on <html> */
 export function applyDensity(density: DataDensity): void {
   if (typeof document === 'undefined') return;
   document.documentElement.setAttribute('data-density', density);
@@ -72,45 +59,31 @@ export function applyDensity(density: DataDensity): void {
 
 // ── Provider ──────────────────────────────────────────────────
 
-interface ThemeStudioProviderProps {
-  children: React.ReactNode;
-}
-
 /**
- * ThemeStudioProvider — applies the active theme to CSS variables.
+ * ThemeStudioProvider — bridges ThemeStore → CSS variables.
  *
- * Responsibilities:
- * 1. Apply stored theme on mount (after hydration, using useLayoutEffect)
- * 2. Watch for theme store changes and re-apply
- * 3. Apply draft theme for live preview in Theme Studio
- * 4. Apply data density
- *
- * SSR Safety: useLayoutEffect is skipped on server.
- * The `typeof window` check ensures no SSR execution.
+ * On mount and on theme changes, applies the effective theme
+ * (draft merged over published) to the EduOS CSS tokens.
+ * All Tailwind utilities and shadcn components update automatically
+ * because they reference those tokens through the @theme inline bridge.
  */
-export function ThemeStudioProvider({ children }: ThemeStudioProviderProps) {
+export function ThemeStudioProvider({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore((s) => s.theme);
   const draft = useThemeStore((s) => s.draft);
+  const hasApplied = useRef(false);
 
-  // Track if we've applied the initial theme
-  const hasAppliedInitial = useRef(false);
-
-  // useLayoutEffect runs synchronously after DOM mutations but before paint
-  // This prevents a flash of unstyled content
-  // Note: useLayoutEffect is a no-op on the server (safe)
   useLayoutEffect(() => {
-    const effectiveTheme = draft ? { ...theme, ...draft } : theme;
-    applyTheme(effectiveTheme);
-    applyDensity(effectiveTheme.density);
-    hasAppliedInitial.current = true;
+    const effective = draft ? { ...theme, ...draft } : theme;
+    applyTheme(effective);
+    applyDensity(effective.density);
+    hasApplied.current = true;
   }, [theme, draft]);
 
-  // Also apply on client mount if layout effect hasn't run
   useEffect(() => {
-    if (!hasAppliedInitial.current) {
-      const effectiveTheme = draft ? { ...theme, ...draft } : theme;
-      applyTheme(effectiveTheme);
-      applyDensity(effectiveTheme.density);
+    if (!hasApplied.current) {
+      const effective = draft ? { ...theme, ...draft } : theme;
+      applyTheme(effective);
+      applyDensity(effective.density);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
