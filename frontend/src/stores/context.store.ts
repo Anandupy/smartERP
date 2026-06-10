@@ -185,8 +185,16 @@ export const selectBranchId = (s: ContextState) => s.branchId;
 export const selectAcademicYearId = (s: ContextState) => s.academicYearId;
 export const selectProgramId = (s: ContextState) => s.programId;
 
-/** Returns the full context as a flat object (for Axios headers). */
+/**
+ * Returns the ERP context headers for injection into every API request.
+ * The backend uses these to scope data to the correct tenant context.
+ * Matches the Postman pre-request script: x-tenant-id, x-organization-id,
+ * x-branch-id, x-academic-year-id.
+ */
 export const selectContextHeaders = (s: ContextState) => ({
-  'x-organization-id': s.organizationId,
-  'x-branch-id': s.branchId,
+  'x-organization-id':  s.organizationId,
+  'x-branch-id':        s.branchId,
+  'x-academic-year-id': s.academicYearId,
+  // x-tenant-id is derived from organizationCode when available
+  ...(s.organizationCode ? { 'x-tenant-id': s.organizationCode } : {}),
 });

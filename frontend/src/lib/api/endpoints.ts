@@ -1,102 +1,174 @@
 // ============================================================
-// API Endpoints — All backend endpoint paths
-// Use these constants everywhere — never inline endpoint strings.
-// Base URL is injected by the Axios client from env.
+// Versioned API Endpoint Registry
+//
+// Architecture:
+//   apiVersionBuilder(path) → prepends /v1 (configurable)
+//   ENDPOINTS.*            → all typed endpoint paths
+//
+// Rules:
+//   - NEVER inline endpoint strings outside this file
+//   - Use ENDPOINTS.module.action pattern everywhere
+//   - Dynamic segments use function signatures: (id: string) => string
+//   - Version is controlled by NEXT_PUBLIC_API_VERSION env var
 // ============================================================
 
+/** Current API version prefix */
+const API_VERSION = process.env['NEXT_PUBLIC_API_VERSION'] ?? 'v1';
+
+/**
+ * Prepends the API version prefix to a path.
+ * @example apiVersionBuilder('/auth/login') → '/v1/auth/login'
+ */
+export function apiVersionBuilder(path: string): string {
+  return `/${API_VERSION}${path}`;
+}
+
+const v = apiVersionBuilder; // shorthand
+
+// ── Endpoint Registry ─────────────────────────────────────────
+
 export const ENDPOINTS = {
-  // ── Auth ──────────────────────────────────────────────────
+
+  // ── Auth ────────────────────────────────────────────────────
   auth: {
-    login: '/auth/login',
-    refresh: '/auth/refresh',
-    logout: '/auth/logout',
-    sessions: '/auth/sessions',
-    revokeSession: (id: string) => `/auth/sessions/${id}`,
-    revokeAllSessions: '/auth/sessions',
-    // NOTE: No forgot-password or reset-password endpoints exist yet
-    // These will be added when the backend implements them (GAP-02)
+    login:           v('/auth/login'),
+    refresh:         v('/auth/refresh'),
+    logout:          v('/auth/logout'),
+    sessions:        v('/auth/sessions'),
+    revokeSession:   (id: string) => v(`/auth/sessions/${id}`),
+    revokeAllSessions: v('/auth/sessions'),
   },
 
-  // ── Organizations ─────────────────────────────────────────
-  organizations: {
-    list: '/organizations',
-    create: '/organizations',
-    detail: (id: string) => `/organizations/${id}`,
-    update: (id: string) => `/organizations/${id}`,
-    delete: (id: string) => `/organizations/${id}`,
-  },
-
-  // ── Branches ──────────────────────────────────────────────
-  branches: {
-    list: '/branches',
-    create: '/branches',
-    detail: (id: string) => `/branches/${id}`,
-    byOrganization: (orgId: string) => `/branches/organization/${orgId}`,
-    update: (id: string) => `/branches/${id}`,
-    delete: (id: string) => `/branches/${id}`,
-    toggleStatus: (id: string) => `/branches/${id}/status`,
-  },
-
-  // ── Academic Years ────────────────────────────────────────
-  academicYears: {
-    list: '/academic-years',
-    create: '/academic-years',
-    current: '/academic-years/current',
-    detail: (id: string) => `/academic-years/${id}`,
-    update: (id: string) => `/academic-years/${id}`,
-    delete: (id: string) => `/academic-years/${id}`,
-    activate: (id: string) => `/academic-years/${id}/activate`,
-    select: (id: string) => `/academic-years/${id}/select`,
-    lock: (id: string) => `/academic-years/${id}/lock`,
-  },
-
-  // ── Programs ──────────────────────────────────────────────
-  programs: {
-    list: '/programs',
-    tree: '/programs/tree',
-    create: '/programs',
-    detail: (id: string) => `/programs/${id}`,
-    update: (id: string) => `/programs/${id}`,
-    delete: (id: string) => `/programs/${id}`,
-    toggleStatus: (id: string) => `/programs/${id}/status`,
-  },
-
-  // ── Academic Units ────────────────────────────────────────
-  academicUnits: {
-    list: '/academic-units',
-    tree: '/academic-units/tree',
-    create: '/academic-units',
-    detail: (id: string) => `/academic-units/${id}`,
-    update: (id: string) => `/academic-units/${id}`,
-    delete: (id: string) => `/academic-units/${id}`,
-    move: (id: string) => `/academic-units/${id}/move`,
-    toggleStatus: (id: string) => `/academic-units/${id}/status`,
-  },
-
-  // ── Users ─────────────────────────────────────────────────
+  // ── Users ────────────────────────────────────────────────────
   users: {
-    create: '/users',
-    detail: (id: string) => `/users/${id}`,
-    update: (id: string) => `/users/${id}`,
-    // NOTE: No GET /users/me endpoint confirmed yet (GAP-07)
-    // No list endpoint confirmed yet
+    create: v('/users'),
+    detail: (id: string) => v(`/users/${id}`),
+    update: (id: string) => v(`/users/${id}`),
   },
 
-  // ── System Settings ───────────────────────────────────────
+  // ── System Settings ──────────────────────────────────────────
   systemSettings: {
-    get: '/system-settings',
-    init: '/system-settings/init',
-    update: '/system-settings',
+    get:    v('/system-settings'),
+    init:   v('/system-settings/init'),
+    update: v('/system-settings'),
   },
 
-  // ── Admissions (endpoints TBD — backend controller not found) ──
-  // NOTE: DO NOT USE — Backend controller not yet confirmed (GAP-03)
-  // Will be populated when backend contracts are available.
+  // ── Organizations ────────────────────────────────────────────
+  organizations: {
+    list:   v('/organizations'),
+    create: v('/organizations'),
+    detail: (id: string) => v(`/organizations/${id}`),
+    update: (id: string) => v(`/organizations/${id}`),
+    delete: (id: string) => v(`/organizations/${id}`),
+  },
+
+  // ── Branches ─────────────────────────────────────────────────
+  branches: {
+    list:            v('/branches'),
+    create:          v('/branches'),
+    detail:          (id: string) => v(`/branches/${id}`),
+    byOrganization:  (orgId: string) => v(`/branches/organization/${orgId}`),
+    update:          (id: string) => v(`/branches/${id}`),
+    delete:          (id: string) => v(`/branches/${id}`),
+    toggleStatus:    (id: string) => v(`/branches/${id}/status`),
+  },
+
+  // ── Academic Years ───────────────────────────────────────────
+  academicYears: {
+    list:    v('/academic-years'),
+    create:  v('/academic-years'),
+    current: v('/academic-years/current'),
+    detail:  (id: string) => v(`/academic-years/${id}`),
+    update:  (id: string) => v(`/academic-years/${id}`),
+    delete:  (id: string) => v(`/academic-years/${id}`),
+    activate: (id: string) => v(`/academic-years/${id}/activate`),
+    select:   (id: string) => v(`/academic-years/${id}/select`),
+    lock:     (id: string) => v(`/academic-years/${id}/lock`),
+  },
+
+  // ── Programs ─────────────────────────────────────────────────
+  programs: {
+    list:         v('/programs'),
+    tree:         v('/programs/tree'),
+    create:       v('/programs'),
+    detail:       (id: string) => v(`/programs/${id}`),
+    update:       (id: string) => v(`/programs/${id}`),
+    delete:       (id: string) => v(`/programs/${id}`),
+    toggleStatus: (id: string) => v(`/programs/${id}/status`),
+  },
+
+  // ── Academic Units ───────────────────────────────────────────
+  academicUnits: {
+    list:         v('/academic-units'),
+    tree:         v('/academic-units/tree'),
+    create:       v('/academic-units'),
+    detail:       (id: string) => v(`/academic-units/${id}`),
+    update:       (id: string) => v(`/academic-units/${id}`),
+    delete:       (id: string) => v(`/academic-units/${id}`),
+    move:         (id: string) => v(`/academic-units/${id}/move`),
+    toggleStatus: (id: string) => v(`/academic-units/${id}/status`),
+  },
+
+  // ── Admissions — Masters ─────────────────────────────────────
   admissions: {
-    // applicants: { list: '/admissions/applicants', ... }
+    masters: {
+      // Generic helper: religions, castes, categories, genders, etc.
+      list:   (slug: string) => v(`/admissions/masters/${slug}`),
+      create: (slug: string) => v(`/admissions/masters/${slug}`),
+      detail: (slug: string, id: string) => v(`/admissions/masters/${slug}/${id}`),
+      update: (slug: string, id: string) => v(`/admissions/masters/${slug}/${id}`),
+      delete: (slug: string, id: string) => v(`/admissions/masters/${slug}/${id}`),
+
+      // Named slugs for type safety
+      religions:        v('/admissions/masters/religions'),
+      castes:           v('/admissions/masters/castes'),
+      categories:       v('/admissions/masters/categories'),
+      genders:          v('/admissions/masters/genders'),
+      bloodGroups:      v('/admissions/masters/blood-groups'),
+      languages:        v('/admissions/masters/languages'),
+      disabilities:     v('/admissions/masters/disabilities'),
+      relationTypes:    v('/admissions/masters/relation-types'),
+      quotas:           v('/admissions/masters/quotas'),
+      admissionSources: v('/admissions/masters/admission-sources'),
+    },
+
+    // ── Numbering ──────────────────────────────────────────────
+    numbering: {
+      configs: {
+        list:   v('/admissions/numbering/configs'),
+        create: v('/admissions/numbering/configs'),
+      },
+    },
+
+    // ── Guardians ─────────────────────────────────────────────
+    guardians: {
+      create:   v('/admissions/guardians'),
+      search:   v('/admissions/guardians/search'),
+      detail:   (id: string) => v(`/admissions/guardians/${id}`),
+      update:   (id: string) => v(`/admissions/guardians/${id}`),
+      mapToApplicant:      (applicantId: string) => v(`/admissions/guardians/applicant/${applicantId}/map`),
+      listForApplicant:    (applicantId: string) => v(`/admissions/guardians/applicant/${applicantId}`),
+      unmapFromApplicant:  (applicantId: string, guardianId: string) =>
+        v(`/admissions/guardians/applicant/${applicantId}/map/${guardianId}`),
+    },
+
+    // ── Applicants ────────────────────────────────────────────
+    applicants: {
+      list:             v('/admissions/applicants'),
+      create:           v('/admissions/applicants'),
+      checkDuplicates:  v('/admissions/applicants/check-duplicates'),
+      detail:           (id: string) => v(`/admissions/applicants/${id}`),
+      update:           (id: string) => v(`/admissions/applicants/${id}`),
+      delete:           (id: string) => v(`/admissions/applicants/${id}`),
+
+      // Workflow
+      transition:       (id: string) => v(`/admissions/applicants/${id}/workflow/transition`),
+      workflowHistory:  (id: string) => v(`/admissions/applicants/${id}/workflow/history`),
+
+      // Enrollment
+      createEnrollment: (id: string) => v(`/admissions/applicants/${id}/enrollment`),
+      getEnrollment:    (id: string) => v(`/admissions/applicants/${id}/enrollment`),
+    },
   },
 
-  // ── Audit (endpoints TBD — backend controller not found) ──
-  // NOTE: DO NOT USE — Backend controller not yet confirmed (GAP-04)
-  audit: {},
 } as const;

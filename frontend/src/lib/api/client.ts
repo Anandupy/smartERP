@@ -54,14 +54,22 @@ function createApiClient(): AxiosInstance {
         config.headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // Inject ERP context headers (for future backend multi-tenant support)
-      // Context store is accessed directly (not via hook) because this runs outside React
+      // Inject ERP context headers
+      // Matches the Postman pre-request script: x-tenant-id, x-organization-id,
+      // x-branch-id, x-academic-year-id
+      // Context store is accessed directly (not via hook) — runs outside React
       const contextState = useContextStore.getState();
+      if (contextState.organizationCode) {
+        config.headers['x-tenant-id'] = contextState.organizationCode;
+      }
       if (contextState.organizationId) {
         config.headers['x-organization-id'] = contextState.organizationId;
       }
       if (contextState.branchId) {
         config.headers['x-branch-id'] = contextState.branchId;
+      }
+      if (contextState.academicYearId) {
+        config.headers['x-academic-year-id'] = contextState.academicYearId;
       }
 
       return config;
