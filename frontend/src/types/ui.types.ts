@@ -7,6 +7,8 @@ import type { LucideIcon } from 'lucide-react';
 // ── Navigation ────────────────────────────────────────────────
 
 export interface NavItem {
+  /** Unique identifier (required in new config, optional for legacy compat) */
+  id?: string;
   label: string;
   href: string;
   icon: LucideIcon;
@@ -15,8 +17,9 @@ export interface NavItem {
   children?: NavItem[];
   isExternal?: boolean;
   isDisabled?: boolean;
-  /** For future modules not yet implemented */
   isComingSoon?: boolean;
+  featureFlag?: string;
+  pluginId?: string;
 }
 
 export interface NavGroup {
