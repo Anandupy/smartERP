@@ -35,9 +35,8 @@ export function useTour() {
         return;
       }
 
-      // Load Driver.js lazily
+      // Load Driver.js lazily (CSS is imported globally in globals.css)
       const { driver } = await import('driver.js');
-      await import('driver.js/dist/driver.css');
 
       const driverObj = driver({
         showProgress: true,
