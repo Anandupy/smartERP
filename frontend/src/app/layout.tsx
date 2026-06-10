@@ -1,18 +1,15 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Geist } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { QueryProvider } from '@/core/providers/query-provider';
 import { ThemeProvider } from '@/core/providers/theme-provider';
 import { ThemeStudioProvider } from '@/core/providers/theme-studio-provider';
 import './globals.css';
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-body',
   preload: true,
 });
 
@@ -24,10 +21,7 @@ export const metadata: Metadata = {
   description:
     'EduOS is a multi-tenant Educational ERP Platform for managing institutions, branches, admissions, and academic operations.',
   keywords: ['ERP', 'Education', 'School Management', 'Admissions'],
-  robots: {
-    index: false, // No search indexing for ERP software
-    follow: false,
-  },
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
@@ -39,25 +33,12 @@ export const viewport: Viewport = {
   ],
 };
 
-interface RootLayoutProps {
-  children: React.ReactNode;
-}
-
-/**
- * Root layout — wraps the entire application.
- *
- * Provider nesting order (important):
- * QueryProvider → ThemeProvider (next-themes) → ThemeStudioProvider → children
- *
- * ThemeProvider must be outside ThemeStudioProvider because ThemeStudioProvider
- * reads the color mode from next-themes context.
- */
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("font-sans", geist.variable)}
+      className={inter.variable}
       data-density="erp-dense"
     >
       <body>
@@ -72,9 +53,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 duration={4000}
                 toastOptions={{
                   classNames: {
-                    toast: 'font-sans text-sm',
+                    toast: 'text-sm',
                     title: 'font-medium',
-                    description: 'text-muted-foreground',
                   },
                 }}
               />
