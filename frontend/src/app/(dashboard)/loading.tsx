@@ -15,11 +15,11 @@ export default function DashboardLoading() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="h-28 animate-skeleton rounded-lg border border-erp bg-surface-2"
+            className="h-28 animate-skeleton rounded-lg border border-border bg-surface-2"
           />
         ))}
       </div>
-      <div className="h-64 animate-skeleton rounded-lg border border-erp bg-surface-2" />
+      <div className="h-64 animate-skeleton rounded-lg border border-border bg-surface-2" />
     </div>
   );
 }
