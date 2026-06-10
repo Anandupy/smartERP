@@ -122,7 +122,7 @@ function TreeNodeComponent({
       {/* Children */}
       {hasChildren && expanded && (
         <ul role="group" aria-label={`${node.name} children`}>
-          {node.children!.map((child) => (
+          {(node.children ?? []).map((child) => (
             <TreeNodeComponent
               key={child.id}
               node={child}
