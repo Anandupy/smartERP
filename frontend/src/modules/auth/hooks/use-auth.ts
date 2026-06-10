@@ -50,7 +50,7 @@ function clearAuthIndicatorCookie() {
  */
 export function useLogin() {
   const router = useRouter();
-  const { setUser, clearAuth } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   return useMutation<void, ApiClientError, LoginInput>({
     mutationFn: async (data) => {
