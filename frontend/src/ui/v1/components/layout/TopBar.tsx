@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Search, LogOut, Settings, User, ChevronDown } from 'lucide-react';
+import { Bell, Search, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { cn } from '@/lib/utils';
 
