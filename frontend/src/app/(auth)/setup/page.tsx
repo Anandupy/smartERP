@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { CheckCircle2, Circle, ArrowRight } from 'lucide-react';
-import { SETUP_STEPS } from '@/core/guards/setup-guard';
+import { SETUP_STEPS } from '@/config/setup-steps';
 
 export const metadata: Metadata = {
   title: 'System Setup | EduOS',

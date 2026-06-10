@@ -21,6 +21,8 @@ import { queryKeys } from '@/lib/api/query-keys';
 import { apiGet } from '@/lib/api/client';
 import { ENDPOINTS } from '@/lib/api/endpoints';
 import type { SystemSettings } from '@/types/domain.types';
+export type { SetupStep } from '@/config/setup-steps';
+export { SETUP_STEPS } from '@/config/setup-steps';
 
 export type SetupStatus =
   | 'checking'
@@ -76,53 +78,8 @@ export function useSetupStatus(): SetupStatus {
 }
 
 // ── Setup Wizard Architecture ─────────────────────────────────
-
-export interface SetupStep {
-  id: string;
-  title: string;
-  description: string;
-  isRequired: boolean;
-  isComplete: boolean;
-}
-
-/**
- * Setup wizard step definitions.
- * Used by the /setup page to render the wizard UI.
- */
-export const SETUP_STEPS: SetupStep[] = [
-  {
-    id: 'system-init',
-    title: 'Initialize System',
-    description: 'Configure the core EduOS system settings.',
-    isRequired: true,
-    isComplete: false,
-  },
-  {
-    id: 'create-organization',
-    title: 'Create Organization',
-    description: 'Set up your first educational organization.',
-    isRequired: true,
-    isComplete: false,
-  },
-  {
-    id: 'create-branch',
-    title: 'Create Branch',
-    description: 'Add your first institution branch or campus.',
-    isRequired: true,
-    isComplete: false,
-  },
-  {
-    id: 'create-academic-year',
-    title: 'Set Academic Year',
-    description: 'Define the current academic year for your branch.',
-    isRequired: true,
-    isComplete: false,
-  },
-  {
-    id: 'create-program',
-    title: 'Create Program',
-    description: 'Add at least one program (e.g., Class 1 to 12, B.Tech).',
-    isRequired: false,
-    isComplete: false,
-  },
-];
+// SetupStep type and SETUP_STEPS array are defined in
+// src/config/setup-steps.ts (no 'use client') so they can be
+// imported by Server Components without prerender errors.
+// Re-exported here for backward compatibility.
+// (see exports added near top of this file)
