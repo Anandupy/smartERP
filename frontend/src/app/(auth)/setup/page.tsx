@@ -22,17 +22,17 @@ export default function SetupPage() {
         <h1 className="text-2xl font-bold text-foreground">
           Welcome to EduOS Setup
         </h1>
-        <p className="text-sm text-muted-erp">
+        <p className="text-sm text-text-muted">
           Complete these steps to get your ERP platform ready.
         </p>
       </div>
 
       {/* Progress Card */}
-      <div className="rounded-xl border border-erp bg-background p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-background p-6 shadow-sm">
         <div className="mb-6">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-foreground">Setup Progress</span>
-            <span className="text-muted-erp">0 of {SETUP_STEPS.filter(s => s.isRequired).length} required steps</span>
+            <span className="text-text-muted">0 of {SETUP_STEPS.filter(s => s.isRequired).length} required steps</span>
           </div>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
             <div
@@ -52,14 +52,14 @@ export default function SetupPage() {
           {SETUP_STEPS.map((step, index) => (
             <li
               key={step.id}
-              className="flex items-start gap-3 rounded-lg border border-erp p-4"
+              className="flex items-start gap-3 rounded-lg border border-border p-4"
             >
               {/* Step icon */}
               <div className="mt-0.5 shrink-0">
                 {step.isComplete ? (
                   <CheckCircle2 className="h-5 w-5 text-success" aria-hidden />
                 ) : (
-                  <Circle className="h-5 w-5 text-muted-erp" aria-hidden />
+                  <Circle className="h-5 w-5 text-text-muted" aria-hidden />
                 )}
               </div>
 
@@ -70,12 +70,12 @@ export default function SetupPage() {
                     {index + 1}. {step.title}
                   </span>
                   {!step.isRequired && (
-                    <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-muted-erp">
+                    <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-text-muted">
                       Optional
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs text-muted-erp">
+                <p className="mt-0.5 text-xs text-text-muted">
                   {step.description}
                 </p>
               </div>
@@ -93,7 +93,7 @@ export default function SetupPage() {
           ))}
         </ol>
 
-        <p className="mt-4 text-center text-xs text-muted-erp">
+        <p className="mt-4 text-center text-xs text-text-muted">
           Setup wizard will be wired to APIs in Phase 2 when business modules are built.
         </p>
       </div>

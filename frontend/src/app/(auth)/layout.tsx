@@ -35,7 +35,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       {/* Footer */}
-      <footer className="absolute bottom-4 text-center text-xs text-muted-foreground">
+      <footer className="absolute bottom-4 text-center text-[11px] text-text-muted">
         EduOS ERP Platform &copy; {new Date().getFullYear()}
       </footer>
     </div>

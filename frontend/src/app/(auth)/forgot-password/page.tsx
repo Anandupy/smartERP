@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
       <div className="space-y-2">
         <Link
           href="/login"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-erp hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
           Back to sign in
@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Reset your password
           </h1>
-          <p className="mt-1 text-sm text-muted-erp">
+          <p className="mt-1 text-sm text-text-muted">
             Enter your email to receive a password reset link.
           </p>
         </div>
@@ -53,14 +53,14 @@ export default function ForgotPasswordPage() {
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
-                <Mail className="h-4 w-4 text-muted-erp" aria-hidden />
+                <Mail className="h-4 w-4 text-text-muted" aria-hidden />
               </div>
               <input
                 id="email"
                 type="email"
                 disabled
                 placeholder="you@example.com"
-                className="w-full rounded-md border border-input bg-surface px-3 py-2 pl-9 text-sm text-muted-erp cursor-not-allowed"
+                className="w-full rounded-md border border-input bg-surface px-3 py-2 pl-9 text-sm text-text-muted cursor-not-allowed"
               />
             </div>
           </div>

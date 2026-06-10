@@ -25,19 +25,19 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Welcome to EduOS
           </h1>
-          <p className="mt-1 text-sm text-muted-erp">
+          <p className="mt-1 text-[13px] text-text-muted">
             Sign in to your institution&apos;s ERP portal
           </p>
         </div>
       </div>
 
       {/* Login Card */}
-      <div className="rounded-xl border border-erp bg-background p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-background p-6 shadow-sm">
         <LoginForm />
       </div>
 
       {/* Support Link */}
-      <p className="text-center text-xs text-muted-erp">
+      <p className="text-center text-[11px] text-text-muted">
         Having trouble?{' '}
         <a
           href="mailto:support@eduos.in"

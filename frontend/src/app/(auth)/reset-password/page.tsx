@@ -16,7 +16,7 @@ export default function ResetPasswordPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Set new password
         </h1>
-        <p className="mt-1 text-sm text-muted-erp">
+        <p className="mt-1 text-sm text-text-muted">
           Enter and confirm your new password below.
         </p>
       </div>
@@ -29,7 +29,7 @@ export default function ResetPasswordPage() {
       </div>
 
       <div className="rounded-xl border border-erp bg-background p-6 shadow-sm">
-        <p className="text-sm text-muted-erp">
+        <p className="text-sm text-text-muted">
           Password reset link not yet implemented.
         </p>
       </div>
