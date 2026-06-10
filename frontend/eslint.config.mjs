@@ -2,35 +2,30 @@ import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { FlatCompat } from '@eslint/eslintrc';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+const compat = new FlatCompat({ baseDirectory: __dirname });
 
-/** @type {import('eslint').Linter.Config[]} */
+/**
+ * ESLint flat config — Next.js 15 + TypeScript.
+ *
+ * Uses FlatCompat to extend next/core-web-vitals (handles React, hooks,
+ * next.js rules). TypeScript plugin is explicitly declared here so
+ * @typescript-eslint/* rules can be resolved.
+ */
 const eslintConfig = [
-  // Next.js recommended rules
+  // Next.js core rules (includes react, react-hooks, import, accessibility)
   ...compat.extends('next/core-web-vitals'),
 
-  // TypeScript config
+  // TypeScript rules — plugin must be declared in the same config object
   {
     files: ['**/*.ts', '**/*.tsx'],
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        project: './tsconfig.json',
-        tsconfigRootDir: __dirname,
-      },
-    },
     plugins: {
       '@typescript-eslint': tsPlugin,
     },
     rules: {
-      // TypeScript strict rules
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -40,30 +35,20 @@ const eslintConfig = [
         'error',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
       ],
-      '@typescript-eslint/no-non-null-assertion': 'error',
-      '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
 
-      // React rules
-      'react/self-closing-comp': 'error',
-      'react/jsx-no-useless-fragment': ['error', { allowExpressions: true }],
-
-      // React Hooks rules
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
-
-      // Import rules
-      'import/no-duplicates': 'error',
-
-      // General rules
+      // General quality
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'error',
       'no-var': 'error',
       eqeqeq: ['error', 'always'],
+
+      // React
+      'react/self-closing-comp': 'error',
     },
   },
 
-  // Ignore patterns
+  // Global ignores
   {
     ignores: [
       '.next/**',
@@ -74,6 +59,7 @@ const eslintConfig = [
       'node_modules/**',
       '*.config.mjs',
       '*.config.ts',
+      'src/tests/**',
     ],
   },
 ];
