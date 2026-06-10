@@ -4,7 +4,6 @@ import { useCallback } from 'react';
 import { useUIStore } from '@/stores/ui.store';
 import { getTour, getAllTours, getToursForRole } from './registry';
 import { env } from '@/config/env';
-import type { TourDefinition } from '@/types/ui.types';
 
 /**
  * Hook to control Driver.js tours.
