@@ -18,13 +18,6 @@ interface ErrorBoundaryProps {
 /**
  * Module-level error boundary.
  * Catches errors in child components and renders a fallback UI.
- *
- * Usage:
- * ```tsx
- * <ErrorBoundary>
- *   <AdmissionsModule />
- * </ErrorBoundary>
- * ```
  */
 export class ErrorBoundary extends React.Component<
   ErrorBoundaryProps,
@@ -39,7 +32,8 @@ export class ErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  // TS4114 fix: noImplicitOverride requires 'override' on inherited methods
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('[ErrorBoundary]', error, errorInfo);
   }
 
@@ -47,7 +41,7 @@ export class ErrorBoundary extends React.Component<
     this.setState({ hasError: false, error: null });
   };
 
-  render() {
+  override render(): React.ReactNode {
     if (this.state.hasError && this.state.error) {
       if (this.props.fallback) {
         return this.props.fallback({
@@ -81,20 +75,20 @@ function DefaultErrorFallback({ error, reset, className }: DefaultErrorFallbackP
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center gap-4 rounded-lg border border-erp bg-surface p-8 text-center',
+        'flex flex-col items-center justify-center gap-4 rounded-lg border border-border bg-background p-8 text-center',
         className,
       )}
       role="alert"
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive-bg">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
         <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden />
       </div>
 
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">
+        <h3 className="text-[13px] font-semibold text-foreground">
           Something went wrong
         </h3>
-        <p className="text-xs text-muted-erp max-w-xs">
+        <p className="max-w-xs text-[12px] text-text-muted">
           {error.message || 'An unexpected error occurred in this section.'}
         </p>
       </div>
@@ -102,8 +96,8 @@ function DefaultErrorFallback({ error, reset, className }: DefaultErrorFallbackP
       <button
         onClick={reset}
         className={cn(
-          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium',
-          'bg-surface-2 text-foreground hover:bg-border-strong',
+          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium',
+          'bg-surface-2 text-foreground hover:bg-border',
           'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         )}
       >
