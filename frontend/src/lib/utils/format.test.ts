@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   formatDate,
-  formatDateTime,
-  formatRelativeTime,
   formatNumber,
-  formatCurrency,
   formatPercent,
   getInitials,
   truncate,
