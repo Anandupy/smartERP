@@ -2,6 +2,8 @@
 # EduOS ERP — Root .gitignore
 # ===========================
 
+git-push.ps1
+
 # Frontend build artifacts
 frontend-handoff/
 frontend/.next/

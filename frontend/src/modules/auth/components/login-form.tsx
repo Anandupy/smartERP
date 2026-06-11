@@ -39,7 +39,7 @@ export function LoginForm() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive-bg px-3 py-3 text-sm text-destructive"
+          className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-3 text-[13px] text-destructive"
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <p>{error.message}</p>
