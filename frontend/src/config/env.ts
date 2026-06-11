@@ -7,7 +7,27 @@
  * Access env variables ONLY through this object, never directly.
  */
 function getEnvVar(key: string, fallback?: string): string {
-  const value = process.env[key] ?? fallback;
+  let value: string | undefined;
+  switch (key) {
+    case 'NEXT_PUBLIC_API_URL':
+      value = process.env.NEXT_PUBLIC_API_URL;
+      break;
+    case 'NEXT_PUBLIC_APP_URL':
+      value = process.env.NEXT_PUBLIC_APP_URL;
+      break;
+    case 'NEXT_PUBLIC_APP_NAME':
+      value = process.env.NEXT_PUBLIC_APP_NAME;
+      break;
+    case 'NEXT_PUBLIC_ENABLE_DEVTOOLS':
+      value = process.env.NEXT_PUBLIC_ENABLE_DEVTOOLS;
+      break;
+    case 'NEXT_PUBLIC_ENABLE_TOURS':
+      value = process.env.NEXT_PUBLIC_ENABLE_TOURS;
+      break;
+    default:
+      value = process.env[key];
+  }
+  value = value ?? fallback;
   if (value === undefined) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
