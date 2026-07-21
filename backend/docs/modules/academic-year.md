@@ -4,11 +4,40 @@ The Academic Year module manages the administrative timeframes for each branch i
 
 ## Architecture
 - **Branch-Level**: Each academic year belongs to a specific branch.
-- **Isolation**: Data such as attendance, marks, and fees are intended to be linked to an `academicYearId`.
+- **Isolation**: Data such as attendance, marks, fees, admissions, and academic units are linked to an `academicYearId`.
 - **States**:
   - `isActive`: Indicates the year is valid and available for data entry.
   - `isSelected`: Indicates the current working year for the system. Only one can be selected per branch.
   - `isLocked`: Prevents further modification or deletion of the academic year data.
+
+## Request Context Resolution & Pipeline Integration
+
+Centralized Academic Year context is integrated throughout the backend pipeline using standard HTTP request headers:
+- `x-branch-id`: Active Branch UUID
+- `x-academic-year-id`: Active Academic Year UUID
+
+### Resolution Flow & Guard Pipeline
+1. **RequestContextMiddleware**: Extracts `x-request-id`, `x-branch-id`, and `x-academic-year-id` from HTTP request headers into `req.context`.
+2. **JwtAuthGuard**: Validates user authentication.
+3. **RolesGuard**: Enforces RBAC permissions and user branch isolation.
+4. **AcademicYearGuard**: Triggered via `@RequireAcademicYear()` metadata decorator on controllers requiring academic year context:
+   - Validates UUID format of `x-branch-id` and `x-academic-year-id`.
+   - Verifies the Academic Year exists and is active (`isDeleted: false`).
+   - Verifies the Academic Year belongs to the target `branchId`.
+   - If header is omitted, falls back to the branch's currently selected academic year (`isSelected == true`).
+   - Attaches the validated `academicYear` object into `req.context.academicYear` and `req.context.academicYearId`.
+
+### Endpoints Requiring Academic Year Context
+- **Academic Units** (`/v1/academic-units/*`)
+- **Applicants** (`/v1/admissions/applicants/*`)
+- **Enrollments** (`/v1/admissions/applicants/:id/enrollment`)
+- **Admissions Workflow** (`/v1/admissions/applicants/:id/workflow`)
+
+### Endpoints Bypassing Academic Year Context
+- **Authentication & User Management** (`/v1/auth/*`, `/v1/users/*`)
+- **System & Organization Configuration** (`/v1/system-settings/*`, `/v1/organizations/*`, `/v1/branches/*`)
+- **Academic Year Administration** (`/v1/academic-years/*`)
+- **Admissions Masters** (`/v1/admissions/masters/*`)
 
 ## Lifecycle
 1. **Creation**: Admin creates an academic year with a name and date range.
