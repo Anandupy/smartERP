@@ -6,6 +6,16 @@ export interface RequestContext {
   requestId: string;
   branchId: string | null;
   academicYearId: string | null;
+  academicYear?: {
+    id: string;
+    branchId: string;
+    name: string;
+    startDate: Date;
+    endDate: Date;
+    isActive: boolean;
+    isSelected: boolean;
+    isLocked: boolean;
+  } | null;
   organizationId: string | null;
   userId: string | null;
   role: string | null;

@@ -35,6 +35,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
           role: user?.role,
           organizationId: user?.organizationId || reqContext?.organizationId,
           branchId: user?.branchId || reqContext?.branchId,
+          academicYearId: reqContext?.academicYearId,
         };
 
         this.logger.logRequest(logData);
@@ -54,6 +55,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
           role: user?.role,
           organizationId: user?.organizationId || reqContext?.organizationId,
           branchId: user?.branchId || reqContext?.branchId,
+          academicYearId: reqContext?.academicYearId,
           errorMessage: (error.message as string) || 'Unknown error',
         };
 

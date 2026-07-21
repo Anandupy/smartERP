@@ -24,6 +24,7 @@ export interface RequestLogData {
   role?: string | null;
   organizationId?: string | null;
   branchId?: string | null;
+  academicYearId?: string | null;
   errorMessage?: string | null;
   [key: string]: any;
 }
