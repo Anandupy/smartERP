@@ -1,12 +1,24 @@
 import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { EnrollmentService } from './enrollment.service';
 import { CreateEnrollmentDto } from './dto/enrollment.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Enrollment Placements')
 @ApiBearerAuth()
+@ApiHeader({
+  name: 'x-branch-id',
+  required: true,
+  description: 'Target Branch UUID',
+})
+@ApiHeader({
+  name: 'x-academic-year-id',
+  required: true,
+  description: 'Target Academic Year UUID',
+})
+@RequireAcademicYear()
 @Controller('admissions/applicants/:applicantId/enrollment')
 export class EnrollmentController {
   constructor(private readonly service: EnrollmentService) {}

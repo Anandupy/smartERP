@@ -1,12 +1,24 @@
 import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { WorkflowService } from './workflow.service';
 import { TransitionDto } from './dto/workflow.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Applicant Workflow')
 @ApiBearerAuth()
+@ApiHeader({
+  name: 'x-branch-id',
+  required: true,
+  description: 'Target Branch UUID',
+})
+@ApiHeader({
+  name: 'x-academic-year-id',
+  required: true,
+  description: 'Target Academic Year UUID',
+})
+@RequireAcademicYear()
 @Controller('admissions/applicants/:applicantId/workflow')
 export class WorkflowController {
   constructor(private readonly service: WorkflowService) {}

@@ -9,16 +9,28 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { AcademicUnitService } from './academic-unit.service';
 import { CreateAcademicUnitDto } from './dto/create-academic-unit.dto';
 import { UpdateAcademicUnitDto } from './dto/update-academic-unit.dto';
 import { MoveAcademicUnitDto } from './dto/move-academic-unit.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Academic Units')
 @ApiBearerAuth()
+@ApiHeader({
+  name: 'x-branch-id',
+  required: true,
+  description: 'Target Branch UUID',
+})
+@ApiHeader({
+  name: 'x-academic-year-id',
+  required: true,
+  description: 'Target Academic Year UUID',
+})
+@RequireAcademicYear()
 @Controller('academic-units')
 export class AcademicUnitController {
   constructor(private readonly academicUnitService: AcademicUnitService) {}
@@ -27,9 +39,11 @@ export class AcademicUnitController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Create an academic unit' })
   async create(@Body() createDto: CreateAcademicUnitDto, @Req() req: any) {
-    // Enforce branchId from context if not super admin
     if (req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId) {
       createDto.branchId = req.context.branchId;
+    }
+    if (req.context?.academicYearId && !createDto.academicYearId) {
+      createDto.academicYearId = req.context.academicYearId;
     }
     const data = await this.academicUnitService.createAcademicUnit(
       createDto,
@@ -54,11 +68,13 @@ export class AcademicUnitController {
     const targetBranchId =
       req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId
         ? req.context.branchId
-        : branchId;
+        : branchId || req.context?.branchId;
+
+    const targetAcademicYearId = academicYearId || req.context?.academicYearId;
 
     const data = await this.academicUnitService.getAllAcademicUnits(
       targetBranchId,
-      academicYearId,
+      targetAcademicYearId,
     );
     return { data, message: 'Academic units retrieved successfully' };
   }
@@ -79,11 +95,13 @@ export class AcademicUnitController {
     const targetBranchId =
       req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId
         ? req.context.branchId
-        : branchId;
+        : branchId || req.context?.branchId;
+
+    const targetAcademicYearId = academicYearId || req.context?.academicYearId;
 
     const data = await this.academicUnitService.getAcademicTree(
       targetBranchId,
-      academicYearId,
+      targetAcademicYearId,
     );
     return { data, message: 'Academic tree retrieved successfully' };
   }

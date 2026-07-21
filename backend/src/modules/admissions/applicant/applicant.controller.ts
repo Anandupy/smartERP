@@ -9,7 +9,7 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { ApplicantService } from './applicant.service';
 import {
   CreateApplicantDto,
@@ -17,10 +17,22 @@ import {
   QueryApplicantDto,
 } from './dto/applicant.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Applicants')
 @ApiBearerAuth()
+@ApiHeader({
+  name: 'x-branch-id',
+  required: true,
+  description: 'Target Branch UUID',
+})
+@ApiHeader({
+  name: 'x-academic-year-id',
+  required: true,
+  description: 'Target Academic Year UUID',
+})
+@RequireAcademicYear()
 @Controller('admissions/applicants')
 export class ApplicantController {
   constructor(private readonly service: ApplicantService) {}
@@ -37,12 +49,6 @@ export class ApplicantController {
     const orgId = req.context?.organizationId || '';
     const branchId = req.context?.branchId || '';
     const academicYearId = req.context?.academicYearId || '';
-
-    if (!branchId || !academicYearId) {
-      throw new ParamMissingException(
-        'x-branch-id and x-academic-year-id headers are required',
-      );
-    }
 
     const result = await this.service.create(
       dto,
@@ -137,7 +143,3 @@ export class ApplicantController {
     return { message: 'Applicant deleted successfully' };
   }
 }
-
-// Exception definition for context headers
-import { BadRequestException } from '@nestjs/common';
-class ParamMissingException extends BadRequestException {}
