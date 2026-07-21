@@ -19,6 +19,7 @@ import { SecurityModule } from '@/common/services/security.module';
 import { AdmissionsModule } from '@/modules/admissions/admissions.module';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
+import { BranchGuard } from '@/common/guards/branch.guard';
 import { AcademicYearGuard } from '@/common/guards/academic-year.guard';
 
 @Module({
@@ -50,6 +51,10 @@ import { AcademicYearGuard } from '@/common/guards/academic-year.guard';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: BranchGuard,
     },
     {
       provide: APP_GUARD,

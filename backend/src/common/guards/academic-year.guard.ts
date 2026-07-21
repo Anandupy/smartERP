@@ -42,7 +42,7 @@ export class AcademicYearGuard implements CanActivate {
       (request.headers['X-Academic-Year-Id'] as string);
     const headerAyId = rawHeaderAyId ? rawHeaderAyId.trim() : null;
 
-    // Resolve target branchId
+    // Resolve target branchId (pre-validated by BranchGuard if active)
     const rawBranchId =
       request.context?.branchId ||
       (request.headers['x-branch-id'] as string) ||
@@ -64,13 +64,15 @@ export class AcademicYearGuard implements CanActivate {
       );
     }
 
-    // Verify branch existence
-    const branch = await this.prisma.branch.findUnique({
-      where: { id: branchId },
-    });
+    // Verify branch existence if not already validated by BranchGuard
+    if (!request.context?.branch) {
+      const branch = await this.prisma.branch.findUnique({
+        where: { id: branchId },
+      });
 
-    if (!branch || branch.isDeleted || !branch.isActive) {
-      throw new NotFoundException('Branch not found or inactive');
+      if (!branch || branch.isDeleted || !branch.isActive) {
+        throw new NotFoundException('Branch not found or inactive');
+      }
     }
 
     let academicYear = null;

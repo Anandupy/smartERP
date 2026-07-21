@@ -5,6 +5,15 @@ import { v4 as uuidv4 } from 'uuid';
 export interface RequestContext {
   requestId: string;
   branchId: string | null;
+  branch?: {
+    id: string;
+    organizationId: string;
+    name: string;
+    code: string;
+    institutionType: string;
+    isActive: boolean;
+    isDeleted: boolean;
+  } | null;
   academicYearId: string | null;
   academicYear?: {
     id: string;
