@@ -2,6 +2,39 @@
 
 The Branch module manages the individual campuses or units of an Educational Organization. Each branch can have its own settings, academic years, and structure modes.
 
+## Request Context Resolution & Pipeline Integration
+
+Centralized Branch context is integrated throughout the backend request pipeline using standard HTTP request headers:
+- `x-branch-id`: Active Branch UUID
+
+### Resolution Flow & Guard Pipeline
+1. **RequestContextMiddleware**: Extracts `x-request-id`, `x-branch-id`, and `x-academic-year-id` from HTTP request headers into `req.context`.
+2. **JwtAuthGuard**: Validates user authentication.
+3. **RolesGuard**: Enforces RBAC permissions and user branch isolation.
+4. **BranchGuard**: Triggered via `@RequireBranch()` or `@RequireAcademicYear()` metadata decorators:
+   - Validates UUID format of `x-branch-id`.
+   - Verifies the Branch exists, `isActive === true`, and `isDeleted === false`.
+   - Verifies Organization / Tenant boundary (`branch.organizationId === req.user.organizationId`).
+   - Populates `req.context.branchId`, `req.context.organizationId`, and `req.context.branch` object.
+5. **AcademicYearGuard**: Consumes the pre-validated `req.context.branchId` and validates Academic Year context.
+
+### Endpoints Requiring Branch Context (`@RequireBranch()`)
+- **Academic Years** (`/v1/academic-years/*`)
+- **Programs** (`/v1/programs/*`)
+- **Academic Units** (`/v1/academic-units/*`)
+- **Applicants** (`/v1/admissions/applicants/*`)
+- **Enrollments** (`/v1/admissions/applicants/:id/enrollment`)
+- **Admissions Workflow** (`/v1/admissions/applicants/:id/workflow`)
+- **Guardians** (`/v1/admissions/guardians/*`)
+- **Numbering Configurations** (`/v1/admissions/numbering/configs/*`)
+- **Admissions Masters** (`/v1/admissions/masters/*`: Quotas, Religions, Castes, Categories, Disabilities, Genders, Languages, Admission Sources, Blood Groups, Relation Types)
+
+### Endpoints Bypassing Branch Context
+- **Authentication** (`/v1/auth/*`)
+- **System Settings** (`/v1/system-settings/*`)
+- **Organization Management** (`/v1/organizations/*`)
+- **Branch Management Itself** (`/v1/branches/*`: creating a new branch or listing organization branches)
+
 ## Institutional Support
 To support diverse educational institutions, the Branch model includes specific categorization:
 
