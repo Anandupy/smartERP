@@ -74,17 +74,56 @@ When no example is specified, the generator produces realistic semantic defaults
 
 ---
 
-## 📁 Domain Folder Hierarchy
+## 📁 Domain -> Controller Folder Hierarchy
 
-Endpoints are automatically grouped into 5 enterprise domain folders:
+Endpoints are automatically grouped into a 3-level enterprise hierarchy: `Domain` $\rightarrow$ `Module (Controller)` $\rightarrow$ `Requests`.
 
-1. 📁 **1. Authentication & Session Management**: `/auth/*`, `/users/*`
-2. 📁 **2. Organization & Campus Administration**: `/organizations/*`, `/branches/*`, `/system-settings/*`
-3. 📁 **3. Academic Management**: `/academic-years/*`, `/programs/*`, `/academic-units/*`
-4. 📁 **4. Admissions & Registration**: `/admissions/applicants/*`, `/admissions/guardians/*`, `/admissions/enrollment/*`, `/admissions/workflow/*`
-5. 📁 **5. Admissions Masters**: `/admissions/masters/*` (Quotas, Religions, Castes, Categories, Disabilities, Genders, Languages, Blood Groups, Relation Types)
+```text
+Admissions
+├── Applicant
+│   ├── Create Applicant
+│   ├── List Applicants
+│   ├── Get Applicant by ID
+│   ├── Update Applicant
+│   └── Delete Applicant
+├── Guardian
+├── Enrollment
+├── Workflow
+├── Numbering
+└── Masters
+    ├── Admission Source
+    ├── Blood Group
+    ├── Caste
+    ├── Category
+    ├── Disability
+    ├── Gender
+    ├── Language
+    ├── Quota
+    ├── Relation Type
+    └── Religion
+```
 
 ---
+
+## 🏷️ Request Naming Priority
+
+Request names are generated using strict 4-level priority rules:
+1. **Swagger Summary** (`@ApiOperation({ summary: '...' })`), cleaned into Title Case enterprise names.
+2. **Swagger `operationId`**.
+3. **Controller Name + HTTP Method + Route**.
+4. **Route Analysis** (never falls back to generic placeholders).
+
+---
+
+## 🔢 Request Ordering within Module Folders
+
+Requests inside each module folder are sorted in standard CRUD order:
+1. `Create` (POST)
+2. `List` (GET list without ID)
+3. `Get` (GET with ID)
+4. `Update` (PATCH/PUT)
+5. `Delete` (DELETE)
+6. Custom action endpoints (e.g. `Search`, `Check Duplicates`, `Activate`, `Select`, `Lock`, `Toggle Status`)
 
 ## 🌍 Postman Environment Support
 
