@@ -1,3 +1,14 @@
+export function extractUrlString(url: any): string {
+  if (!url) return '';
+  if (typeof url === 'string') return url;
+  if (url.raw) return url.raw;
+  if (url.path) {
+    const pathStr = Array.isArray(url.path) ? url.path.join('/') : url.path;
+    return '/' + pathStr;
+  }
+  return '';
+}
+
 export class RequestBuilder {
   /**
    * Refine and format an individual Postman request item using OpenAPI operation metadata
@@ -7,7 +18,7 @@ export class RequestBuilder {
 
     const request = item.request;
     const method = (request.method || 'GET').toUpperCase();
-    const rawUrl = request.url?.raw || (typeof request.url === 'string' ? request.url : '');
+    const rawUrl = extractUrlString(request.url);
 
     // 1. Clean Enterprise Request Name following exact priority order
     item.name = this.generateEnterpriseName(
@@ -58,7 +69,7 @@ export class RequestBuilder {
 
     // Priority 2: Swagger operationId
     if (operationId && operationId.trim()) {
-      const cleanedOp = this.cleanOperationId(operationId);
+      const cleanedOp = this.cleanOperationId(operationId, method);
       if (cleanedOp) return cleanedOp;
     }
 
@@ -100,12 +111,34 @@ export class RequestBuilder {
   }
 
   private toTitleCase(str: string): string {
-    const lowercaseWords = new Set(['a', 'an', 'the', 'for', 'and', 'nor', 'but', 'or', 'yet', 'so', 'at', 'by', 'in', 'of', 'on', 'to', 'with']);
+    const lowercaseWords = new Set([
+      'a',
+      'an',
+      'the',
+      'for',
+      'and',
+      'nor',
+      'but',
+      'or',
+      'yet',
+      'so',
+      'at',
+      'by',
+      'in',
+      'of',
+      'on',
+      'to',
+      'with',
+    ]);
     const words = str.split(' ');
 
     return words
       .map((word, idx) => {
-        if (idx > 0 && lowercaseWords.has(word.toLowerCase()) && !word.includes('/')) {
+        if (
+          idx > 0 &&
+          lowercaseWords.has(word.toLowerCase()) &&
+          !word.includes('/')
+        ) {
           return word.toLowerCase();
         }
         if (word.includes('/')) {
@@ -120,10 +153,45 @@ export class RequestBuilder {
   }
 
   /**
-   * Priority 2: Convert camelCase operationId to Title Case (e.g. createApplicant -> Create Applicant)
+   * Priority 2: Convert NestJS operationId (e.g. ApplicantController_create_v1) into enterprise request name
    */
-  private cleanOperationId(operationId: string): string {
-    const words = operationId.replace(/Controller_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+  private cleanOperationId(operationId: string, method: string): string {
+    const match = operationId.match(/^([A-Za-z0-9]+)Controller_([A-Za-z0-9]+)/);
+    if (match) {
+      const controllerName = match[1];
+      const actionName = match[2];
+
+      let entity = controllerName;
+      if (entity.endsWith('s') && !entity.endsWith('ss')) {
+        entity = entity.slice(0, -1);
+      }
+
+      let action = actionName;
+      if (action === 'create') action = 'Create';
+      else if (action === 'findAll') action = 'List';
+      else if (action === 'findOne') action = 'Get';
+      else if (action === 'update') action = 'Update';
+      else if (action === 'remove' || action === 'delete') action = 'Delete';
+      else if (action === 'findCurrent') action = 'Get Current';
+      else if (action === 'getTree') action = 'Get Tree';
+      else if (action === 'toggleStatus') action = 'Toggle Status';
+      else if (action === 'checkDupes') action = 'Check Duplicates';
+      else action = action.charAt(0).toUpperCase() + action.slice(1);
+
+      if (action === 'List') {
+        return `List ${entity}s`;
+      }
+      if (action === 'Get') {
+        return `Get ${entity} by ID`;
+      }
+      return `${action} ${entity}`;
+    }
+
+    const words = operationId
+      .replace(/Controller_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .trim();
+
     return words
       .split(/\s+/)
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -133,7 +201,11 @@ export class RequestBuilder {
   /**
    * Priority 3 & 4: Route and Method fallback analysis
    */
-  private generateFromRoute(method: string, url: string, originalName: string): string {
+  private generateFromRoute(
+    method: string,
+    url: string,
+    originalName: string,
+  ): string {
     const lowerUrl = url.toLowerCase();
 
     // Specific Endpoint Overrides
@@ -181,17 +253,51 @@ export class RequestBuilder {
    * Extract human-readable resource name from URL path
    */
   private extractResourceName(url: string): string {
-    const clean = url.split('?')[0];
-    const segments = clean.split('/').filter((s) => s && !s.startsWith(':') && !s.startsWith('{') && !s.startsWith('{{') && s !== 'v1');
+    let clean = url.split('?')[0].trim();
+    clean = clean
+      .replace(/^https?:\/\/[^\/]+/i, '')
+      .replace(/^\{\{[^}]+\}\}/i, '');
 
-    let last = segments[segments.length - 1] || 'Item';
-    if (last === 'configs' && segments.length > 1) {
-      last = segments[segments.length - 2]; // e.g. numbering/configs -> Numbering
+    const segments = clean
+      .split('/')
+      .filter(
+        (s) =>
+          s &&
+          !s.startsWith(':') &&
+          !s.startsWith('{') &&
+          !s.startsWith('{{') &&
+          s !== 'v1',
+      );
+
+    let last = '';
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const seg = segments[i];
+      if (
+        seg &&
+        seg !== 'status' &&
+        seg !== 'tree' &&
+        seg !== 'select' &&
+        seg !== 'activate' &&
+        seg !== 'lock'
+      ) {
+        last = seg;
+        break;
+      }
+    }
+
+    if (!last && segments.length > 0) {
+      last = segments[0];
+    }
+
+    if (!last || last === 'Item' || last === 'Resource') {
+      return 'Entity';
     }
 
     let singular = last;
     if (singular.endsWith('ies')) singular = singular.slice(0, -3) + 'y';
-    else if (singular.endsWith('s') && !singular.endsWith('ss')) singular = singular.slice(0, -1);
+    else if (singular.endsWith('s') && !singular.endsWith('ss')) {
+      singular = singular.slice(0, -1);
+    }
 
     return singular
       .split(/[-_\s]+/)
@@ -207,13 +313,18 @@ export class RequestBuilder {
       for (const v of urlObj.variable) {
         const key = v.key;
         if (key === 'id') {
-          const pathStr = Array.isArray(urlObj.path) ? urlObj.path.join('/') : '';
+          const pathStr = Array.isArray(urlObj.path)
+            ? urlObj.path.join('/')
+            : '';
           if (pathStr.includes('applicants')) v.value = '{{applicantId}}';
-          else if (pathStr.includes('academic-years')) v.value = '{{academicYearId}}';
+          else if (pathStr.includes('academic-years'))
+            v.value = '{{academicYearId}}';
           else if (pathStr.includes('branches')) v.value = '{{branchId}}';
-          else if (pathStr.includes('organizations')) v.value = '{{organizationId}}';
+          else if (pathStr.includes('organizations'))
+            v.value = '{{organizationId}}';
           else if (pathStr.includes('programs')) v.value = '{{programId}}';
-          else if (pathStr.includes('academic-units')) v.value = '{{academicUnitId}}';
+          else if (pathStr.includes('academic-units'))
+            v.value = '{{academicUnitId}}';
           else if (pathStr.includes('guardians')) v.value = '{{guardianId}}';
           else v.value = '{{id}}';
         } else {

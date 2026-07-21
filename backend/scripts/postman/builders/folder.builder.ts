@@ -1,3 +1,5 @@
+import { extractUrlString } from './request.builder';
+
 export class FolderBuilder {
   private tree: Map<string, any> = new Map();
 
@@ -12,7 +14,7 @@ export class FolderBuilder {
    * Add a request item to the folder tree based on its URL path and tags
    */
   addRequest(requestItem: any, tags: string[] = []) {
-    const rawUrl = requestItem.request?.url?.raw || (typeof requestItem.request?.url === 'string' ? requestItem.request?.url : '');
+    const rawUrl = extractUrlString(requestItem.request?.url);
     const folderPath = this.getFolderPath(rawUrl, tags);
     this.insertIntoTree(folderPath, requestItem);
   }

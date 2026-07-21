@@ -4,7 +4,7 @@ import { OpenApiDocument, OpenApiParser } from './parsers/openapi.parser';
 import { BodyGenerator } from './generators/body.generator';
 import { EnvironmentGenerator } from './generators/environment.generator';
 import { FolderBuilder } from './builders/folder.builder';
-import { RequestBuilder } from './builders/request.builder';
+import { RequestBuilder, extractUrlString } from './builders/request.builder';
 import { CollectionValidator } from './validators/collection.validator';
 
 // openapi-to-postmanv2 is a CommonJS module with no official types
@@ -90,11 +90,10 @@ export class PostmanGeneratorEngine {
 
           this.processItemsRecursively(rawCollection.item, (requestItem, currentTags) => {
             const method = (requestItem.request?.method || 'GET').toUpperCase();
-            const urlRaw = requestItem.request?.url?.raw || (typeof requestItem.request?.url === 'string' ? requestItem.request?.url : '');
-            const cleanUrl = urlRaw.split('?')[0];
+            const urlRaw = extractUrlString(requestItem.request?.url);
 
-            // Match operation in OpenAPI document
-            const pathKey = this.findMatchingOpenApiPath(cleanUrl, swaggerDoc);
+            // Match operation in OpenAPI document with clean URL normalization
+            const pathKey = this.findMatchingOpenApiPath(urlRaw, swaggerDoc);
             const operation = pathKey && swaggerDoc.paths?.[pathKey] ? swaggerDoc.paths[pathKey][method.toLowerCase()] : null;
 
             // Combine tags from operation and folder tags
@@ -115,9 +114,18 @@ export class PostmanGeneratorEngine {
 
           // 6. Validate Collection Integrity
           const validation = this.validator.validateCollection(rawCollection);
-          if (validation.warnings.length > 0) {
-            console.log('\n⚠️ Generator Validation Warnings:');
-            validation.warnings.forEach((w) => console.log(`   - ${w}`));
+          if (validation.errors.length > 0 || validation.warnings.length > 0) {
+            console.log('\n🔍 Generator Build Quality Status:');
+            validation.errors.forEach((e) => console.error(`   ❌ [ERROR] ${e}`));
+            validation.warnings.forEach((w) => console.log(`   ⚠️ [WARNING] ${w}`));
+
+            if (!validation.valid) {
+              return reject(
+                new Error(
+                  `Postman generation failed build-quality validation due to ${validation.errors.length} errors.`,
+                ),
+              );
+            }
           }
 
           // 7. Write Collection JSON File
@@ -165,7 +173,7 @@ export class PostmanGeneratorEngine {
    * Enhance request body for POST/PATCH/PUT using Swagger component schemas
    */
   private enhanceRequestBody(item: any, doc: OpenApiDocument, pathKey?: string | null, operation?: any) {
-    const method = item.request?.method || 'GET';
+    const method = (item.request?.method || 'GET').toUpperCase();
     if (!['POST', 'PATCH', 'PUT'].includes(method)) return;
 
     if (!operation && pathKey && doc.paths?.[pathKey]) {
@@ -193,29 +201,42 @@ export class PostmanGeneratorEngine {
   }
 
   /**
-   * Match a Postman URL path against OpenAPI path keys
+   * Match a Postman URL path against OpenAPI path keys by stripping protocol, host, port, {{baseUrl}}, and variables
    */
   private findMatchingOpenApiPath(url: string, doc: OpenApiDocument): string | null {
-    if (!doc.paths) return null;
+    if (!doc.paths || !url) return null;
 
-    let pathOnly = url;
-    if (pathOnly.includes('://')) {
-      try {
-        const urlObj = new URL(pathOnly);
-        pathOnly = urlObj.pathname;
-      } catch (e) {}
+    let clean = url.split('?')[0].trim();
+
+    // Strip http://..., https://..., {{baseUrl}}, {{baseUrl}}/, etc.
+    clean = clean.replace(/^https?:\/\/[^\/]+/i, '');
+    clean = clean.replace(/^\{\{[^}]+\}\}/i, '');
+
+    if (!clean.startsWith('/')) {
+      clean = '/' + clean;
     }
-    if (pathOnly.startsWith('/v1')) {
-      pathOnly = pathOnly.replace('/v1', '');
-    }
 
-    if (doc.paths[pathOnly]) return pathOnly;
+    // Direct match check
+    if (doc.paths[clean]) return clean;
 
-    const normalizedTarget = pathOnly.replace(/:([a-zA-Z0-9_]+)/g, '{}').replace(/\{\w+\}/g, '{}');
+    const withoutV1 = clean.startsWith('/v1') ? clean.slice(3) : clean;
+    if (doc.paths[withoutV1]) return withoutV1;
+
+    // Parameterized pattern matching (replace {{var}}, :var, {var} with {})
+    const normalizedClean = clean
+      .replace(/\{\{[^}]+\}\}/g, '{}')
+      .replace(/:[a-zA-Z0-9_]+/g, '{}')
+      .replace(/\{[^}]+\}/g, '{}');
 
     for (const openApiPath of Object.keys(doc.paths)) {
-      const normalizedOpenApi = openApiPath.replace(/\{\w+\}/g, '{}');
-      if (normalizedTarget === normalizedOpenApi) {
+      const normalizedOpenApi = openApiPath.replace(/\{[^}]+\}/g, '{}');
+      if (normalizedClean === normalizedOpenApi) {
+        return openApiPath;
+      }
+
+      const openApiWithoutV1 = openApiPath.startsWith('/v1') ? openApiPath.slice(3) : openApiPath;
+      const normalizedOpenApiWithoutV1 = openApiWithoutV1.replace(/\{[^}]+\}/g, '{}');
+      if (normalizedClean === normalizedOpenApiWithoutV1) {
         return openApiPath;
       }
     }
