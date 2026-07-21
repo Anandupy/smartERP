@@ -15,6 +15,7 @@ import { CreateAcademicUnitDto } from './dto/create-academic-unit.dto';
 import { UpdateAcademicUnitDto } from './dto/update-academic-unit.dto';
 import { MoveAcademicUnitDto } from './dto/move-academic-unit.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
@@ -30,6 +31,7 @@ import { UserRole } from '@/common/enums/role.enum';
   required: true,
   description: 'Target Academic Year UUID',
 })
+@RequireBranch()
 @RequireAcademicYear()
 @Controller('academic-units')
 export class AcademicUnitController {

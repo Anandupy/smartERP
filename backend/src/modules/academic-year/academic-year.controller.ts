@@ -9,15 +9,22 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { AcademicYearService } from './academic-year.service';
 import { CreateAcademicYearDto } from './dto/create-academic-year.dto';
 import { UpdateAcademicYearDto } from './dto/update-academic-year.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Academic Years')
 @ApiBearerAuth()
+@ApiHeader({
+  name: 'x-branch-id',
+  required: true,
+  description: 'Target Branch UUID',
+})
+@RequireBranch()
 @Controller('academic-years')
 export class AcademicYearController {
   constructor(private readonly academicYearService: AcademicYearService) {}
@@ -26,8 +33,7 @@ export class AcademicYearController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Create academic year' })
   async create(@Body() dto: CreateAcademicYearDto, @Req() req: any) {
-    // If not super admin, enforce branchId from context
-    if (req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId) {
+    if (req.context?.branchId && !dto.branchId) {
       dto.branchId = req.context.branchId;
     }
     const data = await this.academicYearService.create(dto, req.userId);
@@ -43,11 +49,7 @@ export class AcademicYearController {
   )
   @ApiOperation({ summary: 'Get all academic years for a branch' })
   async findAll(@Query('branchId') branchId: string, @Req() req: any) {
-    // If not super admin, enforce branchId from context
-    const targetBranchId =
-      req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId
-        ? req.context.branchId
-        : branchId;
+    const targetBranchId = req.context?.branchId || branchId;
 
     const data = await this.academicYearService.findAll(targetBranchId);
     return { data, message: 'Academic years retrieved successfully' };
@@ -64,11 +66,7 @@ export class AcademicYearController {
   )
   @ApiOperation({ summary: 'Get current (selected) academic year' })
   async findCurrent(@Query('branchId') branchId: string, @Req() req: any) {
-    // If not super admin, enforce branchId from context
-    const targetBranchId =
-      req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId
-        ? req.context.branchId
-        : branchId;
+    const targetBranchId = req.context?.branchId || branchId;
 
     const data = await this.academicYearService.findCurrent(targetBranchId);
     return { data, message: 'Current academic year retrieved successfully' };

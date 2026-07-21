@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger
 import { WorkflowService } from './workflow.service';
 import { TransitionDto } from './dto/workflow.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
@@ -18,6 +19,7 @@ import { UserRole } from '@/common/enums/role.enum';
   required: true,
   description: 'Target Academic Year UUID',
 })
+@RequireBranch()
 @RequireAcademicYear()
 @Controller('admissions/applicants/:applicantId/workflow')
 export class WorkflowController {

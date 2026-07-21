@@ -1,12 +1,19 @@
 import { Controller, Get, Post, Body, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { NumberingService } from './numbering.service';
 import { CreateNumberSequenceConfigDto } from './dto/numbering.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
 @ApiTags('Number Generation Configs')
 @ApiBearerAuth()
+@ApiHeader({
+  name: 'x-branch-id',
+  required: true,
+  description: 'Target Branch UUID',
+})
+@RequireBranch()
 @Controller('admissions/numbering/configs')
 export class NumberingController {
   constructor(private readonly numberingService: NumberingService) {}
