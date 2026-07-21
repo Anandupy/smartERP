@@ -26,9 +26,10 @@
     "prisma:studio": "prisma studio",
     "prisma:push:safe": "ts-node scripts/safe-prisma.ts db push",
     "prisma:reset:safe": "ts-node scripts/safe-prisma.ts migrate reset",
-    "prisma:seed:safe": "ts-node scripts/safe-prisma.ts db seed",
-    "generate:postman": "tsx scripts/generate-postman.ts",
-    "generate:postman:watch": "nodemon --watch src --exec pnpm generate:postman",
+    "postman:generate": "tsx scripts/generate-postman.ts",
+    "postman:generate:watch": "nodemon --watch src --exec pnpm postman:generate",
+    "generate:postman": "pnpm postman:generate",
+    "generate:postman:watch": "pnpm postman:generate:watch",
     "prepare": "cd .. && husky backend/.husky"
   },
   "dependencies": {

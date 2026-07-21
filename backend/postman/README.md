@@ -41,14 +41,14 @@ pnpm install
 ### 2. Running the Generator
 To generate or update the Postman collection manually, ensure the backend is running, then execute:
 ```bash
-pnpm run generate:postman
+pnpm postman:generate
 ```
 *Note: If the backend is offline, the script will gracefully log a setup message without crashing.*
 
 ### 3. Watch Mode (Automatic Generation)
 To run the generator in watch mode (updates the collection in real-time as controllers change or new files are saved):
 ```bash
-pnpm run generate:postman:watch
+pnpm postman:generate:watch
 ```
 
 ---
