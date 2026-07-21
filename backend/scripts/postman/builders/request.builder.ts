@@ -1,18 +1,24 @@
 export class RequestBuilder {
   /**
-   * Refine and format an individual Postman request item
+   * Refine and format an individual Postman request item using OpenAPI operation metadata
    */
-  formatRequestItem(item: any): any {
+  formatRequestItem(item: any, operation?: any): any {
     if (!item.request) return item;
 
     const request = item.request;
-    const method = request.method || 'GET';
+    const method = (request.method || 'GET').toUpperCase();
     const rawUrl = request.url?.raw || (typeof request.url === 'string' ? request.url : '');
 
-    // 1. Clean Enterprise Request Name
-    item.name = this.generateEnterpriseName(item.name, method, rawUrl);
+    // 1. Clean Enterprise Request Name following exact priority order
+    item.name = this.generateEnterpriseName(
+      item.name,
+      method,
+      rawUrl,
+      operation?.summary,
+      operation?.operationId,
+    );
 
-    // 2. Path Variable Resolution (:id or :param -> {{param}})
+    // 2. Path Variable Resolution (:id or {param} -> {{param}})
     if (request.url) {
       this.formatUrlParameters(request.url);
     }
@@ -31,12 +37,106 @@ export class RequestBuilder {
   }
 
   /**
-   * Generate a clean enterprise action name for a request
+   * Generate clean enterprise request name adhering to priority:
+   * 1. Swagger summary
+   * 2. Swagger operationId
+   * 3. Controller name + HTTP method + route
+   * 4. Route analysis
    */
-  private generateEnterpriseName(originalName: string, method: string, url: string): string {
+  private generateEnterpriseName(
+    originalName: string,
+    method: string,
+    url: string,
+    summary?: string,
+    operationId?: string,
+  ): string {
+    // Priority 1: Swagger Summary
+    if (summary && summary.trim()) {
+      const cleaned = this.cleanSwaggerSummary(summary, method, url);
+      if (cleaned) return cleaned;
+    }
+
+    // Priority 2: Swagger operationId
+    if (operationId && operationId.trim()) {
+      const cleanedOp = this.cleanOperationId(operationId);
+      if (cleanedOp) return cleanedOp;
+    }
+
+    // Priority 3 & 4: Route & Method Analysis
+    return this.generateFromRoute(method, url, originalName);
+  }
+
+  /**
+   * Priority 1: Clean Swagger summary into concise enterprise request name
+   */
+  private cleanSwaggerSummary(summary: string, method: string, url: string): string {
+    let s = summary.trim();
+
+    // Remove noise in parentheses
+    s = s.replace(/\(filtered\/paged\)/gi, '');
+    s = s.replace(/\(set as current\)/gi, '');
+    s = s.replace(/\(ISO format\)/gi, '');
+    s = s.replace(/\(search by primary mobile, aadhaar, or name\)/gi, 'by Mobile/Aadhaar/Name');
+
+    // Standardize verbs
+    s = s.replace(/^Get all (\w+) for (a branch|branch and academic year|branch)/gi, 'List $1');
+    s = s.replace(/^Get all (\w+)/gi, 'List $1');
+    s = s.replace(/^Get (\w+) details by ID/gi, 'Get $1 by ID');
+    s = s.replace(/^Get (\w+) details/gi, 'Get $1');
+    s = s.replace(/^Create a new /gi, 'Create ');
+    s = s.replace(/^Create a /gi, 'Create ');
+    s = s.replace(/^Register a new /gi, 'Register ');
+    s = s.replace(/^Register a /gi, 'Register ');
+    s = s.replace(/^Soft delete /gi, 'Delete ');
+    s = s.replace(/^Toggle (\w+) status/gi, 'Toggle $1 Status');
+
+    s = s.replace(/\s+/g, ' ').trim();
+
+    if (s.length > 0) {
+      return this.toTitleCase(s);
+    }
+
+    return '';
+  }
+
+  private toTitleCase(str: string): string {
+    const lowercaseWords = new Set(['a', 'an', 'the', 'for', 'and', 'nor', 'but', 'or', 'yet', 'so', 'at', 'by', 'in', 'of', 'on', 'to', 'with']);
+    const words = str.split(' ');
+
+    return words
+      .map((word, idx) => {
+        if (idx > 0 && lowercaseWords.has(word.toLowerCase()) && !word.includes('/')) {
+          return word.toLowerCase();
+        }
+        if (word.includes('/')) {
+          return word
+            .split('/')
+            .map((sub) => sub.charAt(0).toUpperCase() + sub.slice(1))
+            .join('/');
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(' ');
+  }
+
+  /**
+   * Priority 2: Convert camelCase operationId to Title Case (e.g. createApplicant -> Create Applicant)
+   */
+  private cleanOperationId(operationId: string): string {
+    const words = operationId.replace(/Controller_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+    return words
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
+  /**
+   * Priority 3 & 4: Route and Method fallback analysis
+   */
+  private generateFromRoute(method: string, url: string, originalName: string): string {
     const lowerUrl = url.toLowerCase();
 
-    // Specific Action Overrides
+    // Specific Endpoint Overrides
     if (lowerUrl.includes('/auth/login')) return 'User Login';
     if (lowerUrl.includes('/auth/refresh')) return 'Refresh Token';
     if (lowerUrl.includes('/auth/logout')) return 'User Logout';
@@ -46,7 +146,7 @@ export class RequestBuilder {
     }
 
     if (lowerUrl.includes('/academic-years/current')) return 'Get Current Academic Year';
-    if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/select')) return 'Select Academic Year (Set Current)';
+    if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/select')) return 'Select Academic Year';
     if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/activate')) return 'Activate Academic Year';
     if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/lock')) return 'Lock Academic Year';
 
@@ -57,7 +157,6 @@ export class RequestBuilder {
     if (lowerUrl.includes('/guardians/search')) return 'Search Guardians by Mobile/Aadhaar/Name';
     if (lowerUrl.includes('/guardians/applicant/') && lowerUrl.includes('/map')) return 'Map Guardian to Applicant';
 
-    // Generic CRUD Naming Matrix
     const resourceName = this.extractResourceName(url);
 
     switch (method) {
@@ -74,47 +173,40 @@ export class RequestBuilder {
       case 'DELETE':
         return `Delete ${resourceName}`;
       default:
-        return originalName;
+        return originalName || `${method} ${resourceName}`;
     }
   }
 
   /**
-   * Extract a human-readable resource name from URL path
+   * Extract human-readable resource name from URL path
    */
   private extractResourceName(url: string): string {
-    const segments = url.split('?')[0].split('/').filter(Boolean);
-    let last = '';
-    for (let i = segments.length - 1; i >= 0; i--) {
-      const seg = segments[i];
-      if (seg && !seg.startsWith(':') && !seg.startsWith('{') && !seg.startsWith('{{') && seg !== 'v1') {
-        last = seg;
-        break;
-      }
+    const clean = url.split('?')[0];
+    const segments = clean.split('/').filter((s) => s && !s.startsWith(':') && !s.startsWith('{') && !s.startsWith('{{') && s !== 'v1');
+
+    let last = segments[segments.length - 1] || 'Item';
+    if (last === 'configs' && segments.length > 1) {
+      last = segments[segments.length - 2]; // e.g. numbering/configs -> Numbering
     }
 
-    if (!last) return 'Resource';
-
-    // Plural to Singular conversion
     let singular = last;
     if (singular.endsWith('ies')) singular = singular.slice(0, -3) + 'y';
     else if (singular.endsWith('s') && !singular.endsWith('ss')) singular = singular.slice(0, -1);
 
-    // Kebab to Title Case
     return singular
-      .split('-')
+      .split(/[-_\s]+/)
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
 
   /**
-   * Convert path parameters :id into {{resourceId}}
+   * Convert path parameters :id or {param} into {{param}}
    */
   private formatUrlParameters(urlObj: any) {
     if (urlObj.variable && Array.isArray(urlObj.variable)) {
       for (const v of urlObj.variable) {
         const key = v.key;
         if (key === 'id') {
-          // Infer specific variable from path context if possible
           const pathStr = Array.isArray(urlObj.path) ? urlObj.path.join('/') : '';
           if (pathStr.includes('applicants')) v.value = '{{applicantId}}';
           else if (pathStr.includes('academic-years')) v.value = '{{academicYearId}}';
@@ -132,7 +224,7 @@ export class RequestBuilder {
   }
 
   /**
-   * Format query parameters with realistic defaults
+   * Format query parameters with defaults
    */
   private formatQueryParameters(queryParams: any[]) {
     for (const q of queryParams) {

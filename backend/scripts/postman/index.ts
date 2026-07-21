@@ -85,35 +85,33 @@ export class PostmanGeneratorEngine {
           // 3. Pre-request & Test Scripts
           this.injectScripts(rawCollection);
 
-          // 4. Process Requests & Enhance DTO Bodies
-          const domainFolderMap: Record<string, any[]> = {};
+          // 4. Process Requests, Enhance DTO Bodies, and Build Domain/Controller Folder Tree
+          this.folderBuilder.reset();
 
-          this.processItemsRecursively(rawCollection.item, (requestItem, tags) => {
+          this.processItemsRecursively(rawCollection.item, (requestItem, currentTags) => {
+            const method = (requestItem.request?.method || 'GET').toUpperCase();
+            const urlRaw = requestItem.request?.url?.raw || (typeof requestItem.request?.url === 'string' ? requestItem.request?.url : '');
+            const cleanUrl = urlRaw.split('?')[0];
+
+            // Match operation in OpenAPI document
+            const pathKey = this.findMatchingOpenApiPath(cleanUrl, swaggerDoc);
+            const operation = pathKey && swaggerDoc.paths?.[pathKey] ? swaggerDoc.paths[pathKey][method.toLowerCase()] : null;
+
+            // Combine tags from operation and folder tags
+            const tags = operation?.tags || currentTags;
+
             // Format request naming, variables, parameters, and headers
-            const formattedItem = this.requestBuilder.formatRequestItem(requestItem);
+            const formattedItem = this.requestBuilder.formatRequestItem(requestItem, operation);
 
             // Enhance DTO Request Body for POST/PATCH/PUT
-            this.enhanceRequestBody(formattedItem, swaggerDoc);
+            this.enhanceRequestBody(formattedItem, swaggerDoc, pathKey, operation);
 
-            // Categorize into Enterprise Domain Folders
-            const urlPath = formattedItem.request?.url?.raw || '';
-            const domainName = this.folderBuilder.getDomainFolderName(urlPath, tags);
-
-            if (!domainFolderMap[domainName]) {
-              domainFolderMap[domainName] = [];
-            }
-            domainFolderMap[domainName].push(formattedItem);
+            // Add into hierarchical folder builder
+            this.folderBuilder.addRequest(formattedItem, tags);
           });
 
-          // 5. Construct Structured Domain Folder Tree
-          const structuredFolders = Object.entries(domainFolderMap).map(
-            ([folderName, items]) => ({
-              name: folderName,
-              item: items,
-            }),
-          );
-
-          rawCollection.item = this.folderBuilder.sortCollectionFolders(structuredFolders);
+          // 5. Construct Hierarchical Domain -> Controller Folder Structure
+          rawCollection.item = this.folderBuilder.buildCollectionItems();
 
           // 6. Validate Collection Integrity
           const validation = this.validator.validateCollection(rawCollection);
@@ -155,7 +153,6 @@ export class PostmanGeneratorEngine {
 
     for (const item of items) {
       if (item.item && Array.isArray(item.item)) {
-        // Tag folder node
         const tags = [...currentTags, item.name];
         this.processItemsRecursively(item.item, callback, tags);
       } else if (item.request) {
@@ -167,18 +164,14 @@ export class PostmanGeneratorEngine {
   /**
    * Enhance request body for POST/PATCH/PUT using Swagger component schemas
    */
-  private enhanceRequestBody(item: any, doc: OpenApiDocument) {
+  private enhanceRequestBody(item: any, doc: OpenApiDocument, pathKey?: string | null, operation?: any) {
     const method = item.request?.method || 'GET';
     if (!['POST', 'PATCH', 'PUT'].includes(method)) return;
 
-    const urlRaw = item.request?.url?.raw || (typeof item.request?.url === 'string' ? item.request?.url : '');
-    const cleanUrl = urlRaw.split('?')[0];
+    if (!operation && pathKey && doc.paths?.[pathKey]) {
+      operation = doc.paths[pathKey][method.toLowerCase()];
+    }
 
-    // Find path item in OpenAPI doc
-    const pathKey = this.findMatchingOpenApiPath(cleanUrl, doc);
-    if (!pathKey || !doc.paths?.[pathKey]) return;
-
-    const operation = doc.paths[pathKey][method.toLowerCase()];
     if (!operation || !operation.requestBody) return;
 
     const content = operation.requestBody.content || {};
@@ -205,11 +198,12 @@ export class PostmanGeneratorEngine {
   private findMatchingOpenApiPath(url: string, doc: OpenApiDocument): string | null {
     if (!doc.paths) return null;
 
-    // Normalize URL path: e.g. "http://localhost:3000/v1/admissions/applicants" -> "/admissions/applicants"
     let pathOnly = url;
     if (pathOnly.includes('://')) {
-      const urlObj = new URL(pathOnly);
-      pathOnly = urlObj.pathname;
+      try {
+        const urlObj = new URL(pathOnly);
+        pathOnly = urlObj.pathname;
+      } catch (e) {}
     }
     if (pathOnly.startsWith('/v1')) {
       pathOnly = pathOnly.replace('/v1', '');
@@ -217,7 +211,6 @@ export class PostmanGeneratorEngine {
 
     if (doc.paths[pathOnly]) return pathOnly;
 
-    // Pattern matching for parameterized paths: e.g. /admissions/applicants/:id vs /admissions/applicants/{id}
     const normalizedTarget = pathOnly.replace(/:([a-zA-Z0-9_]+)/g, '{}').replace(/\{\w+\}/g, '{}');
 
     for (const openApiPath of Object.keys(doc.paths)) {
