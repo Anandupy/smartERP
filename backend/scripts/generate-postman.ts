@@ -15,7 +15,7 @@ import { PostmanGeneratorEngine } from './postman/index';
  *    and maps endpoints to an enterprise domain folder structure.
  */
 
-const BACKEND_URL = 'http://localhost:3000';
+const BACKEND_URL = 'http://localhost:3001';
 const SWAGGER_JSON_URL = `${BACKEND_URL}/api-json`;
 const OUTPUT_DIR = path.join(__dirname, '../postman');
 
