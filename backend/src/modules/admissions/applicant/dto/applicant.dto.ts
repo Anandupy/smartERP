@@ -474,6 +474,32 @@ export class UpdateApplicantDto {
   formTemplateVersion?: string;
 }
 
+export class CheckDuplicatesDto {
+  @ApiPropertyOptional({ description: 'Aadhaar Number' })
+  @IsString()
+  @IsOptional()
+  aadhaarNo?: string;
+
+  @ApiProperty({ description: 'Primary contact mobile number' })
+  @IsString()
+  @IsNotEmpty()
+  primaryMobile: string;
+
+  @ApiProperty({ description: 'First name' })
+  @IsString()
+  @IsNotEmpty()
+  firstName: string;
+
+  @ApiProperty({ description: 'Last name' })
+  @IsString()
+  @IsNotEmpty()
+  lastName: string;
+
+  @ApiProperty({ description: 'Date of birth (ISO format)' })
+  @IsDateString()
+  dob: string;
+}
+
 export class QueryApplicantDto {
   @ApiPropertyOptional({
     description:

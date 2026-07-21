@@ -15,6 +15,7 @@ import {
   CreateApplicantDto,
   UpdateApplicantDto,
   QueryApplicantDto,
+  CheckDuplicatesDto,
 } from './dto/applicant.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
@@ -75,18 +76,11 @@ export class ApplicantController {
   )
   @ApiOperation({ summary: 'Check for potential duplicate applicant records' })
   async checkDupes(
-    @Body()
-    body: {
-      aadhaarNo?: string;
-      primaryMobile: string;
-      firstName: string;
-      lastName: string;
-      dob: string;
-    },
+    @Body() dto: CheckDuplicatesDto,
     @Req() req: any,
   ) {
     const branchId = req.context?.branchId || '';
-    const result = await this.service.checkDuplicates(body, branchId);
+    const result = await this.service.checkDuplicates(dto, branchId);
     return { data: result, message: 'Duplicate check completed' };
   }
 

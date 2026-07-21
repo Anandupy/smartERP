@@ -1,35 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ProgramLevel } from '@prisma/client';
+import { PartialType } from '@nestjs/swagger';
+import { CreateProgramDto } from './create-program.dto';
 
-export class UpdateProgramDto {
-  @ApiPropertyOptional()
-  @IsUUID()
-  @IsOptional()
-  branchId?: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  name?: string;
-
-  @ApiPropertyOptional({ enum: ProgramLevel })
-  @IsEnum(ProgramLevel)
-  @IsOptional()
-  level?: ProgramLevel;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  medium?: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  stream?: string;
-
-  @ApiPropertyOptional()
-  @IsUUID()
-  @IsOptional()
-  parentId?: string;
-}
+export class UpdateProgramDto extends PartialType(CreateProgramDto) {}
