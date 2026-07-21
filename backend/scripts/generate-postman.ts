@@ -236,6 +236,34 @@ async function run() {
       } catch (writeErr) {
         console.error('❌ Error writing collection file: ', writeErr);
       }
+
+      // Write Postman environment file
+      const environmentData = {
+        id: 'erp-environment-id',
+        name: 'School ERP Environment',
+        values: [
+          { key: 'baseUrl', value: BACKEND_URL, enabled: true },
+          { key: 'accessToken', value: '', enabled: true },
+          { key: 'tenantId', value: '', enabled: true },
+          { key: 'organizationId', value: '', enabled: true },
+          { key: 'branchId', value: '', enabled: true },
+          { key: 'academicYearId', value: '', enabled: true },
+        ],
+        _postman_variable_scope: 'environment',
+        _postman_exported_at: new Date().toISOString(),
+        _postman_exported_using: 'CampusFlow ERP Generator',
+      };
+
+      try {
+        fs.writeFileSync(
+          ENVIRONMENT_PATH,
+          JSON.stringify(environmentData, null, 2),
+          'utf8',
+        );
+        console.log(`🌍 Environment generated successfully: ${ENVIRONMENT_PATH}`);
+      } catch (envWriteErr) {
+        console.error('❌ Error writing environment file: ', envWriteErr);
+      }
     },
   );
 }
