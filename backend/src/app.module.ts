@@ -5,6 +5,7 @@ import envConfig from '@/config/env.config';
 import databaseConfig from '@/config/database.config';
 import { PrismaModule } from '@/infrastructure/database/prisma.module';
 import { EventsModule } from '@/infrastructure/events/events.module';
+import { AuditModule } from '@/infrastructure/audit/audit.module';
 import { LoggerModule } from '@/common/logger/logger.module';
 import { RequestContextMiddleware } from '@/common/logger/request-context.middleware';
 
@@ -33,6 +34,7 @@ import { AcademicYearGuard } from '@/common/guards/academic-year.guard';
     LoggerModule,
     PrismaModule,
     EventsModule,
+    AuditModule,
     SecurityModule,
     AuthModule,
     UserModule,

@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { v7 as uuidv7 } from 'uuid';
+import { RequestContextService } from './request-context.service';
 
 export interface RequestContext {
   requestId: string;
@@ -66,6 +67,8 @@ export class RequestContextMiddleware implements NestMiddleware {
     // Add to response header
     res.setHeader('x-request-id', requestId);
 
-    next();
+    RequestContextService.run(req.context, () => {
+      next();
+    });
   }
 }
