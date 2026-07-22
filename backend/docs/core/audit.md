@@ -60,6 +60,24 @@ sequenceDiagram
 
 ---
 
+## Integrated Modules & Event Map
+
+The following ERP modules publish domain events that are automatically captured by `AuditListener` and persisted into `AuditLog`:
+
+| Module | Published Domain Events | Inferred Audit Action | Inferred Audit Module |
+| :--- | :--- | :--- | :--- |
+| **Organization** | `organization.created`, `organization.updated`, `organization.deleted` | `CREATE`, `UPDATE`, `DELETE` | `ORGANIZATION` |
+| **Branch** | `branch.created`, `branch.updated`, `branch.deleted` | `CREATE`, `UPDATE`, `DELETE` | `ORGANIZATION` |
+| **Academic Year** | `academic_year.created`, `academic_year.updated`, `academic_year.deleted` | `CREATE`, `UPDATE`, `DELETE` | `ACADEMIC` |
+| **Academic Unit** | `academic_unit.created`, `academic_unit.updated`, `academic_unit.deleted` | `CREATE`, `UPDATE`, `DELETE` | `ACADEMIC` |
+| **Program** | `program.created`, `program.updated`, `program.deleted` | `CREATE`, `UPDATE`, `DELETE` | `ACADEMIC` |
+| **User** | `user.created`, `user.updated`, `user.deleted` | `CREATE`, `UPDATE`, `DELETE` | `AUTH` |
+| **Auth** | `user.logged_in` | `LOGIN` | `AUTH` |
+| **System Settings** | `system_settings.updated` | `UPDATE` | `SYSTEM` |
+| **Admissions** | `student.created`, `student.updated`, `student.deleted` | `CREATE`, `UPDATE`, `DELETE` | `ADMISSIONS` |
+
+---
+
 ## Developer Guide
 
 ### How New Business Modules Automatically Participate in Auditing
@@ -82,6 +100,7 @@ export class AcademicYearService {
       new AcademicYearCreatedEvent({
         academicYearId: year.id,
         name: year.name,
+        branchId: year.branchId,
       }),
     );
 
@@ -90,13 +109,13 @@ export class AcademicYearService {
 }
 ```
 
-No calls to `AuditService` or `AuditRepository` are made inside `AcademicYearService`. `AuditListener` automatically captures the event, enriches it with the request thread's `RequestContext`, and persists the audit record.
+No calls to `AuditService` or `AuditRepository` are made inside business services. `AuditListener` automatically captures registered events, enriches them with `RequestContextService` (`AsyncLocalStorage`), and persists the audit log.
 
 ---
 
 ## Extending Event Mappings & Custom Subscribers
 
-`AuditEventMapper` automatically infers `action` (`CREATE`, `UPDATE`, `DELETE`, `LOGIN`) and `module` (`ADMISSIONS`, `ORGANIZATION`, `AUTH`, `ACADEMIC`) from event names and aggregate types.
+`AuditEventMapper` automatically infers `action` (`CREATE`, `UPDATE`, `DELETE`, `LOGIN`) and `module` (`ADMISSIONS`, `ORGANIZATION`, `AUTH`, `ACADEMIC`, `SYSTEM`) from event names and aggregate types.
 
 Custom event overrides can be specified in event metadata:
 
@@ -118,3 +137,4 @@ const event = new BranchCreatedEvent(
 ## Future Queue Transport Integration (BullMQ / Kafka)
 
 If `EventBus` is upgraded to `BullMQ` or `Kafka` in `EventsModule`, `AuditListener` continues to operate unchanged as a consumer. Audit remains completely decoupled from transport infrastructure.
+
