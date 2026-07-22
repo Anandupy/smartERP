@@ -10,7 +10,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { UserService } from '@/modules/user/user.service';
 import { PasswordService } from '@/common/services/password.service';
 import { LoginDto } from './dto/login.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -185,7 +185,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
-    const refreshTokenValue = uuidv4();
+    const refreshTokenValue = uuidv7();
     const tokenHash = this.hashToken(refreshTokenValue);
     const refreshTokenExpiry = new Date();
     refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7); // 7 days
