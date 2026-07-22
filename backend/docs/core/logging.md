@@ -12,7 +12,7 @@ The logging system is centralized in `src/common/logger` and consists of several
 
 ## Request Tracing
 
-Every request is assigned a unique `requestId` (UUID v4). This ID is used to correlate logs across different parts of the system.
+Every request is assigned a unique `requestId` (UUID v7). This ID is used to correlate logs across different parts of the system.
 
 -   **Header**: The `requestId` is returned in the `x-request-id` response header.
 -   **Logs**: All logs generated during a request include the `requestId`.
