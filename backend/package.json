@@ -21,11 +21,17 @@
     "test:integration": "cross-env NODE_ENV=test dotenv -e .env.test -- jest --config ./test/jest-integration.json --runInBand",
     "test:unit": "cross-env NODE_ENV=test dotenv -e .env.test -- jest --config ./test/jest-unit.json",
     "prisma:build": "node scripts/merge-prisma.js",
+    "prisma:format": "npm run prisma:build && prisma format",
+    "prisma:validate": "npm run prisma:build && prisma validate",
     "prisma:generate": "npm run prisma:build && prisma generate",
     "prisma:migrate": "npm run prisma:build && prisma migrate dev",
+    "prisma:migrate:dev": "npm run prisma:build && prisma migrate dev",
+    "prisma:migrate:deploy": "npm run prisma:build && prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "prisma:seed": "ts-node test/seeds/realistic-data.seed.ts",
     "prisma:push:safe": "ts-node scripts/safe-prisma.ts db push",
     "prisma:reset:safe": "ts-node scripts/safe-prisma.ts migrate reset",
+    "postinstall": "npm run prisma:generate",
     "postman:generate": "tsx scripts/generate-postman.ts",
     "postman:generate:watch": "nodemon --watch src --exec pnpm postman:generate",
     "generate:postman": "pnpm postman:generate",
@@ -112,6 +118,7 @@
     },
     "moduleNameMapper": {
       "@/generated/client": "<rootDir>/prisma/generated",
+      "@prisma/client": "<rootDir>/prisma/generated",
       "^@/(.*)$": "<rootDir>/src/$1"
     },
     "transformIgnorePatterns": [

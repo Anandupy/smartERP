@@ -42,7 +42,8 @@ if (isDestructive) {
 }
 
 try {
+  execSync('node scripts/merge-prisma.js', { stdio: 'inherit' });
   execSync(`npx prisma ${command}`, { stdio: 'inherit' });
 } catch (error) {
-  process.exit(error.status || 1);
+  process.exit((error as any).status || 1);
 }
