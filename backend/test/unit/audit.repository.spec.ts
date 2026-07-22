@@ -44,7 +44,7 @@ describe('AuditRepository', () => {
       status: 'SUCCESS' as const,
     };
 
-    mockPrisma.auditLog.create.mockResolvedValue({ id: mockAuditData.id, ...mockAuditData });
+    mockPrisma.auditLog.create.mockResolvedValue({ ...mockAuditData });
 
     const result = await repository.createAuditLog(mockAuditData);
 

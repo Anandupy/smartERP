@@ -24,6 +24,7 @@ The project follows a modular architecture designed for scalability and maintain
 - `infrastructure/`: Core system components.
   - `database/`: Database connection and Prisma service.
   - `events/`: Reusable EventBus infrastructure and adapters.
+  - `audit/`: Reusable Audit Infrastructure, mapper, listener, and repository.
   - `logger/`: Custom logging service implementation.
 - `filters/`: Global exception filters.
 - `interceptors/`: Global interceptors (e.g., logging, response formatting).
@@ -57,6 +58,7 @@ modules/feature-name/
 ## Core Architecture Documentation
 - [Logging System](./core/logging.md)
 - [Event-Driven Architecture](./core/events.md)
+- [Audit Architecture](./core/audit.md)
 - [Testing Architecture](./testing/testing-architecture.md)
 
 ## Module Documentation
