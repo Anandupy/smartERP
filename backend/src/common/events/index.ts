@@ -2,3 +2,8 @@ export * from './domain-event.base';
 export * from './examples/student-created.event';
 export * from './examples/branch-created.event';
 export * from './examples/user-logged-in.event';
+export * from './organization.events';
+export * from './branch.events';
+export * from './academic.events';
+export * from './user.events';
+export * from './system-settings.events';
