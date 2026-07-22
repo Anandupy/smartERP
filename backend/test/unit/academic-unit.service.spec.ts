@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AcademicUnitService } from '@/modules/academic-unit/academic-unit.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import {
   NotFoundException,
   BadRequestException,
@@ -11,6 +12,11 @@ import { AcademicUnitType } from '@/generated/client';
 describe('AcademicUnitService', () => {
   let service: AcademicUnitService;
   let prismaService: PrismaService;
+
+  const mockEventBus = {
+    publish: jest.fn().mockResolvedValue(undefined),
+    subscribe: jest.fn(),
+  };
 
   const mockPrismaService = {
     branch: { findUnique: jest.fn() },
@@ -33,6 +39,10 @@ describe('AcademicUnitService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: EventBus,
+          useValue: mockEventBus,
         },
       ],
     }).compile();

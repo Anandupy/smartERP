@@ -2,11 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '@/modules/user/user.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { ConflictException } from '@nestjs/common';
 
 describe('UserService', () => {
   let service: UserService;
   let prisma: PrismaService;
+
+  const mockEventBus = {
+    publish: jest.fn().mockResolvedValue(undefined),
+    subscribe: jest.fn(),
+  };
 
   const mockPrisma = {
     user: {
@@ -26,6 +32,7 @@ describe('UserService', () => {
         UserService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: PasswordService, useValue: mockPasswordService },
+        { provide: EventBus, useValue: mockEventBus },
       ],
     }).compile();
 

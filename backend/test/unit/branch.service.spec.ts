@@ -1,12 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BranchService } from '@/modules/branch/branch.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
 
 describe('BranchService (Unit)', () => {
   let service: BranchService;
   let prisma: PrismaService;
+  let mockEventBus: { publish: jest.Mock; subscribe: jest.Mock };
 
   beforeEach(async () => {
+    mockEventBus = {
+      publish: jest.fn().mockResolvedValue(undefined),
+      subscribe: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BranchService,
@@ -24,6 +31,10 @@ describe('BranchService (Unit)', () => {
             },
           },
         },
+        {
+          provide: EventBus,
+          useValue: mockEventBus,
+        },
       ],
     }).compile();
 
@@ -34,6 +45,4 @@ describe('BranchService (Unit)', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-
-  // Add more unit tests here for business logic validation without DB
 });

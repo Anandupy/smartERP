@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AcademicYearService } from '@/modules/academic-year/academic-year.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import {
   BadRequestException,
   NotFoundException,
@@ -10,6 +11,11 @@ import {
 describe('AcademicYearService', () => {
   let service: AcademicYearService;
   let prisma: PrismaService;
+
+  const mockEventBus = {
+    publish: jest.fn().mockResolvedValue(undefined),
+    subscribe: jest.fn(),
+  };
 
   const mockPrisma = {
     branch: {
@@ -32,6 +38,7 @@ describe('AcademicYearService', () => {
       providers: [
         AcademicYearService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: EventBus, useValue: mockEventBus },
       ],
     }).compile();
 

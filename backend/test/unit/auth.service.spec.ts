@@ -5,10 +5,16 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
 import { ConfigService } from '@nestjs/config';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { UnauthorizedException } from '@nestjs/common';
 
 describe('AuthService', () => {
   let service: AuthService;
+
+  const mockEventBus = {
+    publish: jest.fn().mockResolvedValue(undefined),
+    subscribe: jest.fn(),
+  };
 
   const mockUserService = {
     findByIdentifier: jest.fn(),
@@ -39,6 +45,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: { sign: () => 'token' } },
         { provide: ConfigService, useValue: { get: () => 'secret' } },
+        { provide: EventBus, useValue: mockEventBus },
       ],
     }).compile();
 
