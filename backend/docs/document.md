@@ -23,6 +23,7 @@ The project follows a modular architecture designed for scalability and maintain
   - Each module contains its own controllers, services, and DTOs.
 - `infrastructure/`: Core system components.
   - `database/`: Database connection and Prisma service.
+  - `events/`: Reusable EventBus infrastructure and adapters.
   - `logger/`: Custom logging service implementation.
 - `filters/`: Global exception filters.
 - `interceptors/`: Global interceptors (e.g., logging, response formatting).
@@ -52,6 +53,11 @@ modules/feature-name/
 - Classes: `PascalCase` (e.g., `UserController`)
 - Variables/Functions: `camelCase`
 - Folders: `kebab-case`
+
+## Core Architecture Documentation
+- [Logging System](./core/logging.md)
+- [Event-Driven Architecture](./core/events.md)
+- [Testing Architecture](./testing/testing-architecture.md)
 
 ## Module Documentation
 Detailed specifications for each module can be found in the `docs/modules/` directory:
