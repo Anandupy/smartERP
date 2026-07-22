@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import envConfig from '@/config/env.config';
 import databaseConfig from '@/config/database.config';
 import { PrismaModule } from '@/infrastructure/database/prisma.module';
+import { EventsModule } from '@/infrastructure/events/events.module';
 import { LoggerModule } from '@/common/logger/logger.module';
 import { RequestContextMiddleware } from '@/common/logger/request-context.middleware';
 
@@ -31,6 +32,7 @@ import { AcademicYearGuard } from '@/common/guards/academic-year.guard';
     }),
     LoggerModule,
     PrismaModule,
+    EventsModule,
     SecurityModule,
     AuthModule,
     UserModule,
