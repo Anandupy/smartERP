@@ -5,6 +5,12 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import {
+  AcademicUnitCreatedEvent,
+  AcademicUnitUpdatedEvent,
+  AcademicUnitDeletedEvent,
+} from '@/common/events';
 import { CreateAcademicUnitDto } from './dto/create-academic-unit.dto';
 import { UpdateAcademicUnitDto } from './dto/update-academic-unit.dto';
 import { MoveAcademicUnitDto } from './dto/move-academic-unit.dto';
@@ -12,7 +18,10 @@ import { buildAcademicTree } from './utils/academic-tree.util';
 
 @Injectable()
 export class AcademicUnitService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventBus: EventBus,
+  ) {}
 
   async createAcademicUnit(dto: CreateAcademicUnitDto, userId: string) {
     // Validate existence of branch, program, and academic year
@@ -71,7 +80,7 @@ export class AcademicUnitService {
         `Academic unit with name ${dto.name} already exists under this parent`,
       );
 
-    return this.prisma.academicUnit.create({
+    const unit = await this.prisma.academicUnit.create({
       data: {
         ...dto,
         level,
@@ -80,6 +89,18 @@ export class AcademicUnitService {
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new AcademicUnitCreatedEvent({
+        academicUnitId: unit.id,
+        name: unit.name,
+        branchId: unit.branchId,
+        programId: unit.programId,
+        academicYearId: unit.academicYearId,
+      }),
+    );
+
+    return unit;
   }
 
   async getAllAcademicUnits(branchId?: string, academicYearId?: string) {
@@ -141,13 +162,22 @@ export class AcademicUnitService {
     delete (dto as any).academicYearId;
     delete (dto as any).parentId;
 
-    return this.prisma.academicUnit.update({
+    const updated = await this.prisma.academicUnit.update({
       where: { id },
       data: {
         ...dto,
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new AcademicUnitUpdatedEvent({
+        academicUnitId: updated.id,
+        name: updated.name,
+      }),
+    );
+
+    return updated;
   }
 
   async moveAcademicUnit(id: string, dto: MoveAcademicUnitDto, userId: string) {
@@ -215,6 +245,13 @@ export class AcademicUnitService {
     // Update levels for all descendants
     await this.updateDescendantLevels(id, newLevel);
 
+    await this.eventBus.publish(
+      new AcademicUnitUpdatedEvent({
+        academicUnitId: updatedUnit.id,
+        name: updatedUnit.name,
+      }),
+    );
+
     return updatedUnit;
   }
 
@@ -246,7 +283,7 @@ export class AcademicUnitService {
       );
     }
 
-    return this.prisma.academicUnit.update({
+    const deleted = await this.prisma.academicUnit.update({
       where: { id },
       data: {
         isDeleted: true,
@@ -254,16 +291,33 @@ export class AcademicUnitService {
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new AcademicUnitDeletedEvent({
+        academicUnitId: deleted.id,
+      }),
+    );
+
+    return deleted;
   }
 
   async toggleAcademicUnitStatus(id: string, userId: string) {
     const unit = await this.getAcademicUnitById(id);
-    return this.prisma.academicUnit.update({
+    const updated = await this.prisma.academicUnit.update({
       where: { id },
       data: {
         isActive: !unit.isActive,
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new AcademicUnitUpdatedEvent({
+        academicUnitId: updated.id,
+        name: updated.name,
+      }),
+    );
+
+    return updated;
   }
 }

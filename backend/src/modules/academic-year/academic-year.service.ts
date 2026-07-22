@@ -5,12 +5,21 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import {
+  AcademicYearCreatedEvent,
+  AcademicYearUpdatedEvent,
+  AcademicYearDeletedEvent,
+} from '@/common/events';
 import { CreateAcademicYearDto } from './dto/create-academic-year.dto';
 import { UpdateAcademicYearDto } from './dto/update-academic-year.dto';
 
 @Injectable()
 export class AcademicYearService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventBus: EventBus,
+  ) {}
 
   async create(dto: CreateAcademicYearDto, creatorId?: string) {
     const { branchId, startDate, endDate } = dto;
@@ -54,7 +63,7 @@ export class AcademicYearService {
     });
     const isFirst = count === 0;
 
-    return this.prisma.academicYear.create({
+    const year = await this.prisma.academicYear.create({
       data: {
         ...dto,
         startDate: start,
@@ -64,6 +73,16 @@ export class AcademicYearService {
         createdBy: creatorId,
       },
     });
+
+    await this.eventBus.publish(
+      new AcademicYearCreatedEvent({
+        academicYearId: year.id,
+        name: year.name,
+        branchId: year.branchId,
+      }),
+    );
+
+    return year;
   }
 
   async findAll(branchId: string) {
@@ -87,6 +106,8 @@ export class AcademicYearService {
         'Academic year is locked and cannot be modified',
       );
     }
+
+    let updated;
 
     // If dates changed, check overlap
     if (dto.startDate || dto.endDate) {
@@ -116,7 +137,7 @@ export class AcademicYearService {
         );
       }
 
-      return this.prisma.academicYear.update({
+      updated = await this.prisma.academicYear.update({
         where: { id },
         data: {
           ...dto,
@@ -125,12 +146,21 @@ export class AcademicYearService {
           updatedBy: updaterId,
         },
       });
+    } else {
+      updated = await this.prisma.academicYear.update({
+        where: { id },
+        data: { ...dto, updatedBy: updaterId },
+      });
     }
 
-    return this.prisma.academicYear.update({
-      where: { id },
-      data: { ...dto, updatedBy: updaterId },
-    });
+    await this.eventBus.publish(
+      new AcademicYearUpdatedEvent({
+        academicYearId: updated.id,
+        name: updated.name,
+      }),
+    );
+
+    return updated;
   }
 
   async activate(id: string) {
@@ -146,6 +176,13 @@ export class AcademicYearService {
         data: { isActive: true },
       }),
     ]);
+
+    await this.eventBus.publish(
+      new AcademicYearUpdatedEvent({
+        academicYearId: year.id,
+        name: year.name,
+      }),
+    );
 
     return { message: 'Academic year activated successfully' };
   }
@@ -164,15 +201,31 @@ export class AcademicYearService {
       }),
     ]);
 
+    await this.eventBus.publish(
+      new AcademicYearUpdatedEvent({
+        academicYearId: year.id,
+        name: year.name,
+      }),
+    );
+
     return { message: 'Academic year selected successfully' };
   }
 
   async lock(id: string) {
-    await this.findById(id);
-    return this.prisma.academicYear.update({
+    const year = await this.findById(id);
+    const updated = await this.prisma.academicYear.update({
       where: { id },
       data: { isLocked: true },
     });
+
+    await this.eventBus.publish(
+      new AcademicYearUpdatedEvent({
+        academicYearId: year.id,
+        name: year.name,
+      }),
+    );
+
+    return updated;
   }
 
   async softDelete(id: string) {
@@ -188,10 +241,18 @@ export class AcademicYearService {
       throw new BadRequestException('Cannot delete selected academic year');
     }
 
-    return this.prisma.academicYear.update({
+    const deleted = await this.prisma.academicYear.update({
       where: { id },
       data: { isDeleted: true },
     });
+
+    await this.eventBus.publish(
+      new AcademicYearDeletedEvent({
+        academicYearId: deleted.id,
+      }),
+    );
+
+    return deleted;
   }
 
   private async findById(id: string) {

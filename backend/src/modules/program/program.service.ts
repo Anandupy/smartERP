@@ -5,13 +5,22 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import {
+  ProgramCreatedEvent,
+  ProgramUpdatedEvent,
+  ProgramDeletedEvent,
+} from '@/common/events';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
 import { Program } from '@prisma/client';
 
 @Injectable()
 export class ProgramService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventBus: EventBus,
+  ) {}
 
   async createProgram(dto: CreateProgramDto, userId: string) {
     // 1. Validate branch exists
@@ -54,7 +63,7 @@ export class ProgramService {
       throw new ConflictException('Program already exists in this branch');
     }
 
-    return this.prisma.program.create({
+    const program = await this.prisma.program.create({
       data: {
         ...dto,
         name,
@@ -63,6 +72,16 @@ export class ProgramService {
         createdBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new ProgramCreatedEvent({
+        programId: program.id,
+        name: program.name,
+        branchId: program.branchId,
+      }),
+    );
+
+    return program;
   }
 
   async getProgramsByBranch(branchId: string) {
@@ -132,13 +151,22 @@ export class ProgramService {
       }
     }
 
-    return this.prisma.program.update({
+    const updated = await this.prisma.program.update({
       where: { id },
       data: {
         ...dto,
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new ProgramUpdatedEvent({
+        programId: updated.id,
+        name: updated.name,
+      }),
+    );
+
+    return updated;
   }
 
   async softDeleteProgram(id: string, userId: string) {
@@ -157,13 +185,21 @@ export class ProgramService {
       );
     }
 
-    return this.prisma.program.update({
+    const deleted = await this.prisma.program.update({
       where: { id },
       data: {
         isDeleted: true,
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new ProgramDeletedEvent({
+        programId: deleted.id,
+      }),
+    );
+
+    return deleted;
   }
 
   async toggleProgramStatus(id: string, userId: string) {
@@ -172,13 +208,22 @@ export class ProgramService {
       throw new NotFoundException('Program not found');
     }
 
-    return this.prisma.program.update({
+    const updated = await this.prisma.program.update({
       where: { id },
       data: {
         isActive: !program.isActive,
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new ProgramUpdatedEvent({
+        programId: updated.id,
+        name: updated.name,
+      }),
+    );
+
+    return updated;
   }
 
   async findById(id: string) {
