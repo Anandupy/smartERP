@@ -7,6 +7,8 @@ import { createHash } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { UserLoggedInEvent } from '@/common/events';
 import { UserService } from '@/modules/user/user.service';
 import { PasswordService } from '@/common/services/password.service';
 import { LoginDto } from './dto/login.dto';
@@ -20,6 +22,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly passwordService: PasswordService,
     private readonly configService: ConfigService,
+    private readonly eventBus: EventBus,
   ) {}
 
   async login(
@@ -61,6 +64,14 @@ export class AuthService {
         lastLoginAt: new Date(),
       },
     });
+
+    await this.eventBus.publish(
+      new UserLoggedInEvent({
+        userId: user.id,
+        username: user.username,
+        loginAt: new Date(),
+      }),
+    );
 
     return this.generateTokens(user.id, user.email, user.role, sessionInfo);
   }

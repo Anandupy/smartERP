@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { UserCreatedEvent, UserUpdatedEvent } from '@/common/events';
 import { PasswordService } from '@/common/services/password.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -13,6 +15,7 @@ export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
+    private readonly eventBus: EventBus,
   ) {}
 
   async createUser(dto: CreateUserDto, creatorId?: string) {
@@ -40,7 +43,7 @@ export class UserService {
 
     const passwordHash = await this.passwordService.hash(password);
 
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         ...userData,
         passwordHash,
@@ -49,6 +52,17 @@ export class UserService {
       },
       select: this.userSelect(),
     });
+
+    await this.eventBus.publish(
+      new UserCreatedEvent({
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      }),
+    );
+
+    return user;
   }
 
   async findById(id: string) {
@@ -76,7 +90,7 @@ export class UserService {
   async updateUser(id: string, dto: UpdateUserDto, updaterId?: string) {
     await this.findById(id);
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: {
         ...dto,
@@ -84,6 +98,16 @@ export class UserService {
       },
       select: this.userSelect(),
     });
+
+    await this.eventBus.publish(
+      new UserUpdatedEvent({
+        userId: updated.id,
+        fullName: updated.fullName,
+        role: updated.role,
+      }),
+    );
+
+    return updated;
   }
 
   private userSelect() {
