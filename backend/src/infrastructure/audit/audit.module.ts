@@ -1,11 +1,14 @@
 import { Global, Module } from '@nestjs/common';
 import { PrismaModule } from '@/infrastructure/database/prisma.module';
+import { EventsModule } from '@/infrastructure/events/events.module';
 import { AuditRepository } from './audit.repository';
+import { AuditEventMapper } from './audit-event.mapper';
+import { AuditListener } from './audit.listener';
 
 @Global()
 @Module({
-  imports: [PrismaModule],
-  providers: [AuditRepository],
-  exports: [AuditRepository],
+  imports: [PrismaModule, EventsModule],
+  providers: [AuditRepository, AuditEventMapper, AuditListener],
+  exports: [AuditRepository, AuditEventMapper, AuditListener],
 })
 export class AuditModule {}
