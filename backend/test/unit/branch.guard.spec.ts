@@ -15,9 +15,9 @@ describe('BranchGuard', () => {
   let reflector: Reflector;
   let prisma: PrismaService;
 
-  const validBranchId = '11111111-1111-4111-a111-111111111111';
-  const validOrgId = '99999999-9999-4999-a999-999999999999';
-  const otherOrgId = '88888888-8888-4888-a888-888888888888';
+  const validBranchId = '11111111-1111-7111-a111-111111111111';
+  const validOrgId = '99999999-9999-7999-a999-999999999999';
+  const otherOrgId = '88888888-8888-7888-a888-888888888888';
 
   const mockPrisma = {
     branch: {

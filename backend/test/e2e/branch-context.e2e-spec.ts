@@ -99,7 +99,7 @@ describe('Branch Context Pipeline (e2e)', () => {
     });
 
     it('should fail with 404 when branchId does not exist', async () => {
-      const nonExistentUuid = '00000000-0000-4000-a000-000000000000';
+      const nonExistentUuid = '00000000-0000-7000-a000-000000000000';
       const res = await request(app.getHttpServer())
         .get('/v1/programs')
         .set('Authorization', `Bearer ${accessToken}`)

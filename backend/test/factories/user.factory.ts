@@ -1,6 +1,6 @@
 import { PrismaClient } from '../../prisma/generated';
 import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { UserRole } from '@/common/enums/role.enum';
 
 export const createUser = async (
@@ -10,7 +10,7 @@ export const createUser = async (
   branchId?: string,
 ) => {
   const hash = await bcrypt.hash('Password123!', 10);
-  const id = uuidv4();
+  const id = uuidv7();
   return prisma.user.create({
     data: {
       id,

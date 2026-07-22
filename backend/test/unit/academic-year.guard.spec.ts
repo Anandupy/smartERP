@@ -9,9 +9,9 @@ describe('AcademicYearGuard', () => {
   let reflector: Reflector;
   let prisma: PrismaService;
 
-  const validBranchId = '11111111-1111-4111-a111-111111111111';
-  const validAcademicYearId = '22222222-2222-4222-a222-222222222222';
-  const otherBranchId = '33333333-3333-4333-a333-333333333333';
+  const validBranchId = '11111111-1111-7111-a111-111111111111';
+  const validAcademicYearId = '22222222-2222-7222-a222-222222222222';
+  const otherBranchId = '33333333-3333-7333-a333-333333333333';
 
   const mockPrisma = {
     branch: {
