@@ -820,6 +820,55 @@ enum StructureMode {
 }
 
 
+// --- FROM: modules/system/audit-log.prisma ---
+
+model AuditLog {
+  id              String    @id @default(uuid(7))
+  timestamp       DateTime  @default(now())
+
+  eventName       String
+  action          String
+  module          String
+
+  aggregateType   String
+  aggregateId     String
+
+  userId          String?
+  userEmail       String?
+  role            String?
+
+  organizationId  String?
+  branchId        String?
+  academicYearId  String?
+
+  requestId       String?
+  traceId         String?
+  correlationId   String?
+
+  ipAddress       String?
+  userAgent       String?
+  httpMethod      String?
+  route           String?
+  executionTime   Int?
+
+  severity        String    @default("INFO")
+  status          String    @default("SUCCESS")
+
+  metadata        Json?
+  changes         Json?
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([module])
+  @@index([aggregateType, aggregateId])
+  @@index([action])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@index([requestId])
+}
+
+
 // --- FROM: modules/system/environment.enums.prisma ---
 
 enum Environment {
