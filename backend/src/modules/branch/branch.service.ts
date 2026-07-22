@@ -4,12 +4,21 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import {
+  BranchCreatedEvent,
+  BranchUpdatedEvent,
+  BranchDeletedEvent,
+} from '@/common/events';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
 
 @Injectable()
 export class BranchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventBus: EventBus,
+  ) {}
 
   async createBranch(dto: CreateBranchDto, userId?: string) {
     // Validate organization exists
@@ -46,7 +55,7 @@ export class BranchService {
       }
     }
 
-    return this.prisma.branch.create({
+    const branch = await this.prisma.branch.create({
       data: {
         ...dto,
         code,
@@ -56,6 +65,16 @@ export class BranchService {
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new BranchCreatedEvent({
+        branchId: branch.id,
+        name: branch.name,
+        code: branch.code,
+      }),
+    );
+
+    return branch;
   }
 
   async getAllBranches() {
@@ -113,7 +132,7 @@ export class BranchService {
       }
     }
 
-    return this.prisma.branch.update({
+    const updated = await this.prisma.branch.update({
       where: { id },
       data: {
         ...dto,
@@ -122,12 +141,22 @@ export class BranchService {
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new BranchUpdatedEvent({
+        branchId: updated.id,
+        name: updated.name,
+        code: updated.code,
+      }),
+    );
+
+    return updated;
   }
 
   async softDeleteBranch(id: string, userId?: string) {
     await this.getBranchById(id);
 
-    return this.prisma.branch.update({
+    const deleted = await this.prisma.branch.update({
       where: { id },
       data: {
         isDeleted: true,
@@ -135,17 +164,35 @@ export class BranchService {
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new BranchDeletedEvent({
+        branchId: deleted.id,
+      }),
+    );
+
+    return deleted;
   }
 
   async toggleBranchStatus(id: string, userId?: string) {
     const branch = await this.getBranchById(id);
 
-    return this.prisma.branch.update({
+    const updated = await this.prisma.branch.update({
       where: { id },
       data: {
         isActive: !branch.isActive,
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new BranchUpdatedEvent({
+        branchId: updated.id,
+        name: updated.name,
+        code: updated.code,
+      }),
+    );
+
+    return updated;
   }
 }
