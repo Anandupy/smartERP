@@ -31,7 +31,7 @@ enum AcademicUnitType {
 // --- FROM: modules/academic/academic-unit.prisma ---
 
 model AcademicUnit {
-  id                String   @id @default(uuid())
+  id                String   @id @default(uuid(7))
 
   branchId          String
   programId         String
@@ -79,7 +79,7 @@ model AcademicUnit {
 // --- FROM: modules/academic/academic-year.prisma ---
 
 model AcademicYear {
-  id            String   @id @default(uuid())
+  id            String   @id @default(uuid(7))
   branchId      String
   name          String
   startDate     DateTime
@@ -114,7 +114,7 @@ enum ProgramLevel {
 // --- FROM: modules/academic/program.prisma ---
 
 model Program {
-  id            String   @id @default(uuid())
+  id            String   @id @default(uuid(7))
   branchId      String
   name          String
   level         ProgramLevel?
@@ -143,7 +143,7 @@ model Program {
 // --- FROM: modules/admissions/applicant.prisma ---
 
 model Applicant {
-  id                    String                   @id @default(uuid())
+  id                    String                   @id @default(uuid(7))
   organizationId        String
   branchId              String
   academicYearId        String
@@ -261,7 +261,7 @@ model Applicant {
 // --- FROM: modules/admissions/enrollment.prisma ---
 
 model Enrollment {
-  id              String       @id @default(uuid())
+  id              String       @id @default(uuid(7))
   organizationId  String
   branchId        String
   academicYearId  String
@@ -293,7 +293,7 @@ model Enrollment {
 // --- FROM: modules/admissions/guardian.prisma ---
 
 model Guardian {
-  id              String                     @id @default(uuid())
+  id              String                     @id @default(uuid(7))
   organizationId  String
   branchId        String
 
@@ -337,7 +337,7 @@ model Guardian {
 }
 
 model ApplicantGuardianMapping {
-  id                  String       @id @default(uuid())
+  id                  String       @id @default(uuid(7))
   applicantId         String
   guardianId          String
   relationTypeId      String
@@ -363,7 +363,7 @@ model ApplicantGuardianMapping {
 // --- FROM: modules/admissions/masters.prisma ---
 
 model Religion {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -385,7 +385,7 @@ model Religion {
 }
 
 model Caste {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -407,7 +407,7 @@ model Caste {
 }
 
 model Category {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -429,7 +429,7 @@ model Category {
 }
 
 model Gender {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -451,7 +451,7 @@ model Gender {
 }
 
 model BloodGroup {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -473,7 +473,7 @@ model BloodGroup {
 }
 
 model Language {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -495,7 +495,7 @@ model Language {
 }
 
 model Disability {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -517,7 +517,7 @@ model Disability {
 }
 
 model RelationType {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -539,7 +539,7 @@ model RelationType {
 }
 
 model Quota {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -561,7 +561,7 @@ model Quota {
 }
 
 model AdmissionSource {
-  id             String      @id @default(uuid())
+  id             String      @id @default(uuid(7))
   organizationId String?
   branchId       String?
   code           String
@@ -586,7 +586,7 @@ model AdmissionSource {
 // --- FROM: modules/admissions/numbering.prisma ---
 
 model NumberSequenceConfig {
-  id                  String   @id @default(uuid())
+  id                  String   @id @default(uuid(7))
   organizationId      String
   branchId            String
   purpose             String   // e.g. "ADMISSION_FORM", "APPLICATION", "STUDENT_CODE", "RECEIPT"
@@ -610,7 +610,7 @@ model NumberSequenceConfig {
 }
 
 model NumberSequenceCounter {
-  id             String               @id @default(uuid())
+  id             String               @id @default(uuid(7))
   configId       String
   academicYearId String?
   currentValue   Int                  @default(0)
@@ -626,7 +626,7 @@ model NumberSequenceCounter {
 // --- FROM: modules/admissions/workflow.prisma ---
 
 model WorkflowHistory {
-  id          String    @id @default(uuid())
+  id          String    @id @default(uuid(7))
   applicantId String
   oldStatus   String?
   newStatus   String
@@ -644,7 +644,7 @@ model WorkflowHistory {
 // --- FROM: modules/auth/refresh-token.prisma ---
 
 model RefreshToken {
-  id           String    @id @default(uuid())
+  id           String    @id @default(uuid(7))
   userId       String
   token        String    @unique
   tokenHash    String?   @unique
@@ -686,7 +686,7 @@ enum UserStatus {
 // --- FROM: modules/auth/user.prisma ---
 
 model User {
-  id                   String   @id @default(uuid())
+  id                   String   @id @default(uuid(7))
   fullName             String
   username             String   @unique
   email                String   @unique
@@ -725,7 +725,7 @@ enum AffiliationType {
 // --- FROM: modules/organization/branch.prisma ---
 
 model Branch {
-  id                 String   @id @default(uuid())
+  id                 String   @id @default(uuid(7))
   organizationId     String
   name               String
   code               String   @unique
@@ -785,7 +785,7 @@ enum OrganizationStatus {
 // --- FROM: modules/organization/organization.prisma ---
 
 model Organization {
-  id               String             @id @default(uuid())
+  id               String             @id @default(uuid(7))
   name             String
   code             String             @unique
   logoUrl          String?
@@ -832,7 +832,7 @@ enum Environment {
 // --- FROM: modules/system/system-setting.prisma ---
 
 model SystemSetting {
-  id                 String      @id @default(uuid())
+  id                 String      @id @default(uuid(7))
   productName        String
   productCode        String      @unique
   version            String

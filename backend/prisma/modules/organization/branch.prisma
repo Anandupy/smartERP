@@ -1,5 +1,5 @@
 model Branch {
-  id                 String   @id @default(uuid())
+  id                 String   @id @default(uuid(7))
   organizationId     String
   name               String
   code               String   @unique

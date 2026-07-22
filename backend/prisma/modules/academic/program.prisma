@@ -1,5 +1,5 @@
 model Program {
-  id            String   @id @default(uuid())
+  id            String   @id @default(uuid(7))
   branchId      String
   name          String
   level         ProgramLevel?

@@ -1,5 +1,5 @@
 model Enrollment {
-  id              String       @id @default(uuid())
+  id              String       @id @default(uuid(7))
   organizationId  String
   branchId        String
   academicYearId  String

@@ -1,5 +1,5 @@
 model AcademicYear {
-  id            String   @id @default(uuid())
+  id            String   @id @default(uuid(7))
   branchId      String
   name          String
   startDate     DateTime

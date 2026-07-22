@@ -1,5 +1,5 @@
 model NumberSequenceConfig {
-  id                  String   @id @default(uuid())
+  id                  String   @id @default(uuid(7))
   organizationId      String
   branchId            String
   purpose             String   // e.g. "ADMISSION_FORM", "APPLICATION", "STUDENT_CODE", "RECEIPT"
@@ -23,7 +23,7 @@ model NumberSequenceConfig {
 }
 
 model NumberSequenceCounter {
-  id             String               @id @default(uuid())
+  id             String               @id @default(uuid(7))
   configId       String
   academicYearId String?
   currentValue   Int                  @default(0)

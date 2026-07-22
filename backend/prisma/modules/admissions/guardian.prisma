@@ -1,5 +1,5 @@
 model Guardian {
-  id              String                     @id @default(uuid())
+  id              String                     @id @default(uuid(7))
   organizationId  String
   branchId        String
 
@@ -43,7 +43,7 @@ model Guardian {
 }
 
 model ApplicantGuardianMapping {
-  id                  String       @id @default(uuid())
+  id                  String       @id @default(uuid(7))
   applicantId         String
   guardianId          String
   relationTypeId      String

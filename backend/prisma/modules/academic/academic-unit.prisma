@@ -1,5 +1,5 @@
 model AcademicUnit {
-  id                String   @id @default(uuid())
+  id                String   @id @default(uuid(7))
 
   branchId          String
   programId         String

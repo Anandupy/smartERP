@@ -1,5 +1,5 @@
 model WorkflowHistory {
-  id          String    @id @default(uuid())
+  id          String    @id @default(uuid(7))
   applicantId String
   oldStatus   String?
   newStatus   String
