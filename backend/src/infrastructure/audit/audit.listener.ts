@@ -41,6 +41,9 @@ export class AuditListener implements OnModuleInit {
     'admission.transitioned',
     'enrollment.completed',
     'numbering_config.created',
+    'admissions_master.created',
+    'admissions_master.updated',
+    'admissions_master.deleted',
   ]);
 
   constructor(

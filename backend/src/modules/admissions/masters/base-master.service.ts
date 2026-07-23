@@ -2,11 +2,21 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import {
+  AdmissionsMasterCreatedEvent,
+  AdmissionsMasterUpdatedEvent,
+  AdmissionsMasterDeletedEvent,
+} from '@/common/events';
 
 @Injectable()
 export class BaseMasterService {
+  @Inject(EventBus)
+  protected readonly eventBus: EventBus;
+
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly modelName: string,
@@ -49,13 +59,24 @@ export class BaseMasterService {
       );
     }
 
-    return (this.prisma as any)[this.modelName].create({
+    const record = await (this.prisma as any)[this.modelName].create({
       data: {
         ...dto,
         organizationId,
         branchId,
       },
     });
+
+    await this.eventBus.publish(
+      new AdmissionsMasterCreatedEvent({
+        masterType: this.modelName,
+        id: record.id,
+        code: record.code,
+        name: record.name,
+      }),
+    );
+
+    return record;
   }
 
   async findAll(
@@ -133,17 +154,37 @@ export class BaseMasterService {
       }
     }
 
-    return (this.prisma as any)[this.modelName].update({
+    const updated = await (this.prisma as any)[this.modelName].update({
       where: { id },
       data: dto,
     });
+
+    await this.eventBus.publish(
+      new AdmissionsMasterUpdatedEvent({
+        masterType: this.modelName,
+        id: updated.id,
+        code: updated.code,
+        name: updated.name,
+      }),
+    );
+
+    return updated;
   }
 
   async remove(id: string) {
     await this.findOne(id);
-    return (this.prisma as any)[this.modelName].update({
+    const deleted = await (this.prisma as any)[this.modelName].update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    await this.eventBus.publish(
+      new AdmissionsMasterDeletedEvent({
+        masterType: this.modelName,
+        id: deleted.id,
+      }),
+    );
+
+    return deleted;
   }
 }

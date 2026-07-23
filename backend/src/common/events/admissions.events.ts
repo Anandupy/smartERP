@@ -259,3 +259,83 @@ export class NumberingConfigCreatedEvent extends DomainEvent {
     this.payload = payload;
   }
 }
+
+export class AdmissionsMasterCreatedEvent extends DomainEvent {
+  static readonly EVENT_NAME = 'admissions_master.created';
+  readonly payload: {
+    masterType: string;
+    id: string;
+    code: string;
+    name: string;
+  };
+
+  constructor(
+    payload: {
+      masterType: string;
+      id: string;
+      code: string;
+      name: string;
+    },
+    metadata?: Record<string, any>,
+  ) {
+    super({
+      eventName: AdmissionsMasterCreatedEvent.EVENT_NAME,
+      aggregateId: payload.id,
+      aggregateType: payload.masterType,
+      metadata: { module: 'ADMISSIONS', ...metadata },
+    });
+    this.payload = payload;
+  }
+}
+
+export class AdmissionsMasterUpdatedEvent extends DomainEvent {
+  static readonly EVENT_NAME = 'admissions_master.updated';
+  readonly payload: {
+    masterType: string;
+    id: string;
+    code?: string;
+    name?: string;
+  };
+
+  constructor(
+    payload: {
+      masterType: string;
+      id: string;
+      code?: string;
+      name?: string;
+    },
+    metadata?: Record<string, any>,
+  ) {
+    super({
+      eventName: AdmissionsMasterUpdatedEvent.EVENT_NAME,
+      aggregateId: payload.id,
+      aggregateType: payload.masterType,
+      metadata: { module: 'ADMISSIONS', ...metadata },
+    });
+    this.payload = payload;
+  }
+}
+
+export class AdmissionsMasterDeletedEvent extends DomainEvent {
+  static readonly EVENT_NAME = 'admissions_master.deleted';
+  readonly payload: {
+    masterType: string;
+    id: string;
+  };
+
+  constructor(
+    payload: {
+      masterType: string;
+      id: string;
+    },
+    metadata?: Record<string, any>,
+  ) {
+    super({
+      eventName: AdmissionsMasterDeletedEvent.EVENT_NAME,
+      aggregateId: payload.id,
+      aggregateType: payload.masterType,
+      metadata: { module: 'ADMISSIONS', ...metadata },
+    });
+    this.payload = payload;
+  }
+}
