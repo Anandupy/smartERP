@@ -16,6 +16,7 @@ import {
   AdmissionWorkflowTransitionedEvent,
   EnrollmentCompletedEvent,
   NumberingConfigCreatedEvent,
+  AdmissionsMasterCreatedEvent,
 } from '@/common/events';
 
 describe('Admissions Module Foundation - Unit Tests', () => {
@@ -163,6 +164,23 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       await expect(
         religionService.create({ code: 'HIND', name: 'Hindu' }, 'org-1', 'branch-1'),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should create master record successfully and publish AdmissionsMasterCreatedEvent', async () => {
+      mockPrisma.religion.findFirst
+        .mockResolvedValueOnce(null) // code ok
+        .mockResolvedValueOnce(null); // name ok
+      mockPrisma.religion.create.mockResolvedValue({
+        id: 'rel-123',
+        code: 'HIND',
+        name: 'Hindu',
+      });
+
+      const result = await religionService.create({ code: 'HIND', name: 'Hindu' }, 'org-1', 'branch-1');
+      expect(result.id).toBe('rel-123');
+      expect(mockEventBus.publish).toHaveBeenCalledWith(
+        expect.any(AdmissionsMasterCreatedEvent),
+      );
     });
   });
 
