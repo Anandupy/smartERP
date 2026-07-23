@@ -4,6 +4,12 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import {
+  ApplicantCreatedEvent,
+  ApplicantUpdatedEvent,
+  ApplicantDeletedEvent,
+} from '@/common/events';
 import { NumberingService } from '../numbering/numbering.service';
 import {
   CreateApplicantDto,
@@ -16,6 +22,7 @@ export class ApplicantService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly numberingService: NumberingService,
+    private readonly eventBus: EventBus,
   ) {}
 
   private getDisplayName(
@@ -235,6 +242,16 @@ export class ApplicantService {
       },
     });
 
+    await this.eventBus.publish(
+      new ApplicantCreatedEvent({
+        applicantId: applicant.id,
+        displayName: applicant.displayName,
+        admissionFormNo: applicant.admissionFormNo,
+        applicationNo: applicant.applicationNo,
+        primaryMobile: applicant.primaryMobile,
+      }),
+    );
+
     return {
       applicant,
       warnings: duplicateReport.hasDuplicates ? duplicateReport.matches : [],
@@ -312,10 +329,19 @@ export class ApplicantService {
       );
     }
 
-    return this.prisma.applicant.update({
+    const updatedApplicant = await this.prisma.applicant.update({
       where: { id },
       data: updatedData,
     });
+
+    await this.eventBus.publish(
+      new ApplicantUpdatedEvent({
+        applicantId: updatedApplicant.id,
+        displayName: updatedApplicant.displayName,
+      }),
+    );
+
+    return updatedApplicant;
   }
 
   async findAll(
@@ -386,12 +412,20 @@ export class ApplicantService {
       );
     }
 
-    return this.prisma.applicant.update({
+    const deletedApplicant = await this.prisma.applicant.update({
       where: { id },
       data: {
         deletedAt: new Date(),
         updatedBy: userId,
       },
     });
+
+    await this.eventBus.publish(
+      new ApplicantDeletedEvent({
+        applicantId: deletedApplicant.id,
+      }),
+    );
+
+    return deletedApplicant;
   }
 }

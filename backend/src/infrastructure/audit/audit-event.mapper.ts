@@ -72,7 +72,15 @@ export class AuditEventMapper {
     if (event.metadata?.module) return event.metadata.module;
 
     const agg = event.aggregateType.toUpperCase();
-    if (agg.includes('STUDENT') || agg.includes('APPLICANT')) return 'ADMISSIONS';
+    if (
+      agg.includes('STUDENT') ||
+      agg.includes('APPLICANT') ||
+      agg.includes('GUARDIAN') ||
+      agg.includes('ENROLLMENT') ||
+      agg.includes('NUMBERSEQUENCECONFIG')
+    ) {
+      return 'ADMISSIONS';
+    }
     if (agg.includes('BRANCH') || agg.includes('ORGANIZATION')) return 'ORGANIZATION';
     if (agg.includes('USER') || agg.includes('AUTH')) return 'AUTH';
     if (agg.includes('ACADEMIC')) return 'ACADEMIC';

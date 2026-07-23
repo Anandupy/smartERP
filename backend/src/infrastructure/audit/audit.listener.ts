@@ -31,6 +31,16 @@ export class AuditListener implements OnModuleInit {
     'user.updated',
     'user.deleted',
     'system_settings.updated',
+    'applicant.created',
+    'applicant.updated',
+    'applicant.deleted',
+    'guardian.created',
+    'guardian.updated',
+    'guardian.mapped',
+    'guardian.unmapped',
+    'admission.transitioned',
+    'enrollment.completed',
+    'numbering_config.created',
   ]);
 
   constructor(
