@@ -107,6 +107,9 @@ The Admissions module publishes the following events over the shared `EventBus` 
 * **`admission.transitioned`**: Fired when the applicant transitions status (e.g., DRAFT -> SUBMITTED, UNDER_REVIEW -> APPROVED, etc.).
 * **`enrollment.completed`**: Fired when academic placement templates are finalized.
 * **`numbering_config.created`**: Fired when numbering sequences are configured.
+* **`admissions_master.created`**: Fired when lookups (Religion, Caste, etc.) are registered.
+* **`admissions_master.updated`**: Fired when lookups are updated.
+* **`admissions_master.deleted`**: Fired when lookups are soft-deleted.
 
 All events are handled asynchronously by the `AuditListener`, preserving the fast execution of core admission workflows.
 

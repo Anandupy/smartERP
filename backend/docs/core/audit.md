@@ -74,7 +74,7 @@ The following ERP modules publish domain events that are automatically captured 
 | **User** | `user.created`, `user.updated`, `user.deleted` | `CREATE`, `UPDATE`, `DELETE` | `AUTH` |
 | **Auth** | `user.logged_in` | `LOGIN` | `AUTH` |
 | **System Settings** | `system_settings.updated` | `UPDATE` | `SYSTEM` |
-| **Admissions** | `student.created`, `student.updated`, `student.deleted`, `applicant.created`, `applicant.updated`, `applicant.deleted`, `guardian.created`, `guardian.updated`, `guardian.mapped`, `guardian.unmapped`, `admission.transitioned`, `enrollment.completed`, `numbering_config.created` | `CREATE`, `UPDATE`, `DELETE`, `EXECUTE` | `ADMISSIONS` |
+| **Admissions** | `student.created`, `student.updated`, `student.deleted`, `applicant.created`, `applicant.updated`, `applicant.deleted`, `guardian.created`, `guardian.updated`, `guardian.mapped`, `guardian.unmapped`, `admission.transitioned`, `enrollment.completed`, `numbering_config.created`, `admissions_master.created`, `admissions_master.updated`, `admissions_master.deleted` | `CREATE`, `UPDATE`, `DELETE`, `EXECUTE` | `ADMISSIONS` |
 
 ---
 
