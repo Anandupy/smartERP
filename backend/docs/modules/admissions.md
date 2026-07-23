@@ -91,3 +91,22 @@ Matches return non-blocking warning arrays to alert admins of potential duplicat
 ## 10. Future Extensibility
 * **Applicant-to-Student Hook**: Triggered automatically in `WorkflowService` when transitioning to `APPROVED`.
 * **Seat Capacity Validation**: Integrates inside the approval transition transaction.
+
+---
+
+## 11. Domain Events & Audit Flow
+The Admissions module publishes the following events over the shared `EventBus` to integrate with the core `AuditListener`:
+
+* **`applicant.created`**: Fired when a draft applicant is created.
+* **`applicant.updated`**: Fired when applicant demographics/addresses/previous education fields are updated.
+* **`applicant.deleted`**: Fired when an applicant is soft-deleted.
+* **`guardian.created`**: Fired when a guardian is registered.
+* **`guardian.updated`**: Fired when guardian details are updated.
+* **`guardian.mapped`**: Fired when a guardian is associated with an applicant.
+* **`guardian.unmapped`**: Fired when a guardian association is removed.
+* **`admission.transitioned`**: Fired when the applicant transitions status (e.g., DRAFT -> SUBMITTED, UNDER_REVIEW -> APPROVED, etc.).
+* **`enrollment.completed`**: Fired when academic placement templates are finalized.
+* **`numbering_config.created`**: Fired when numbering sequences are configured.
+
+All events are handled asynchronously by the `AuditListener`, preserving the fast execution of core admission workflows.
+
