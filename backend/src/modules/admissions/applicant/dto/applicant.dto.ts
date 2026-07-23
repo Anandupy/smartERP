@@ -6,6 +6,8 @@ import {
   IsBoolean,
   IsNumber,
   IsObject,
+  IsEmail,
+  Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -87,9 +89,10 @@ export class CreateApplicantDto {
   disabilityNotes?: string;
 
   // Government Details
-  @ApiPropertyOptional({ description: 'Aadhaar Number' })
+  @ApiPropertyOptional({ description: 'Aadhaar Number (12 digits)' })
   @IsString()
   @IsOptional()
+  @Matches(/^\d{12}$/, { message: 'Aadhaar number must be exactly 12 digits' })
   aadhaarNo?: string;
 
   @ApiPropertyOptional({ description: 'Permanent Education Number (PEN)' })
@@ -106,15 +109,17 @@ export class CreateApplicantDto {
   @ApiProperty({ description: 'Primary contact mobile number' })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid primary mobile format' })
   primaryMobile: string;
 
   @ApiPropertyOptional({ description: 'Alternate mobile number' })
   @IsString()
   @IsOptional()
+  @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid alternate mobile format' })
   alternateMobile?: string;
 
   @ApiPropertyOptional({ description: 'Primary contact email' })
-  @IsString()
+  @IsEmail({}, { message: 'Invalid primary email format' })
   @IsOptional()
   primaryEmail?: string;
 
@@ -152,6 +157,7 @@ export class CreateApplicantDto {
   @ApiProperty({ description: 'Pincode' })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[a-zA-Z0-9\s-]{3,10}$/, { message: 'Invalid pincode format' })
   pincode: string;
 
   // Previous Education Details
@@ -323,9 +329,10 @@ export class UpdateApplicantDto {
   disabilityNotes?: string;
 
   // Government Details
-  @ApiPropertyOptional({ description: 'Aadhaar Number' })
+  @ApiPropertyOptional({ description: 'Aadhaar Number (12 digits)' })
   @IsString()
   @IsOptional()
+  @Matches(/^\d{12}$/, { message: 'Aadhaar number must be exactly 12 digits' })
   aadhaarNo?: string;
 
   @ApiPropertyOptional({ description: 'Permanent Education Number (PEN)' })
@@ -342,15 +349,17 @@ export class UpdateApplicantDto {
   @ApiPropertyOptional({ description: 'Primary contact mobile number' })
   @IsString()
   @IsOptional()
+  @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid primary mobile format' })
   primaryMobile?: string;
 
   @ApiPropertyOptional({ description: 'Alternate mobile number' })
   @IsString()
   @IsOptional()
+  @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid alternate mobile format' })
   alternateMobile?: string;
 
   @ApiPropertyOptional({ description: 'Primary contact email' })
-  @IsString()
+  @IsEmail({}, { message: 'Invalid primary email format' })
   @IsOptional()
   primaryEmail?: string;
 
@@ -388,6 +397,7 @@ export class UpdateApplicantDto {
   @ApiPropertyOptional({ description: 'Pincode' })
   @IsString()
   @IsOptional()
+  @Matches(/^[a-zA-Z0-9\s-]{3,10}$/, { message: 'Invalid pincode format' })
   pincode?: string;
 
   // Previous Education Details

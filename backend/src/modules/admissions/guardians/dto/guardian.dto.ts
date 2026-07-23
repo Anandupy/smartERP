@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsBoolean,
   IsInt,
+  Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -28,11 +29,13 @@ export class CreateGuardianDto {
   @ApiProperty({ description: 'Primary mobile number' })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid primary mobile format' })
   mobilePrimary: string;
 
   @ApiPropertyOptional({ description: 'Secondary mobile number' })
   @IsString()
   @IsOptional()
+  @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid secondary mobile format' })
   mobileSecondary?: string;
 
   @ApiPropertyOptional({ description: 'Email address' })
@@ -50,9 +53,10 @@ export class CreateGuardianDto {
   @IsOptional()
   income?: number;
 
-  @ApiPropertyOptional({ description: 'Aadhaar number' })
+  @ApiPropertyOptional({ description: 'Aadhaar number (12 digits)' })
   @IsString()
   @IsOptional()
+  @Matches(/^\d{12}$/, { message: 'Aadhaar number must be exactly 12 digits' })
   aadhaarNo?: string;
 
   @ApiPropertyOptional({ description: 'Address line 1' })
@@ -83,6 +87,7 @@ export class CreateGuardianDto {
   @ApiPropertyOptional({ description: 'Pincode' })
   @IsString()
   @IsOptional()
+  @Matches(/^[a-zA-Z0-9\s-]{3,10}$/, { message: 'Invalid pincode format' })
   pincode?: string;
 }
 
@@ -105,11 +110,13 @@ export class UpdateGuardianDto {
   @ApiPropertyOptional({ description: 'Primary mobile number' })
   @IsString()
   @IsOptional()
+  @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid primary mobile format' })
   mobilePrimary?: string;
 
   @ApiPropertyOptional({ description: 'Secondary mobile number' })
   @IsString()
   @IsOptional()
+  @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid secondary mobile format' })
   mobileSecondary?: string;
 
   @ApiPropertyOptional({ description: 'Email address' })
@@ -127,9 +134,10 @@ export class UpdateGuardianDto {
   @IsOptional()
   income?: number;
 
-  @ApiPropertyOptional({ description: 'Aadhaar number' })
+  @ApiPropertyOptional({ description: 'Aadhaar number (12 digits)' })
   @IsString()
   @IsOptional()
+  @Matches(/^\d{12}$/, { message: 'Aadhaar number must be exactly 12 digits' })
   aadhaarNo?: string;
 
   @ApiPropertyOptional({ description: 'Address line 1' })
@@ -160,6 +168,7 @@ export class UpdateGuardianDto {
   @ApiPropertyOptional({ description: 'Pincode' })
   @IsString()
   @IsOptional()
+  @Matches(/^[a-zA-Z0-9\s-]{3,10}$/, { message: 'Invalid pincode format' })
   pincode?: string;
 }
 
