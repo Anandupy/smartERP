@@ -4,11 +4,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { AdmissionWorkflowTransitionedEvent } from '@/common/events';
 import { TransitionDto, WorkflowState } from './dto/workflow.dto';
 
 @Injectable()
 export class WorkflowService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventBus: EventBus,
+  ) {}
 
   private readonly VALID_TRANSITIONS: Record<WorkflowState, WorkflowState[]> = {
     [WorkflowState.DRAFT]: [WorkflowState.SUBMITTED, WorkflowState.CANCELLED],
@@ -51,7 +56,8 @@ export class WorkflowService {
     dto: TransitionDto,
     userId?: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    let oldStatus: string = '';
+    const result = await this.prisma.$transaction(async (tx) => {
       // 1. Fetch current applicant
       const applicant = await tx.applicant.findUnique({
         where: { id: applicantId },
@@ -62,6 +68,7 @@ export class WorkflowService {
       }
 
       const currentStatus = applicant.admissionStatus as WorkflowState;
+      oldStatus = currentStatus;
       const targetStatus = dto.newStatus;
 
       // 2. Validate transition
@@ -115,6 +122,17 @@ export class WorkflowService {
 
       return updatedApplicant;
     });
+
+    await this.eventBus.publish(
+      new AdmissionWorkflowTransitionedEvent({
+        applicantId,
+        oldStatus,
+        newStatus: dto.newStatus,
+        actionType: dto.actionType || 'STATUS_CHANGE',
+      }),
+    );
+
+    return result;
   }
 
   async getHistory(applicantId: string) {
