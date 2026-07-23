@@ -1,5 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import {
+  GuardianCreatedEvent,
+  GuardianUpdatedEvent,
+  GuardianMappedEvent,
+  GuardianUnmappedEvent,
+} from '@/common/events';
 import {
   CreateGuardianDto,
   UpdateGuardianDto,
@@ -8,16 +15,30 @@ import {
 
 @Injectable()
 export class GuardiansService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventBus: EventBus,
+  ) {}
 
   async create(dto: CreateGuardianDto, orgId: string, branchId: string) {
-    return this.prisma.guardian.create({
+    const guardian = await this.prisma.guardian.create({
       data: {
         ...dto,
         organizationId: orgId,
         branchId,
       },
     });
+
+    await this.eventBus.publish(
+      new GuardianCreatedEvent({
+        guardianId: guardian.id,
+        firstName: guardian.firstName,
+        lastName: guardian.lastName,
+        mobilePrimary: guardian.mobilePrimary,
+      }),
+    );
+
+    return guardian;
   }
 
   async findOne(id: string) {
@@ -32,10 +53,18 @@ export class GuardiansService {
 
   async update(id: string, dto: UpdateGuardianDto) {
     await this.findOne(id);
-    return this.prisma.guardian.update({
+    const updated = await this.prisma.guardian.update({
       where: { id },
       data: dto,
     });
+
+    await this.eventBus.publish(
+      new GuardianUpdatedEvent({
+        guardianId: updated.id,
+      }),
+    );
+
+    return updated;
   }
 
   async search(searchTerm: string, branchId: string) {
@@ -87,7 +116,7 @@ export class GuardiansService {
     }
 
     // 5. Create or update mapping
-    return this.prisma.applicantGuardianMapping.upsert({
+    const mapping = await this.prisma.applicantGuardianMapping.upsert({
       where: {
         applicantId_guardianId: {
           applicantId,
@@ -113,6 +142,17 @@ export class GuardiansService {
         priority: dto.priority || 1,
       },
     });
+
+    await this.eventBus.publish(
+      new GuardianMappedEvent({
+        applicantId: mapping.applicantId,
+        guardianId: mapping.guardianId,
+        relationTypeId: mapping.relationTypeId,
+        isPrimary: mapping.isPrimary,
+      }),
+    );
+
+    return mapping;
   }
 
   async getMappedGuardians(applicantId: string) {
@@ -137,10 +177,19 @@ export class GuardiansService {
       throw new NotFoundException('Guardian mapping not found');
     }
 
-    return this.prisma.applicantGuardianMapping.delete({
+    const deletedMapping = await this.prisma.applicantGuardianMapping.delete({
       where: {
         applicantId_guardianId: { applicantId, guardianId },
       },
     });
+
+    await this.eventBus.publish(
+      new GuardianUnmappedEvent({
+        applicantId: deletedMapping.applicantId,
+        guardianId: deletedMapping.guardianId,
+      }),
+    );
+
+    return deletedMapping;
   }
 }
