@@ -4,11 +4,16 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { NumberingConfigCreatedEvent } from '@/common/events';
 import { CreateNumberSequenceConfigDto } from './dto/numbering.dto';
 
 @Injectable()
 export class NumberingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventBus: EventBus,
+  ) {}
 
   async createConfig(
     dto: CreateNumberSequenceConfigDto,
@@ -30,13 +35,23 @@ export class NumberingService {
       );
     }
 
-    return this.prisma.numberSequenceConfig.create({
+    const config = await this.prisma.numberSequenceConfig.create({
       data: {
         ...dto,
         organizationId: orgId,
         branchId,
       },
     });
+
+    await this.eventBus.publish(
+      new NumberingConfigCreatedEvent({
+        configId: config.id,
+        purpose: config.purpose,
+        format: config.format,
+      }),
+    );
+
+    return config;
   }
 
   async getConfigs(branchId: string) {

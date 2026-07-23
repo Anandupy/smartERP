@@ -4,11 +4,16 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { EnrollmentCompletedEvent } from '@/common/events';
 import { CreateEnrollmentDto } from './dto/enrollment.dto';
 
 @Injectable()
 export class EnrollmentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventBus: EventBus,
+  ) {}
 
   async createEnrollment(
     applicantId: string,
@@ -57,7 +62,7 @@ export class EnrollmentService {
     }
 
     // 5. Create enrollment
-    return this.prisma.enrollment.create({
+    const enrollment = await this.prisma.enrollment.create({
       data: {
         organizationId: orgId,
         branchId,
@@ -73,6 +78,19 @@ export class EnrollmentService {
         academicUnit: true,
       },
     });
+
+    await this.eventBus.publish(
+      new EnrollmentCompletedEvent({
+        applicantId: enrollment.applicantId,
+        programId: enrollment.programId,
+        academicUnitId: enrollment.academicUnitId,
+        rollNumber: enrollment.rollNumber || undefined,
+      }, {
+        action: 'CREATE',
+      }),
+    );
+
+    return enrollment;
   }
 
   async getEnrollment(applicantId: string) {
