@@ -1,0 +1,30 @@
+model OtpToken {
+  id                String     @id @default(uuid(7))
+  organizationId    String?
+  branchId          String?
+
+  identifier        String     // email, mobile, or userId
+  otpHash           String     // SHA-256 / hashed OTP
+  purpose           OtpPurpose
+
+  attempts          Int        @default(0)
+  maxAttempts       Int        @default(5)
+
+  expiresAt         DateTime
+  resendAvailableAt DateTime?
+
+  isUsed            Boolean    @default(false)
+  isRevoked         Boolean    @default(false)
+  usedAt            DateTime?
+  revokedAt         DateTime?
+
+  metadata          Json?
+
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([identifier, purpose, isUsed, isRevoked])
+  @@index([expiresAt])
+  @@index([organizationId])
+  @@index([branchId])
+}

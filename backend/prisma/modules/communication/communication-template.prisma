@@ -1,0 +1,37 @@
+model CommunicationTemplate {
+  id              String               @id @default(uuid(7))
+  organizationId  String?
+  branchId        String?
+
+  code            String
+  name            String
+  description     String?
+
+  channel         CommunicationChannel
+  category        NotificationCategory
+
+  subject         String?
+  bodyHtml        String?
+  bodyText        String?
+
+  variables       Json?                // Array of string variable names or variable schema objects
+  language        String               @default("en")
+  version         Int                  @default(1)
+  status          TemplateStatus       @default(DRAFT)
+
+  isDefault       Boolean              @default(false)
+  metadata        Json?
+
+  createdBy       String?
+  updatedBy       String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@unique([organizationId, branchId, code, channel, language, version])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([code])
+  @@index([channel])
+  @@index([category])
+  @@index([status])
+}

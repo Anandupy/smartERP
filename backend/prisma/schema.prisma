@@ -714,6 +714,317 @@ model User {
 }
 
 
+// --- FROM: modules/communication/communication-enums.prisma ---
+
+enum CommunicationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+  IN_APP
+}
+
+enum NotificationCategory {
+  AUTHENTICATION
+  ACADEMIC
+  ADMISSIONS
+  FEES
+  ANNOUNCEMENT
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum OtpPurpose {
+  LOGIN
+  PASSWORD_RESET
+  EMAIL_VERIFY
+  PHONE_VERIFY
+  MFA
+  PAYMENT
+  ADMISSION
+}
+
+enum DeliveryStatus {
+  PENDING
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  BOUNCED
+  RETRIED
+}
+
+enum TemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ProviderType {
+  SMTP
+  AWS_SES
+  RESEND
+  MAILGUN
+  POSTMARK
+  TWILIO
+  MSG91
+  META_WHATSAPP
+  FIREBASE_FCM
+  CUSTOM
+}
+
+
+// --- FROM: modules/communication/communication-setting.prisma ---
+
+model CommunicationSetting {
+  id                    String        @id @default(uuid(7))
+  organizationId        String?
+  branchId              String?
+
+  emailEnabled          Boolean       @default(true)
+  smsEnabled            Boolean       @default(true)
+  whatsappEnabled       Boolean       @default(true)
+  pushEnabled           Boolean       @default(true)
+  otpEnabled            Boolean       @default(true)
+  trackingEnabled       Boolean       @default(true)
+  analyticsEnabled      Boolean       @default(true)
+  retryEnabled          Boolean       @default(true)
+
+  defaultEmailProvider  ProviderType  @default(SMTP)
+  defaultSmsProvider    ProviderType  @default(CUSTOM)
+  defaultWhatsappProvider ProviderType @default(CUSTOM)
+  defaultPushProvider   ProviderType  @default(CUSTOM)
+
+  createdBy             String?
+  updatedBy             String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@unique([organizationId, branchId])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+
+// --- FROM: modules/communication/communication-template.prisma ---
+
+model CommunicationTemplate {
+  id              String               @id @default(uuid(7))
+  organizationId  String?
+  branchId        String?
+
+  code            String
+  name            String
+  description     String?
+
+  channel         CommunicationChannel
+  category        NotificationCategory
+
+  subject         String?
+  bodyHtml        String?
+  bodyText        String?
+
+  variables       Json?                // Array of string variable names or variable schema objects
+  language        String               @default("en")
+  version         Int                  @default(1)
+  status          TemplateStatus       @default(DRAFT)
+
+  isDefault       Boolean              @default(false)
+  metadata        Json?
+
+  createdBy       String?
+  updatedBy       String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@unique([organizationId, branchId, code, channel, language, version])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([code])
+  @@index([channel])
+  @@index([category])
+  @@index([status])
+}
+
+
+// --- FROM: modules/communication/delivery-log.prisma ---
+
+model DeliveryLog {
+  id              String               @id @default(uuid(7))
+  organizationId  String?
+  branchId        String?
+
+  channel         CommunicationChannel
+  provider        ProviderType
+  recipient       String
+  sender          String?
+
+  subject         String?
+  templateId      String?
+  templateVersion Int?
+
+  status          DeliveryStatus       @default(PENDING)
+
+  latencyMs       Int?
+  retryCount      Int                  @default(0)
+
+  errorCode       String?
+  errorMessage    String?
+
+  openedAt        DateTime?
+  clickedAt       DateTime?
+  deliveredAt     DateTime?
+  sentAt          DateTime?
+
+  metadata        Json?
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([recipient])
+  @@index([channel])
+  @@index([status])
+  @@index([provider])
+  @@index([templateId])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([createdAt])
+}
+
+
+// --- FROM: modules/communication/in-app-notification.prisma ---
+
+model InAppNotification {
+  id              String               @id @default(uuid(7))
+  organizationId  String?
+  branchId        String?
+  userId          String
+
+  title           String
+  content         String
+  category        NotificationCategory @default(SYSTEM)
+  priority        NotificationPriority @default(NORMAL)
+  status          NotificationStatus   @default(UNREAD)
+
+  actionUrl       String?
+  metadata        Json?
+  expiresAt       DateTime?
+  isPinned        Boolean              @default(false)
+
+  readAt          DateTime?
+  archivedAt      DateTime?
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, category])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([createdAt])
+}
+
+
+// --- FROM: modules/communication/notification-preference.prisma ---
+
+model NotificationPreference {
+  id              String               @id @default(uuid(7))
+  userId          String
+  category        NotificationCategory
+
+  emailEnabled    Boolean              @default(true)
+  smsEnabled      Boolean              @default(true)
+  whatsappEnabled Boolean              @default(true)
+  pushEnabled     Boolean              @default(true)
+  inAppEnabled    Boolean              @default(true)
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@unique([userId, category])
+  @@index([userId])
+}
+
+
+// --- FROM: modules/communication/otp-token.prisma ---
+
+model OtpToken {
+  id                String     @id @default(uuid(7))
+  organizationId    String?
+  branchId          String?
+
+  identifier        String     // email, mobile, or userId
+  otpHash           String     // SHA-256 / hashed OTP
+  purpose           OtpPurpose
+
+  attempts          Int        @default(0)
+  maxAttempts       Int        @default(5)
+
+  expiresAt         DateTime
+  resendAvailableAt DateTime?
+
+  isUsed            Boolean    @default(false)
+  isRevoked         Boolean    @default(false)
+  usedAt            DateTime?
+  revokedAt         DateTime?
+
+  metadata          Json?
+
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([identifier, purpose, isUsed, isRevoked])
+  @@index([expiresAt])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+
+// --- FROM: modules/communication/provider-config.prisma ---
+
+model ProviderConfig {
+  id              String       @id @default(uuid(7))
+  organizationId  String?
+  branchId        String?
+
+  provider        ProviderType
+  channel         CommunicationChannel
+  name            String
+
+  isPrimary       Boolean      @default(false)
+  isActive        Boolean      @default(true)
+
+  credentials     Json         // Encrypted / masked provider configuration (host, port, auth, apiKey, senderId, etc.)
+  settings        Json?        // Additional provider-specific settings
+
+  createdBy       String?
+  updatedBy       String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, branchId, provider, channel, name])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([provider])
+  @@index([channel])
+}
+
+
 // --- FROM: modules/organization/affiliation.enums.prisma ---
 
 enum AffiliationType {

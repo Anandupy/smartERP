@@ -1,0 +1,41 @@
+model DeliveryLog {
+  id              String               @id @default(uuid(7))
+  organizationId  String?
+  branchId        String?
+
+  channel         CommunicationChannel
+  provider        ProviderType
+  recipient       String
+  sender          String?
+
+  subject         String?
+  templateId      String?
+  templateVersion Int?
+
+  status          DeliveryStatus       @default(PENDING)
+
+  latencyMs       Int?
+  retryCount      Int                  @default(0)
+
+  errorCode       String?
+  errorMessage    String?
+
+  openedAt        DateTime?
+  clickedAt       DateTime?
+  deliveredAt     DateTime?
+  sentAt          DateTime?
+
+  metadata        Json?
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([recipient])
+  @@index([channel])
+  @@index([status])
+  @@index([provider])
+  @@index([templateId])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([createdAt])
+}

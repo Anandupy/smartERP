@@ -1,0 +1,70 @@
+enum CommunicationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+  IN_APP
+}
+
+enum NotificationCategory {
+  AUTHENTICATION
+  ACADEMIC
+  ADMISSIONS
+  FEES
+  ANNOUNCEMENT
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum OtpPurpose {
+  LOGIN
+  PASSWORD_RESET
+  EMAIL_VERIFY
+  PHONE_VERIFY
+  MFA
+  PAYMENT
+  ADMISSION
+}
+
+enum DeliveryStatus {
+  PENDING
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  BOUNCED
+  RETRIED
+}
+
+enum TemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ProviderType {
+  SMTP
+  AWS_SES
+  RESEND
+  MAILGUN
+  POSTMARK
+  TWILIO
+  MSG91
+  META_WHATSAPP
+  FIREBASE_FCM
+  CUSTOM
+}

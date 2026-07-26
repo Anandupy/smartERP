@@ -1,0 +1,26 @@
+model ProviderConfig {
+  id              String       @id @default(uuid(7))
+  organizationId  String?
+  branchId        String?
+
+  provider        ProviderType
+  channel         CommunicationChannel
+  name            String
+
+  isPrimary       Boolean      @default(false)
+  isActive        Boolean      @default(true)
+
+  credentials     Json         // Encrypted / masked provider configuration (host, port, auth, apiKey, senderId, etc.)
+  settings        Json?        // Additional provider-specific settings
+
+  createdBy       String?
+  updatedBy       String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, branchId, provider, channel, name])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([provider])
+  @@index([channel])
+}

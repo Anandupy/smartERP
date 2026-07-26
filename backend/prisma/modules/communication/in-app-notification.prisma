@@ -1,0 +1,30 @@
+model InAppNotification {
+  id              String               @id @default(uuid(7))
+  organizationId  String?
+  branchId        String?
+  userId          String
+
+  title           String
+  content         String
+  category        NotificationCategory @default(SYSTEM)
+  priority        NotificationPriority @default(NORMAL)
+  status          NotificationStatus   @default(UNREAD)
+
+  actionUrl       String?
+  metadata        Json?
+  expiresAt       DateTime?
+  isPinned        Boolean              @default(false)
+
+  readAt          DateTime?
+  archivedAt      DateTime?
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, category])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([createdAt])
+}

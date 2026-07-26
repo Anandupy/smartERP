@@ -1,0 +1,28 @@
+model CommunicationSetting {
+  id                    String        @id @default(uuid(7))
+  organizationId        String?
+  branchId              String?
+
+  emailEnabled          Boolean       @default(true)
+  smsEnabled            Boolean       @default(true)
+  whatsappEnabled       Boolean       @default(true)
+  pushEnabled           Boolean       @default(true)
+  otpEnabled            Boolean       @default(true)
+  trackingEnabled       Boolean       @default(true)
+  analyticsEnabled      Boolean       @default(true)
+  retryEnabled          Boolean       @default(true)
+
+  defaultEmailProvider  ProviderType  @default(SMTP)
+  defaultSmsProvider    ProviderType  @default(CUSTOM)
+  defaultWhatsappProvider ProviderType @default(CUSTOM)
+  defaultPushProvider   ProviderType  @default(CUSTOM)
+
+  createdBy             String?
+  updatedBy             String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@unique([organizationId, branchId])
+  @@index([organizationId])
+  @@index([branchId])
+}
