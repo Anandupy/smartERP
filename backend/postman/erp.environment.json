@@ -53,6 +53,16 @@
       "enabled": true
     },
     {
+      "key": "templateId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "enabled": true
+    },
+    {
       "key": "parentId",
       "value": "",
       "enabled": true
@@ -131,9 +141,14 @@
       "key": "academicUnitId",
       "value": "",
       "enabled": true
+    },
+    {
+      "key": "scopeId",
+      "value": "",
+      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",
-  "_postman_exported_at": "2026-07-23T13:59:33.920Z",
+  "_postman_exported_at": "2026-07-26T14:34:24.603Z",
   "_postman_exported_using": "CampusFlow ERP Generator v2"
 }
