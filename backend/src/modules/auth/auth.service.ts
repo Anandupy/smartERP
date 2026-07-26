@@ -13,6 +13,7 @@ import { UserService } from '@/modules/user/user.service';
 import { PasswordService } from '@/common/services/password.service';
 import { LoginDto } from './dto/login.dto';
 import { v7 as uuidv7 } from 'uuid';
+import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly passwordService: PasswordService,
     private readonly configService: ConfigService,
     private readonly eventBus: EventBus,
+    private readonly maintenanceService: MaintenanceService,
   ) {}
 
   async login(
@@ -54,6 +56,18 @@ export class AuthService {
       await this.handleFailedLogin(user);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    // Verify maintenance status for this user
+    await this.maintenanceService.checkMaintenance(
+      {
+        userId: user.id,
+        role: user.role,
+        organizationId: user.organizationId,
+        branchId: user.branchId,
+      },
+      'POST',
+      '/auth/login',
+    );
 
     // Reset failed attempts on success
     await this.prisma.user.update({
