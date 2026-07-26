@@ -23,6 +23,8 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { BranchGuard } from '@/common/guards/branch.guard';
 import { AcademicYearGuard } from '@/common/guards/academic-year.guard';
+import { MaintenanceModule } from '@/modules/maintenance/maintenance.module';
+import { MaintenanceGuard } from '@/common/guards/maintenance.guard';
 
 @Module({
   imports: [
@@ -45,6 +47,7 @@ import { AcademicYearGuard } from '@/common/guards/academic-year.guard';
     ProgramModule,
     AcademicUnitModule,
     AdmissionsModule,
+    MaintenanceModule,
   ],
   controllers: [],
   providers: [
@@ -59,6 +62,10 @@ import { AcademicYearGuard } from '@/common/guards/academic-year.guard';
     {
       provide: APP_GUARD,
       useClass: BranchGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: MaintenanceGuard,
     },
     {
       provide: APP_GUARD,
