@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { UnauthorizedException } from '@nestjs/common';
 import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
+import { OtpService } from '@/modules/communication/otp/otp.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -52,6 +53,7 @@ describe('AuthService', () => {
         { provide: ConfigService, useValue: { get: () => 'secret' } },
         { provide: EventBus, useValue: mockEventBus },
         { provide: MaintenanceService, useValue: mockMaintenanceService },
+        { provide: OtpService, useValue: {} },
       ],
     }).compile();
 
