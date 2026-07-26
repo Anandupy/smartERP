@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { LoggerService } from '@/common/logger/logger.service';
 import { AuthenticatedRequest } from '@/common/logger/request-context.middleware';
 import { PrismaErrorTranslator } from './prisma-error-translator';
+import { MaintenanceException } from '@/common/filters/maintenance.exception';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -72,6 +73,28 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message = errMessage;
         code = 'APPLICATION_ERROR';
       }
+    }
+
+    if (exception instanceof MaintenanceException) {
+      status = exception.getStatus();
+      code = 'MAINTENANCE_ACTIVE';
+      message = exception.message;
+      const maintenanceData = exception.maintenanceData;
+
+      this.logger.warn(
+        `Maintenance block [${method} ${url}]: Scope ${maintenanceData.scopeType} (${maintenanceData.scopeId || 'Global'}) is active`,
+        'GlobalExceptionFilter',
+      );
+
+      response.status(status).json({
+        success: false,
+        code,
+        message,
+        requestId,
+        timestamp: new Date().toISOString(),
+        data: maintenanceData,
+      });
+      return;
     }
 
     // Log the error using Pino LoggerService (with stack trace and details, invisible to the client)
