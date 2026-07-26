@@ -10,7 +10,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { OtpPurpose, OtpToken } from '@/generated/client';
 import { GenerateOtpDto } from './dto/generate-otp.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { VerifyCommunicationOtpDto } from './dto/verify-communication-otp.dto';
 
 export interface GenerateOtpResponse {
   rawOtp: string; // Returned ONLY to the caller service (or for messaging dispatch), NEVER stored raw
@@ -103,7 +103,7 @@ export class OtpService {
   }
 
   async verifyOtp(
-    dto: VerifyOtpDto,
+    dto: VerifyCommunicationOtpDto,
   ): Promise<{ success: boolean; message: string }> {
     const hash = this.hashOtp(dto.otp);
 

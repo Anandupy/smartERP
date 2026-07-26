@@ -14,7 +14,7 @@ import {
 } from '@nestjs/swagger';
 import { OtpService } from './otp.service';
 import { GenerateOtpDto } from './dto/generate-otp.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { VerifyCommunicationOtpDto } from './dto/verify-communication-otp.dto';
 
 @ApiTags('Communication OTP')
 @Controller('v1/communication/otp')
@@ -38,7 +38,7 @@ export class OtpController {
   @Post('verify')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify provided OTP token' })
-  async verify(@Body() dto: VerifyOtpDto) {
+  async verify(@Body() dto: VerifyCommunicationOtpDto) {
     return this.otpService.verifyOtp(dto);
   }
 }

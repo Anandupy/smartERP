@@ -18,7 +18,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { Public } from '@/common/decorators/public.decorator';
 
@@ -124,7 +124,7 @@ export class AuthController {
   @Public()
   @Post('verify-otp')
   @ApiOperation({ summary: 'Verify OTP code' })
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
+  async verifyOtp(@Body() dto: VerifyAuthOtpDto) {
     return this.authService.verifyOtp(dto.identifier, dto.purpose, dto.otp);
   }
 

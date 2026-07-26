@@ -2,7 +2,7 @@ import { IsNotEmpty, IsString, IsEnum, Length } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { OtpPurpose } from '@/generated/client';
 
-export class VerifyOtpDto {
+export class VerifyAuthOtpDto {
   @ApiProperty({
     description:
       'Email, Username, or Mobile Number associated with the account',

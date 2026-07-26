@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { OtpPurpose } from '@/generated/client';
 
-export class VerifyOtpDto {
+export class VerifyCommunicationOtpDto {
   @ApiProperty({
     description: 'Recipient identifier (email, phone, or userId)',
     example: 'user@example.com',
