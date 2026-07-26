@@ -138,3 +138,62 @@ const event = new BranchCreatedEvent(
 
 If `EventBus` is upgraded to `BullMQ` or `Kafka` in `EventsModule`, `AuditListener` continues to operate unchanged as a consumer. Audit remains completely decoupled from transport infrastructure.
 
+---
+
+## Audit Log Query API
+
+CampusFlow ERP provides an enterprise-grade, secure **Audit Log Query API** to allow authorized users to query, analyze, and display audit trails.
+
+### Authentication & RBAC Isolation
+
+All query endpoints are protected under `JwtAuthGuard` and `RolesGuard`. The API strictly prevents horizontal privilege escalation by enforcing search boundaries automatically derived from the active `RequestContext`/`user` context:
+
+| User Role | Access Boundaries | enforce Scoping |
+| :--- | :--- | :--- |
+| `SUPER_ADMIN` | Global Access | None. Can search across all organizations, branches, and users. |
+| `ORG_ADMIN` | Organization Boundary | Restricted strictly to logs matching their own `organizationId`. |
+| `BRANCH_ADMIN` | Branch Boundary | Restricted strictly to logs matching their own `branchId`. |
+| `STAFF` | Self-Access | Restricted strictly to logs matching their own `userId`. |
+| `STUDENT` | Self-Access | Restricted strictly to logs matching their own `userId`. |
+| `PARENT` | Self-Access | Restricted strictly to logs matching their own `userId`. |
+
+### Endpoints
+
+All endpoints are mounted under `GET /v1/audit-logs`.
+
+#### 1. Paginated Filter List
+`GET /v1/audit-logs`
+
+Allows querying paginated, filtered audit logs. To optimize performance and database payload sizes, the large JSON columns (`metadata` and `changes`) are excluded from the result list by default unless `includeDetails=true` is explicitly requested.
+
+* **Pagination Params**:
+  - `page` (number, default: `1`)
+  - `limit` (number, default: `50`, max: `100`)
+* **Sorting Params**:
+  - `sortBy` (enum: `timestamp`, `severity`, `module`, `executionTime`, default: `timestamp`)
+  - `sortOrder` (enum: `asc`, `desc`, default: `desc`)
+* **Enterprise Filters**:
+  - `userId`, `role`, `module`, `aggregateType`, `aggregateId`, `action`, `severity`, `status`, `organizationId`, `branchId`, `academicYearId`, `requestId`, `traceId`, `correlationId`, `httpMethod`, `route`
+  - `startDate`, `endDate` (ISO Date Strings)
+  - `minExecutionTime`, `maxExecutionTime` (number in ms)
+* **Keyword Search**:
+  - `search` (searches case-insensitively across `eventName`, `module`, `aggregateType`, `userEmail`, and `aggregateId`).
+* **Details Toggle**:
+  - `includeDetails` (boolean, default: `false`).
+
+#### 2. Detailed Summary API
+`GET /v1/audit-logs/summary`
+
+Returns total counts and distribution metrics (grouped by `module`, `action`, `severity`, and `status`) within the user's authorization boundary. This endpoint accepts the same filters as the paginated list.
+
+#### 3. Activity Timeline API
+`GET /v1/audit-logs/timeline`
+
+Returns daily log activity counts (within the specified or derived date ranges) to populate chronological analytics charts, plus the list of recent simplified chronological timeline events.
+
+#### 4. Detail Lookup By ID
+`GET /v1/audit-logs/:id`
+
+Retrieves the full detailed record of a specific audit log by its ID (including `metadata` and `changes` fields). It strictly validates the user's role boundary and returns `403 Forbidden` if a user attempts to access logs outside their permitted scope.
+
+
