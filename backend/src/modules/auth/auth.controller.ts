@@ -13,6 +13,13 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { SendOtpDto } from './dto/send-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Auth')
@@ -77,6 +84,55 @@ export class AuthController {
   async revokeAllSessions(@Req() req: any) {
     await this.authService.revokeAllSessions(req.user.id);
     return { message: 'All sessions revoked successfully' };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Request password reset link/OTP' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reset password using secure token' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
+  @Public()
+  @Post('verify-email')
+  @ApiOperation({ summary: 'Verify email address using OTP' })
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    return this.authService.verifyEmail(dto.email, dto.otp);
+  }
+
+  @Public()
+  @Post('resend-verification')
+  @ApiOperation({ summary: 'Resend email verification OTP' })
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.authService.resendVerification(dto.email);
+  }
+
+  @Public()
+  @Post('send-otp')
+  @ApiOperation({ summary: 'Generate and send OTP for specific purpose' })
+  async sendOtp(@Body() dto: SendOtpDto) {
+    return this.authService.sendOtp(dto.identifier, dto.purpose);
+  }
+
+  @Public()
+  @Post('verify-otp')
+  @ApiOperation({ summary: 'Verify OTP code' })
+  async verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtp(dto.identifier, dto.purpose, dto.otp);
+  }
+
+  @Public()
+  @Post('resend-otp')
+  @ApiOperation({ summary: 'Resend OTP' })
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto.identifier, dto.purpose);
   }
 
   private parseDevice(userAgent?: string): string {

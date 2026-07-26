@@ -8,6 +8,7 @@ import { UserModule } from '@/modules/user/user.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '@/infrastructure/database/prisma.module';
 import { SecurityModule } from '@/common/services/security.module';
+import { CommunicationModule } from '@/modules/communication/communication.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { SecurityModule } from '@/common/services/security.module';
     UserModule,
     PassportModule,
     SecurityModule,
+    CommunicationModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
