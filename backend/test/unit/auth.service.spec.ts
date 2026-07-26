@@ -7,6 +7,7 @@ import { PasswordService } from '@/common/services/password.service';
 import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { UnauthorizedException } from '@nestjs/common';
+import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -23,6 +24,10 @@ describe('AuthService', () => {
 
   const mockPasswordService = {
     compare: jest.fn(),
+  };
+
+  const mockMaintenanceService = {
+    checkMaintenance: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockPrisma = {
@@ -46,6 +51,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: { sign: () => 'token' } },
         { provide: ConfigService, useValue: { get: () => 'secret' } },
         { provide: EventBus, useValue: mockEventBus },
+        { provide: MaintenanceService, useValue: mockMaintenanceService },
       ],
     }).compile();
 

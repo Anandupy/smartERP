@@ -5,6 +5,7 @@ import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
+import { GlobalResponseInterceptor } from '@/interceptors/global-response.interceptor';
 
 describe('Branch Context Pipeline (e2e)', () => {
   jest.setTimeout(30000);
@@ -21,6 +22,7 @@ describe('Branch Context Pipeline (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+    app.useGlobalInterceptors(new GlobalResponseInterceptor());
     prisma = app.get(PrismaService);
     passwordService = app.get(PasswordService);
     await app.init();
@@ -40,7 +42,7 @@ describe('Branch Context Pipeline (e2e)', () => {
     });
 
     const loginResponse = await request(app.getHttpServer())
-      .post('/v1/auth/login')
+      .post('/auth/login')
       .send({ identifier: user.email, password });
 
     accessToken = loginResponse.body.data.accessToken;
@@ -81,7 +83,7 @@ describe('Branch Context Pipeline (e2e)', () => {
   describe('Header Validation Pipeline', () => {
     it('should fail with 400 when x-branch-id header is missing on @RequireBranch route', async () => {
       const res = await request(app.getHttpServer())
-        .get('/v1/programs')
+        .get('/programs')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(400);
@@ -90,7 +92,7 @@ describe('Branch Context Pipeline (e2e)', () => {
 
     it('should fail with 400 when x-branch-id is an invalid UUID', async () => {
       const res = await request(app.getHttpServer())
-        .get('/v1/programs')
+        .get('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-branch-id', 'invalid-branch-uuid');
 
@@ -101,7 +103,7 @@ describe('Branch Context Pipeline (e2e)', () => {
     it('should fail with 404 when branchId does not exist', async () => {
       const nonExistentUuid = '00000000-0000-7000-a000-000000000000';
       const res = await request(app.getHttpServer())
-        .get('/v1/programs')
+        .get('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-branch-id', nonExistentUuid);
 
@@ -111,7 +113,7 @@ describe('Branch Context Pipeline (e2e)', () => {
 
     it('should succeed with 200 when valid x-branch-id is provided', async () => {
       const res = await request(app.getHttpServer())
-        .get('/v1/programs')
+        .get('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-branch-id', branchId);
 

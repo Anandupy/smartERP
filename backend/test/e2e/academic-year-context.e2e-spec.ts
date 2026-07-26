@@ -5,6 +5,7 @@ import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
+import { GlobalResponseInterceptor } from '@/interceptors/global-response.interceptor';
 
 describe('Academic Year Context Pipeline (e2e)', () => {
   jest.setTimeout(30000);
@@ -24,6 +25,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+    app.useGlobalInterceptors(new GlobalResponseInterceptor());
     prisma = app.get(PrismaService);
     passwordService = app.get(PasswordService);
     await app.init();
@@ -43,7 +45,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
     });
 
     const loginResponse = await request(app.getHttpServer())
-      .post('/v1/auth/login')
+      .post('/auth/login')
       .send({ identifier: user.email, password });
 
     accessToken = loginResponse.body.data.accessToken;
@@ -126,7 +128,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
   describe('Header Validation & Isolation', () => {
     it('should fail with 400 when x-branch-id header is missing', async () => {
       const res = await request(app.getHttpServer())
-        .get('/v1/admissions/applicants')
+        .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(400);
@@ -135,7 +137,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
 
     it('should fail with 400 when x-branch-id is an invalid UUID', async () => {
       const res = await request(app.getHttpServer())
-        .get('/v1/admissions/applicants')
+        .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-branch-id', 'not-a-valid-uuid');
 
@@ -145,7 +147,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
 
     it('should fail with 400 when x-academic-year-id is an invalid UUID', async () => {
       const res = await request(app.getHttpServer())
-        .get('/v1/admissions/applicants')
+        .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-branch-id', branchId1)
         .set('x-academic-year-id', 'invalid-ay-uuid');
@@ -156,7 +158,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
 
     it('should fail with 400 when academicYearId belongs to a different branch', async () => {
       const res = await request(app.getHttpServer())
-        .get('/v1/admissions/applicants')
+        .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-branch-id', branchId1)
         .set('x-academic-year-id', academicYearId2); // Belongs to Branch Beta!
@@ -167,7 +169,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
 
     it('should succeed with 200 when valid branchId and academicYearId are provided', async () => {
       const res = await request(app.getHttpServer())
-        .get('/v1/admissions/applicants')
+        .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-branch-id', branchId1)
         .set('x-academic-year-id', academicYearId1);

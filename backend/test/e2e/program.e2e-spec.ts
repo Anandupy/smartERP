@@ -85,6 +85,7 @@ describe('ProgramController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId)
         .send({
           branchId,
           name: 'Primary',
@@ -100,6 +101,7 @@ describe('ProgramController (e2e)', () => {
       await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId)
         .send({
           branchId,
           name: 'Secondary',
@@ -109,6 +111,7 @@ describe('ProgramController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId)
         .send({
           branchId,
           name: 'Secondary',
@@ -140,7 +143,8 @@ describe('ProgramController (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get(`/programs/tree?branchId=${branchId}`)
-        .set('Authorization', `Bearer ${accessToken}`);
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId);
 
       expect(response.status).toBe(200);
       const tree = response.body.data;

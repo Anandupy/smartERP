@@ -86,6 +86,7 @@ describe('AcademicYearController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/academic-years')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId)
         .send({
           name: '2025-26',
           startDate: '2025-04-01T00:00:00.000Z',
@@ -101,7 +102,8 @@ describe('AcademicYearController (e2e)', () => {
     it('should fetch all academic years for branch', async () => {
       const response = await request(app.getHttpServer())
         .get(`/academic-years?branchId=${branchId}`)
-        .set('Authorization', `Bearer ${accessToken}`);
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId);
 
       expect(response.status).toBe(200);
       expect(response.body.data).toHaveLength(1);
@@ -110,7 +112,8 @@ describe('AcademicYearController (e2e)', () => {
     it('should fetch current academic year', async () => {
       const response = await request(app.getHttpServer())
         .get(`/academic-years/current?branchId=${branchId}`)
-        .set('Authorization', `Bearer ${accessToken}`);
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId);
 
       expect(response.status).toBe(200);
       expect(response.body.data.id).toBe(yearId);
@@ -120,11 +123,13 @@ describe('AcademicYearController (e2e)', () => {
       await request(app.getHttpServer())
         .patch(`/academic-years/${yearId}/lock`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId)
         .send();
 
       const response = await request(app.getHttpServer())
         .patch(`/academic-years/${yearId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId)
         .send({ name: 'Updated Name' });
 
       expect(response.status).toBe(403);
@@ -135,6 +140,7 @@ describe('AcademicYearController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/academic-years')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-branch-id', branchId)
         .send({
           name: '2025-26 Overlap',
           startDate: '2025-06-01T00:00:00.000Z',
