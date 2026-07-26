@@ -2,6 +2,94 @@ import { PrismaClient } from '../../prisma/generated';
 import * as bcrypt from 'bcrypt';
 
 export async function seedRealisticData(prisma: PrismaClient) {
+  // 0. Seed Communication Templates
+  const templates = [
+    {
+      code: 'PASSWORD_RESET',
+      name: 'Password Reset Template',
+      description: 'Template for requesting password reset via link or OTP',
+      channel: 'EMAIL',
+      category: 'AUTHENTICATION',
+      subject: 'Reset Your Password',
+      bodyHtml: '<h2>Hello {{userName}},</h2><p>You requested a password reset. Please click the link below to reset your password:</p><p><a href="{{resetLink}}">Reset Password</a></p><p>Or use OTP: <strong>{{otp}}</strong></p><p>This link/OTP will expire in {{minutes}} minutes.</p>',
+      bodyText: 'Hello {{userName}},\n\nYou requested a password reset. Please reset your password by opening the link:\n{{resetLink}}\n\nOr use OTP: {{otp}}\n\nThis will expire in {{minutes}} minutes.',
+      variables: ['userName', 'resetLink', 'otp', 'minutes'],
+      language: 'en',
+      version: 1,
+      status: 'PUBLISHED',
+    },
+    {
+      code: 'PASSWORD_CHANGED',
+      name: 'Password Changed Confirmation',
+      description: 'Confirmation sent after successful password update',
+      channel: 'EMAIL',
+      category: 'AUTHENTICATION',
+      subject: 'Security Alert: Password Changed',
+      bodyHtml: '<h2>Hello {{userName}},</h2><p>Your password was successfully changed. If you did not make this change, please contact support immediately.</p>',
+      bodyText: 'Hello {{userName}},\n\nYour password was successfully changed. If you did not make this change, please contact support immediately.',
+      variables: ['userName'],
+      language: 'en',
+      version: 1,
+      status: 'PUBLISHED',
+    },
+    {
+      code: 'EMAIL_VERIFICATION',
+      name: 'Email Verification OTP',
+      description: 'Template for verifying user email address',
+      channel: 'EMAIL',
+      category: 'AUTHENTICATION',
+      subject: 'Verify Your Email Address',
+      bodyHtml: '<h2>Hello,</h2><p>Please verify your email address by entering the following OTP: <strong>{{otp}}</strong></p>',
+      bodyText: 'Hello,\n\nPlease verify your email address by entering the following OTP: {{otp}}',
+      variables: ['otp'],
+      language: 'en',
+      version: 1,
+      status: 'PUBLISHED',
+    },
+    {
+      code: 'OTP_VERIFICATION',
+      name: 'OTP Verification Template',
+      description: 'General template for OTP verification',
+      channel: 'EMAIL',
+      category: 'AUTHENTICATION',
+      subject: 'Your One-Time Password (OTP)',
+      bodyHtml: '<h2>Hello,</h2><p>Your OTP for verification is: <strong>{{otp}}</strong></p>',
+      bodyText: 'Hello,\n\nYour OTP for verification is: {{otp}}',
+      variables: ['otp'],
+      language: 'en',
+      version: 1,
+      status: 'PUBLISHED',
+    },
+  ];
+
+  for (const t of templates) {
+    try {
+      const existing = await prisma.communicationTemplate.findFirst({
+        where: { code: t.code, channel: t.channel as any },
+      });
+      if (!existing) {
+        await prisma.communicationTemplate.create({
+          data: {
+            code: t.code,
+            name: t.name,
+            description: t.description,
+            channel: t.channel as any,
+            category: t.category as any,
+            subject: t.subject,
+            bodyHtml: t.bodyHtml,
+            bodyText: t.bodyText,
+            variables: t.variables,
+            language: t.language,
+            version: t.version,
+            status: t.status as any,
+          },
+        });
+      }
+    } catch (err) {
+      console.log(`[Test Seed] Template ${t.code} seeding skipped:`, err.message);
+    }
+  }
+
   try {
     // 1. Create Super Admin
     const passwordHash = await bcrypt.hash('Admin@123!', 10);
@@ -230,6 +318,7 @@ export async function seedRealisticData(prisma: PrismaClient) {
         branchId: horizonMumbai.id,
       },
     });
+
   } catch (error) {
     if (error.code === 'P2002') {
       console.log(

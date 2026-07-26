@@ -47,6 +47,13 @@ export class AuditListener implements OnModuleInit {
     'maintenance_rule.created',
     'maintenance_rule.updated',
     'maintenance_rule.deleted',
+    'communication.password_reset_requested',
+    'communication.password_changed',
+    'communication.email_verification_requested',
+    'auth.email_verified',
+    'communication.otp_resend_requested',
+    'communication.otp_verified',
+    'communication.otp_sent',
   ]);
 
   constructor(

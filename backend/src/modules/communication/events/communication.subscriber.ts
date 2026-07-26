@@ -1,6 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
-import { CommunicationChannel, DeliveryStatus, NotificationCategory, ProviderType } from '@/generated/client';
+import {
+  CommunicationChannel,
+  DeliveryStatus,
+  NotificationCategory,
+  ProviderType,
+} from '@/generated/client';
 import { TemplateService } from '../templates/template.service';
 import { NotificationPreferenceService } from '../preferences/notification-preference.service';
 import { CommunicationConfigService } from '../config/communication-config.service';
@@ -11,7 +16,9 @@ import {
   PasswordResetRequestedEvent,
   PasswordChangedEvent,
   EmailVerificationRequestedEvent,
-} from './communication.events';
+  OtpResendRequestedEvent,
+  OtpSentEvent,
+} from '@/common/events';
 
 @Injectable()
 export class CommunicationSubscriber implements OnModuleInit {
@@ -43,17 +50,41 @@ export class CommunicationSubscriber implements OnModuleInit {
       this.handleEmailVerificationRequested.bind(this),
     );
 
-    // Generic system domain event integrations
-    this.eventBus.subscribe('user.logged_in', this.handleUserLoggedIn.bind(this));
-    this.eventBus.subscribe('applicant.created', this.handleApplicantCreated.bind(this));
-    this.eventBus.subscribe('admission.transitioned', this.handleAdmissionTransitioned.bind(this));
+    this.eventBus.subscribe<OtpSentEvent>(
+      OtpSentEvent.EVENT_NAME,
+      this.handleOtpSent.bind(this),
+    );
 
-    this.logger.log('CommunicationSubscriber successfully subscribed to system domain events.');
+    this.eventBus.subscribe<OtpResendRequestedEvent>(
+      OtpResendRequestedEvent.EVENT_NAME,
+      this.handleOtpSent.bind(this),
+    );
+
+    // Generic system domain event integrations
+    this.eventBus.subscribe(
+      'user.logged_in',
+      this.handleUserLoggedIn.bind(this),
+    );
+    this.eventBus.subscribe(
+      'applicant.created',
+      this.handleApplicantCreated.bind(this),
+    );
+    this.eventBus.subscribe(
+      'admission.transitioned',
+      this.handleAdmissionTransitioned.bind(this),
+    );
+
+    this.logger.log(
+      'CommunicationSubscriber successfully subscribed to system domain events.',
+    );
   }
 
-  private async handlePasswordResetRequested(event: PasswordResetRequestedEvent) {
+  private async handlePasswordResetRequested(
+    event: PasswordResetRequestedEvent,
+  ) {
     try {
-      const { email, rawOtp, resetToken, userName, expiresInMinutes, userId } = event.payload;
+      const { email, rawOtp, resetToken, userName, expiresInMinutes, userId } =
+        event.payload;
 
       // 1. Verify User Preferences & Settings
       const isAllowed = userId
@@ -73,7 +104,9 @@ export class CommunicationSubscriber implements OnModuleInit {
       const variables = {
         userName: userName || 'User',
         otp: rawOtp || '',
-        resetLink: resetToken ? `https://app.campusflow.edu/reset-password?token=${resetToken}` : '',
+        resetLink: resetToken
+          ? `https://app.campusflow.edu/reset-password?token=${resetToken}`
+          : '',
         minutes: expiresInMinutes || 10,
         organizationName: 'CampusFlow ERP',
       };
@@ -86,7 +119,9 @@ export class CommunicationSubscriber implements OnModuleInit {
       const rendered = this.templateService.renderTemplate(template, variables);
 
       // 3. Dispatch Email Provider
-      const emailProvider = this.providerFactory.getEmailProvider(config.defaultEmailProvider);
+      const emailProvider = this.providerFactory.getEmailProvider(
+        config.defaultEmailProvider,
+      );
       const startTime = Date.now();
 
       const result = await emailProvider.sendEmail({
@@ -146,7 +181,9 @@ export class CommunicationSubscriber implements OnModuleInit {
       );
 
       const rendered = this.templateService.renderTemplate(template, variables);
-      const emailProvider = this.providerFactory.getEmailProvider(config.defaultEmailProvider);
+      const emailProvider = this.providerFactory.getEmailProvider(
+        config.defaultEmailProvider,
+      );
 
       const result = await emailProvider.sendEmail({
         to: email,
@@ -176,11 +213,15 @@ export class CommunicationSubscriber implements OnModuleInit {
         });
       }
     } catch (error: any) {
-      this.logger.error(`Error handling PasswordChangedEvent: ${error.message}`);
+      this.logger.error(
+        `Error handling PasswordChangedEvent: ${error.message}`,
+      );
     }
   }
 
-  private async handleEmailVerificationRequested(event: EmailVerificationRequestedEvent) {
+  private async handleEmailVerificationRequested(
+    event: EmailVerificationRequestedEvent,
+  ) {
     try {
       const { email, rawOtp, userId } = event.payload;
 
@@ -198,7 +239,9 @@ export class CommunicationSubscriber implements OnModuleInit {
       );
 
       const rendered = this.templateService.renderTemplate(template, variables);
-      const emailProvider = this.providerFactory.getEmailProvider(config.defaultEmailProvider);
+      const emailProvider = this.providerFactory.getEmailProvider(
+        config.defaultEmailProvider,
+      );
 
       const result = await emailProvider.sendEmail({
         to: email,
@@ -219,19 +262,86 @@ export class CommunicationSubscriber implements OnModuleInit {
         metadata: { eventId: event.eventId },
       });
     } catch (error: any) {
-      this.logger.error(`Error handling EmailVerificationRequestedEvent: ${error.message}`);
+      this.logger.error(
+        `Error handling EmailVerificationRequestedEvent: ${error.message}`,
+      );
+    }
+  }
+
+  private async handleOtpSent(event: OtpSentEvent | OtpResendRequestedEvent) {
+    try {
+      const { identifier, rawOtp, userId, purpose, email } = event.payload;
+      const targetEmail =
+        email || (identifier.includes('@') ? identifier : null);
+
+      if (!targetEmail) {
+        this.logger.warn(
+          `No target email address resolved for OTP delivery (Identifier: ${identifier}, Purpose: ${purpose})`,
+        );
+        return;
+      }
+
+      const config = await this.configService.getConfig();
+      if (!config.emailEnabled) return;
+
+      const variables = {
+        otp: rawOtp || '',
+        purpose: purpose || 'Verification',
+        organizationName: 'CampusFlow ERP',
+      };
+
+      const template = await this.templateService.resolveTemplate(
+        'OTP_VERIFICATION',
+        CommunicationChannel.EMAIL,
+      );
+
+      const rendered = this.templateService.renderTemplate(template, variables);
+      const emailProvider = this.providerFactory.getEmailProvider(
+        config.defaultEmailProvider,
+      );
+
+      const result = await emailProvider.sendEmail({
+        to: targetEmail,
+        subject: rendered.subject || 'One-Time Password (OTP) Verification',
+        bodyHtml: rendered.bodyHtml,
+        bodyText: rendered.bodyText,
+      });
+
+      await this.deliveryLogService.logDelivery({
+        channel: CommunicationChannel.EMAIL,
+        provider: result.provider,
+        recipient: targetEmail,
+        subject: rendered.subject,
+        templateId: template.id,
+        templateVersion: template.version,
+        status: result.success ? DeliveryStatus.SENT : DeliveryStatus.FAILED,
+        latencyMs: result.latencyMs,
+        errorCode: result.errorCode,
+        errorMessage: result.errorMessage,
+        metadata: { eventId: event.eventId },
+      });
+    } catch (error: any) {
+      this.logger.error(
+        `Error handling OTP event (${event.eventName}): ${error.message}`,
+      );
     }
   }
 
   private async handleUserLoggedIn(event: any) {
-    this.logger.debug(`[Communication Subscriber] Processing user.logged_in event for ${event?.payload?.userId}`);
+    this.logger.debug(
+      `[Communication Subscriber] Processing user.logged_in event for ${event?.payload?.userId}`,
+    );
   }
 
   private async handleApplicantCreated(event: any) {
-    this.logger.debug(`[Communication Subscriber] Processing applicant.created event for ${event?.payload?.applicantId}`);
+    this.logger.debug(
+      `[Communication Subscriber] Processing applicant.created event for ${event?.payload?.applicantId}`,
+    );
   }
 
   private async handleAdmissionTransitioned(event: any) {
-    this.logger.debug(`[Communication Subscriber] Processing admission.transitioned event for ${event?.payload?.applicantId}`);
+    this.logger.debug(
+      `[Communication Subscriber] Processing admission.transitioned event for ${event?.payload?.applicantId}`,
+    );
   }
 }
