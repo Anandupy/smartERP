@@ -16,10 +16,15 @@ model User {
   lastLoginAt          DateTime?
   createdBy            String?
   updatedBy            String?
+  isEmailVerified      Boolean  @default(false)
+  emailVerifiedAt      DateTime?
+  isPhoneVerified      Boolean  @default(false)
+  phoneVerifiedAt      DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
 
   @@index([organizationId])
   @@index([branchId])

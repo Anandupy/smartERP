@@ -642,6 +642,25 @@ model WorkflowHistory {
 }
 
 
+// --- FROM: modules/auth/password-reset-token.prisma ---
+
+model PasswordResetToken {
+  id          String   @id @default(uuid(7))
+  userId      String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  isConsumed  Boolean  @default(false)
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+
 // --- FROM: modules/auth/refresh-token.prisma ---
 
 model RefreshToken {
@@ -704,10 +723,15 @@ model User {
   lastLoginAt          DateTime?
   createdBy            String?
   updatedBy            String?
+  isEmailVerified      Boolean  @default(false)
+  emailVerifiedAt      DateTime?
+  isPhoneVerified      Boolean  @default(false)
+  phoneVerifiedAt      DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
 
   @@index([organizationId])
   @@index([branchId])
