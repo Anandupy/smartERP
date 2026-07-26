@@ -3,7 +3,10 @@ import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { OtpPurpose } from '@/generated/client';
 
 export class VerifyOtpDto {
-  @ApiProperty({ description: 'Recipient identifier (email, phone, or userId)', example: 'user@example.com' })
+  @ApiProperty({
+    description: 'Recipient identifier (email, phone, or userId)',
+    example: 'user@example.com',
+  })
   @IsString()
   @IsNotEmpty()
   identifier: string;
@@ -12,7 +15,10 @@ export class VerifyOtpDto {
   @IsEnum(OtpPurpose)
   purpose: OtpPurpose;
 
-  @ApiProperty({ description: 'Raw OTP value provided by client', example: '123456' })
+  @ApiProperty({
+    description: 'Raw OTP value provided by client',
+    example: '123456',
+  })
   @IsString()
   @IsNotEmpty()
   otp: string;

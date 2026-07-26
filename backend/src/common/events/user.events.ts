@@ -4,7 +4,12 @@ export { UserLoggedInEvent } from './examples/user-logged-in.event';
 
 export class UserCreatedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'user.created';
-  readonly payload: { userId: string; username: string; email: string; role: string };
+  readonly payload: {
+    userId: string;
+    username: string;
+    email: string;
+    role: string;
+  };
 
   constructor(
     payload: { userId: string; username: string; email: string; role: string },
@@ -42,10 +47,7 @@ export class UserDeletedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'user.deleted';
   readonly payload: { userId: string };
 
-  constructor(
-    payload: { userId: string },
-    metadata?: Record<string, any>,
-  ) {
+  constructor(payload: { userId: string }, metadata?: Record<string, any>) {
     super({
       eventName: UserDeletedEvent.EVENT_NAME,
       aggregateId: payload.userId,

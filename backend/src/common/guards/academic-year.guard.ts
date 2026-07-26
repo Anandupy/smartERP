@@ -116,9 +116,7 @@ export class AcademicYearGuard implements CanActivate {
       }
 
       if (!academicYear && !options.optional) {
-        throw new BadRequestException(
-          'x-academic-year-id header is required',
-        );
+        throw new BadRequestException('x-academic-year-id header is required');
       }
     }
 

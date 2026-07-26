@@ -8,7 +8,9 @@ export interface TranslatedError {
 }
 
 export class PrismaErrorTranslator {
-  static translate(error: Prisma.PrismaClientKnownRequestError): TranslatedError {
+  static translate(
+    error: Prisma.PrismaClientKnownRequestError,
+  ): TranslatedError {
     const code = error.code;
     const meta = error.meta || {};
 
@@ -22,24 +24,37 @@ export class PrismaErrorTranslator {
           message = 'Admission Form Number already exists.';
         } else if (targets.includes('applicationNo')) {
           message = 'Application Number already exists.';
-        } else if (targets.includes('primaryMobile') || targets.includes('mobilePrimary')) {
+        } else if (
+          targets.includes('primaryMobile') ||
+          targets.includes('mobilePrimary')
+        ) {
           message = 'A profile with this primary mobile number already exists.';
         } else if (targets.includes('aadhaarNo')) {
           message = 'A profile with this Aadhaar number already exists.';
         } else if (targets.includes('email')) {
           message = 'A profile with this email address already exists.';
         } else if (targets.includes('code')) {
-          message = 'A master record with this code already exists in this scope.';
+          message =
+            'A master record with this code already exists in this scope.';
         } else if (targets.includes('name')) {
-          message = 'A master record with this name already exists in this scope.';
-        } else if (targets.includes('applicantId_guardianId') || (targets.includes('applicantId') && targets.includes('guardianId'))) {
+          message =
+            'A master record with this name already exists in this scope.';
+        } else if (
+          targets.includes('applicantId_guardianId') ||
+          (targets.includes('applicantId') && targets.includes('guardianId'))
+        ) {
           message = 'This guardian is already mapped to the applicant.';
         } else if (targets.includes('applicantId')) {
           message = 'An enrollment record already exists for this applicant.';
-        } else if (targets.includes('branchId_purpose') || (targets.includes('branchId') && targets.includes('purpose'))) {
-          message = 'A number sequence configuration for this purpose already exists in this branch.';
+        } else if (
+          targets.includes('branchId_purpose') ||
+          (targets.includes('branchId') && targets.includes('purpose'))
+        ) {
+          message =
+            'A number sequence configuration for this purpose already exists in this branch.';
         } else if (targets.includes('configId_academicYearId')) {
-          message = 'A number sequence counter already exists for this config and academic year.';
+          message =
+            'A number sequence counter already exists for this config and academic year.';
         } else if (targets.length > 0) {
           message = `A record with duplicate values for field(s) (${targets.join(', ')}) already exists.`;
         }
@@ -106,7 +121,8 @@ export class PrismaErrorTranslator {
         const cause = (meta.cause as string) || '';
         let message = 'Record not found or already deleted.';
         if (cause.toLowerCase().includes('relation')) {
-          message = 'Unable to perform operation because a required relationship record was not found.';
+          message =
+            'Unable to perform operation because a required relationship record was not found.';
         }
 
         return {
@@ -120,7 +136,8 @@ export class PrismaErrorTranslator {
         // Violation of required relation
         return {
           status: HttpStatus.BAD_REQUEST,
-          message: 'The operation violates a required relationship constraint with another record.',
+          message:
+            'The operation violates a required relationship constraint with another record.',
           code: 'RELATION_VIOLATION',
         };
       }
@@ -129,7 +146,8 @@ export class PrismaErrorTranslator {
         // Query interpretation error
         return {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
-          message: 'Unable to process request due to relational database inconsistency.',
+          message:
+            'Unable to process request due to relational database inconsistency.',
           code: 'RELATION_INCONSISTENCY',
         };
       }
@@ -155,7 +173,8 @@ export class PrismaErrorTranslator {
       default:
         return {
           status: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'An unexpected database error occurred. Please contact administrator.',
+          message:
+            'An unexpected database error occurred. Please contact administrator.',
           code: `PRISMA_ERROR_${code}`,
         };
     }

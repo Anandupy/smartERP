@@ -41,13 +41,16 @@ describe('HandlebarsTemplateRenderer', () => {
     const result = renderer.render(template, variables);
 
     expect(result.subject).toBe('Reset Password for Bob');
-    expect(result.bodyHtml).toBe('<p>Click link: {{resetLink}} expires in {{minutes}} mins</p>');
+    expect(result.bodyHtml).toBe(
+      '<p>Click link: {{resetLink}} expires in {{minutes}} mins</p>',
+    );
     expect(result.missingVariables).toContain('resetLink');
     expect(result.missingVariables).toContain('minutes');
   });
 
   it('should extract variables from a template string', () => {
-    const content = 'Hi {{studentName}}, your fee receipt #{{receiptNo}} for amount {{amount}} is ready.';
+    const content =
+      'Hi {{studentName}}, your fee receipt #{{receiptNo}} for amount {{amount}} is ready.';
     const vars = renderer.extractVariables(content);
 
     expect(vars).toEqual(['studentName', 'receiptNo', 'amount']);

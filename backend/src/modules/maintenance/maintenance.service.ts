@@ -20,7 +20,7 @@ export interface MaintenanceCheckContext {
 @Injectable()
 export class MaintenanceService {
   private readonly logger = new Logger(MaintenanceService.name);
-  
+
   // In-memory cache of active rules (resolved on mutations)
   private rulesCache: any[] | null = null;
 
@@ -63,7 +63,9 @@ export class MaintenanceService {
     const rule = await this.prisma.maintenanceRule.create({
       data: {
         ...dto,
-        bypassRoles: dto.bypassRoles ? JSON.parse(JSON.stringify(dto.bypassRoles)) : undefined,
+        bypassRoles: dto.bypassRoles
+          ? JSON.parse(JSON.stringify(dto.bypassRoles))
+          : undefined,
         createdBy: userId,
       },
     });
@@ -94,7 +96,9 @@ export class MaintenanceService {
       where: { id },
       data: {
         ...dto,
-        bypassRoles: dto.bypassRoles ? JSON.parse(JSON.stringify(dto.bypassRoles)) : undefined,
+        bypassRoles: dto.bypassRoles
+          ? JSON.parse(JSON.stringify(dto.bypassRoles))
+          : undefined,
         updatedBy: userId,
       },
     });
@@ -164,7 +168,11 @@ export class MaintenanceService {
     if (!rule.isActive) return false;
 
     // Recurring calculation
-    if (rule.isRecurring && rule.recurrenceStartTime && rule.recurrenceEndTime) {
+    if (
+      rule.isRecurring &&
+      rule.recurrenceStartTime &&
+      rule.recurrenceEndTime
+    ) {
       const tz = rule.timezone || 'Asia/Kolkata';
       let localDate: Date;
       try {
@@ -174,18 +182,23 @@ export class MaintenanceService {
       }
 
       const currentDay = localDate.getDay(); // 0 = Sunday, 6 = Saturday
-      if (rule.recurrenceDayOfWeek !== null && rule.recurrenceDayOfWeek !== undefined) {
+      if (
+        rule.recurrenceDayOfWeek !== null &&
+        rule.recurrenceDayOfWeek !== undefined
+      ) {
         if (currentDay !== rule.recurrenceDayOfWeek) {
           return false;
         }
       }
 
-      const [startHour, startMin] = rule.recurrenceStartTime.split(':').map(Number);
+      const [startHour, startMin] = rule.recurrenceStartTime
+        .split(':')
+        .map(Number);
       const [endHour, endMin] = rule.recurrenceEndTime.split(':').map(Number);
-      
+
       const currentHour = localDate.getHours();
       const currentMin = localDate.getMinutes();
-      
+
       const currentMinutes = currentHour * 60 + currentMin;
       const startMinutes = startHour * 60 + startMin;
       const endMinutes = endHour * 60 + endMin;
@@ -263,7 +276,9 @@ export class MaintenanceService {
     // ORGANIZATION
     if (!resolvedRule && context.organizationId) {
       resolvedRule = rules.find(
-        (r) => r.scopeType === 'ORGANIZATION' && r.scopeId === context.organizationId,
+        (r) =>
+          r.scopeType === 'ORGANIZATION' &&
+          r.scopeId === context.organizationId,
       );
     }
 
@@ -329,7 +344,8 @@ export class MaintenanceService {
         scopeType: resolvedRule.scopeType,
         scopeId: resolvedRule.scopeId,
         title: resolvedRule.title || 'System Maintenance',
-        message: resolvedRule.shortMessage || 'The system is under maintenance.',
+        message:
+          resolvedRule.shortMessage || 'The system is under maintenance.',
         description: resolvedRule.description || '',
         reason: resolvedRule.reason || '',
         estimatedCompletion: resolvedRule.estimatedCompletion || null,
@@ -341,7 +357,10 @@ export class MaintenanceService {
           : ['GET', 'HEAD', 'OPTIONS'],
       };
 
-      throw new MaintenanceException(responsePayload, resolvedRule.customStatus || 503);
+      throw new MaintenanceException(
+        responsePayload,
+        resolvedRule.customStatus || 503,
+      );
     }
   }
 
@@ -377,16 +396,27 @@ export class MaintenanceService {
     }
 
     // Default fallback: first segment
-    const segments = path.replace(/^\/v\d+\//, '/').split('/').filter(Boolean);
+    const segments = path
+      .replace(/^\/v\d+\//, '/')
+      .split('/')
+      .filter(Boolean);
     return segments[0] || 'system';
   }
 
   /**
    * Helper for auditing: Infers the action based on rules lifecycle changes
    */
-  private inferAuditAction(rule: any, eventType: 'create' | 'update' | 'delete', oldRule?: any): string {
+  private inferAuditAction(
+    rule: any,
+    eventType: 'create' | 'update' | 'delete',
+    oldRule?: any,
+  ): string {
     if (eventType === 'delete') {
-      if (rule.startAt && new Date(rule.startAt) > new Date() && rule.isActive) {
+      if (
+        rule.startAt &&
+        new Date(rule.startAt) > new Date() &&
+        rule.isActive
+      ) {
         return 'Maintenance Cancelled';
       }
       return 'Maintenance Disabled';
@@ -482,7 +512,9 @@ export class MaintenanceService {
 
     if (!resolvedRule && context.organizationId) {
       resolvedRule = rules.find(
-        (r) => r.scopeType === 'ORGANIZATION' && r.scopeId === context.organizationId,
+        (r) =>
+          r.scopeType === 'ORGANIZATION' &&
+          r.scopeId === context.organizationId,
       );
     }
     if (!resolvedRule && context.branchId) {

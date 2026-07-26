@@ -7,7 +7,12 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { AuditRepository } from './audit.repository';
 import { AuditQueryDto } from './dto/audit-query.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -29,7 +34,10 @@ export class AuditController {
 
   @Get()
   @ApiOperation({ summary: 'Retrieve paginated, filtered audit logs' })
-  @ApiResponse({ status: 200, description: 'List of audit logs and pagination meta information' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of audit logs and pagination meta information',
+  })
   async getAuditLogs(@Query() query: AuditQueryDto, @Req() req: any) {
     const data = await this.auditRepository.queryAuditLogs(req.user, query);
     return { data, message: 'Audit logs retrieved successfully' };
@@ -37,15 +45,24 @@ export class AuditController {
 
   @Get('summary')
   @ApiOperation({ summary: 'Get summary statistics of audit logs' })
-  @ApiResponse({ status: 200, description: 'Summary statistics grouped by module, action, severity, and status' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Summary statistics grouped by module, action, severity, and status',
+  })
   async getAuditSummary(@Query() query: AuditQueryDto, @Req() req: any) {
     const data = await this.auditRepository.getAuditSummary(req.user, query);
     return { data, message: 'Audit summary retrieved successfully' };
   }
 
   @Get('timeline')
-  @ApiOperation({ summary: 'Get chronological activity timeline and daily trends' })
-  @ApiResponse({ status: 200, description: 'Timeline events and daily log activity counts' })
+  @ApiOperation({
+    summary: 'Get chronological activity timeline and daily trends',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Timeline events and daily log activity counts',
+  })
   async getAuditTimeline(@Query() query: AuditQueryDto, @Req() req: any) {
     const data = await this.auditRepository.getAuditTimeline(req.user, query);
     return { data, message: 'Audit timeline retrieved successfully' };
@@ -53,9 +70,16 @@ export class AuditController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get details of a specific audit log by ID' })
-  @ApiResponse({ status: 200, description: 'Audit log detailed information including metadata and changes' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Audit log detailed information including metadata and changes',
+  })
   @ApiResponse({ status: 404, description: 'Audit log not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden access to this resource' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden access to this resource',
+  })
   async getAuditLogById(@Param('id') id: string, @Req() req: any) {
     const log = await this.auditRepository.getAuditLogById(req.user, id);
 
@@ -64,7 +88,9 @@ export class AuditController {
     }
 
     if (log === 'FORBIDDEN') {
-      throw new ForbiddenException('You do not have permission to access this resource');
+      throw new ForbiddenException(
+        'You do not have permission to access this resource',
+      );
     }
 
     return { data: log, message: 'Audit log details retrieved successfully' };

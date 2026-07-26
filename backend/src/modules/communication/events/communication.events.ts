@@ -1,5 +1,9 @@
 import { DomainEvent } from '@/common/events/domain-event.base';
-import { CommunicationChannel, NotificationCategory, ProviderType } from '@/generated/client';
+import {
+  CommunicationChannel,
+  NotificationCategory,
+  ProviderType,
+} from '@/generated/client';
 
 export class PasswordResetRequestedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'communication.password_reset_requested';
@@ -12,7 +16,10 @@ export class PasswordResetRequestedEvent extends DomainEvent {
     expiresInMinutes?: number;
   };
 
-  constructor(payload: PasswordResetRequestedEvent['payload'], metadata?: Record<string, any>) {
+  constructor(
+    payload: PasswordResetRequestedEvent['payload'],
+    metadata?: Record<string, any>,
+  ) {
     super({
       eventName: PasswordResetRequestedEvent.EVENT_NAME,
       aggregateId: payload.userId || payload.email,
@@ -31,7 +38,10 @@ export class PasswordChangedEvent extends DomainEvent {
     userName?: string;
   };
 
-  constructor(payload: PasswordChangedEvent['payload'], metadata?: Record<string, any>) {
+  constructor(
+    payload: PasswordChangedEvent['payload'],
+    metadata?: Record<string, any>,
+  ) {
     super({
       eventName: PasswordChangedEvent.EVENT_NAME,
       aggregateId: payload.userId,
@@ -51,7 +61,10 @@ export class EmailVerificationRequestedEvent extends DomainEvent {
     verificationLink?: string;
   };
 
-  constructor(payload: EmailVerificationRequestedEvent['payload'], metadata?: Record<string, any>) {
+  constructor(
+    payload: EmailVerificationRequestedEvent['payload'],
+    metadata?: Record<string, any>,
+  ) {
     super({
       eventName: EmailVerificationRequestedEvent.EVENT_NAME,
       aggregateId: payload.userId,
@@ -71,7 +84,10 @@ export class NotificationCreatedEvent extends DomainEvent {
     category: NotificationCategory;
   };
 
-  constructor(payload: NotificationCreatedEvent['payload'], metadata?: Record<string, any>) {
+  constructor(
+    payload: NotificationCreatedEvent['payload'],
+    metadata?: Record<string, any>,
+  ) {
     super({
       eventName: NotificationCreatedEvent.EVENT_NAME,
       aggregateId: payload.notificationId,
@@ -92,7 +108,10 @@ export class TemplateUpdatedEvent extends DomainEvent {
     action: 'CREATE' | 'UPDATE' | 'DELETE';
   };
 
-  constructor(payload: TemplateUpdatedEvent['payload'], metadata?: Record<string, any>) {
+  constructor(
+    payload: TemplateUpdatedEvent['payload'],
+    metadata?: Record<string, any>,
+  ) {
     super({
       eventName: TemplateUpdatedEvent.EVENT_NAME,
       aggregateId: payload.templateId,
@@ -110,7 +129,10 @@ export class PreferenceChangedEvent extends DomainEvent {
     category: NotificationCategory;
   };
 
-  constructor(payload: PreferenceChangedEvent['payload'], metadata?: Record<string, any>) {
+  constructor(
+    payload: PreferenceChangedEvent['payload'],
+    metadata?: Record<string, any>,
+  ) {
     super({
       eventName: PreferenceChangedEvent.EVENT_NAME,
       aggregateId: payload.userId,
@@ -129,7 +151,10 @@ export class ProviderUpdatedEvent extends DomainEvent {
     defaultEmailProvider?: ProviderType;
   };
 
-  constructor(payload: ProviderUpdatedEvent['payload'], metadata?: Record<string, any>) {
+  constructor(
+    payload: ProviderUpdatedEvent['payload'],
+    metadata?: Record<string, any>,
+  ) {
     super({
       eventName: ProviderUpdatedEvent.EVENT_NAME,
       aggregateId: payload.organizationId || payload.branchId || 'global',

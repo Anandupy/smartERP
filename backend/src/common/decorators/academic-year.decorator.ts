@@ -14,4 +14,8 @@ export interface AcademicYearOptions {
 }
 
 export const RequireAcademicYear = (options: AcademicYearOptions = {}) =>
-  SetMetadata(REQUIRE_ACADEMIC_YEAR_KEY, { optional: false, allowFallback: true, ...options });
+  SetMetadata(REQUIRE_ACADEMIC_YEAR_KEY, {
+    optional: false,
+    allowFallback: true,
+    ...options,
+  });

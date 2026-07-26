@@ -21,7 +21,9 @@ export class EventEmitterEventBus implements EventBus {
 
     const listeners = this.emitter.listeners(event.eventName);
     if (listeners.length === 0) {
-      this.logger.debug(`No subscribers registered for event: ${event.eventName}`);
+      this.logger.debug(
+        `No subscribers registered for event: ${event.eventName}`,
+      );
       return;
     }
 

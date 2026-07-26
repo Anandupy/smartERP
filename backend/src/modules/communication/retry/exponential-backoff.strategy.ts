@@ -38,7 +38,8 @@ export class ExponentialBackoffRetryStrategy implements RetryStrategy {
   }
 
   calculateDelay(attempt: number, options: RetryOptions): number {
-    const delay = options.initialDelayMs * Math.pow(options.backoffFactor, attempt - 1);
+    const delay =
+      options.initialDelayMs * Math.pow(options.backoffFactor, attempt - 1);
     return Math.min(delay, options.maxDelayMs);
   }
 }

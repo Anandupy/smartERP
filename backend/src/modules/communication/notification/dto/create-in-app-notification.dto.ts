@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsBoolean, IsObject } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsObject,
+} from 'class-validator';
 import { NotificationCategory, NotificationPriority } from '@/generated/client';
 
 export class CreateInAppNotificationDto {
@@ -18,12 +25,18 @@ export class CreateInAppNotificationDto {
   @IsNotEmpty()
   content: string;
 
-  @ApiPropertyOptional({ enum: NotificationCategory, default: NotificationCategory.SYSTEM })
+  @ApiPropertyOptional({
+    enum: NotificationCategory,
+    default: NotificationCategory.SYSTEM,
+  })
   @IsEnum(NotificationCategory)
   @IsOptional()
   category?: NotificationCategory;
 
-  @ApiPropertyOptional({ enum: NotificationPriority, default: NotificationPriority.NORMAL })
+  @ApiPropertyOptional({
+    enum: NotificationPriority,
+    default: NotificationPriority.NORMAL,
+  })
   @IsEnum(NotificationPriority)
   @IsOptional()
   priority?: NotificationPriority;

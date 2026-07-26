@@ -4,7 +4,8 @@ import { RequestContext } from './request-context.middleware';
 
 @Injectable()
 export class RequestContextService {
-  private static readonly asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
+  private static readonly asyncLocalStorage =
+    new AsyncLocalStorage<RequestContext>();
 
   /**
    * Run callback within a RequestContext scope

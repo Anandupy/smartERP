@@ -1,9 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { OtpPurpose } from '@/generated/client';
 
 export class GenerateOtpDto {
-  @ApiProperty({ description: 'Target recipient identifier (email, phone, or userId)', example: 'user@example.com' })
+  @ApiProperty({
+    description: 'Target recipient identifier (email, phone, or userId)',
+    example: 'user@example.com',
+  })
   @IsString()
   @IsNotEmpty()
   identifier: string;
@@ -26,7 +37,10 @@ export class GenerateOtpDto {
   @IsOptional()
   ttlMinutes?: number;
 
-  @ApiPropertyOptional({ description: 'Cooldown before resend in seconds', default: 60 })
+  @ApiPropertyOptional({
+    description: 'Cooldown before resend in seconds',
+    default: 60,
+  })
   @IsInt()
   @Min(10)
   @Max(300)

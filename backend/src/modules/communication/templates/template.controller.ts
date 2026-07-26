@@ -9,7 +9,12 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -55,7 +60,11 @@ export class TemplateController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Update a communication template' })
-  async update(@Param('id') id: string, @Body() dto: UpdateTemplateDto, @Req() req: any) {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTemplateDto,
+    @Req() req: any,
+  ) {
     return this.templateService.update(id, dto, req.user?.id);
   }
 
@@ -66,6 +75,11 @@ export class TemplateController {
     @Body() dto: RenderTemplatePreviewDto,
     @Query('channel') channel?: CommunicationChannel,
   ) {
-    return this.templateService.renderPreview(dto.templateId, dto.code, channel, dto.variables);
+    return this.templateService.renderPreview(
+      dto.templateId,
+      dto.code,
+      channel,
+      dto.variables,
+    );
   }
 }

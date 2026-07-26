@@ -1,7 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Min, Max } from 'class-validator';
-import { CommunicationChannel, DeliveryStatus, ProviderType } from '@/generated/client';
+import {
+  CommunicationChannel,
+  DeliveryStatus,
+  ProviderType,
+} from '@/generated/client';
 
 export class QueryDeliveryLogDto {
   @ApiPropertyOptional({ default: 1 })

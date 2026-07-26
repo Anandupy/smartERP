@@ -73,7 +73,10 @@ describe('OtpService', () => {
       isRevoked: false,
     });
 
-    prismaService.otpToken.update.mockResolvedValue({ id: 'token-123', isUsed: true });
+    prismaService.otpToken.update.mockResolvedValue({
+      id: 'token-123',
+      isUsed: true,
+    });
 
     const response = await service.verifyOtp({
       identifier: 'user@example.com',

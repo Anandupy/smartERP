@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommunicationChannel, ProviderType } from '@/generated/client';
 import { EmailProvider } from '../../interfaces/email-provider.interface';
-import { ProviderSendResult, SendEmailOptions } from '../../interfaces/provider-result.interface';
+import {
+  ProviderSendResult,
+  SendEmailOptions,
+} from '../../interfaces/provider-result.interface';
 
 @Injectable()
 export class SmtpEmailProvider implements EmailProvider {
@@ -13,8 +16,11 @@ export class SmtpEmailProvider implements EmailProvider {
 
   async sendEmail(options: SendEmailOptions): Promise<ProviderSendResult> {
     const startTime = Date.now();
-    const recipientStr = Array.isArray(options.to) ? options.to.join(',') : options.to;
-    const defaultFrom = this.configService.get<string>('SMTP_FROM') || 'noreply@campusflow.edu';
+    const recipientStr = Array.isArray(options.to)
+      ? options.to.join(',')
+      : options.to;
+    const defaultFrom =
+      this.configService.get<string>('SMTP_FROM') || 'noreply@campusflow.edu';
     const fromAddress = options.from || defaultFrom;
 
     try {
@@ -40,7 +46,9 @@ export class SmtpEmailProvider implements EmailProvider {
       };
     } catch (error: any) {
       const latencyMs = Date.now() - startTime;
-      this.logger.error(`[SMTP Provider] Error dispatching email to [${recipientStr}]: ${error.message}`);
+      this.logger.error(
+        `[SMTP Provider] Error dispatching email to [${recipientStr}]: ${error.message}`,
+      );
 
       return {
         success: false,

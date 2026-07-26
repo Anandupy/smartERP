@@ -130,7 +130,9 @@ export class AuditQueryDto {
   @IsString()
   route?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by start date (ISO date string)' })
+  @ApiPropertyOptional({
+    description: 'Filter by start date (ISO date string)',
+  })
   @IsOptional()
   @IsDateString()
   startDate?: string;
@@ -140,13 +142,17 @@ export class AuditQueryDto {
   @IsDateString()
   endDate?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by minimum execution time in ms' })
+  @ApiPropertyOptional({
+    description: 'Filter by minimum execution time in ms',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   minExecutionTime?: number;
 
-  @ApiPropertyOptional({ description: 'Filter by maximum execution time in ms' })
+  @ApiPropertyOptional({
+    description: 'Filter by maximum execution time in ms',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

@@ -7,7 +7,11 @@ export interface RenderResult {
 
 export abstract class TemplateRenderer {
   abstract render(
-    template: { subject?: string | null; bodyHtml?: string | null; bodyText?: string | null },
+    template: {
+      subject?: string | null;
+      bodyHtml?: string | null;
+      bodyText?: string | null;
+    },
     variables: Record<string, any>,
   ): RenderResult;
 

@@ -67,7 +67,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         errMessage.includes('foreign key') ||
         errMessage.includes('unique constraint')
       ) {
-        message = 'Unable to process request due to database validation failure.';
+        message =
+          'Unable to process request due to database validation failure.';
         code = 'DATABASE_CONSTRAINT_ERROR';
       } else {
         message = errMessage;
@@ -114,4 +115,3 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     });
   }
 }
-

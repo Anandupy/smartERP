@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeliveryLogService } from './delivery-log.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { CommunicationChannel, DeliveryStatus, ProviderType } from '@/generated/client';
+import {
+  CommunicationChannel,
+  DeliveryStatus,
+  ProviderType,
+} from '@/generated/client';
 
 describe('DeliveryLogService', () => {
   let service: DeliveryLogService;
@@ -49,10 +53,10 @@ describe('DeliveryLogService', () => {
   it('should calculate analytics delivery metrics correctly', async () => {
     prismaService.deliveryLog.count
       .mockResolvedValueOnce(100) // Total
-      .mockResolvedValueOnce(70)  // Sent
-      .mockResolvedValueOnce(20)  // Delivered
-      .mockResolvedValueOnce(8)   // Failed
-      .mockResolvedValueOnce(2);  // Bounced
+      .mockResolvedValueOnce(70) // Sent
+      .mockResolvedValueOnce(20) // Delivered
+      .mockResolvedValueOnce(8) // Failed
+      .mockResolvedValueOnce(2); // Bounced
 
     const stats = await service.getAnalytics();
 

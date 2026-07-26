@@ -10,7 +10,10 @@ import {
   Max,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { MaintenanceScopeType, MaintenanceSeverity } from '../../../../prisma/generated';
+import {
+  MaintenanceScopeType,
+  MaintenanceSeverity,
+} from '../../../../prisma/generated';
 
 export class CreateMaintenanceRuleDto {
   @ApiProperty({
@@ -22,7 +25,8 @@ export class CreateMaintenanceRuleDto {
   scopeType: MaintenanceScopeType;
 
   @ApiPropertyOptional({
-    description: 'Target ID for the scope (null for GLOBAL; organizationId, branchId, module name, or feature name)',
+    description:
+      'Target ID for the scope (null for GLOBAL; organizationId, branchId, module name, or feature name)',
     example: 'admissions',
   })
   @IsString()

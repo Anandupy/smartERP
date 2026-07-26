@@ -14,7 +14,10 @@ export class CreateProgramDto {
   @IsNotEmpty()
   branchId: string;
 
-  @ApiProperty({ description: 'Program Name', example: 'Higher Secondary Science' })
+  @ApiProperty({
+    description: 'Program Name',
+    example: 'Higher Secondary Science',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -28,12 +31,18 @@ export class CreateProgramDto {
   @IsOptional()
   level?: ProgramLevel;
 
-  @ApiPropertyOptional({ description: 'Medium of Instruction', example: 'English' })
+  @ApiPropertyOptional({
+    description: 'Medium of Instruction',
+    example: 'English',
+  })
   @IsString()
   @IsOptional()
   medium?: string;
 
-  @ApiPropertyOptional({ description: 'Academic Stream', example: 'Science (PCM)' })
+  @ApiPropertyOptional({
+    description: 'Academic Stream',
+    example: 'Science (PCM)',
+  })
   @IsString()
   @IsOptional()
   stream?: string;

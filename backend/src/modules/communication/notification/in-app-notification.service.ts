@@ -92,7 +92,9 @@ export class InAppNotificationService {
     });
 
     if (!notification) {
-      throw new NotFoundException(`Notification with ID '${id}' not found for current user`);
+      throw new NotFoundException(
+        `Notification with ID '${id}' not found for current user`,
+      );
     }
 
     return this.prisma.inAppNotification.update({
@@ -116,13 +118,18 @@ export class InAppNotificationService {
     return { count: result.count };
   }
 
-  async archiveNotification(id: string, userId: string): Promise<InAppNotification> {
+  async archiveNotification(
+    id: string,
+    userId: string,
+  ): Promise<InAppNotification> {
     const notification = await this.prisma.inAppNotification.findFirst({
       where: { id, userId },
     });
 
     if (!notification) {
-      throw new NotFoundException(`Notification with ID '${id}' not found for current user`);
+      throw new NotFoundException(
+        `Notification with ID '${id}' not found for current user`,
+      );
     }
 
     return this.prisma.inAppNotification.update({

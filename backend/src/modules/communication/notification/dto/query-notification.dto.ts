@@ -1,7 +1,19 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Min, Max, IsBoolean } from 'class-validator';
-import { NotificationCategory, NotificationPriority, NotificationStatus } from '@/generated/client';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+  Max,
+  IsBoolean,
+} from 'class-validator';
+import {
+  NotificationCategory,
+  NotificationPriority,
+  NotificationStatus,
+} from '@/generated/client';
 
 export class QueryNotificationDto {
   @ApiPropertyOptional({ default: 1 })

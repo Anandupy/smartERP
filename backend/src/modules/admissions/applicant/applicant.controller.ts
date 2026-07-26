@@ -9,7 +9,12 @@ import {
   Req,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiHeader,
+} from '@nestjs/swagger';
 import { ApplicantService } from './applicant.service';
 import {
   CreateApplicantDto,
@@ -75,10 +80,7 @@ export class ApplicantController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Check for potential duplicate applicant records' })
-  async checkDupes(
-    @Body() dto: CheckDuplicatesDto,
-    @Req() req: any,
-  ) {
+  async checkDupes(@Body() dto: CheckDuplicatesDto, @Req() req: any) {
     const branchId = req.context?.branchId || '';
     const result = await this.service.checkDuplicates(dto, branchId);
     return { data: result, message: 'Duplicate check completed' };

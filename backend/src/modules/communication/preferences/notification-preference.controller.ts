@@ -9,7 +9,9 @@ import { UpdateNotificationPreferenceDto } from './dto/update-preference.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('v1/communication/preferences')
 export class NotificationPreferenceController {
-  constructor(private readonly preferenceService: NotificationPreferenceService) {}
+  constructor(
+    private readonly preferenceService: NotificationPreferenceService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get current user notification preferences' })
@@ -18,8 +20,13 @@ export class NotificationPreferenceController {
   }
 
   @Patch()
-  @ApiOperation({ summary: 'Update notification category preference for current user' })
-  async updateMyPreference(@Req() req: any, @Body() dto: UpdateNotificationPreferenceDto) {
+  @ApiOperation({
+    summary: 'Update notification category preference for current user',
+  })
+  async updateMyPreference(
+    @Req() req: any,
+    @Body() dto: UpdateNotificationPreferenceDto,
+  ) {
     return this.preferenceService.updatePreference(req.user.id, dto);
   }
 }

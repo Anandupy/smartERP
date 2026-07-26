@@ -1,6 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { CommunicationChannel, DeliveryLog, DeliveryStatus, ProviderType } from '@/generated/client';
+import {
+  CommunicationChannel,
+  DeliveryLog,
+  DeliveryStatus,
+  ProviderType,
+} from '@/generated/client';
 import { QueryDeliveryLogDto } from './dto/query-delivery-log.dto';
 
 export interface CreateDeliveryLogInput {
@@ -43,8 +48,13 @@ export class DeliveryLogService {
         errorCode: input.errorCode,
         errorMessage: input.errorMessage,
         metadata: input.metadata,
-        sentAt: input.status === DeliveryStatus.SENT || input.status === DeliveryStatus.DELIVERED ? new Date() : null,
-        deliveredAt: input.status === DeliveryStatus.DELIVERED ? new Date() : null,
+        sentAt:
+          input.status === DeliveryStatus.SENT ||
+          input.status === DeliveryStatus.DELIVERED
+            ? new Date()
+            : null,
+        deliveredAt:
+          input.status === DeliveryStatus.DELIVERED ? new Date() : null,
         organizationId: input.organizationId,
         branchId: input.branchId,
       },
@@ -54,10 +64,18 @@ export class DeliveryLogService {
   async updateStatus(
     id: string,
     status: DeliveryStatus,
-    extra?: { errorCode?: string; errorMessage?: string; openedAt?: Date; clickedAt?: Date },
+    extra?: {
+      errorCode?: string;
+      errorMessage?: string;
+      openedAt?: Date;
+      clickedAt?: Date;
+    },
   ): Promise<DeliveryLog> {
-    const existing = await this.prisma.deliveryLog.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException(`Delivery log record '${id}' not found`);
+    const existing = await this.prisma.deliveryLog.findUnique({
+      where: { id },
+    });
+    if (!existing)
+      throw new NotFoundException(`Delivery log record '${id}' not found`);
 
     const updateData: any = {
       status,
@@ -127,16 +145,27 @@ export class DeliveryLogService {
 
     const [total, sent, delivered, failed, bounced] = await Promise.all([
       this.prisma.deliveryLog.count({ where }),
-      this.prisma.deliveryLog.count({ where: { ...where, status: DeliveryStatus.SENT } }),
-      this.prisma.deliveryLog.count({ where: { ...where, status: DeliveryStatus.DELIVERED } }),
-      this.prisma.deliveryLog.count({ where: { ...where, status: DeliveryStatus.FAILED } }),
-      this.prisma.deliveryLog.count({ where: { ...where, status: DeliveryStatus.BOUNCED } }),
+      this.prisma.deliveryLog.count({
+        where: { ...where, status: DeliveryStatus.SENT },
+      }),
+      this.prisma.deliveryLog.count({
+        where: { ...where, status: DeliveryStatus.DELIVERED },
+      }),
+      this.prisma.deliveryLog.count({
+        where: { ...where, status: DeliveryStatus.FAILED },
+      }),
+      this.prisma.deliveryLog.count({
+        where: { ...where, status: DeliveryStatus.BOUNCED },
+      }),
     ]);
 
     const totalProcessed = sent + delivered + failed + bounced;
-    const deliveryRate = totalProcessed > 0 ? ((sent + delivered) / totalProcessed) * 100 : 100;
-    const failureRate = totalProcessed > 0 ? (failed / totalProcessed) * 100 : 0;
-    const bounceRate = totalProcessed > 0 ? (bounced / totalProcessed) * 100 : 0;
+    const deliveryRate =
+      totalProcessed > 0 ? ((sent + delivered) / totalProcessed) * 100 : 100;
+    const failureRate =
+      totalProcessed > 0 ? (failed / totalProcessed) * 100 : 0;
+    const bounceRate =
+      totalProcessed > 0 ? (bounced / totalProcessed) * 100 : 0;
 
     return {
       total,

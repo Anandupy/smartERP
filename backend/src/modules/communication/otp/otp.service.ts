@@ -45,8 +45,14 @@ export class OtpService {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (existingActive && existingActive.resendAvailableAt && existingActive.resendAvailableAt > new Date()) {
-      const waitSeconds = Math.ceil((existingActive.resendAvailableAt.getTime() - Date.now()) / 1000);
+    if (
+      existingActive &&
+      existingActive.resendAvailableAt &&
+      existingActive.resendAvailableAt > new Date()
+    ) {
+      const waitSeconds = Math.ceil(
+        (existingActive.resendAvailableAt.getTime() - Date.now()) / 1000,
+      );
       throw new ForbiddenException(
         `Please wait ${waitSeconds} seconds before requesting a new OTP for ${dto.purpose}`,
       );
@@ -84,7 +90,9 @@ export class OtpService {
       },
     });
 
-    this.logger.log(`Generated OTP token [${token.id}] for [${dto.identifier}] Purpose: [${dto.purpose}]`);
+    this.logger.log(
+      `Generated OTP token [${token.id}] for [${dto.identifier}] Purpose: [${dto.purpose}]`,
+    );
 
     return {
       rawOtp,
@@ -94,7 +102,9 @@ export class OtpService {
     };
   }
 
-  async verifyOtp(dto: VerifyOtpDto): Promise<{ success: boolean; message: string }> {
+  async verifyOtp(
+    dto: VerifyOtpDto,
+  ): Promise<{ success: boolean; message: string }> {
     const hash = this.hashOtp(dto.otp);
 
     const token = await this.prisma.otpToken.findFirst({
@@ -116,7 +126,9 @@ export class OtpService {
         where: { id: token.id },
         data: { isRevoked: true, revokedAt: new Date() },
       });
-      throw new BadRequestException('OTP has expired. Please request a new one.');
+      throw new BadRequestException(
+        'OTP has expired. Please request a new one.',
+      );
     }
 
     if (token.attempts >= token.maxAttempts) {
@@ -124,7 +136,9 @@ export class OtpService {
         where: { id: token.id },
         data: { isRevoked: true, revokedAt: new Date() },
       });
-      throw new ForbiddenException('Maximum OTP verification attempts exceeded. Token revoked.');
+      throw new ForbiddenException(
+        'Maximum OTP verification attempts exceeded. Token revoked.',
+      );
     }
 
     if (token.otpHash !== hash) {
@@ -149,7 +163,9 @@ export class OtpService {
       },
     });
 
-    this.logger.log(`OTP successfully verified for [${dto.identifier}] Purpose: [${dto.purpose}]`);
+    this.logger.log(
+      `OTP successfully verified for [${dto.identifier}] Purpose: [${dto.purpose}]`,
+    );
 
     return {
       success: true,

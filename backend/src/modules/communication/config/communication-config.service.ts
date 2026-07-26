@@ -14,7 +14,10 @@ export class CommunicationConfigService {
     private readonly eventBus: EventBus,
   ) {}
 
-  async getConfig(organizationId?: string, branchId?: string): Promise<CommunicationSetting> {
+  async getConfig(
+    organizationId?: string,
+    branchId?: string,
+  ): Promise<CommunicationSetting> {
     const setting = await this.prisma.communicationSetting.findFirst({
       where: {
         organizationId: organizationId || null,
@@ -85,7 +88,8 @@ export class CommunicationConfigService {
           retryEnabled: dto.retryEnabled ?? true,
           defaultEmailProvider: dto.defaultEmailProvider || ProviderType.SMTP,
           defaultSmsProvider: dto.defaultSmsProvider || ProviderType.CUSTOM,
-          defaultWhatsappProvider: dto.defaultWhatsappProvider || ProviderType.CUSTOM,
+          defaultWhatsappProvider:
+            dto.defaultWhatsappProvider || ProviderType.CUSTOM,
           defaultPushProvider: dto.defaultPushProvider || ProviderType.CUSTOM,
           createdBy: userId,
           updatedBy: userId,

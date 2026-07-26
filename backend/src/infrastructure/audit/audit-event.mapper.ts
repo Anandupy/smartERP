@@ -32,19 +32,19 @@ export class AuditEventMapper {
       aggregateId: event.aggregateId,
       timestamp: event.occurredAt,
       userId: context?.userId || (event as any).payload?.userId || null,
-      userEmail: (context as any)?.userEmail || null,
+      userEmail: context?.userEmail || null,
       role: context?.role || null,
       organizationId: context?.organizationId || null,
       branchId: context?.branchId || null,
       academicYearId: context?.academicYearId || null,
       requestId: context?.requestId || null,
-      traceId: (context as any)?.traceId || null,
-      correlationId: (context as any)?.correlationId || context?.requestId || null,
-      ipAddress: (context as any)?.ipAddress || null,
-      userAgent: (context as any)?.userAgent || null,
-      httpMethod: (context as any)?.httpMethod || null,
-      route: (context as any)?.route || null,
-      executionTime: (context as any)?.executionTime || null,
+      traceId: context?.traceId || null,
+      correlationId: context?.correlationId || context?.requestId || null,
+      ipAddress: context?.ipAddress || null,
+      userAgent: context?.userAgent || null,
+      httpMethod: context?.httpMethod || null,
+      route: context?.route || null,
+      executionTime: context?.executionTime || null,
       severity: event.metadata?.severity || 'INFO',
       status: event.metadata?.status || 'SUCCESS',
       metadata: {
@@ -59,7 +59,8 @@ export class AuditEventMapper {
     if (event.metadata?.action) return event.metadata.action;
 
     const name = event.eventName.toLowerCase();
-    if (name.includes('created') || name.includes('registered')) return 'CREATE';
+    if (name.includes('created') || name.includes('registered'))
+      return 'CREATE';
     if (name.includes('updated') || name.includes('modified')) return 'UPDATE';
     if (name.includes('deleted') || name.includes('removed')) return 'DELETE';
     if (name.includes('logged_in') || name.includes('login')) return 'LOGIN';
@@ -81,7 +82,8 @@ export class AuditEventMapper {
     ) {
       return 'ADMISSIONS';
     }
-    if (agg.includes('BRANCH') || agg.includes('ORGANIZATION')) return 'ORGANIZATION';
+    if (agg.includes('BRANCH') || agg.includes('ORGANIZATION'))
+      return 'ORGANIZATION';
     if (agg.includes('USER') || agg.includes('AUTH')) return 'AUTH';
     if (agg.includes('ACADEMIC')) return 'ACADEMIC';
 

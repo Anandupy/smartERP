@@ -60,9 +60,14 @@ describe('InAppNotificationService', () => {
 
   it('should query paginated user notifications', async () => {
     prismaService.inAppNotification.findMany.mockResolvedValue([]);
-    prismaService.inAppNotification.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+    prismaService.inAppNotification.count
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
 
-    const result = await service.getUserNotifications('usr-1', { page: 1, limit: 10 });
+    const result = await service.getUserNotifications('usr-1', {
+      page: 1,
+      limit: 10,
+    });
 
     expect(result.meta.page).toBe(1);
     expect(result.meta.limit).toBe(10);

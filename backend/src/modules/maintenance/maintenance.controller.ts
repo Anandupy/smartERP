@@ -24,12 +24,17 @@ export class MaintenanceController {
 
   @Public()
   @Get('active/status')
-  @ApiOperation({ summary: 'Check current resolved active maintenance status matching request context' })
+  @ApiOperation({
+    summary:
+      'Check current resolved active maintenance status matching request context',
+  })
   async getActiveStatus(@Req() req: any) {
     const requestContext = req.context || {};
-    const userId = requestContext.userId || req.user?.id || req.user?.sub || null;
+    const userId =
+      requestContext.userId || req.user?.id || req.user?.sub || null;
     const role = requestContext.role || req.user?.role || null;
-    const organizationId = requestContext.organizationId || req.user?.organizationId || null;
+    const organizationId =
+      requestContext.organizationId || req.user?.organizationId || null;
     const branchId =
       requestContext.branchId ||
       req.headers['x-branch-id'] ||
@@ -92,7 +97,9 @@ export class MaintenanceController {
   @Get(':id')
   @ApiBearerAuth()
   @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get details of a maintenance rule by ID (SUPER_ADMIN only)' })
+  @ApiOperation({
+    summary: 'Get details of a maintenance rule by ID (SUPER_ADMIN only)',
+  })
   async findOne(@Param('id') id: string) {
     const data = await this.maintenanceService.getRule(id);
     return { data, message: 'Maintenance rule retrieved successfully' };

@@ -24,10 +24,7 @@ export class BranchDeletedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'branch.deleted';
   readonly payload: { branchId: string };
 
-  constructor(
-    payload: { branchId: string },
-    metadata?: Record<string, any>,
-  ) {
+  constructor(payload: { branchId: string }, metadata?: Record<string, any>) {
     super({
       eventName: BranchDeletedEvent.EVENT_NAME,
       aggregateId: payload.branchId,

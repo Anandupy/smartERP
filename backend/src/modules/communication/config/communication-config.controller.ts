@@ -1,4 +1,12 @@
-import { Controller, Get, Patch, Body, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -33,6 +41,11 @@ export class CommunicationConfigController {
     @Query('branchId') branchId?: string,
     @Req() req?: any,
   ) {
-    return this.configService.updateConfig(dto, organizationId, branchId, req?.user?.id);
+    return this.configService.updateConfig(
+      dto,
+      organizationId,
+      branchId,
+      req?.user?.id,
+    );
   }
 }

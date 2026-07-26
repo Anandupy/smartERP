@@ -20,9 +20,11 @@ export class MaintenanceGuard implements CanActivate {
     );
 
     const requestContext = request.context || {};
-    const userId = requestContext.userId || request.user?.id || request.user?.sub || null;
+    const userId =
+      requestContext.userId || request.user?.id || request.user?.sub || null;
     const role = requestContext.role || request.user?.role || null;
-    const organizationId = requestContext.organizationId || request.user?.organizationId || null;
+    const organizationId =
+      requestContext.organizationId || request.user?.organizationId || null;
     const branchId =
       requestContext.branchId ||
       request.headers['x-branch-id'] ||

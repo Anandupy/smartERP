@@ -99,7 +99,7 @@ export class AuditRepository {
     if (query.requestId) where.requestId = query.requestId;
     if (query.traceId) where.traceId = query.traceId;
     if (query.correlationId) where.correlationId = query.correlationId;
-    
+
     if (query.httpMethod) {
       where.httpMethod = { equals: query.httpMethod, mode: 'insensitive' };
     }
@@ -117,7 +117,10 @@ export class AuditRepository {
     }
 
     // Execution time filter
-    if (query.minExecutionTime !== undefined || query.maxExecutionTime !== undefined) {
+    if (
+      query.minExecutionTime !== undefined ||
+      query.maxExecutionTime !== undefined
+    ) {
       where.executionTime = {};
       if (query.minExecutionTime !== undefined) {
         where.executionTime.gte = Number(query.minExecutionTime);
@@ -154,11 +157,19 @@ export class AuditRepository {
     const limit = Math.min(100, Math.max(1, Number(query.limit || 50)));
     const skip = (page - 1) * limit;
 
-    const allowedSortFields = ['timestamp', 'severity', 'module', 'executionTime'];
-    const sortBy = allowedSortFields.includes(query.sortBy) ? query.sortBy : 'timestamp';
+    const allowedSortFields = [
+      'timestamp',
+      'severity',
+      'module',
+      'executionTime',
+    ];
+    const sortBy = allowedSortFields.includes(query.sortBy)
+      ? query.sortBy
+      : 'timestamp';
     const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
 
-    const includeDetails = query.includeDetails === true || query.includeDetails === 'true';
+    const includeDetails =
+      query.includeDetails === true || query.includeDetails === 'true';
 
     const [total, items] = await Promise.all([
       this.prisma.auditLog.count({ where }),
@@ -211,36 +222,49 @@ export class AuditRepository {
   async getAuditSummary(user: any, query: any) {
     const where = this.buildWhereClause(user, query);
 
-    const [totalCount, byModule, byAction, bySeverity, byStatus] = await Promise.all([
-      this.prisma.auditLog.count({ where }),
-      this.prisma.auditLog.groupBy({
-        by: ['module'],
-        _count: { _all: true },
-        where,
-      }),
-      this.prisma.auditLog.groupBy({
-        by: ['action'],
-        _count: { _all: true },
-        where,
-      }),
-      this.prisma.auditLog.groupBy({
-        by: ['severity'],
-        _count: { _all: true },
-        where,
-      }),
-      this.prisma.auditLog.groupBy({
-        by: ['status'],
-        _count: { _all: true },
-        where,
-      }),
-    ]);
+    const [totalCount, byModule, byAction, bySeverity, byStatus] =
+      await Promise.all([
+        this.prisma.auditLog.count({ where }),
+        this.prisma.auditLog.groupBy({
+          by: ['module'],
+          _count: { _all: true },
+          where,
+        }),
+        this.prisma.auditLog.groupBy({
+          by: ['action'],
+          _count: { _all: true },
+          where,
+        }),
+        this.prisma.auditLog.groupBy({
+          by: ['severity'],
+          _count: { _all: true },
+          where,
+        }),
+        this.prisma.auditLog.groupBy({
+          by: ['status'],
+          _count: { _all: true },
+          where,
+        }),
+      ]);
 
     return {
       totalCount,
-      byModule: byModule.map((g) => ({ module: g.module, count: g._count._all || (g._count as any) })),
-      byAction: byAction.map((g) => ({ action: g.action, count: g._count._all || (g._count as any) })),
-      bySeverity: bySeverity.map((g) => ({ severity: g.severity, count: g._count._all || (g._count as any) })),
-      byStatus: byStatus.map((g) => ({ status: g.status, count: g._count._all || (g._count as any) })),
+      byModule: byModule.map((g) => ({
+        module: g.module,
+        count: g._count._all || (g._count as any),
+      })),
+      byAction: byAction.map((g) => ({
+        action: g.action,
+        count: g._count._all || (g._count as any),
+      })),
+      bySeverity: bySeverity.map((g) => ({
+        severity: g.severity,
+        count: g._count._all || (g._count as any),
+      })),
+      byStatus: byStatus.map((g) => ({
+        status: g.status,
+        count: g._count._all || (g._count as any),
+      })),
     };
   }
 
@@ -259,10 +283,12 @@ export class AuditRepository {
       const dateStr = log.timestamp.toISOString().split('T')[0];
       dailyMap.set(dateStr, (dailyMap.get(dateStr) || 0) + 1);
     }
-    const dailyActivity = Array.from(dailyMap.entries()).map(([date, count]) => ({
-      date,
-      count,
-    }));
+    const dailyActivity = Array.from(dailyMap.entries()).map(
+      ([date, count]) => ({
+        date,
+        count,
+      }),
+    );
 
     // Fetch recent events
     const page = Math.max(1, Number(query.page || 1));

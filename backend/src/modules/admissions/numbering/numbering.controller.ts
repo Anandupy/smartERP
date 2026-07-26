@@ -1,5 +1,10 @@
 import { Controller, Get, Post, Body, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiHeader,
+} from '@nestjs/swagger';
 import { NumberingService } from './numbering.service';
 import { CreateNumberSequenceConfigDto } from './dto/numbering.dto';
 import { Roles } from '@/common/decorators/roles.decorator';

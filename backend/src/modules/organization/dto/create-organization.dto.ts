@@ -9,7 +9,10 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateOrganizationDto {
-  @ApiProperty({ description: 'Organization Name', example: 'Horizon Education Trust' })
+  @ApiProperty({
+    description: 'Organization Name',
+    example: 'Horizon Education Trust',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -31,7 +34,10 @@ export class CreateOrganizationDto {
   @IsOptional()
   logoUrl?: string;
 
-  @ApiProperty({ description: 'Primary Contact Email', example: 'admin@horizon.edu' })
+  @ApiProperty({
+    description: 'Primary Contact Email',
+    example: 'admin@horizon.edu',
+  })
   @IsEmail()
   @IsNotEmpty()
   contactEmail: string;
@@ -41,17 +47,26 @@ export class CreateOrganizationDto {
   @IsNotEmpty()
   contactPhone: string;
 
-  @ApiProperty({ description: 'Master License Expiry Date (ISO format)', example: '2030-12-31' })
+  @ApiProperty({
+    description: 'Master License Expiry Date (ISO format)',
+    example: '2030-12-31',
+  })
   @IsDateString()
   @IsNotEmpty()
   masterExpiryDate: string;
 
-  @ApiPropertyOptional({ description: 'Address Line 1', example: '100 Corporate Towers' })
+  @ApiPropertyOptional({
+    description: 'Address Line 1',
+    example: '100 Corporate Towers',
+  })
   @IsString()
   @IsOptional()
   addressLine1?: string;
 
-  @ApiPropertyOptional({ description: 'Address Line 2', example: 'Financial District' })
+  @ApiPropertyOptional({
+    description: 'Address Line 2',
+    example: 'Financial District',
+  })
   @IsString()
   @IsOptional()
   addressLine2?: string;

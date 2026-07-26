@@ -19,7 +19,10 @@ export class CreateBranchDto {
   @IsNotEmpty()
   organizationId: string;
 
-  @ApiProperty({ description: 'Branch Name', example: 'Horizon High School - North Campus' })
+  @ApiProperty({
+    description: 'Branch Name',
+    example: 'Horizon High School - North Campus',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -69,7 +72,10 @@ export class CreateBranchDto {
   @IsOptional()
   logoUrl?: string;
 
-  @ApiProperty({ description: 'Branch Contact Email', example: 'north.branch@horizon.edu' })
+  @ApiProperty({
+    description: 'Branch Contact Email',
+    example: 'north.branch@horizon.edu',
+  })
   @IsEmail()
   @IsNotEmpty()
   contactEmail: string;

@@ -3,7 +3,11 @@ import { TemplateService } from './template.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { HandlebarsTemplateRenderer } from '../renderer/handlebars-template.renderer';
-import { CommunicationChannel, NotificationCategory, TemplateStatus } from '@/generated/client';
+import {
+  CommunicationChannel,
+  NotificationCategory,
+  TemplateStatus,
+} from '@/generated/client';
 
 describe('TemplateService', () => {
   let service: TemplateService;
@@ -83,12 +87,18 @@ describe('TemplateService', () => {
       .mockResolvedValueOnce(null) // Org check fails
       .mockResolvedValueOnce(mockTemplate); // Global succeeds
 
-    const result = await service.resolveTemplate('WELCOME_EMAIL', CommunicationChannel.EMAIL, {
-      organizationId: 'org-1',
-      branchId: 'branch-1',
-    });
+    const result = await service.resolveTemplate(
+      'WELCOME_EMAIL',
+      CommunicationChannel.EMAIL,
+      {
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+      },
+    );
 
     expect(result).toEqual(mockTemplate);
-    expect(prismaService.communicationTemplate.findFirst).toHaveBeenCalledTimes(3);
+    expect(prismaService.communicationTemplate.findFirst).toHaveBeenCalledTimes(
+      3,
+    );
   });
 });

@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
-import { CommunicationChannel, NotificationCategory, NotificationPreference } from '@/generated/client';
+import {
+  CommunicationChannel,
+  NotificationCategory,
+  NotificationPreference,
+} from '@/generated/client';
 import { UpdateNotificationPreferenceDto } from './dto/update-preference.dto';
 import { PreferenceChangedEvent } from '../events/communication.events';
 
@@ -87,7 +91,11 @@ export class NotificationPreferenceService {
     channel: CommunicationChannel,
   ): Promise<boolean> {
     // Security & Authentication category mandatory channel enforcement
-    if (category === NotificationCategory.AUTHENTICATION && (channel === CommunicationChannel.EMAIL || channel === CommunicationChannel.SMS)) {
+    if (
+      category === NotificationCategory.AUTHENTICATION &&
+      (channel === CommunicationChannel.EMAIL ||
+        channel === CommunicationChannel.SMS)
+    ) {
       return true;
     }
 

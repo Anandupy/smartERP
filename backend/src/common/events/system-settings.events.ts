@@ -2,7 +2,11 @@ import { DomainEvent } from './domain-event.base';
 
 export class SystemSettingsUpdatedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'system_settings.updated';
-  readonly payload: { systemId: string; productName?: string; environment?: string };
+  readonly payload: {
+    systemId: string;
+    productName?: string;
+    environment?: string;
+  };
 
   constructor(
     payload: { systemId: string; productName?: string; environment?: string },

@@ -80,14 +80,17 @@ export class EnrollmentService {
     });
 
     await this.eventBus.publish(
-      new EnrollmentCompletedEvent({
-        applicantId: enrollment.applicantId,
-        programId: enrollment.programId,
-        academicUnitId: enrollment.academicUnitId,
-        rollNumber: enrollment.rollNumber || undefined,
-      }, {
-        action: 'CREATE',
-      }),
+      new EnrollmentCompletedEvent(
+        {
+          applicantId: enrollment.applicantId,
+          programId: enrollment.programId,
+          academicUnitId: enrollment.academicUnitId,
+          rollNumber: enrollment.rollNumber || undefined,
+        },
+        {
+          action: 'CREATE',
+        },
+      ),
     );
 
     return enrollment;

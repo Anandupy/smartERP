@@ -30,7 +30,9 @@ describe('NotificationPreferenceService', () => {
       ],
     }).compile();
 
-    service = module.get<NotificationPreferenceService>(NotificationPreferenceService);
+    service = module.get<NotificationPreferenceService>(
+      NotificationPreferenceService,
+    );
   });
 
   it('should enforce mandatory email/SMS channels for AUTHENTICATION category', async () => {
@@ -41,6 +43,8 @@ describe('NotificationPreferenceService', () => {
     );
 
     expect(isAllowed).toBe(true);
-    expect(prismaService.notificationPreference.findUnique).not.toHaveBeenCalled();
+    expect(
+      prismaService.notificationPreference.findUnique,
+    ).not.toHaveBeenCalled();
   });
 });

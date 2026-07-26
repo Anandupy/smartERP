@@ -26,12 +26,17 @@ export class InAppNotificationController {
 
   @Get()
   @ApiOperation({ summary: 'Get current user notifications' })
-  async getMyNotifications(@Req() req: any, @Query() query: QueryNotificationDto) {
+  async getMyNotifications(
+    @Req() req: any,
+    @Query() query: QueryNotificationDto,
+  ) {
     return this.notificationService.getUserNotifications(req.user.id, query);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create an in-app notification (Admin/Service use)' })
+  @ApiOperation({
+    summary: 'Create an in-app notification (Admin/Service use)',
+  })
   async create(@Body() dto: CreateInAppNotificationDto) {
     return this.notificationService.create(dto);
   }

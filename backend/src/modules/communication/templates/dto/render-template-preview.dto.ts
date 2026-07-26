@@ -12,7 +12,9 @@ export class RenderTemplatePreviewDto {
   @IsOptional()
   templateId?: string;
 
-  @ApiPropertyOptional({ description: 'Template code to render (if templateId not provided)' })
+  @ApiPropertyOptional({
+    description: 'Template code to render (if templateId not provided)',
+  })
   @IsString()
   @IsOptional()
   code?: string;

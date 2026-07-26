@@ -44,7 +44,10 @@ export class CreateSystemDto {
   @IsOptional()
   maintenanceMessage?: string;
 
-  @ApiProperty({ description: 'Support Email Address', example: 'support@campusflow.io' })
+  @ApiProperty({
+    description: 'Support Email Address',
+    example: 'support@campusflow.io',
+  })
   @IsEmail()
   @IsNotEmpty()
   supportEmail: string;

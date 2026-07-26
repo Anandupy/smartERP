@@ -3,7 +3,10 @@ import { IsBoolean, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { NotificationCategory } from '@/generated/client';
 
 export class UpdateNotificationPreferenceDto {
-  @ApiProperty({ enum: NotificationCategory, example: NotificationCategory.FEES })
+  @ApiProperty({
+    enum: NotificationCategory,
+    example: NotificationCategory.FEES,
+  })
   @IsEnum(NotificationCategory)
   @IsNotEmpty()
   category: NotificationCategory;

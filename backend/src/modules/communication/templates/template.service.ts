@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import {
@@ -22,7 +27,10 @@ export class TemplateService {
     private readonly eventBus: EventBus,
   ) {}
 
-  async create(dto: CreateTemplateDto, userId?: string): Promise<CommunicationTemplate> {
+  async create(
+    dto: CreateTemplateDto,
+    userId?: string,
+  ): Promise<CommunicationTemplate> {
     const existing = await this.prisma.communicationTemplate.findFirst({
       where: {
         code: dto.code,
@@ -85,17 +93,30 @@ export class TemplateService {
     return template;
   }
 
-  async update(id: string, dto: UpdateTemplateDto, userId?: string): Promise<CommunicationTemplate> {
-    const template = await this.prisma.communicationTemplate.findUnique({ where: { id } });
+  async update(
+    id: string,
+    dto: UpdateTemplateDto,
+    userId?: string,
+  ): Promise<CommunicationTemplate> {
+    const template = await this.prisma.communicationTemplate.findUnique({
+      where: { id },
+    });
     if (!template) {
       throw new NotFoundException(`Template with ID '${id}' not found`);
     }
 
     let detectedVars = dto.variables || (template.variables as string[]) || [];
-    if (dto.subject !== undefined || dto.bodyHtml !== undefined || dto.bodyText !== undefined) {
-      const subject = dto.subject !== undefined ? dto.subject : template.subject || '';
-      const bodyHtml = dto.bodyHtml !== undefined ? dto.bodyHtml : template.bodyHtml || '';
-      const bodyText = dto.bodyText !== undefined ? dto.bodyText : template.bodyText || '';
+    if (
+      dto.subject !== undefined ||
+      dto.bodyHtml !== undefined ||
+      dto.bodyText !== undefined
+    ) {
+      const subject =
+        dto.subject !== undefined ? dto.subject : template.subject || '';
+      const bodyHtml =
+        dto.bodyHtml !== undefined ? dto.bodyHtml : template.bodyHtml || '';
+      const bodyText =
+        dto.bodyText !== undefined ? dto.bodyText : template.bodyText || '';
 
       const extracted = new Set<string>([
         ...this.renderer.extractVariables(subject || ''),
@@ -133,8 +154,11 @@ export class TemplateService {
   }
 
   async findById(id: string): Promise<CommunicationTemplate> {
-    const template = await this.prisma.communicationTemplate.findUnique({ where: { id } });
-    if (!template) throw new NotFoundException(`Template with ID '${id}' not found`);
+    const template = await this.prisma.communicationTemplate.findUnique({
+      where: { id },
+    });
+    if (!template)
+      throw new NotFoundException(`Template with ID '${id}' not found`);
     return template;
   }
 
@@ -233,7 +257,9 @@ export class TemplateService {
     } else if (code && channel) {
       template = await this.resolveTemplate(code, channel);
     } else {
-      throw new ConflictException('Either templateId or both code and channel must be provided for preview');
+      throw new ConflictException(
+        'Either templateId or both code and channel must be provided for preview',
+      );
     }
 
     return this.renderTemplate(template, variables);

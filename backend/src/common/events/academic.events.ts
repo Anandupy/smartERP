@@ -58,10 +58,22 @@ export class AcademicYearDeletedEvent extends DomainEvent {
 // --- Academic Unit Events ---
 export class AcademicUnitCreatedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'academic_unit.created';
-  readonly payload: { academicUnitId: string; name: string; branchId: string; programId: string; academicYearId: string };
+  readonly payload: {
+    academicUnitId: string;
+    name: string;
+    branchId: string;
+    programId: string;
+    academicYearId: string;
+  };
 
   constructor(
-    payload: { academicUnitId: string; name: string; branchId: string; programId: string; academicYearId: string },
+    payload: {
+      academicUnitId: string;
+      name: string;
+      branchId: string;
+      programId: string;
+      academicYearId: string;
+    },
     metadata?: Record<string, any>,
   ) {
     super({
@@ -151,10 +163,7 @@ export class ProgramDeletedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'program.deleted';
   readonly payload: { programId: string };
 
-  constructor(
-    payload: { programId: string },
-    metadata?: Record<string, any>,
-  ) {
+  constructor(payload: { programId: string }, metadata?: Record<string, any>) {
     super({
       eventName: ProgramDeletedEvent.EVENT_NAME,
       aggregateId: payload.programId,

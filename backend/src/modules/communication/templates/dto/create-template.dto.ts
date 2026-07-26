@@ -15,12 +15,18 @@ import {
 } from '@/generated/client';
 
 export class CreateTemplateDto {
-  @ApiProperty({ description: 'Unique template code', example: 'PASSWORD_RESET' })
+  @ApiProperty({
+    description: 'Unique template code',
+    example: 'PASSWORD_RESET',
+  })
   @IsString()
   @IsNotEmpty()
   code: string;
 
-  @ApiProperty({ description: 'Display name of template', example: 'Password Reset Request Email' })
+  @ApiProperty({
+    description: 'Display name of template',
+    example: 'Password Reset Request Email',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -30,15 +36,24 @@ export class CreateTemplateDto {
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ enum: CommunicationChannel, example: CommunicationChannel.EMAIL })
+  @ApiProperty({
+    enum: CommunicationChannel,
+    example: CommunicationChannel.EMAIL,
+  })
   @IsEnum(CommunicationChannel)
   channel: CommunicationChannel;
 
-  @ApiProperty({ enum: NotificationCategory, example: NotificationCategory.AUTHENTICATION })
+  @ApiProperty({
+    enum: NotificationCategory,
+    example: NotificationCategory.AUTHENTICATION,
+  })
   @IsEnum(NotificationCategory)
   category: NotificationCategory;
 
-  @ApiPropertyOptional({ description: 'Subject line (for Email / Push)', example: 'Reset Your Password' })
+  @ApiPropertyOptional({
+    description: 'Subject line (for Email / Push)',
+    example: 'Reset Your Password',
+  })
   @IsString()
   @IsOptional()
   subject?: string;
@@ -53,7 +68,10 @@ export class CreateTemplateDto {
   @IsOptional()
   bodyText?: string;
 
-  @ApiPropertyOptional({ description: 'Declared variable names', example: ['userName', 'resetLink', 'minutes'] })
+  @ApiPropertyOptional({
+    description: 'Declared variable names',
+    example: ['userName', 'resetLink', 'minutes'],
+  })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()

@@ -1,5 +1,8 @@
 import { ProviderType } from '@/generated/client';
-import { ProviderSendResult, SendEmailOptions } from './provider-result.interface';
+import {
+  ProviderSendResult,
+  SendEmailOptions,
+} from './provider-result.interface';
 
 export abstract class EmailProvider {
   abstract readonly providerType: ProviderType;
