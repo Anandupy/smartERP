@@ -25,6 +25,7 @@ import { BranchGuard } from '@/common/guards/branch.guard';
 import { AcademicYearGuard } from '@/common/guards/academic-year.guard';
 import { MaintenanceModule } from '@/modules/maintenance/maintenance.module';
 import { MaintenanceGuard } from '@/common/guards/maintenance.guard';
+import { CommunicationModule } from '@/modules/communication/communication.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { MaintenanceGuard } from '@/common/guards/maintenance.guard';
     AcademicUnitModule,
     AdmissionsModule,
     MaintenanceModule,
+    CommunicationModule,
   ],
   controllers: [],
   providers: [
