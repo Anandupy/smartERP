@@ -8,6 +8,7 @@
   },
   "moduleNameMapper": {
     "@/generated/client": "<rootDir>/../prisma/generated",
+    "@prisma/client": "<rootDir>/../prisma/generated",
     "^@/(.*)$": "<rootDir>/../src/$1"
   },
   "transformIgnorePatterns": [

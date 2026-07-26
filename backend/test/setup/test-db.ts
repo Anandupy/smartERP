@@ -8,6 +8,12 @@ export async function validateAndSeedDb() {
   // Validate safety BEFORE doing anything
   validateTestEnvironment();
 
+  try {
+    await prisma.maintenanceRule.deleteMany({});
+  } catch (err) {
+    console.log('[Test DB] MaintenanceRule cleanup skipped:', err.message);
+  }
+
   // Seeding happens inside a transaction or safely.
   // Actually, we avoid destructive cleanup. If seeding is needed, we should handle it
   // safely. For now we just call seedRealisticData.
