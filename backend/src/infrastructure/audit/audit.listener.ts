@@ -44,6 +44,9 @@ export class AuditListener implements OnModuleInit {
     'admissions_master.created',
     'admissions_master.updated',
     'admissions_master.deleted',
+    'maintenance_rule.created',
+    'maintenance_rule.updated',
+    'maintenance_rule.deleted',
   ]);
 
   constructor(

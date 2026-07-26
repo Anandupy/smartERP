@@ -8,3 +8,5 @@ export * from './academic.events';
 export * from './user.events';
 export * from './system-settings.events';
 export * from './admissions.events';
+export * from './maintenance.events';
+
