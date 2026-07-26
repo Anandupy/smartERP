@@ -2,18 +2,31 @@ import {
   Injectable,
   UnauthorizedException,
   ForbiddenException,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
-import { createHash } from 'crypto';
+import * as crypto from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
-import { UserLoggedInEvent } from '@/common/events';
+import {
+  UserLoggedInEvent,
+  PasswordResetRequestedEvent,
+  PasswordChangedEvent,
+  EmailVerificationRequestedEvent,
+  EmailVerifiedEvent,
+  OtpResendRequestedEvent,
+  OtpVerifiedEvent,
+  OtpSentEvent,
+} from '@/common/events';
 import { UserService } from '@/modules/user/user.service';
 import { PasswordService } from '@/common/services/password.service';
 import { LoginDto } from './dto/login.dto';
 import { v7 as uuidv7 } from 'uuid';
 import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
+import { OtpService } from '@/modules/communication/otp/otp.service';
+import { OtpPurpose } from '@/generated/client';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +38,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly eventBus: EventBus,
     private readonly maintenanceService: MaintenanceService,
+    private readonly otpService: OtpService,
   ) {}
 
   async login(
@@ -185,8 +199,254 @@ export class AuthService {
     });
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.userService.findByIdentifier(email);
+    const genericMessage =
+      'If the email matches an account in our system, a password reset link will be sent shortly.';
+
+    if (!user) {
+      return { message: genericMessage };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    await this.eventBus.publish(
+      new PasswordResetRequestedEvent({
+        userId: user.id,
+        email: user.email,
+        resetToken,
+        userName: user.fullName,
+        expiresInMinutes: 15,
+      }),
+    );
+
+    return { message: genericMessage };
+  }
+
+  async resetPassword(dto: any): Promise<{ message: string }> {
+    const { token, password } = dto;
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const resetTokenRecord = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+
+    if (
+      !resetTokenRecord ||
+      resetTokenRecord.isConsumed ||
+      resetTokenRecord.expiresAt < new Date()
+    ) {
+      throw new BadRequestException('Invalid or expired password reset token');
+    }
+
+    const user = resetTokenRecord.user;
+    const passwordHash = await this.passwordService.hash(password);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      });
+
+      await tx.passwordResetToken.update({
+        where: { id: resetTokenRecord.id },
+        data: {
+          isConsumed: true,
+          consumedAt: new Date(),
+        },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: { userId: user.id, isRevoked: false },
+        data: {
+          isRevoked: true,
+          revokedAt: new Date(),
+        },
+      });
+    });
+
+    await this.eventBus.publish(
+      new PasswordChangedEvent({
+        userId: user.id,
+        email: user.email,
+        userName: user.fullName,
+      }),
+    );
+
+    return { message: 'Password reset successfully' };
+  }
+
+  async verifyEmail(
+    email: string,
+    otp: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this.userService.findByIdentifier(email);
+    if (!user) {
+      throw new NotFoundException(`User not found with email ${email}`);
+    }
+
+    await this.otpService.verifyOtp({
+      identifier: email,
+      otp,
+      purpose: OtpPurpose.EMAIL_VERIFY,
+    });
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+        emailVerifiedAt: new Date(),
+      },
+    });
+
+    await this.eventBus.publish(
+      new EmailVerifiedEvent({
+        userId: user.id,
+        email: user.email,
+      }),
+    );
+
+    await this.eventBus.publish(
+      new OtpVerifiedEvent({
+        identifier: email,
+        purpose: OtpPurpose.EMAIL_VERIFY,
+        userId: user.id,
+      }),
+    );
+
+    return { success: true, message: 'Email verified successfully' };
+  }
+
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const user = await this.userService.findByIdentifier(email);
+    if (!user) {
+      throw new NotFoundException(`User not found with email ${email}`);
+    }
+
+    const otpResult = await this.otpService.generateOtp({
+      identifier: email,
+      purpose: OtpPurpose.EMAIL_VERIFY,
+      ttlMinutes: 10,
+      resendCooldownSeconds: 60,
+    });
+
+    await this.eventBus.publish(
+      new EmailVerificationRequestedEvent({
+        userId: user.id,
+        email: user.email,
+        rawOtp: otpResult.rawOtp,
+      }),
+    );
+
+    return { message: 'Verification email resent successfully' };
+  }
+
+  async sendOtp(
+    identifier: string,
+    purpose: OtpPurpose,
+  ): Promise<{ message: string }> {
+    const user = await this.userService.findByIdentifier(identifier);
+    if (!user) {
+      throw new NotFoundException(
+        `User not found for identifier: ${identifier}`,
+      );
+    }
+
+    const otpResult = await this.otpService.generateOtp({
+      identifier,
+      purpose,
+      ttlMinutes: 10,
+      resendCooldownSeconds: 60,
+    });
+
+    await this.eventBus.publish(
+      new OtpSentEvent({
+        identifier,
+        purpose,
+        rawOtp: otpResult.rawOtp,
+        email: user.email,
+        phone: user.phone,
+        userId: user.id,
+      }),
+    );
+
+    return { message: 'OTP sent successfully' };
+  }
+
+  async verifyOtp(
+    identifier: string,
+    purpose: OtpPurpose,
+    otp: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this.userService.findByIdentifier(identifier);
+    const userId = user?.id;
+
+    const verifyResult = await this.otpService.verifyOtp({
+      identifier,
+      otp,
+      purpose,
+    });
+
+    await this.eventBus.publish(
+      new OtpVerifiedEvent({
+        identifier,
+        purpose,
+        userId,
+      }),
+    );
+
+    return verifyResult;
+  }
+
+  async resendOtp(
+    identifier: string,
+    purpose: OtpPurpose,
+  ): Promise<{ message: string }> {
+    const user = await this.userService.findByIdentifier(identifier);
+    if (!user) {
+      throw new NotFoundException(
+        `User not found for identifier: ${identifier}`,
+      );
+    }
+
+    const otpResult = await this.otpService.generateOtp({
+      identifier,
+      purpose,
+      ttlMinutes: 10,
+      resendCooldownSeconds: 60,
+    });
+
+    await this.eventBus.publish(
+      new OtpResendRequestedEvent({
+        identifier,
+        purpose,
+        rawOtp: otpResult.rawOtp,
+        email: user.email,
+        phone: user.phone,
+        userId: user.id,
+      }),
+    );
+
+    return { message: 'OTP resent successfully' };
+  }
+
   private hashToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
+    return crypto.createHash('sha256').update(token).digest('hex');
   }
 
   private async generateTokens(
