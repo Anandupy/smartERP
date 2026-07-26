@@ -879,6 +879,71 @@ enum Environment {
 }
 
 
+// --- FROM: modules/system/maintenance-rule.prisma ---
+
+enum MaintenanceScopeType {
+  GLOBAL
+  ORGANIZATION
+  BRANCH
+  MODULE
+  FEATURE
+}
+
+enum MaintenanceSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model MaintenanceRule {
+  id                    String               @id @default(uuid(7))
+  scopeType             MaintenanceScopeType
+  scopeId               String?              // Null for GLOBAL, otherwise organizationId, branchId, module name, or feature name
+  isActive              Boolean              @default(true)
+  
+  // Rules config
+  allowLogin            Boolean              @default(false)
+  allowReadApis         Boolean              @default(true)
+  allowWriteApis        Boolean              @default(false)
+  customStatus          Int                  @default(503)
+  customPage            String?
+  bypassRoles           Json?                // JSON array of role names
+  
+  // Custom message elements
+  title                 String?
+  shortMessage          String?
+  description           String?
+  reason                String?
+  estimatedCompletion   DateTime?
+  maintenanceWindow     String?
+  supportContact        String?
+  bannerColor           String?
+  severity              MaintenanceSeverity? @default(INFO)
+  maintenanceIcon       String?
+  announcementLink      String?
+  externalStatusPageUrl String?
+  
+  // Scheduling & time-zone awareness
+  startAt               DateTime?
+  endAt                 DateTime?
+  timezone              String               @default("Asia/Kolkata")
+  
+  // Recurring windows support
+  isRecurring           Boolean              @default(false)
+  recurrenceDayOfWeek   Int?                 // 0 = Sunday, 6 = Saturday
+  recurrenceStartTime   String?              // "HH:MM" format
+  recurrenceEndTime     String?              // "HH:MM" format
+  
+  createdBy             String?
+  updatedBy             String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([scopeType, scopeId])
+  @@index([isActive])
+}
+
+
 // --- FROM: modules/system/system-setting.prisma ---
 
 model SystemSetting {
