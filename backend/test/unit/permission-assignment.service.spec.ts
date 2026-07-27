@@ -4,7 +4,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { LoggerService } from '@/common/logger/logger.service';
 import { RequestContextService } from '@/common/logger/request-context.service';
-import { RoleType, OverrideType } from '@prisma/client';
+import { RoleType, OverrideType } from '@/generated/client';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('PermissionAssignmentService', () => {

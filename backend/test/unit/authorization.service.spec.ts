@@ -4,7 +4,7 @@ import { PermissionResolverService } from '@/modules/authorization/permission-re
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { LoggerService } from '@/common/logger/logger.service';
 import { RequestContextService } from '@/common/logger/request-context.service';
-import { RoleType } from '@prisma/client';
+import { RoleType } from '@/generated/client';
 
 describe('AuthorizationService Façade', () => {
   let service: AuthorizationService;

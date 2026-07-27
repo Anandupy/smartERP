@@ -23,7 +23,7 @@ import { SetUserPermissionOverrideDto } from './dto/user-permission-override.dto
 import { QueryPermissionsDto } from './dto/permission-query.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
-import { RoleType } from '@prisma/client';
+import { RoleType } from '@/generated/client';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 

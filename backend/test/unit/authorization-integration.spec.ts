@@ -14,7 +14,7 @@ import { RequestContextService } from '@/common/logger/request-context.service';
 import { AuditEventMapper } from '@/infrastructure/audit/audit-event.mapper';
 import { AuditListener } from '@/infrastructure/audit/audit.listener';
 import { AuditRepository } from '@/infrastructure/audit/audit.repository';
-import { RoleType, OverrideType } from '@prisma/client';
+import { RoleType, OverrideType } from '@/generated/client';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 describe('Authorization Platform Phase 3 Integration Test', () => {

@@ -2,7 +2,7 @@ import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma.service';
 import { PasswordService } from '@/common/services/password.service';
-import { RoleType } from '@prisma/client';
+import { RoleType } from '@/generated/client';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @Injectable()

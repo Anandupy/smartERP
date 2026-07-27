@@ -4,7 +4,7 @@ import { ForbiddenException, ExecutionContext } from '@nestjs/common';
 import { PermissionGuard } from '@/common/guards/permission.guard';
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { LoggerService } from '@/common/logger/logger.service';
-import { RoleType } from '@prisma/client';
+import { RoleType } from '@/generated/client';
 
 describe('PermissionGuard', () => {
   let guard: PermissionGuard;

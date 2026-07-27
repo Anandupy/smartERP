@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { RoleType, OverrideType } from '@prisma/client';
+import { RoleType, OverrideType } from '@/generated/client';
 import { LoggerService } from '@/common/logger/logger.service';
 
 export interface ResolvedPermissions {

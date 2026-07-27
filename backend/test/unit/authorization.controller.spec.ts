@@ -3,7 +3,7 @@ import { AuthorizationController } from '@/modules/authorization/authorization.c
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { PermissionCatalogService } from '@/modules/authorization/permission-catalog.service';
 import { PermissionAssignmentService } from '@/modules/authorization/permission-assignment.service';
-import { RoleType, OverrideType } from '@prisma/client';
+import { RoleType, OverrideType } from '@/generated/client';
 import { ForbiddenException } from '@nestjs/common';
 
 describe('AuthorizationController', () => {

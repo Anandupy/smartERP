@@ -11,7 +11,7 @@ import {
   PermissionMode,
 } from '../decorators/permission.decorator';
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
-import { RoleType } from '@prisma/client';
+import { RoleType } from '@/generated/client';
 import { LoggerService } from '../logger/logger.service';
 
 @Injectable()

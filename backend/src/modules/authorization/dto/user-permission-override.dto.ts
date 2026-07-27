@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { OverrideType } from '@prisma/client';
+import { OverrideType } from '@/generated/client';
 
 export class SetUserPermissionOverrideDto {
   @ApiProperty({

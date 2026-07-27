@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PermissionResolverService } from './permission-resolver.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
-import { RoleType } from '@prisma/client';
+import { RoleType } from '@/generated/client';
 import { LoggerService } from '@/common/logger/logger.service';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { PermissionDeniedEvent } from './events/authorization.events';

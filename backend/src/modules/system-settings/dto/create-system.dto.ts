@@ -7,7 +7,7 @@ import {
   IsEmail,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Environment } from '@prisma/client';
+import { Environment } from '@/generated/client';
 
 export class CreateSystemDto {
   @ApiProperty({ description: 'Product Name', example: 'CampusFlow ERP' })

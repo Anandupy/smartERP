@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PermissionResolverService } from '@/modules/authorization/permission-resolver.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { LoggerService } from '@/common/logger/logger.service';
-import { RoleType, OverrideType } from '@prisma/client';
+import { RoleType, OverrideType } from '@/generated/client';
 
 describe('PermissionResolverService', () => {
   let resolver: PermissionResolverService;
