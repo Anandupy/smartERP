@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthorizationService } from './authorization.service';
-import { PermissionService } from './permission.service';
+import { PermissionCatalogService } from './permission-catalog.service';
+import { PermissionAssignmentService } from './permission-assignment.service';
 import { PermissionResolverService } from './permission-resolver.service';
 import { AuthorizationController } from './authorization.controller';
 
@@ -9,9 +10,15 @@ import { AuthorizationController } from './authorization.controller';
   controllers: [AuthorizationController],
   providers: [
     AuthorizationService,
-    PermissionService,
+    PermissionCatalogService,
+    PermissionAssignmentService,
     PermissionResolverService,
   ],
-  exports: [AuthorizationService, PermissionService, PermissionResolverService],
+  exports: [
+    AuthorizationService,
+    PermissionCatalogService,
+    PermissionAssignmentService,
+    PermissionResolverService,
+  ],
 })
 export class AuthorizationModule {}

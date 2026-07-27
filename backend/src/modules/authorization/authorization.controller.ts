@@ -16,7 +16,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { AuthorizationService } from './authorization.service';
-import { PermissionService } from './permission.service';
+import { PermissionCatalogService } from './permission-catalog.service';
+import { PermissionAssignmentService } from './permission-assignment.service';
 import { AssignRolePermissionsDto } from './dto/assign-role-permissions.dto';
 import { SetUserPermissionOverrideDto } from './dto/user-permission-override.dto';
 import { QueryPermissionsDto } from './dto/permission-query.dto';
@@ -32,21 +33,22 @@ import { PERMISSIONS } from '@/common/constants/permission.constants';
 export class AuthorizationController {
   constructor(
     private readonly authorizationService: AuthorizationService,
-    private readonly permissionService: PermissionService,
+    private readonly catalogService: PermissionCatalogService,
+    private readonly assignmentService: PermissionAssignmentService,
   ) {}
 
   @Get('categories')
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'List all permission categories' })
+  @ApiOperation({ summary: 'List all active permission categories' })
   async getCategories() {
-    return this.permissionService.getCategories();
+    return this.catalogService.getCategories();
   }
 
   @Get('permissions')
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'List system permissions' })
+  @ApiOperation({ summary: 'List system permissions with category details' })
   async getPermissions(@Query() query: QueryPermissionsDto) {
-    return this.permissionService.getPermissions(query.categoryId);
+    return this.catalogService.getPermissions(query.categoryId);
   }
 
   @Get('permissions/:id')
@@ -54,7 +56,7 @@ export class AuthorizationController {
   @ApiOperation({ summary: 'Get permission details by ID' })
   @ApiParam({ name: 'id', description: 'Permission UUID' })
   async getPermissionById(@Param('id') id: string) {
-    return this.permissionService.getPermissionById(id);
+    return this.catalogService.getPermissionById(id);
   }
 
   @Get('roles/:role/permissions')
@@ -62,13 +64,13 @@ export class AuthorizationController {
   @ApiOperation({ summary: 'Get permissions assigned to a specific role' })
   @ApiParam({ name: 'role', enum: RoleType })
   async getRolePermissions(@Param('role') role: RoleType) {
-    return this.authorizationService.getRolePermissions(role);
+    return this.assignmentService.getRolePermissions(role);
   }
 
   @Post('roles/:role/permissions')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Assign or replace permissions for a role' })
+  @ApiOperation({ summary: 'Assign or synchronize permissions for a role' })
   @ApiParam({ name: 'role', enum: RoleType })
   async assignRolePermissions(
     @Param('role') role: RoleType,
@@ -76,7 +78,7 @@ export class AuthorizationController {
     @Req() req: any,
   ) {
     const updatedBy = req.context?.userId || req.user?.id;
-    return this.authorizationService.assignPermissionsToRole(
+    return this.assignmentService.assignPermissionsToRole(
       role,
       dto.permissionIds,
       updatedBy,
@@ -88,7 +90,7 @@ export class AuthorizationController {
   @ApiOperation({ summary: 'Get direct permission overrides for a user' })
   @ApiParam({ name: 'userId', description: 'User UUID' })
   async getUserOverrides(@Param('userId') userId: string) {
-    return this.authorizationService.getUserOverrides(userId);
+    return this.assignmentService.getUserOverrides(userId);
   }
 
   @Post('users/:userId/overrides')
@@ -103,13 +105,13 @@ export class AuthorizationController {
     @Body() dto: SetUserPermissionOverrideDto,
     @Req() req: any,
   ) {
-    const createdBy = req.context?.userId || req.user?.id;
-    return this.authorizationService.setUserOverride(
+    const performedBy = req.context?.userId || req.user?.id;
+    return this.assignmentService.setUserOverride(
       userId,
       dto.permissionId,
       dto.type,
       dto.reason,
-      createdBy,
+      performedBy,
     );
   }
 
@@ -122,8 +124,14 @@ export class AuthorizationController {
   async removeUserOverride(
     @Param('userId') userId: string,
     @Param('permissionId') permissionId: string,
+    @Req() req: any,
   ) {
-    return this.authorizationService.removeUserOverride(userId, permissionId);
+    const removedBy = req.context?.userId || req.user?.id;
+    return this.assignmentService.removeUserOverride(
+      userId,
+      permissionId,
+      removedBy,
+    );
   }
 
   @Get('me/effective-permissions')
