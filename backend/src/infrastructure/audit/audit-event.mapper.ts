@@ -82,6 +82,13 @@ export class AuditEventMapper {
     ) {
       return 'ADMISSIONS';
     }
+    if (
+      agg.includes('PERMISSION') ||
+      agg.includes('AUTHORIZATION') ||
+      agg.includes('ROLEPERMISSION')
+    ) {
+      return 'AUTHORIZATION';
+    }
     if (agg.includes('BRANCH') || agg.includes('ORGANIZATION'))
       return 'ORGANIZATION';
     if (agg.includes('USER') || agg.includes('AUTH')) return 'AUTH';

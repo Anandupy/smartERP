@@ -54,6 +54,10 @@ export class AuditListener implements OnModuleInit {
     'communication.otp_resend_requested',
     'communication.otp_verified',
     'communication.otp_sent',
+    'role_permissions.updated',
+    'user_permission_override.updated',
+    'user_permission_override.deleted',
+    'authorization.permission_denied',
   ]);
 
   constructor(
