@@ -21,6 +21,8 @@ import { UpdateAcademicYearDto } from './dto/update-academic-year.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Academic Years')
 @ApiBearerAuth()
@@ -36,6 +38,7 @@ export class AcademicYearController {
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create academic year' })
   async create(@Body() dto: CreateAcademicYearDto, @Req() req: any) {
     if (req.context?.branchId && !dto.branchId) {
@@ -52,6 +55,7 @@ export class AcademicYearController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get all academic years for a branch' })
   async findAll(@Query('branchId') branchId: string, @Req() req: any) {
     const targetBranchId = req.context?.branchId || branchId;
@@ -69,6 +73,7 @@ export class AcademicYearController {
     UserRole.STUDENT,
     UserRole.PARENT,
   )
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get current (selected) academic year' })
   async findCurrent(@Query('branchId') branchId: string, @Req() req: any) {
     const targetBranchId = req.context?.branchId || branchId;
@@ -79,6 +84,7 @@ export class AcademicYearController {
 
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update academic year' })
   async update(
     @Param('id') id: string,
@@ -91,6 +97,7 @@ export class AcademicYearController {
 
   @Patch(':id/activate')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Activate academic year' })
   async activate(@Param('id') id: string) {
     return this.academicYearService.activate(id);
@@ -98,6 +105,7 @@ export class AcademicYearController {
 
   @Patch(':id/select')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Select academic year (set as current)' })
   async select(@Param('id') id: string) {
     return this.academicYearService.select(id);
@@ -105,6 +113,7 @@ export class AcademicYearController {
 
   @Patch(':id/lock')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Lock academic year' })
   async lock(@Param('id') id: string) {
     const data = await this.academicYearService.lock(id);
@@ -113,6 +122,7 @@ export class AcademicYearController {
 
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Soft delete academic year' })
   async remove(@Param('id') id: string) {
     await this.academicYearService.softDelete(id);

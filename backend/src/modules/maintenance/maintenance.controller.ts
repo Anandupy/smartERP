@@ -7,7 +7,6 @@ import {
   Body,
   Param,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MaintenanceService } from './maintenance.service';
@@ -16,6 +15,8 @@ import { UpdateMaintenanceRuleDto } from './dto/update-maintenance-rule.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { Public } from '@/common/decorators/public.decorator';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Maintenance Rules')
 @Controller('maintenance-rules')
@@ -79,6 +80,7 @@ export class MaintenanceController {
   @Post()
   @ApiBearerAuth()
   @Roles(UserRole.SUPER_ADMIN)
+  @RequirePermission(PERMISSIONS.System.Maintenance)
   @ApiOperation({ summary: 'Create a new maintenance rule (SUPER_ADMIN only)' })
   async create(@Body() dto: CreateMaintenanceRuleDto, @Req() req: any) {
     const data = await this.maintenanceService.createRule(dto, req.userId);
@@ -88,6 +90,7 @@ export class MaintenanceController {
   @Get()
   @ApiBearerAuth()
   @Roles(UserRole.SUPER_ADMIN)
+  @RequirePermission(PERMISSIONS.System.View)
   @ApiOperation({ summary: 'List all maintenance rules (SUPER_ADMIN only)' })
   async findAll() {
     const data = await this.maintenanceService.listRules();
@@ -97,6 +100,7 @@ export class MaintenanceController {
   @Get(':id')
   @ApiBearerAuth()
   @Roles(UserRole.SUPER_ADMIN)
+  @RequirePermission(PERMISSIONS.System.View)
   @ApiOperation({
     summary: 'Get details of a maintenance rule by ID (SUPER_ADMIN only)',
   })
@@ -108,6 +112,7 @@ export class MaintenanceController {
   @Patch(':id')
   @ApiBearerAuth()
   @Roles(UserRole.SUPER_ADMIN)
+  @RequirePermission(PERMISSIONS.System.Maintenance)
   @ApiOperation({ summary: 'Update a maintenance rule (SUPER_ADMIN only)' })
   async update(
     @Param('id') id: string,
@@ -121,6 +126,7 @@ export class MaintenanceController {
   @Delete(':id')
   @ApiBearerAuth()
   @Roles(UserRole.SUPER_ADMIN)
+  @RequirePermission(PERMISSIONS.System.Maintenance)
   @ApiOperation({ summary: 'Delete a maintenance rule (SUPER_ADMIN only)' })
   async remove(@Param('id') id: string) {
     const data = await this.maintenanceService.deleteRule(id);

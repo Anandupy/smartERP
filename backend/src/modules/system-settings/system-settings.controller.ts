@@ -5,6 +5,8 @@ import { CreateSystemDto } from './dto/create-system.dto';
 import { UpdateSystemDto } from './dto/update-system.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('System Settings')
 @ApiBearerAuth()
@@ -14,6 +16,7 @@ export class SystemSettingsController {
   constructor(private readonly systemSettingsService: SystemSettingsService) {}
 
   @Post('init')
+  @RequirePermission(PERMISSIONS.System.Manage)
   @ApiOperation({ summary: 'Initialize system settings (allowed only once)' })
   async init(@Body() dto: CreateSystemDto) {
     const data = await this.systemSettingsService.initSystem(dto);
@@ -21,6 +24,7 @@ export class SystemSettingsController {
   }
 
   @Get()
+  @RequirePermission(PERMISSIONS.System.View)
   @ApiOperation({ summary: 'Get global system configuration' })
   async getSettings() {
     const data = await this.systemSettingsService.getSystem();
@@ -28,6 +32,7 @@ export class SystemSettingsController {
   }
 
   @Patch()
+  @RequirePermission(PERMISSIONS.System.Manage)
   @ApiOperation({ summary: 'Update system configuration' })
   async update(@Body() dto: UpdateSystemDto) {
     const data = await this.systemSettingsService.updateSystem(dto);

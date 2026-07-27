@@ -14,6 +14,8 @@ import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Branches')
 @ApiBearerAuth()
@@ -23,6 +25,7 @@ export class BranchController {
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create a new branch (Super/Org Admin only)' })
   async create(@Body() dto: CreateBranchDto, @Req() req: any) {
     const data = await this.branchService.createBranch(dto, req.userId);
@@ -30,6 +33,7 @@ export class BranchController {
   }
 
   @Get()
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get all branches' })
   async findAll() {
     const data = await this.branchService.getAllBranches();
@@ -37,6 +41,7 @@ export class BranchController {
   }
 
   @Get(':id')
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get branch by ID' })
   async findOne(@Param('id') id: string) {
     const data = await this.branchService.getBranchById(id);
@@ -44,6 +49,7 @@ export class BranchController {
   }
 
   @Get('organization/:orgId')
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get branches by organization' })
   async findByOrg(@Param('orgId') orgId: string) {
     const data = await this.branchService.getBranchesByOrganization(orgId);
@@ -52,6 +58,7 @@ export class BranchController {
 
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update branch' })
   async update(
     @Param('id') id: string,
@@ -64,6 +71,7 @@ export class BranchController {
 
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Soft delete branch (Super Admin only)' })
   async remove(@Param('id') id: string, @Req() req: any) {
     const data = await this.branchService.softDeleteBranch(id, req.userId);
@@ -72,6 +80,7 @@ export class BranchController {
 
   @Patch(':id/status')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Toggle branch active status' })
   async toggleStatus(@Param('id') id: string, @Req() req: any) {
     const data = await this.branchService.toggleBranchStatus(id, req.userId);

@@ -23,6 +23,8 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Academic Units')
 @ApiBearerAuth()
@@ -44,6 +46,7 @@ export class AcademicUnitController {
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create an academic unit' })
   async create(@Body() createDto: CreateAcademicUnitDto, @Req() req: any) {
     if (req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId) {
@@ -66,6 +69,7 @@ export class AcademicUnitController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get all academic units' })
   async findAll(
     @Query('branchId') branchId: string,
@@ -93,6 +97,7 @@ export class AcademicUnitController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get hierarchical academic unit tree' })
   async getTree(
     @Query('branchId') branchId: string,
@@ -120,6 +125,7 @@ export class AcademicUnitController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get academic unit by ID' })
   async findOne(@Param('id') id: string) {
     const data = await this.academicUnitService.getAcademicUnitById(id);
@@ -128,6 +134,7 @@ export class AcademicUnitController {
 
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update academic unit details' })
   async update(
     @Param('id') id: string,
@@ -144,6 +151,7 @@ export class AcademicUnitController {
 
   @Patch(':id/move')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Move academic unit in hierarchy' })
   async move(
     @Param('id') id: string,
@@ -160,6 +168,7 @@ export class AcademicUnitController {
 
   @Patch(':id/status')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Toggle academic unit active status' })
   async toggleStatus(@Param('id') id: string, @Req() req: any) {
     const data = await this.academicUnitService.toggleAcademicUnitStatus(
@@ -171,6 +180,7 @@ export class AcademicUnitController {
 
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Soft delete academic unit' })
   async remove(@Param('id') id: string, @Req() req: any) {
     const data = await this.academicUnitService.softDeleteAcademicUnit(

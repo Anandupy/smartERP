@@ -26,6 +26,8 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Applicants')
 @ApiBearerAuth()
@@ -52,6 +54,7 @@ export class ApplicantController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Admissions.Create)
   @ApiOperation({ summary: 'Register a new applicant' })
   async create(@Body() dto: CreateApplicantDto, @Req() req: any) {
     const orgId = req.context?.organizationId || '';
@@ -79,6 +82,7 @@ export class ApplicantController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Admissions.View)
   @ApiOperation({ summary: 'Check for potential duplicate applicant records' })
   async checkDupes(@Body() dto: CheckDuplicatesDto, @Req() req: any) {
     const branchId = req.context?.branchId || '';
@@ -93,6 +97,7 @@ export class ApplicantController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Admissions.View)
   @ApiOperation({
     summary: 'Get all applicants for branch and academic year (filtered/paged)',
   })
@@ -110,6 +115,7 @@ export class ApplicantController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Admissions.View)
   @ApiOperation({ summary: 'Get applicant details by ID' })
   async findOne(@Param('id') id: string) {
     const data = await this.service.findOne(id);
@@ -123,6 +129,7 @@ export class ApplicantController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Admissions.Update)
   @ApiOperation({ summary: 'Update applicant details' })
   async update(
     @Param('id') id: string,
@@ -135,6 +142,7 @@ export class ApplicantController {
 
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Admissions.Delete)
   @ApiOperation({ summary: 'Soft delete applicant' })
   async remove(@Param('id') id: string, @Req() req: any) {
     await this.service.remove(id, req.userId);

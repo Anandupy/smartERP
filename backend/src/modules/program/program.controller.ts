@@ -21,6 +21,8 @@ import { UpdateProgramDto } from './dto/update-program.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Programs')
 @ApiBearerAuth()
@@ -36,6 +38,7 @@ export class ProgramController {
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create a new program' })
   async create(@Body() createProgramDto: CreateProgramDto, @Req() req: any) {
     if (req.context?.branchId && !createProgramDto.branchId) {
@@ -55,6 +58,7 @@ export class ProgramController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get all programs for a branch' })
   async findAll(@Query('branchId') branchId: string, @Req() req: any) {
     const targetBranchId = req.context?.branchId || branchId;
@@ -70,6 +74,7 @@ export class ProgramController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get hierarchical program tree for a branch' })
   async getTree(@Query('branchId') branchId: string, @Req() req: any) {
     const targetBranchId = req.context?.branchId || branchId;
@@ -85,6 +90,7 @@ export class ProgramController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get program by ID' })
   async findOne(@Param('id') id: string) {
     const data = await this.programService.findById(id);
@@ -93,6 +99,7 @@ export class ProgramController {
 
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update program' })
   async update(
     @Param('id') id: string,
@@ -109,6 +116,7 @@ export class ProgramController {
 
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Soft delete program' })
   async remove(@Param('id') id: string, @Req() req: any) {
     const data = await this.programService.softDeleteProgram(id, req.userId);
@@ -117,6 +125,7 @@ export class ProgramController {
 
   @Patch(':id/status')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Toggle program status' })
   async toggleStatus(@Param('id') id: string, @Req() req: any) {
     const data = await this.programService.toggleProgramStatus(id, req.userId);
