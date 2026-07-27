@@ -27,6 +27,9 @@ import { MaintenanceModule } from '@/modules/maintenance/maintenance.module';
 import { MaintenanceGuard } from '@/common/guards/maintenance.guard';
 import { CommunicationModule } from '@/modules/communication/communication.module';
 
+import { AuthorizationModule } from '@/modules/authorization/authorization.module';
+import { PermissionGuard } from '@/common/guards/permission.guard';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -41,6 +44,7 @@ import { CommunicationModule } from '@/modules/communication/communication.modul
     SecurityModule,
     AuthModule,
     UserModule,
+    AuthorizationModule,
     SystemSettingsModule,
     OrganizationModule,
     BranchModule,
@@ -60,6 +64,10 @@ import { CommunicationModule } from '@/modules/communication/communication.modul
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionGuard,
     },
     {
       provide: APP_GUARD,
