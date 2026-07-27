@@ -25,6 +25,7 @@ model User {
 
   refreshTokens        RefreshToken[]
   passwordResetTokens  PasswordResetToken[]
+  permissionOverrides  UserPermissionOverride[]
 
   @@index([organizationId])
   @@index([branchId])

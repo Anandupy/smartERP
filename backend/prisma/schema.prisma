@@ -732,9 +732,99 @@ model User {
 
   refreshTokens        RefreshToken[]
   passwordResetTokens  PasswordResetToken[]
+  permissionOverrides  UserPermissionOverride[]
 
   @@index([organizationId])
   @@index([branchId])
+}
+
+
+// --- FROM: modules/authorization/permission-category.prisma ---
+
+model PermissionCategory {
+  id           String       @id @default(uuid(7))
+  code         String       @unique
+  name         String
+  description  String?
+  icon         String?
+  displayOrder Int          @default(0)
+  isSystem     Boolean      @default(false)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  permissions  Permission[]
+
+  @@index([code])
+}
+
+
+// --- FROM: modules/authorization/permission-override-type.enums.prisma ---
+
+enum OverrideType {
+  GRANT
+  DENY
+}
+
+
+// --- FROM: modules/authorization/permission.prisma ---
+
+model Permission {
+  id           String                 @id @default(uuid(7))
+  name         String                 @unique
+  categoryId   String
+  description  String?
+  isActive     Boolean                @default(true)
+  isSystem     Boolean                @default(false)
+  displayOrder Int                    @default(0)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  category     PermissionCategory     @relation(fields: [categoryId], references: [id])
+  roles        RolePermission[]
+  overrides    UserPermissionOverride[]
+
+  @@index([name])
+  @@index([categoryId])
+}
+
+
+// --- FROM: modules/authorization/role-permission.prisma ---
+
+model RolePermission {
+  id           String     @id @default(uuid(7))
+  role         RoleType
+  permissionId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@index([role])
+  @@index([permissionId])
+}
+
+
+// --- FROM: modules/authorization/user-permission-override.prisma ---
+
+model UserPermissionOverride {
+  id           String       @id @default(uuid(7))
+  userId       String
+  permissionId String
+  type         OverrideType
+  reason       String?
+  createdBy    String?
+  updatedBy    String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
 }
 
 

@@ -1,0 +1,4 @@
+enum OverrideType {
+  GRANT
+  DENY
+}
