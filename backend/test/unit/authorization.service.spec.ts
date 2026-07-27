@@ -1,36 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { PermissionResolverService } from '@/modules/authorization/permission-resolver.service';
-import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { LoggerService } from '@/common/logger/logger.service';
-import { RoleType, OverrideType } from '@prisma/client';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { RequestContextService } from '@/common/logger/request-context.service';
+import { RoleType } from '@prisma/client';
 
-describe('AuthorizationService', () => {
+describe('AuthorizationService Façade', () => {
   let service: AuthorizationService;
-
-  const mockPrisma: any = {
-    permission: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-    },
-    rolePermission: {
-      findMany: jest.fn(),
-      deleteMany: jest.fn(),
-      createMany: jest.fn(),
-    },
-    userPermissionOverride: {
-      findMany: jest.fn(),
-      upsert: jest.fn(),
-      findUnique: jest.fn(),
-      delete: jest.fn(),
-    },
-    user: {
-      findUnique: jest.fn(),
-    },
-    $transaction: jest.fn((callback) => callback(mockPrisma)),
-  };
 
   const mockResolver = {
     resolvePermissions: jest.fn(),
@@ -48,102 +25,111 @@ describe('AuthorizationService', () => {
     error: jest.fn(),
   };
 
+  const mockRequestContextService = {
+    getContext: jest.fn().mockReturnValue({
+      userId: 'user-1',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+    }),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthorizationService,
-        { provide: PrismaService, useValue: mockPrisma },
         { provide: PermissionResolverService, useValue: mockResolver },
         { provide: EventBus, useValue: mockEventBus },
         { provide: LoggerService, useValue: mockLogger },
+        { provide: RequestContextService, useValue: mockRequestContextService },
       ],
     }).compile();
 
     service = module.get<AuthorizationService>(AuthorizationService);
   });
 
-  it('should allow access when user has required permissions (ALL mode)', async () => {
+  it('should evaluate hasPermission correctly', async () => {
+    mockResolver.resolvePermissions.mockResolvedValue({
+      effectivePermissions: new Set(['student.view']),
+    });
+
+    const hasView = await service.hasPermission('user-1', RoleType.STAFF, 'student.view');
+    const hasCreate = await service.hasPermission('user-1', RoleType.STAFF, 'student.create');
+
+    expect(hasView).toBe(true);
+    expect(hasCreate).toBe(false);
+  });
+
+  it('should evaluate hasAnyPermission correctly', async () => {
+    mockResolver.resolvePermissions.mockResolvedValue({
+      effectivePermissions: new Set(['student.view']),
+    });
+
+    const res1 = await service.hasAnyPermission('user-1', RoleType.STAFF, ['student.view', 'student.create']);
+    const res2 = await service.hasAnyPermission('user-1', RoleType.STAFF, ['fees.collect']);
+
+    expect(res1).toBe(true);
+    expect(res2).toBe(false);
+  });
+
+  it('should evaluate hasAllPermissions correctly', async () => {
     mockResolver.resolvePermissions.mockResolvedValue({
       effectivePermissions: new Set(['student.view', 'student.create']),
     });
 
-    const result = await service.canUserAccess(
-      'user-1',
-      RoleType.STAFF,
-      ['student.view', 'student.create'],
-      'ALL',
-    );
+    const res1 = await service.hasAllPermissions('user-1', RoleType.STAFF, ['student.view', 'student.create']);
+    const res2 = await service.hasAllPermissions('user-1', RoleType.STAFF, ['student.view', 'student.delete']);
 
-    expect(result.allowed).toBe(true);
-    expect(result.missingPermissions.length).toBe(0);
+    expect(res1).toBe(true);
+    expect(res2).toBe(false);
   });
 
-  it('should deny access and publish event when missing permissions (ALL mode)', async () => {
+  it('should grant access in canUserAccess if all permissions present', async () => {
+    mockResolver.resolvePermissions.mockResolvedValue({
+      effectivePermissions: new Set(['student.view', 'student.create']),
+    });
+
+    const res = await service.canUserAccess('user-1', RoleType.STAFF, ['student.view', 'student.create'], 'ALL');
+
+    expect(res.allowed).toBe(true);
+    expect(res.missingPermissions).toEqual([]);
+  });
+
+  it('should deny access and emit PermissionDeniedEvent if permission missing', async () => {
     mockResolver.resolvePermissions.mockResolvedValue({
       effectivePermissions: new Set(['student.view']),
     });
 
-    const result = await service.canUserAccess(
+    const res = await service.canUserAccess(
       'user-1',
       RoleType.STAFF,
       ['student.view', 'student.delete'],
       'ALL',
+      { route: '/admissions/applicants/1', httpMethod: 'DELETE' },
     );
 
-    expect(result.allowed).toBe(false);
-    expect(result.missingPermissions).toEqual(['student.delete']);
+    expect(res.allowed).toBe(false);
+    expect(res.missingPermissions).toEqual(['student.delete']);
     expect(mockEventBus.publish).toHaveBeenCalled();
   });
 
-  it('should allow access when user has at least one permission in ANY mode', async () => {
+  it('should return user effective permissions', async () => {
     mockResolver.resolvePermissions.mockResolvedValue({
-      effectivePermissions: new Set(['student.view']),
-    });
-
-    const result = await service.canUserAccess(
-      'user-1',
-      RoleType.STAFF,
-      ['student.view', 'student.delete'],
-      'ANY',
-    );
-
-    expect(result.allowed).toBe(true);
-  });
-
-  it('should assign permissions to a role in transaction', async () => {
-    const p1 = '019183ab-1234-7111-a111-111111111111';
-    mockPrisma.permission.findMany.mockResolvedValue([{ id: p1, name: 'student.view' }]);
-
-    const res = await service.assignPermissionsToRole(RoleType.STAFF, [p1], 'admin-1');
-
-    expect(res.role).toBe(RoleType.STAFF);
-    expect(res.count).toBe(1);
-    expect(mockEventBus.publish).toHaveBeenCalled();
-  });
-
-  it('should throw BadRequestException if assigning invalid permission IDs', async () => {
-    mockPrisma.permission.findMany.mockResolvedValue([]);
-
-    await expect(
-      service.assignPermissionsToRole(RoleType.STAFF, ['invalid-id'], 'admin-1'),
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('should set direct user override (GRANT)', async () => {
-    const p1 = '019183ab-1234-7111-a111-111111111111';
-    mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
-    mockPrisma.permission.findUnique.mockResolvedValue({ id: p1, name: 'fees.collect' });
-    mockPrisma.userPermissionOverride.upsert.mockResolvedValue({
       userId: 'user-1',
-      permissionId: p1,
-      type: OverrideType.GRANT,
+      role: RoleType.STAFF,
+      effectivePermissions: new Set(['student.view']),
+      rolePermissions: ['student.view'],
+      userGrants: [],
+      userDenies: [],
+      isSuperAdmin: false,
+      resolutionDurationMs: 2.5,
     });
 
-    const res = await service.setUserOverride('user-1', p1, OverrideType.GRANT, 'test reason', 'admin-1');
+    const res = await service.getUserEffectivePermissions('user-1', RoleType.STAFF);
 
-    expect(res).toBeDefined();
-    expect(mockEventBus.publish).toHaveBeenCalled();
+    expect(res.userId).toBe('user-1');
+    expect(res.effectivePermissions).toEqual(['student.view']);
+    expect(res.resolutionDurationMs).toBe(2.5);
   });
 });

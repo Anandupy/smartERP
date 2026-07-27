@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthorizationController } from '@/modules/authorization/authorization.controller';
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
-import { PermissionService } from '@/modules/authorization/permission.service';
+import { PermissionCatalogService } from '@/modules/authorization/permission-catalog.service';
+import { PermissionAssignmentService } from '@/modules/authorization/permission-assignment.service';
 import { RoleType, OverrideType } from '@prisma/client';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -9,18 +10,21 @@ describe('AuthorizationController', () => {
   let controller: AuthorizationController;
 
   const mockAuthorizationService = {
+    getUserEffectivePermissions: jest.fn(),
+  };
+
+  const mockCatalogService = {
+    getCategories: jest.fn(),
+    getPermissions: jest.fn(),
+    getPermissionById: jest.fn(),
+  };
+
+  const mockAssignmentService = {
     getRolePermissions: jest.fn(),
     assignPermissionsToRole: jest.fn(),
     getUserOverrides: jest.fn(),
     setUserOverride: jest.fn(),
     removeUserOverride: jest.fn(),
-    getUserEffectivePermissions: jest.fn(),
-  };
-
-  const mockPermissionService = {
-    getCategories: jest.fn(),
-    getPermissions: jest.fn(),
-    getPermissionById: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -30,7 +34,8 @@ describe('AuthorizationController', () => {
       controllers: [AuthorizationController],
       providers: [
         { provide: AuthorizationService, useValue: mockAuthorizationService },
-        { provide: PermissionService, useValue: mockPermissionService },
+        { provide: PermissionCatalogService, useValue: mockCatalogService },
+        { provide: PermissionAssignmentService, useValue: mockAssignmentService },
       ],
     }).compile();
 
@@ -42,27 +47,27 @@ describe('AuthorizationController', () => {
   });
 
   it('should list categories', async () => {
-    mockPermissionService.getCategories.mockResolvedValue([
+    mockCatalogService.getCategories.mockResolvedValue([
       { id: 'cat-1', code: 'STUDENTS', name: 'Students' },
     ]);
 
     const res = await controller.getCategories();
     expect(res.length).toBe(1);
-    expect(mockPermissionService.getCategories).toHaveBeenCalled();
+    expect(mockCatalogService.getCategories).toHaveBeenCalled();
   });
 
   it('should list permissions with query filters', async () => {
-    mockPermissionService.getPermissions.mockResolvedValue([
+    mockCatalogService.getPermissions.mockResolvedValue([
       { id: 'perm-1', name: 'student.view' },
     ]);
 
     const res = await controller.getPermissions({ categoryId: 'cat-1' });
     expect(res.length).toBe(1);
-    expect(mockPermissionService.getPermissions).toHaveBeenCalledWith('cat-1');
+    expect(mockCatalogService.getPermissions).toHaveBeenCalledWith('cat-1');
   });
 
-  it('should assign role permissions', async () => {
-    mockAuthorizationService.assignPermissionsToRole.mockResolvedValue({
+  it('should assign role permissions using PermissionAssignmentService', async () => {
+    mockAssignmentService.assignPermissionsToRole.mockResolvedValue({
       role: RoleType.STAFF,
       count: 1,
     });
@@ -75,7 +80,7 @@ describe('AuthorizationController', () => {
     );
 
     expect(res.count).toBe(1);
-    expect(mockAuthorizationService.assignPermissionsToRole).toHaveBeenCalled();
+    expect(mockAssignmentService.assignPermissionsToRole).toHaveBeenCalled();
   });
 
   it('should return active user effective permissions for /me/effective-permissions', async () => {

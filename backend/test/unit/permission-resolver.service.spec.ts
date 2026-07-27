@@ -6,9 +6,8 @@ import { RoleType, OverrideType } from '@prisma/client';
 
 describe('PermissionResolverService', () => {
   let resolver: PermissionResolverService;
-  let prisma: PrismaService;
 
-  const mockPrisma = {
+  const mockPrisma: any = {
     userPermissionOverride: {
       findMany: jest.fn(),
     },
@@ -39,7 +38,6 @@ describe('PermissionResolverService', () => {
     }).compile();
 
     resolver = module.get<PermissionResolverService>(PermissionResolverService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
@@ -60,6 +58,7 @@ describe('PermissionResolverService', () => {
     expect(result.effectivePermissions.has('student.view')).toBe(true);
     expect(result.effectivePermissions.has('student.create')).toBe(true);
     expect(result.effectivePermissions.size).toBe(2);
+    expect(typeof result.resolutionDurationMs).toBe('number');
   });
 
   it('should grant additional permission via UserPermissionOverride (GRANT)', async () => {
@@ -93,7 +92,7 @@ describe('PermissionResolverService', () => {
     expect(result.effectivePermissions.size).toBe(1);
   });
 
-  it('should resolve SUPER_ADMIN to all active permissions', async () => {
+  it('should resolve SUPER_ADMIN to all active system permissions', async () => {
     mockPrisma.userPermissionOverride.findMany.mockResolvedValue([]);
     mockPrisma.permission.findMany.mockResolvedValue([
       { name: 'student.view' },
@@ -107,5 +106,19 @@ describe('PermissionResolverService', () => {
     expect(result.isSuperAdmin).toBe(true);
     expect(result.effectivePermissions.size).toBe(4);
     expect(result.effectivePermissions.has('system.manage')).toBe(true);
+  });
+
+  it('should support extension hooks for Redis, HR, and Profiles', async () => {
+    mockPrisma.userPermissionOverride.findMany.mockResolvedValue([]);
+    mockPrisma.rolePermission.findMany.mockResolvedValue([]);
+
+    const cacheRes = await resolver.resolvePermissionsWithCache('user-1', RoleType.STAFF);
+    expect(cacheRes).toBeDefined();
+
+    const hrRes = await resolver.resolveHRPermissions('user-1', 'desig-1');
+    expect(hrRes).toEqual([]);
+
+    const profileRes = await resolver.resolvePermissionProfiles('user-1', ['prof-1']);
+    expect(profileRes).toEqual([]);
   });
 });
