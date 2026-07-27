@@ -11,6 +11,7 @@ export interface ResolvedPermissions {
   userGrants: string[];
   userDenies: string[];
   isSuperAdmin: boolean;
+  resolutionDurationMs: number;
 }
 
 @Injectable()
@@ -23,50 +24,79 @@ export class PermissionResolverService {
   }
 
   /**
-   * Resolve effective permissions for a user given their ID and Role.
-   * Logic: (Role Permissions + User Grants) - User Denies
-   * SUPER_ADMIN automatically inherits all active system permissions.
+   * Centralized Permission Resolution Engine
+   *
+   * Precedence Algorithm:
+   * 1. Role Permissions (Active permissions mapped to user's assigned role)
+   * 2. SUPER_ADMIN Bypass (Inherits all active system permissions)
+   * 3. User Grants (Direct UserPermissionOverride with type GRANT)
+   * 4. User Denies (Direct UserPermissionOverride with type DENY - overrides Role & Grants)
+   * 5. Final Effective Permission Set (Immutable Set of allowed permission names)
    */
   async resolvePermissions(
     userId: string,
     role: RoleType,
   ): Promise<ResolvedPermissions> {
-    this.logger.log(`Resolving permissions for user=${userId}, role=${role}`);
+    const startTime = process.hrtime.bigint();
 
     const isSuperAdmin = role === RoleType.SUPER_ADMIN;
 
-    // 1. Fetch user overrides
+    // 1. Batch query user overrides with active permission and category filter
     const overrides = await this.prisma.userPermissionOverride.findMany({
-      where: { userId },
+      where: {
+        userId,
+        permission: {
+          isActive: true,
+          category: {
+            isActive: true,
+          },
+        },
+      },
       include: {
         permission: true,
       },
     });
 
-    const userGrants = overrides
-      .filter((o) => o.type === OverrideType.GRANT && o.permission.isActive)
-      .map((o) => o.permission.name);
+    const userGrants = Array.from(
+      new Set(
+        overrides
+          .filter((o) => o.type === OverrideType.GRANT)
+          .map((o) => o.permission.name),
+      ),
+    );
 
-    const userDenies = overrides
-      .filter((o) => o.type === OverrideType.DENY && o.permission.isActive)
-      .map((o) => o.permission.name);
+    const userDenies = Array.from(
+      new Set(
+        overrides
+          .filter((o) => o.type === OverrideType.DENY)
+          .map((o) => o.permission.name),
+      ),
+    );
 
     let rolePermissions: string[] = [];
 
     if (isSuperAdmin) {
-      // SUPER_ADMIN gets all active permissions in system
+      // SUPER_ADMIN gets all active permissions in active categories
       const allActive = await this.prisma.permission.findMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          category: {
+            isActive: true,
+          },
+        },
         select: { name: true },
       });
       rolePermissions = allActive.map((p) => p.name);
     } else {
-      // Fetch role permissions
+      // Fetch role permissions for active permissions and active categories
       const rolePerms = await this.prisma.rolePermission.findMany({
         where: {
           role,
           permission: {
             isActive: true,
+            category: {
+              isActive: true,
+            },
           },
         },
         include: {
@@ -76,23 +106,36 @@ export class PermissionResolverService {
       rolePermissions = rolePerms.map((rp) => rp.permission.name);
     }
 
-    // 2. Build effective set
-    // Start with role permissions
+    // 2. Build effective set (Role -> Grants -> Denies)
     const effectiveSet = new Set<string>(rolePermissions);
 
-    // Add user grants
+    // Apply User Grants
     for (const grant of userGrants) {
       effectiveSet.add(grant);
     }
 
-    // Remove user denies (Deny overrides Role + Grants)
+    // Apply User Denies (Deny takes absolute precedence)
     for (const deny of userDenies) {
       effectiveSet.delete(deny);
     }
 
-    this.logger.log(
-      `Resolved ${effectiveSet.size} permissions for user=${userId} (Role: ${rolePermissions.length}, Grants: ${userGrants.length}, Denies: ${userDenies.length})`,
-    );
+    const endTime = process.hrtime.bigint();
+    const resolutionDurationMs = Number(endTime - startTime) / 1_000_000;
+
+    // Execution time & metrics logging
+    if (resolutionDurationMs > 100) {
+      this.logger.warn(
+        `🐢 [SLOW PERMISSION RESOLUTION] Resolved permissions for user=${userId} in ${resolutionDurationMs.toFixed(
+          2,
+        )}ms`,
+      );
+    } else {
+      this.logger.log(
+        `Resolved ${effectiveSet.size} permissions for user=${userId} (Role: ${role}, Duration: ${resolutionDurationMs.toFixed(
+          2,
+        )}ms)`,
+      );
+    }
 
     return {
       userId,
@@ -102,18 +145,45 @@ export class PermissionResolverService {
       userGrants,
       userDenies,
       isSuperAdmin,
+      resolutionDurationMs,
     };
   }
 
+  // --- Clean Extension Hooks for Future Phases ---
+
   /**
-   * Extension point for future Redis caching resolution
+   * Extension Hook: Future Redis Permission Caching (Phase 3)
    */
   async resolvePermissionsWithCache(
     userId: string,
     role: RoleType,
   ): Promise<ResolvedPermissions> {
-    // Phase 1 fallback directly to DB resolution
-    // Phase 2 will check Redis cache key `auth:perm:${userId}` before DB fetch
     return this.resolvePermissions(userId, role);
+  }
+
+  /**
+   * Extension Hook: Future HR / Designation Permissions Integration
+   */
+  async resolveHRPermissions(
+    userId: string,
+    designationId?: string,
+  ): Promise<string[]> {
+    this.logger.debug(
+      `HR permissions extension hook evaluated for user=${userId}, designation=${designationId}`,
+    );
+    return [];
+  }
+
+  /**
+   * Extension Hook: Future Permission Profiles Integration
+   */
+  async resolvePermissionProfiles(
+    userId: string,
+    profileIds?: string[],
+  ): Promise<string[]> {
+    this.logger.debug(
+      `Permission profiles extension hook evaluated for user=${userId}, profiles=${profileIds?.join(',')}`,
+    );
+    return [];
   }
 }
