@@ -40,12 +40,18 @@ export class AuditEventMapper {
       userEmail: (context as any)?.userEmail || null,
       role: context?.role || (event as any).payload?.role || null,
       organizationId:
-        context?.organizationId || (event as any).payload?.organizationId || null,
+        context?.organizationId ||
+        (event as any).payload?.organizationId ||
+        null,
       branchId: context?.branchId || (event as any).payload?.branchId || null,
       academicYearId:
-        context?.academicYearId || (event as any).payload?.academicYearId || null,
-      requestId: context?.requestId || (event as any).payload?.requestId || null,
-      traceId: (context as any)?.traceId || (event as any).payload?.traceId || null,
+        context?.academicYearId ||
+        (event as any).payload?.academicYearId ||
+        null,
+      requestId:
+        context?.requestId || (event as any).payload?.requestId || null,
+      traceId:
+        (context as any)?.traceId || (event as any).payload?.traceId || null,
       correlationId:
         (context as any)?.correlationId ||
         (event as any).payload?.correlationId ||

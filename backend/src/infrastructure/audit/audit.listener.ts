@@ -56,8 +56,13 @@ export class AuditListener implements OnModuleInit {
     'communication.otp_sent',
     'role_permissions.updated',
     'user_permission_override.updated',
-    'user_permission_override.deleted',
     'authorization.permission_denied',
+    'workspace.module_created',
+    'workspace.module_updated',
+    'workspace.menu_created',
+    'workspace.menu_updated',
+    'workspace.menu_deleted',
+    'workspace.config_updated',
   ]);
 
   constructor(
