@@ -31,20 +31,39 @@ export class AuditEventMapper {
       aggregateType: event.aggregateType,
       aggregateId: event.aggregateId,
       timestamp: event.occurredAt,
-      userId: context?.userId || (event as any).payload?.userId || (event as any).payload?.updatedBy || (event as any).payload?.performedBy || null,
-      userEmail: context?.userEmail || null,
+      userId:
+        context?.userId ||
+        (event as any).payload?.userId ||
+        (event as any).payload?.updatedBy ||
+        (event as any).payload?.performedBy ||
+        null,
+      userEmail: (context as any)?.userEmail || null,
       role: context?.role || (event as any).payload?.role || null,
-      organizationId: context?.organizationId || (event as any).payload?.organizationId || null,
+      organizationId:
+        context?.organizationId || (event as any).payload?.organizationId || null,
       branchId: context?.branchId || (event as any).payload?.branchId || null,
-      academicYearId: context?.academicYearId || (event as any).payload?.academicYearId || null,
+      academicYearId:
+        context?.academicYearId || (event as any).payload?.academicYearId || null,
       requestId: context?.requestId || (event as any).payload?.requestId || null,
-      traceId: context?.traceId || (event as any).payload?.traceId || null,
-      correlationId: context?.correlationId || (event as any).payload?.correlationId || context?.requestId || null,
-      ipAddress: context?.ipAddress || null,
-      userAgent: context?.userAgent || null,
-      httpMethod: context?.httpMethod || event.metadata?.httpMethod || (event as any).payload?.httpMethod || null,
-      route: context?.route || event.metadata?.route || (event as any).payload?.route || null,
-      executionTime: context?.executionTime || null,
+      traceId: (context as any)?.traceId || (event as any).payload?.traceId || null,
+      correlationId:
+        (context as any)?.correlationId ||
+        (event as any).payload?.correlationId ||
+        context?.requestId ||
+        null,
+      ipAddress: (context as any)?.ipAddress || null,
+      userAgent: (context as any)?.userAgent || null,
+      httpMethod:
+        (context as any)?.httpMethod ||
+        event.metadata?.httpMethod ||
+        (event as any).payload?.httpMethod ||
+        null,
+      route:
+        (context as any)?.route ||
+        event.metadata?.route ||
+        (event as any).payload?.route ||
+        null,
+      executionTime: (context as any)?.executionTime || null,
       severity: event.metadata?.severity || 'INFO',
       status: event.metadata?.status || 'SUCCESS',
       metadata: {
@@ -88,6 +107,13 @@ export class AuditEventMapper {
       agg.includes('ROLEPERMISSION')
     ) {
       return 'AUTHORIZATION';
+    }
+    if (
+      agg.includes('MODULE') ||
+      agg.includes('MENU') ||
+      agg.includes('WORKSPACE')
+    ) {
+      return 'WORKSPACE';
     }
     if (agg.includes('BRANCH') || agg.includes('ORGANIZATION'))
       return 'ORGANIZATION';
