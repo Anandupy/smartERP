@@ -2,7 +2,7 @@ import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma.service';
 import { PasswordService } from '@/common/services/password.service';
-import { RoleType } from '@/generated/client';
+import { RoleType, MenuStatus, WorkspaceScopeType } from '@/generated/client';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @Injectable()
@@ -18,6 +18,7 @@ export class SeederService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     await this.seedSuperAdmin();
     await this.seedAuthorizationData();
+    await this.seedWorkspaceData();
   }
 
   private async seedSuperAdmin() {
@@ -379,5 +380,174 @@ export class SeederService implements OnApplicationBootstrap {
     }
 
     this.logger.log('Authorization Platform seeding completed successfully.');
+  }
+
+  private async seedWorkspaceData() {
+    this.logger.log('Seeding Workspace Platform modules and menus...');
+
+    const moduleDefinitions = [
+      { code: 'ADMISSIONS', name: 'Admissions Management', displayOrder: 1 },
+      { code: 'STUDENTS', name: 'Student Management', displayOrder: 2 },
+      { code: 'FEES', name: 'Fee Management', displayOrder: 3 },
+      { code: 'SETTINGS', name: 'System Settings', displayOrder: 4 },
+      { code: 'SYSTEM', name: 'System Administration', displayOrder: 5 },
+      { code: 'COMMUNICATION', name: 'Communication Platform', displayOrder: 6 },
+    ];
+
+    const moduleMap = new Map<string, string>();
+
+    for (const modDef of moduleDefinitions) {
+      const dbMod = await this.prisma.module.upsert({
+        where: { code: modDef.code },
+        update: { name: modDef.name, displayOrder: modDef.displayOrder },
+        create: {
+          code: modDef.code,
+          name: modDef.name,
+          displayOrder: modDef.displayOrder,
+          isSystem: true,
+          isActive: true,
+        },
+      });
+      moduleMap.set(modDef.code, dbMod.id);
+    }
+
+    // Seed Core Menus
+    const menuSeedData = [
+      // Admissions
+      {
+        code: 'ADMISSIONS_APPLICANTS',
+        moduleCode: 'ADMISSIONS',
+        route: '/admissions/applicants',
+        displayName: 'Applicants List',
+        icon: 'users',
+        permissions: [PERMISSIONS.Admissions.View],
+        displayOrder: 1,
+      },
+      {
+        code: 'ADMISSIONS_REGISTER',
+        moduleCode: 'ADMISSIONS',
+        route: '/admissions/applicants/new',
+        displayName: 'Register Applicant',
+        icon: 'user-plus',
+        permissions: [PERMISSIONS.Admissions.Create],
+        displayOrder: 2,
+      },
+      // Settings
+      {
+        code: 'SETTINGS_ORGANIZATIONS',
+        moduleCode: 'SETTINGS',
+        route: '/organizations',
+        displayName: 'Organizations',
+        icon: 'building',
+        permissions: [PERMISSIONS.Settings.View],
+        displayOrder: 1,
+      },
+      {
+        code: 'SETTINGS_BRANCHES',
+        moduleCode: 'SETTINGS',
+        route: '/branches',
+        displayName: 'Branches',
+        icon: 'git-branch',
+        permissions: [PERMISSIONS.Settings.View],
+        displayOrder: 2,
+      },
+      {
+        code: 'SETTINGS_ACADEMIC_YEARS',
+        moduleCode: 'SETTINGS',
+        route: '/academic-years',
+        displayName: 'Academic Years',
+        icon: 'calendar',
+        permissions: [PERMISSIONS.Settings.View],
+        displayOrder: 3,
+      },
+      {
+        code: 'SETTINGS_PROGRAMS',
+        moduleCode: 'SETTINGS',
+        route: '/programs',
+        displayName: 'Programs',
+        icon: 'book',
+        permissions: [PERMISSIONS.Settings.View],
+        displayOrder: 4,
+      },
+      {
+        code: 'SETTINGS_ACADEMIC_UNITS',
+        moduleCode: 'SETTINGS',
+        route: '/academic-units',
+        displayName: 'Academic Units',
+        icon: 'grid',
+        permissions: [PERMISSIONS.Settings.View],
+        displayOrder: 5,
+      },
+      // System
+      {
+        code: 'SYSTEM_MAINTENANCE',
+        moduleCode: 'SYSTEM',
+        route: '/maintenance-rules',
+        displayName: 'Maintenance Rules',
+        icon: 'shield',
+        permissions: [PERMISSIONS.System.View],
+        displayOrder: 1,
+      },
+      {
+        code: 'SYSTEM_AUTHORIZATION',
+        moduleCode: 'SYSTEM',
+        route: '/authorization',
+        displayName: 'Authorization & Permissions',
+        icon: 'key',
+        permissions: [PERMISSIONS.Settings.Manage],
+        displayOrder: 2,
+      },
+    ];
+
+    for (const menuDef of menuSeedData) {
+      const moduleId = moduleMap.get(menuDef.moduleCode);
+      if (moduleId) {
+        await this.prisma.menu.upsert({
+          where: { code: menuDef.code },
+          update: {
+            displayName: menuDef.displayName,
+            route: menuDef.route,
+            permissions: menuDef.permissions,
+          },
+          create: {
+            code: menuDef.code,
+            moduleId,
+            route: menuDef.route,
+            displayName: menuDef.displayName,
+            icon: menuDef.icon,
+            permissions: menuDef.permissions,
+            displayOrder: menuDef.displayOrder,
+            status: MenuStatus.ACTIVE,
+            isSystem: true,
+          },
+        });
+      }
+    }
+
+    // Seed Global Product Workspace Configuration
+    const existingConfig = await this.prisma.workspaceConfiguration.findFirst({
+      where: { scopeType: WorkspaceScopeType.PRODUCT, scopeId: null },
+    });
+
+    if (!existingConfig) {
+      await this.prisma.workspaceConfiguration.create({
+        data: {
+          scopeType: WorkspaceScopeType.PRODUCT,
+          scopeId: null,
+          navigationPreferences: {
+            sidebarCollapsed: false,
+            sidebarPosition: 'left',
+            denseMode: false,
+            defaultRoute: '/dashboard',
+          },
+          clientPreferences: {
+            theme: 'system',
+            locale: 'en',
+          },
+        },
+      });
+    }
+
+    this.logger.log('Workspace Platform seeding completed successfully.');
   }
 }
