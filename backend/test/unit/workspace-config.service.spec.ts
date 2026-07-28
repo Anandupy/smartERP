@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { WorkspaceConfigService } from '@/modules/workspace/services/workspace-config.service';
+import { WorkspaceConfigService } from '@/modules/workspace/configuration/workspace-config.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { LoggerService } from '@/common/logger/logger.service';
@@ -58,7 +58,6 @@ describe('WorkspaceConfigService', () => {
   });
 
   it('should resolve layered configuration with deterministic inheritance overrides', async () => {
-    // Mock 3 layers: PRODUCT -> BRANCH -> USER
     mockPrisma.workspaceConfiguration.findMany.mockResolvedValue([
       {
         scopeType: WorkspaceScopeType.PRODUCT,
@@ -87,7 +86,6 @@ describe('WorkspaceConfigService', () => {
       'user-1',
     );
 
-    // User overrides themeMode & font, Branch overrides sidebarCollapsed
     expect(result.navigationPreferences.sidebarCollapsed).toBe(true);
     expect(result.navigationPreferences.themeMode).toBe('dark');
     expect(result.clientPreferences.font).toBe('Roboto');

@@ -1,11 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { NavigationService } from './services/navigation.service';
-import { WorkspaceConfigService } from './services/workspace-config.service';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { LoggerService } from '@/common/logger/logger.service';
 import { RoleType } from '@/generated/client';
+import { NavigationService } from './navigation/services/navigation.service';
+import { WorkspaceConfigService } from './configuration/workspace-config.service';
 
-export interface WorkspaceResponse {
+export interface WorkspaceLayoutResponse {
   activeContexts: {
     organizationId: string | null;
     branchId: string | null;
@@ -16,7 +16,10 @@ export interface WorkspaceResponse {
     clientVersion: string;
     platform: string;
   };
-  configuration: Record<string, any>;
+  configuration: {
+    navigationPreferences: Record<string, any>;
+    clientPreferences: Record<string, any>;
+  };
   navigation: any[];
   metadata: {
     resolvedAt: string;
@@ -30,27 +33,23 @@ export class WorkspaceService {
   constructor(
     private readonly navigationService: NavigationService,
     private readonly configService: WorkspaceConfigService,
-    private readonly requestContextService: RequestContextService,
+    private readonly requestContext: RequestContextService,
     private readonly logger: LoggerService,
   ) {
     this.logger.setContext(WorkspaceService.name);
   }
 
-  /**
-   * Presentation Orchestration Endpoint Handler for GET /v1/workspace
-   * Consumes authenticated user context & Authorization Platform
-   */
   async getWorkspaceLayout(
     userId: string,
     role: RoleType,
-  ): Promise<WorkspaceResponse> {
+  ): Promise<WorkspaceLayoutResponse> {
+    const context = this.requestContext.getContext();
+
     if (!userId || !role) {
       throw new UnauthorizedException(
         'User context missing or unauthenticated',
       );
     }
-
-    const context = this.requestContextService.getContext();
 
     const organizationId = context?.organizationId || null;
     const branchId = context?.branchId || null;
@@ -60,45 +59,22 @@ export class WorkspaceService {
     const clientVersion = context?.clientVersion || '1.0.0';
     const platform = context?.platform || 'WEB';
 
-    // 1. Resolve Layered Workspace Configuration
-    const configuration = await this.configService.resolveConfiguration(
+    // 1. Resolve Layered Configuration
+    const resolvedConfig = await this.configService.resolveConfiguration(
       organizationId,
       branchId,
       role,
       userId,
     );
 
-    // 2. Resolve Navigation Tree via Visibility Pipeline & Authorization Platform
-    const navigationTree =
-      await this.navigationService.resolveUserNavigationTree(userId, role);
-
-    // Calculate metadata
-    const countVisibleMenus = (nodes: any[]): number => {
-      let count = nodes.length;
-      for (const node of nodes) {
-        if (node.children && node.children.length > 0) {
-          count += countVisibleMenus(node.children);
-        }
-      }
-      return count;
-    };
-
-    const getTreeDepth = (nodes: any[]): number => {
-      if (!nodes || nodes.length === 0) return 0;
-      let maxDepth = 0;
-      for (const node of nodes) {
-        if (node.children && node.children.length > 0) {
-          maxDepth = Math.max(maxDepth, getTreeDepth(node.children));
-        }
-      }
-      return 1 + maxDepth;
-    };
-
-    const totalVisibleMenus = countVisibleMenus(navigationTree);
-    const menuTreeDepth = getTreeDepth(navigationTree);
+    // 2. Resolve Navigation Tree
+    const navBuildResult = await this.navigationService.resolveUserNavigation(
+      userId,
+      role,
+    );
 
     this.logger.log(
-      `Resolved workspace layout for user=${userId} (Role: ${role}, Platform: ${platform}, Visible Menus: ${totalVisibleMenus})`,
+      `Resolved workspace layout for user ${userId} (${role}) on ${platform}`,
     );
 
     return {
@@ -112,12 +88,12 @@ export class WorkspaceService {
         clientVersion,
         platform,
       },
-      configuration,
-      navigation: navigationTree,
+      configuration: resolvedConfig,
+      navigation: navBuildResult.tree,
       metadata: {
         resolvedAt: new Date().toISOString(),
-        totalVisibleMenus,
-        menuTreeDepth,
+        totalVisibleMenus: navBuildResult.totalVisibleMenus,
+        menuTreeDepth: navBuildResult.menuTreeDepth,
       },
     };
   }

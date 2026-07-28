@@ -1,36 +1,44 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsObject,
+  IsString,
+} from 'class-validator';
 import { WorkspaceScopeType } from '@/generated/client';
 
 export class UpsertWorkspaceConfigDto {
   @ApiProperty({
+    example: 'USER',
     enum: WorkspaceScopeType,
-    example: WorkspaceScopeType.PRODUCT,
+    description: 'Scope level for configuration layer',
   })
   @IsEnum(WorkspaceScopeType)
   @IsNotEmpty()
-  scopeType: WorkspaceScopeType;
+  scopeType!: WorkspaceScopeType;
 
   @ApiPropertyOptional({
-    description:
-      'Scope ID (e.g. Org ID, Branch ID, User ID, or Role Name). Null for PRODUCT.',
-    example: null,
+    example: '019fa012-...',
+    description: 'Target scope UUID identifier (null for PRODUCT global level)',
   })
   @IsString()
   @IsOptional()
-  scopeId?: string;
+  scopeId?: string | null;
 
   @ApiPropertyOptional({
-    description: 'Navigation UI preferences object',
-    example: { sidebarCollapsed: false, denseMode: false },
+    example: { sidebarCollapsed: true, themeMode: 'dark' },
+    description: 'Navigation UI preferences JSON object',
   })
+  @IsObject()
   @IsOptional()
   navigationPreferences?: Record<string, any>;
 
   @ApiPropertyOptional({
-    description: 'Client preferences object',
     example: { theme: 'dark', locale: 'en' },
+    description: 'Client platform preferences JSON object',
   })
+  @IsObject()
   @IsOptional()
   clientPreferences?: Record<string, any>;
 }
