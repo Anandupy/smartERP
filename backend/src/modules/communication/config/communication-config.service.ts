@@ -3,7 +3,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { CommunicationSetting, ProviderType } from '@/generated/client';
 import { UpdateCommunicationConfigDto } from './dto/update-config.dto';
-import { ProviderUpdatedEvent } from '../events/communication.events';
+import { ProviderUpdatedEvent } from '@/common/events/communication.events';
 
 @Injectable()
 export class CommunicationConfigService {

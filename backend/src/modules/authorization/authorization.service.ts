@@ -4,7 +4,7 @@ import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { RoleType } from '@/generated/client';
 import { LoggerService } from '@/common/logger/logger.service';
 import { RequestContextService } from '@/common/logger/request-context.service';
-import { PermissionDeniedEvent } from './events/authorization.events';
+import { PermissionDeniedEvent } from '@/common/events/authorization.events';
 
 export interface AuthorizationAccessResult {
   allowed: boolean;

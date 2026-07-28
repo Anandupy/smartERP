@@ -12,7 +12,7 @@ import {
   RolePermissionsUpdatedEvent,
   UserPermissionOverrideUpdatedEvent,
   UserPermissionOverrideDeletedEvent,
-} from './events/authorization.events';
+} from '@/common/events/authorization.events';
 
 @Injectable()
 export class PermissionAssignmentService {

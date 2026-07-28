@@ -7,7 +7,7 @@ import {
   NotificationPreference,
 } from '@/generated/client';
 import { UpdateNotificationPreferenceDto } from './dto/update-preference.dto';
-import { PreferenceChangedEvent } from '../events/communication.events';
+import { PreferenceChangedEvent } from '@/common/events/communication.events';
 
 @Injectable()
 export class NotificationPreferenceService {

@@ -16,7 +16,8 @@ export class CreateModuleDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^[A-Z0-9_]+$/, {
-    message: 'code must contain only uppercase letters, numbers, and underscores',
+    message:
+      'code must contain only uppercase letters, numbers, and underscores',
   })
   code!: string;
 

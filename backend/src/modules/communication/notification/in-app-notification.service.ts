@@ -4,7 +4,7 @@ import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { InAppNotification, NotificationStatus } from '@/generated/client';
 import { CreateInAppNotificationDto } from './dto/create-in-app-notification.dto';
 import { QueryNotificationDto } from './dto/query-notification.dto';
-import { NotificationCreatedEvent } from '../events/communication.events';
+import { NotificationCreatedEvent } from '@/common/events/communication.events';
 
 @Injectable()
 export class InAppNotificationService {

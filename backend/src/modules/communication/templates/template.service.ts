@@ -15,7 +15,7 @@ import { HandlebarsTemplateRenderer } from '../renderer/handlebars-template.rend
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { RenderResult } from '../renderer/template-renderer.interface';
-import { TemplateUpdatedEvent } from '../events/communication.events';
+import { TemplateUpdatedEvent } from '@/common/events/communication.events';
 
 @Injectable()
 export class TemplateService {

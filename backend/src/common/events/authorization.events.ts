@@ -1,4 +1,4 @@
-import { DomainEvent } from '@/common/events/domain-event.base';
+import { DomainEvent } from './domain-event.base';
 
 export class RolePermissionsUpdatedEvent extends DomainEvent {
   constructor(

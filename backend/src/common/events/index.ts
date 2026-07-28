@@ -11,3 +11,5 @@ export * from './admissions.events';
 export * from './maintenance.events';
 export * from './auth-recovery.events';
 export * from './workspace.events';
+export * from './authorization.events';
+export * from './communication.events';

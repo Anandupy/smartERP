@@ -1,79 +1,9 @@
-import { DomainEvent } from '@/common/events/domain-event.base';
+import { DomainEvent } from './domain-event.base';
 import {
   CommunicationChannel,
   NotificationCategory,
   ProviderType,
 } from '@/generated/client';
-
-export class PasswordResetRequestedEvent extends DomainEvent {
-  static readonly EVENT_NAME = 'communication.password_reset_requested';
-  readonly payload: {
-    userId?: string;
-    email: string;
-    resetToken?: string;
-    rawOtp?: string;
-    userName?: string;
-    expiresInMinutes?: number;
-  };
-
-  constructor(
-    payload: PasswordResetRequestedEvent['payload'],
-    metadata?: Record<string, any>,
-  ) {
-    super({
-      eventName: PasswordResetRequestedEvent.EVENT_NAME,
-      aggregateId: payload.userId || payload.email,
-      aggregateType: 'User',
-      metadata,
-    });
-    this.payload = payload;
-  }
-}
-
-export class PasswordChangedEvent extends DomainEvent {
-  static readonly EVENT_NAME = 'communication.password_changed';
-  readonly payload: {
-    userId: string;
-    email: string;
-    userName?: string;
-  };
-
-  constructor(
-    payload: PasswordChangedEvent['payload'],
-    metadata?: Record<string, any>,
-  ) {
-    super({
-      eventName: PasswordChangedEvent.EVENT_NAME,
-      aggregateId: payload.userId,
-      aggregateType: 'User',
-      metadata,
-    });
-    this.payload = payload;
-  }
-}
-
-export class EmailVerificationRequestedEvent extends DomainEvent {
-  static readonly EVENT_NAME = 'communication.email_verification_requested';
-  readonly payload: {
-    userId: string;
-    email: string;
-    rawOtp?: string;
-    verificationLink?: string;
-  };
-
-  constructor(
-    payload: EmailVerificationRequestedEvent['payload'],
-    metadata?: Record<string, any>,
-  ) {
-    super({
-      eventName: EmailVerificationRequestedEvent.EVENT_NAME,
-      aggregateId: payload.userId,
-      aggregateType: 'User',
-      metadata,
-    });
-    this.payload = payload;
-  }
-}
 
 export class NotificationCreatedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'communication.notification_created';
