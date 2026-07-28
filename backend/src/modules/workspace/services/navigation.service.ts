@@ -15,7 +15,7 @@ import {
   MenuCreatedEvent,
   MenuUpdatedEvent,
   MenuDeletedEvent,
-} from '../events/workspace.events';
+} from '@/common/events/workspace.events';
 
 export interface NavigationMenuItem {
   id: string;

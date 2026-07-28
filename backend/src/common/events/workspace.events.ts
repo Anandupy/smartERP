@@ -1,4 +1,4 @@
-import { DomainEvent } from '@/common/events/domain-event.base';
+import { DomainEvent } from './domain-event.base';
 
 export class ModuleCreatedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'workspace.module_created';

@@ -5,7 +5,7 @@ import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { LoggerService } from '@/common/logger/logger.service';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { WorkspaceScopeType } from '@/generated/client';
-import { WorkspaceConfigurationUpdatedEvent } from '@/modules/workspace/events/workspace.events';
+import { WorkspaceConfigurationUpdatedEvent } from '@/common/events/workspace.events';
 
 describe('WorkspaceConfigService', () => {
   let service: WorkspaceConfigService;

@@ -9,7 +9,7 @@ import { MenuStatus, RoleType } from '@/generated/client';
 import {
   ModuleCreatedEvent,
   MenuCreatedEvent,
-} from '@/modules/workspace/events/workspace.events';
+} from '@/common/events/workspace.events';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('NavigationService', () => {
