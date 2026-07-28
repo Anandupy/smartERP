@@ -75,6 +75,30 @@ The following ERP modules publish domain events that are automatically captured 
 | **Auth** | `user.logged_in` | `LOGIN` | `AUTH` |
 | **System Settings** | `system_settings.updated` | `UPDATE` | `SYSTEM` |
 | **Admissions** | `student.created`, `student.updated`, `student.deleted`, `applicant.created`, `applicant.updated`, `applicant.deleted`, `guardian.created`, `guardian.updated`, `guardian.mapped`, `guardian.unmapped`, `admission.transitioned`, `enrollment.completed`, `numbering_config.created`, `admissions_master.created`, `admissions_master.updated`, `admissions_master.deleted` | `CREATE`, `UPDATE`, `DELETE`, `EXECUTE` | `ADMISSIONS` |
+| **Authorization** | `role_permissions.updated`, `user_permission_override.updated`, `user_permission_override.deleted`, `authorization.permission_denied` | `UPDATE`, `DELETE`, `EXECUTE` | `AUTHORIZATION` |
+| **Workspace** | `workspace.module_created`, `workspace.module_updated`, `workspace.menu_created`, `workspace.menu_updated`, `workspace.menu_deleted`, `workspace.config_updated` | `CREATE`, `UPDATE`, `DELETE` | `WORKSPACE` |
+
+---
+
+## Architectural Constraints for Future ERP Modules
+
+> [!IMPORTANT]
+> **Mandatory Auditing Rules for All Current and Future ERP Modules**:
+>
+> 1. **Centralized Domain Event Storage (`src/common/events/`)**:
+>    ALL domain events across CampusFlow ERP MUST be defined inside `src/common/events/` (e.g. `src/common/events/hostel.events.ts`, `src/common/events/finance.events.ts`) and exported via `src/common/events/index.ts`. Creating `events/` subdirectories inside feature module folders (e.g. `src/modules/hostel/events/`) is strictly prohibited.
+>
+> 2. **Explicit Event Registration in `AuditListener`**:
+>    Every new domain event name MUST be registered in the `registeredEventNames` set within `src/infrastructure/audit/audit.listener.ts`. Unregistered domain events will bypass the Audit Platform.
+>
+> 3. **Strict Decoupling (Event-Driven Auditing)**:
+>    Business services must **NEVER** import or inject `AuditService` or `AuditRepository` directly. Services MUST ONLY publish domain events via `EventBus.publish(new DomainEvent(...))`.
+>
+> 4. **AuditEventMapper Compatibility**:
+>    Domain events must either follow standard naming conventions (`module.action`, e.g., `hostel_room.created`) or explicitly provide `metadata.action` and `metadata.module` so `AuditEventMapper` correctly infers audit fields.
+>
+> 5. **Request Context Enriched**:
+>    `AuditEventMapper` relies on `RequestContextService` (`AsyncLocalStorage`). Domain events must include `performedBy` / `userId` or execution context in payload/metadata for background asynchronous tasks.
 
 ---
 
@@ -115,7 +139,7 @@ No calls to `AuditService` or `AuditRepository` are made inside business service
 
 ## Extending Event Mappings & Custom Subscribers
 
-`AuditEventMapper` automatically infers `action` (`CREATE`, `UPDATE`, `DELETE`, `LOGIN`) and `module` (`ADMISSIONS`, `ORGANIZATION`, `AUTH`, `ACADEMIC`, `SYSTEM`) from event names and aggregate types.
+`AuditEventMapper` automatically infers `action` (`CREATE`, `UPDATE`, `DELETE`, `LOGIN`, `EXECUTE`) and `module` (`ADMISSIONS`, `AUTHORIZATION`, `WORKSPACE`, `ORGANIZATION`, `AUTH`, `ACADEMIC`, `SYSTEM`) from event names and aggregate types.
 
 Custom event overrides can be specified in event metadata:
 
