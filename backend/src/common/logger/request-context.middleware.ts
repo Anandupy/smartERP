@@ -29,6 +29,9 @@ export interface RequestContext {
   organizationId: string | null;
   userId: string | null;
   role: string | null;
+  clientApp?: string;
+  clientVersion?: string;
+  platform?: string;
 }
 
 export interface AuthenticatedUser {
@@ -54,6 +57,17 @@ export class RequestContextMiddleware implements NestMiddleware {
     const academicYearId =
       (req.headers['x-academic-year-id'] as string) || null;
 
+    const rawPlatform = (req.headers['x-platform'] as string) || 'WEB';
+    const normalizedPlatform = rawPlatform.toUpperCase();
+    const platform = ['WEB', 'MOBILE', 'DESKTOP'].includes(normalizedPlatform)
+      ? normalizedPlatform
+      : 'WEB';
+
+    const clientApp =
+      (req.headers['x-client-app'] as string) || 'campusflow-web';
+    const clientVersion =
+      (req.headers['x-client-version'] as string) || '1.0.0';
+
     req.requestId = requestId;
     req.context = {
       requestId,
@@ -62,6 +76,9 @@ export class RequestContextMiddleware implements NestMiddleware {
       organizationId: null,
       userId: null,
       role: null,
+      clientApp,
+      clientVersion,
+      platform,
     };
 
     // Add to response header

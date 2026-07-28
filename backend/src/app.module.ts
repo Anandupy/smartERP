@@ -29,6 +29,7 @@ import { CommunicationModule } from '@/modules/communication/communication.modul
 
 import { AuthorizationModule } from '@/modules/authorization/authorization.module';
 import { PermissionGuard } from '@/common/guards/permission.guard';
+import { WorkspaceModule } from '@/modules/workspace/workspace.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { PermissionGuard } from '@/common/guards/permission.guard';
     AuthModule,
     UserModule,
     AuthorizationModule,
+    WorkspaceModule,
     SystemSettingsModule,
     OrganizationModule,
     BranchModule,

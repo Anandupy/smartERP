@@ -1,0 +1,86 @@
+// ==========================================
+// Workspace Subsystem Schema (Phase 1)
+// ==========================================
+
+enum MenuStatus {
+  ACTIVE
+  DISABLED
+  COMING_SOON
+  BETA
+  HIDDEN
+  DEPRECATED
+}
+
+enum WorkspaceScopeType {
+  PRODUCT
+  ORGANIZATION
+  BRANCH
+  ROLE
+  USER
+}
+
+model Module {
+  id           String   @id @default(uuid(7))
+  code         String   @unique
+  name         String
+  description  String?
+  icon         String?
+  displayOrder Int      @default(0)
+  isSystem     Boolean  @default(true)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  menus Menu[]
+
+  @@map("modules")
+}
+
+model Menu {
+  id                  String     @id @default(uuid(7))
+  code                String     @unique
+  moduleId            String
+  parentId            String?
+  route               String
+  componentIdentifier String?
+  permissions         String[]   @default([])
+  permissionMode      String     @default("ALL") // ALL or ANY
+  displayName         String
+  icon                String?
+  tooltip             String?
+  description         String?
+  displayOrder        Int        @default(0)
+  badge               String?
+  searchKeywords      String[]   @default([])
+  helpUrl             String?
+  documentationUrl    String?
+  status              MenuStatus @default(ACTIVE)
+  isSystem            Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  parent   Menu?  @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Menu[] @relation("MenuHierarchy")
+
+  @@index([moduleId])
+  @@index([parentId])
+  @@index([status])
+  @@map("menus")
+}
+
+model WorkspaceConfiguration {
+  id                    String             @id @default(uuid(7))
+  scopeType             WorkspaceScopeType
+  scopeId               String?
+  navigationPreferences Json               @default("{}")
+  clientPreferences     Json               @default("{}")
+  isActive              Boolean            @default(true)
+  createdById           String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@unique([scopeType, scopeId])
+  @@index([scopeType, scopeId])
+  @@map("workspace_configurations")
+}
