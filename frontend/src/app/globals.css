@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "../styles/design-tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -46,6 +47,21 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Design-system tokens (see styles/design-tokens.css). */
+  --shadow-elevation-sm: var(--elevation-sm);
+  --shadow-elevation-md: var(--elevation-md);
+  --shadow-elevation-lg: var(--elevation-lg);
+  --shadow-elevation-xl: var(--elevation-xl);
+
+  --animate-duration-fast: var(--duration-fast);
+  --animate-duration-normal: var(--duration-normal);
+  --animate-duration-slow: var(--duration-slow);
+
+  --ease-standard: var(--easing-standard);
+  --ease-emphasized: var(--easing-emphasized);
+  --ease-decelerate: var(--easing-decelerate);
+  --ease-accelerate: var(--easing-accelerate);
 }
 
 :root {
