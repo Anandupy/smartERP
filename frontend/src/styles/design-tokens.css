@@ -1,0 +1,58 @@
+/**
+ * Design-system tokens beyond the shadcn color set.
+ *
+ * These are the concrete values behind the token *interfaces* in
+ * `core/theme/types.ts`. Consumers reference them via Tailwind utilities (mapped
+ * in `globals.css` `@theme`) or directly as `var(--...)`. Dynamic theming can
+ * override these variables at runtime without touching component code.
+ */
+
+:root {
+  /* Elevation / shadows */
+  --elevation-none: none;
+  --elevation-sm: 0 1px 2px 0 oklch(0 0 0 / 0.05);
+  --elevation-md:
+    0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.1);
+  --elevation-lg:
+    0 10px 15px -3px oklch(0 0 0 / 0.1), 0 4px 6px -4px oklch(0 0 0 / 0.1);
+  --elevation-xl:
+    0 20px 25px -5px oklch(0 0 0 / 0.1), 0 8px 10px -6px oklch(0 0 0 / 0.1);
+
+  /* Animation */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0, 1);
+  --easing-accelerate: cubic-bezier(0.3, 0, 1, 1);
+
+  /* Typography scale (size / line-height) */
+  --font-size-xs: 0.75rem;
+  --line-height-xs: 1rem;
+  --font-size-sm: 0.875rem;
+  --line-height-sm: 1.25rem;
+  --font-size-base: 1rem;
+  --line-height-base: 1.5rem;
+  --font-size-lg: 1.125rem;
+  --line-height-lg: 1.75rem;
+  --font-size-xl: 1.25rem;
+  --line-height-xl: 1.75rem;
+  --font-size-2xl: 1.5rem;
+  --line-height-2xl: 2rem;
+  --font-size-3xl: 1.875rem;
+  --line-height-3xl: 2.25rem;
+  --font-size-4xl: 2.25rem;
+  --line-height-4xl: 2.5rem;
+}
+
+.dark {
+  /* Slightly stronger shadows in dark mode for perceptible depth. */
+  --elevation-sm: 0 1px 2px 0 oklch(0 0 0 / 0.4);
+  --elevation-md:
+    0 4px 6px -1px oklch(0 0 0 / 0.5), 0 2px 4px -2px oklch(0 0 0 / 0.5);
+  --elevation-lg:
+    0 10px 15px -3px oklch(0 0 0 / 0.5), 0 4px 6px -4px oklch(0 0 0 / 0.5);
+  --elevation-xl:
+    0 20px 25px -5px oklch(0 0 0 / 0.6), 0 8px 10px -6px oklch(0 0 0 / 0.6);
+}
