@@ -28,6 +28,23 @@ export interface ColorTokens {
   ring: string;
 }
 
+/**
+ * Branded full-bleed surfaces used by brand moments (splash, auth visual
+ * panel) rather than by ordinary chrome. Kept separate from `ColorTokens` so a
+ * workspace theme can restyle the brand canvas without touching component
+ * chrome. Values live in `styles/design-tokens.css`.
+ */
+export interface SurfaceTokens {
+  /** Warm "paper" backdrop for full-bleed brand surfaces. */
+  canvas: string;
+  /** Cool accent the canvas blends into for mesh gradients. */
+  canvasAccent: string;
+  /** Glassmorphic overlay fill. */
+  panel: string;
+  /** Glassmorphic overlay hairline. */
+  panelBorder: string;
+}
+
 export interface TypographyScaleToken {
   fontSize: string;
   lineHeight: string;
@@ -64,8 +81,12 @@ export type RadiusTokens = Record<
   string
 >;
 
+/**
+ * `ambient` / `ambientLg` are the design system's diffused, ink-tinted shadows
+ * used by branded surfaces; the numbered steps remain the neutral UI ramp.
+ */
 export type ElevationTokens = Record<
-  "none" | "sm" | "md" | "lg" | "xl",
+  "none" | "sm" | "md" | "lg" | "xl" | "ambient" | "ambientLg",
   string
 >;
 
@@ -79,6 +100,7 @@ export interface AnimationTokens {
 
 export interface DesignTokens {
   colors: ColorTokens;
+  surfaces: SurfaceTokens;
   typography: TypographyTokens;
   spacing: SpacingTokens;
   radius: RadiusTokens;

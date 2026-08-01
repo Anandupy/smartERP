@@ -18,6 +18,27 @@
   --elevation-xl:
     0 20px 25px -5px oklch(0 0 0 / 0.1), 0 8px 10px -6px oklch(0 0 0 / 0.1);
 
+  /**
+   * Ambient elevation — the design system's diffused, ink-tinted shadow
+   * (`0 4px 20px rgba(0,48,73,0.08)`) rather than a neutral black drop shadow.
+   * Used by branded surfaces: auth cards, floating previews, glass panels.
+   */
+  --elevation-ambient: 0 4px 20px oklch(0.2938 0.0656 238.47 / 0.08);
+  --elevation-ambient-lg:
+    0 12px 40px oklch(0.2938 0.0656 238.47 / 0.12),
+    0 2px 8px oklch(0.2938 0.0656 238.47 / 0.06);
+
+  /**
+   * Branded canvas surfaces. `canvas` is the warm "paper" backdrop the design
+   * system specifies for full-bleed brand moments (splash, auth visual panel);
+   * `canvas-accent` is the cool accent it blends into for mesh gradients;
+   * `panel` / `panel-border` are the glassmorphic overlay pair.
+   */
+  --canvas: oklch(0.9584 0.0381 85.35); /* #fdf0d5 */
+  --canvas-accent: oklch(0.8866 0.0586 243.03); /* #b9dffe */
+  --panel: oklch(0.9584 0.0381 85.35 / 0.7);
+  --panel-border: oklch(1 0 0 / 0.5);
+
   /* Animation */
   --duration-fast: 150ms;
   --duration-normal: 250ms;
@@ -55,4 +76,13 @@
     0 10px 15px -3px oklch(0 0 0 / 0.5), 0 4px 6px -4px oklch(0 0 0 / 0.5);
   --elevation-xl:
     0 20px 25px -5px oklch(0 0 0 / 0.6), 0 8px 10px -6px oklch(0 0 0 / 0.6);
+  --elevation-ambient: 0 4px 20px oklch(0 0 0 / 0.45);
+  --elevation-ambient-lg:
+    0 12px 40px oklch(0 0 0 / 0.55), 0 2px 8px oklch(0 0 0 / 0.4);
+
+  /* The warm paper canvas inverts to the deep navy end of the brand ramp. */
+  --canvas: oklch(0.235 0.032 238.47);
+  --canvas-accent: oklch(0.3092 0.065 238.47); /* inverse-surface #05344d */
+  --panel: oklch(0.19 0.028 238.47 / 0.7);
+  --panel-border: oklch(0.956 0.0217 250.21 / 0.12);
 }

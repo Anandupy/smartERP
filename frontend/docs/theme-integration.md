@@ -10,11 +10,30 @@ turned on later without touching component code.
 - **Design tokens** as CSS variables in `src/styles/design-tokens.css` + shadcn
   color variables in `src/app/globals.css`, exposed through Tailwind `@theme`.
 - **Token interfaces** in `src/core/theme/types.ts` (`DesignTokens`, `ColorTokens`,
-  `TypographyTokens`, `SpacingTokens`, `RadiusTokens`, `ElevationTokens`,
-  `AnimationTokens`).
+  `SurfaceTokens`, `TypographyTokens`, `SpacingTokens`, `RadiusTokens`,
+  `ElevationTokens`, `AnimationTokens`).
+- **Inter** as the design system's typeface, loaded in `app/layout.tsx` and
+  exposed as `--font-sans`.
 - **`themeRegistry`** with a built-in `baseTheme`.
 - **`adaptWorkspaceTheme` / `registerWorkspaceTheme`** — the workspace adapter
   seam (pure transform, not yet wired to the provider).
+
+## Brand surfaces
+
+Ordinary chrome uses the shadcn color slots. Full-bleed **brand moments**
+(splash, auth brand panels) use a separate family so a workspace theme can
+restyle the brand canvas without touching component chrome:
+
+| Token                                 | Tailwind                               | Purpose                                  |
+| ------------------------------------- | -------------------------------------- | ---------------------------------------- |
+| `--canvas`                            | `bg-canvas`                            | Warm "paper" backdrop for brand surfaces |
+| `--canvas-accent`                     | `bg-canvas-accent`                     | Cool accent the canvas blends into       |
+| `--panel` / `--panel-border`          | `bg-panel` / `border-panel-border`     | Glassmorphic overlay fill + hairline     |
+| `--elevation-ambient` / `-ambient-lg` | `shadow-ambient` / `shadow-ambient-lg` | Diffused, ink-tinted brand elevation     |
+
+Interfaces live in `core/theme/types.ts` (`SurfaceTokens`, and the `ambient`
+steps on `ElevationTokens`); values live in `styles/design-tokens.css` with a
+dark-mode block. Add both together.
 
 ## How dynamic theming will plug in
 

@@ -14,6 +14,7 @@ export type {
   ElevationTokens,
   RadiusTokens,
   SpacingTokens,
+  SurfaceTokens,
   ThemeDefinition,
   TypographyTokens,
 } from "./types";
