@@ -22,8 +22,8 @@ frontend/
 │   │   ├── ui/             # shadcn/ui primitives (button, input, label, form)
 │   │   ├── form/           # RHF + Zod form infrastructure
 │   │   └── layouts/        # Auth/App/Public/Workspace shells
-│   ├── shared/             # cross-feature UI: feedback, layout, error boundary
-│   ├── core/               # platform: api, auth, query, theme
+│   ├── shared/             # cross-feature UI: feedback, layout, motion, error boundary
+│   ├── core/               # platform: api, auth, query, startup, theme
 │   ├── providers/          # provider composition root
 │   ├── hooks/              # generic React hooks
 │   ├── store/              # Zustand platform stores
