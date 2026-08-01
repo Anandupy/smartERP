@@ -6,6 +6,8 @@
 export const ROUTES = Object.freeze({
   root: "/",
   auth: {
+    splash: "/splash",
+    welcome: "/welcome",
     login: "/login",
     logout: "/logout",
     forgotPassword: "/forgot-password",
