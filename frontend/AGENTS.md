@@ -197,11 +197,17 @@ Before committing, confirm:
 - Don't hard-code business logic, colors, shadows, header values, or `process.env`.
 - Don't add business logic to `shared`/`components/ui`.
 - Don't implement dynamic theming, dashboards, or workspace UI (out of scope).
-- Don't wire authentication network calls yet: `features/auth` ships every auth
-  screen as **UI only** ([`docs/authentication.md`](./docs/authentication.md)).
-  Each form takes an optional `onSubmit` — that is where the mutation goes.
-- Don't invent auth endpoints or payloads; the Postman collection is the source
-  of truth, mapped in `docs/authentication.md`.
+- Don't invent auth endpoints, payloads, or response shapes. The verified
+  contract is in [`docs/authentication.md`](./docs/authentication.md); the
+  Postman collection records no response bodies and is wrong about logout.
+- Don't build password recovery around OTP — the backend uses an **emailed
+  reset link**, and `verify-otp` issues no token.
+- Don't scatter account-lock detection: it lives only in
+  `features/auth/utils/auth-errors.ts`, and backend messages are displayed
+  verbatim, never parsed for a duration.
+- Don't send form-only fields to the backend (`rememberMe`, `confirmPassword`):
+  it runs `forbidNonWhitelisted`, so an extra property is a 400. Translation
+  belongs in `features/auth/mappers`.
 - Don't put startup/navigation decisions in page components — they belong in
   `core/startup` ([§26](#26-application-startup-flow)).
 - Don't leave TODOs that break compilation, or skip verification gates.
@@ -273,6 +279,9 @@ wire shapes into features. Full detail: [`docs/response-handling.md`](./docs/res
 - The backend is **versioned**. `NEXT_PUBLIC_API_URL` is the unversioned root and
   `NEXT_PUBLIC_API_VERSION` (`v1` today) is appended once in `config/api.config.ts`.
   Never write a version segment into a service path.
+- The 401 seam (`setUnauthorizedHandler`) may resolve `true` to replay a request
+  **once**; the auth feature uses it for a single-flight refresh. Tokens reach
+  the client only through `headerRegistry` — core never learns what a token is.
 - `api.get/post/…` unwrap `data`; `api.getEnvelope` returns `data` + `meta`
   (pagination in `meta.pagination`).
 - Failures are normalized to a typed **`ApiError`** (`kind`, `status`, `code`,
@@ -299,7 +308,9 @@ Tenant / Branch / Academic-Year / Workspace / Request-Id are registered via
 
 - Start every module from `src/features/_template` (compile-checked reference).
 - Anatomy: `api/` (service + keys), `components/`, `hooks/`, `schemas/`,
-  optional `store/`, `types.ts`, `index.ts` (public surface).
+  optional `store/`, `types.ts`, `index.ts` (public surface). Modules that must
+  reconcile a form shape with a different wire shape add `types/` (DTOs),
+  `mappers/`, and `utils/` — see `features/auth` for the reference.
 - Follow the rules in `src/features/README.md` and §7. Detail on wiring:
   [`docs/contributing.md`](./docs/contributing.md).
 

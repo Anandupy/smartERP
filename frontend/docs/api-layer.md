@@ -77,6 +77,21 @@ headerRegistry.register(REQUEST_HEADERS.authorization, () =>
 - **Response**: normalizes every failure into a typed `ApiError` and invokes the
   optional `unauthorizedHandler` on 401 (the refresh-token seam).
 
+### The 401 recovery seam
+
+`setUnauthorizedHandler(handler)` registers the recovery path. Resolving `true`
+means "recovered — replay the original request once"; anything else lets the
+`ApiError` propagate.
+
+Each request may be replayed **at most once**: the config is marked internally,
+so an endpoint that keeps returning 401 cannot loop. The auth feature registers
+the handler in `AuthIntegration`, where it performs a single-flight refresh —
+see [Authentication](./authentication.md).
+
+The `Authorization` header follows the same pattern: `core/api` registers a
+placeholder returning `null`, and the auth feature replaces it with a provider
+that reads the current access token. Core never learns what a token is.
+
 ## Error normalization
 
 `errors.ts` converts any thrown value into a typed `ApiError`, preferring the

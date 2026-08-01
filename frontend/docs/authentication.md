@@ -4,10 +4,10 @@ The auth feature (`src/features/auth`) owns every screen a visitor sees before
 they have a session. This page documents what ships today, how it is composed,
 and where the not-yet-built pieces plug in.
 
-> **Scope of this phase.** Every authentication screen is implemented as **UI
-> only** — no credential request is made, no session is created, no token is
-> read. Each form takes an optional `onSubmit`; that prop is where the mutation
-> slots in. See [Backend contract](#backend-contract-not-wired-yet).
+> **Status.** Login, refresh, logout, session management and password recovery
+> are **wired to the backend**. The OTP screens are built and their endpoints
+> are wired, but they are **not part of password recovery** — see
+> [Password recovery](#password-recovery-flow).
 
 ## Routes
 
@@ -16,10 +16,10 @@ and where the not-yet-built pieces plug in.
 | `/splash`           | `SplashScreen`          | Brand entry + boot sequence; asks the startup flow where to go |
 | `/welcome`          | `WelcomeScreen`         | First-run brand introduction + single CTA into login           |
 | `/login`            | `LoginScreen`           | Credential entry                                               |
-| `/forgot-password`  | `ForgotPasswordScreen`  | Recovery step 1 — request a code                               |
-| `/email-sent`       | `EmailSentScreen`       | Recovery step 2 — confirmation, resend, change email           |
-| `/verify-otp`       | `OtpVerificationScreen` | Recovery step 3 — enter the six-digit code                     |
-| `/reset-password`   | `ResetPasswordScreen`   | Recovery step 4 — choose a new password                        |
+| `/forgot-password`  | `ForgotPasswordScreen`  | Recovery step 1 — request a reset email                        |
+| `/email-sent`       | `EmailSentScreen`       | Recovery step 2 — confirmation and resend                      |
+| `/verify-otp`       | `OtpVerificationScreen` | **Not in the recovery path** — reserved for LOGIN/MFA/verify   |
+| `/reset-password`   | `ResetPasswordScreen`   | Recovery step 3 — reached from the emailed link (`?token=`)    |
 | `/password-success` | `PasswordSuccessScreen` | Recovery outcome                                               |
 | `/account-locked`   | `AccountLockedScreen`   | Session state — too many failed attempts                       |
 | `/session-expired`  | `SessionExpiredScreen`  | Session state — ended through inactivity                       |
@@ -155,34 +155,47 @@ else changes.
 
 ## Password recovery flow
 
-Four screens, one linear path:
+**The backend resets passwords with an emailed link, not an OTP.** This is the
+single most important thing to know about this feature, because the screens were
+originally designed the other way round.
 
 ```
-/forgot-password → /email-sent → /verify-otp → /reset-password → /password-success
+/forgot-password  →  /email-sent  →  ✉ user clicks the emailed link
+                                      ↓
+        /password-success  ←  /reset-password?token=…
 ```
 
-### Carrying state between steps
+`forgot-password` generates a 32-byte token, stores only its SHA-256 hash, and
+emails the raw value inside a link. `reset-password` consumes it: single-use,
+expires in 15 minutes, and a successful reset revokes every refresh token, so
+all other sessions end immediately.
 
-Each step needs what the previous one produced, so the feature owns a small
-Zustand store (`store/recovery-store.ts`) holding the identifier, whether a code
-was verified, and the reset token.
+`verify-otp` returns `{ success }` and **issues no token**, so the OTP endpoints
+cannot drive this flow. They stay wired for their real purposes — `LOGIN`,
+`MFA`, `EMAIL_VERIFY`, `PHONE_VERIFY` — and the OTP screens are kept for them.
 
-It is **not persisted and not in the URL**, on purpose: the email identifies an
-account and the reset token authorizes a password change, so neither belongs in
-browser history, bookmarks, or server logs. The cost is that a reload drops the
-flow — `RecoveryFlowGuard` catches that and offers a clean restart rather than
-rendering a screen addressed to nobody. `/reset-password` additionally requires
-a _verified_ code, so the final step cannot be reached by typing its URL.
+### Where the token comes from
+
+`/reset-password` reads `?token=` from the URL, not from client state:
+possession of the email is the authorization. That is why the screen works in a
+browser that never saw `/forgot-password` — the normal case, since mail clients
+routinely open links elsewhere.
+
+Arriving without a token renders an explanation and a way to request a fresh
+link, never a form that cannot succeed.
+
+`store/recovery-store.ts` survives only so `/email-sent` can echo back the
+address that was submitted; nothing downstream depends on it.
 
 ### Per-screen behavior
 
-| Screen               | Behavior                                                                                                                                                                                                                                                  |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Forgot password**  | `TextField` + email validation; records the identifier and advances. Loading state on submit, errors via field binding or a destructive `Alert`. Explicit "Back to login".                                                                                |
-| **Email sent**       | Echoes the address it was sent to. Resend is throttled behind a visible `mm:ss` countdown that mirrors the backend's own limit, so the UI never invites a request the server would reject. "Use a different email" clears the flow and returns to step 1. |
-| **OTP verification** | `OtpField` (six digits), auto-focused. Paste, arrow-key/backspace navigation and `autocomplete="one-time-code"` come from `input-otp` — one real input behind the slots, not six. Same throttled resend.                                                  |
-| **Reset password**   | Two `PasswordField`s with independent show/hide toggles, plus a live strength meter and requirements checklist. Mismatch is reported on the confirmation field.                                                                                           |
-| **Password success** | Confirms the outcome; primary CTA to login plus an announced auto-redirect the visitor can ignore.                                                                                                                                                        |
+| Screen               | Behavior                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Forgot password**  | `TextField` + email validation; records the identifier and advances. Loading state on submit, errors via field binding or a destructive `Alert`. Explicit "Back to login".                                                                                                                                                                                  |
+| **Email sent**       | Echoes the address, and offers **no "continue" action** — the flow resumes in the inbox, because the emailed link carries the token. Resend is throttled behind a visible `mm:ss` countdown that mirrors the backend's own limit, so the UI never invites a request the server would reject. "Use a different email" clears the flow and returns to step 1. |
+| **OTP verification** | **Not in the recovery path** — reserved for `LOGIN`/`MFA`/`EMAIL_VERIFY`. `OtpField` (six digits), auto-focused. Paste, arrow-key/backspace navigation and `autocomplete="one-time-code"` come from `input-otp` — one real input behind the slots, not six.                                                                                                 |
+| **Reset password**   | Reached from the emailed link; reads `?token=`. Two `PasswordField`s with independent show/hide toggles, plus a live strength meter and requirements checklist. Mismatch is reported on the confirmation field.                                                                                                                                             |
+| **Password success** | Confirms the outcome; primary CTA to login plus an announced auto-redirect the visitor can ignore.                                                                                                                                                                                                                                                          |
 
 ### One password policy, three consumers
 
@@ -191,15 +204,108 @@ refinements from them, and `PasswordStrengthMeter` renders the same list — so
 what the checklist promises and what validation enforces cannot drift apart.
 Changing the policy is a one-file change.
 
+⚠️ **The client policy is stricter than the server's.** The backend enforces
+only `@MinLength(8)` on reset, with no complexity requirement. The frontend asks
+for 12 characters plus mixed case, a digit and a symbol. That is deliberate —
+guidance the server does not yet enforce — but it means a password the backend
+would accept can be rejected here. Aligning is a backend change; see
+[Backend recommendations](#backend-recommendations).
+
 ## Session states
 
-| Screen              | Behavior                                                                                                                                                                                                                                                                                                       |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Account locked**  | States the reason, counts down to unlock, and keeps "Return to login" **disabled** until the timer clears so the screen never invites an attempt that would extend the lockout. Offers the two useful escapes meanwhile: contact an administrator, or reset the password. Closes with concrete retry guidance. |
-| **Session expired** | Explains _why_ the session ended rather than just reporting it. "Login again" is one click; the announced auto-redirect is a convenience, never the only route. Renders last-activity detail only when the platform actually knows it.                                                                         |
+| Screen              | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Account locked**  | Shows the backend's message **verbatim** when it has one, and suppresses the local countdown in that case — the server already states the remaining time, and parsing a duration out of its copy would break the moment that copy changed. Reached directly, it falls back to its own countdown with "Return to login" disabled until the timer clears. Offers two escapes throughout: contact an administrator, or reset the password. |
+| **Session expired** | Explains _why_ the session ended rather than just reporting it. "Login again" is one click; the announced auto-redirect is a convenience, never the only route. Renders last-activity detail only when the platform actually knows it.                                                                                                                                                                                                  |
 
 Both lockout and redirect durations are props with sensible defaults — the
 backend owns the real windows, and these screens only reflect what it reports.
+
+## Backend integration
+
+### Module layout
+
+| Path                         | Responsibility                                                         |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `api/auth.service.ts`        | One function per endpoint. Transport only, on the shared `api` helper. |
+| `api/auth.keys.ts`           | Query keys via `createQueryKeys("auth")`.                              |
+| `types/auth.dto.ts`          | Wire DTOs mirroring the backend exactly.                               |
+| `mappers/auth.mapper.ts`     | Form ↔ wire translation. Every shape difference lives here.            |
+| `utils/auth-errors.ts`       | Account-lock detection — the only place that rule exists.              |
+| `utils/jwt.ts`               | Unverified claim decoding, for display only.                           |
+| `utils/session-manager.ts`   | Token storage choice, single-flight refresh, client wiring.            |
+| `hooks/use-*.ts`             | Mutations and queries.                                                 |
+| `components/*-connected.tsx` | Thin containers binding mutations to untouched forms.                  |
+
+Screens and forms were **not** modified to integrate: each form already took an
+optional `onSubmit`, and a connected container supplies it. That is why the
+original component tests still pass unchanged.
+
+### Contract translation
+
+Three differences between the UI and the backend are resolved in the mapper:
+
+- **`email` → `identifier`.** The backend accepts an email, username or phone in
+  one field.
+- **`rememberMe` is never sent.** It is purely a client decision about where
+  tokens live. The backend runs `forbidNonWhitelisted`, so sending it would
+  fail the request with a 400.
+- **`confirmPassword` never leaves the client.**
+
+### Tokens and refresh
+
+The access token lives **in memory**; the refresh token goes to Web Storage only
+when the user asked to be remembered (`createHybridTokenStorage`). A short-lived
+credential never touches disk, and an unremembered session cannot outlive the
+tab.
+
+`AuthIntegration` — mounted once in the root layout — does the wiring that must
+exist before the first request:
+
+1. the `Authorization` header resolves from token storage, replacing the
+   platform's `null` placeholder;
+2. a 401 triggers **one** silent refresh and **one** replay, through the
+   interceptor's existing seam;
+3. a surviving refresh token is exchanged for a live session on start-up, so a
+   reload does not look like a logout.
+
+Refresh is **single-flight**: concurrent 401s await one shared promise. The
+backend rotates and revokes on every use, so parallel refreshes would race and
+revoke each other, logging the user out. Recovery is also skipped for
+`/auth/login`, `/auth/refresh` and `/auth/logout`, and each request may be
+replayed at most once, so a persistently-401 endpoint cannot loop.
+
+### Error routing
+
+| Failure                         | Where it surfaces                                   |
+| ------------------------------- | --------------------------------------------------- |
+| Invalid credentials             | Inline `Alert` on the form                          |
+| **Account locked**              | Routed to `/account-locked`, message shown verbatim |
+| Expired/consumed reset token    | Inline `Alert`                                      |
+| 401 on an authenticated request | Silent refresh; `/session-expired` if that fails    |
+| Anything else                   | Global toast                                        |
+
+Auth mutations set `meta: { skipErrorToast: true }` because their forms render
+failures inline — without it a single error would be reported twice.
+
+⚠️ **Field-level errors do not exist on this backend.** Its exception filter
+joins class-validator's array into one string, so `applyServerFieldErrors` never
+fires against it. It remains wired for a backend that does emit them.
+
+### Identity
+
+`/auth/login` returns only `{ accessToken, refreshToken }`, and there is **no
+`/auth/me`**. `AuthUser` is therefore built from the access token's claims
+(`sub`, `email`, `role`, `organizationId`, `branchId`), with two honest
+fallbacks:
+
+- `name` falls back to the email — no name claim exists.
+- `permissions` is empty, so every `can()` check **fails closed** until
+  `GET /authorization/me/effective-permissions` is wired. Hiding UI the user may
+  be entitled to is the safe direction.
+
+Claims are decoded without signature verification, for display only. The server
+is the only party that validates a token.
 
 ## Responsive behavior
 
@@ -309,7 +415,7 @@ Screens that navigate need the App Router mock (`@tests/mocks/next-navigation`)
 must not run under fake timers; the countdown assertions and the interaction
 assertions therefore live in separate `describe` blocks.
 
-## Backend contract (not wired yet)
+## Backend contract
 
 The Postman collection is the source of truth for these routes; nothing here is
 invented and nothing is called yet. The backend exposes auth under the versioned
@@ -331,37 +437,45 @@ services call version-agnostic paths — see [API Layer](./api-layer.md).
 | `/auth/sessions`            | GET/DELETE | List, or revoke all            | (session management) |
 | `/auth/sessions/:id`        | DELETE     | Revoke one session             | (session management) |
 
-### Shape mismatches to resolve when wiring
+Verified against the backend source, not only the Postman collection — the
+collection documents routes and request bodies but records **no response
+bodies**, and is wrong about logout (it omits the required body and marks
+`allDevices` required when it is optional).
 
-- **`identifier` vs `email`.** The backend accepts one `identifier` (email,
-  username, or phone); the login and forgot-password forms model `email`,
-  because the designs ask for an institutional address. The service maps
-  `{ email, … }` → `{ identifier, … }`. Widening to accept a username or phone
-  is a schema + label change, not an architectural one — the recovery store
-  already calls the value `identifier`.
-- **`purpose`.** OTP endpoints are shared across flows and take a `purpose`
-  (`"LOGIN"`, and whatever the reset flow uses). It is a request field, not UI
-  state, so it belongs in the service call, not the form.
-- **The reset `token`.** `/auth/reset-password` takes the token issued by OTP
-  verification. `recovery-store` already carries a `resetToken`, set from
-  `completeVerification(...)` and read by `ResetPasswordForm`; it is `null`
-  today and needs no new plumbing.
-- **`rememberMe`** is a client-side token-storage decision (`core/auth` token
-  storage), not a request field.
+### Verified policies
+
+| Policy                 | Value                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| Access token lifetime  | 15 minutes                                                                         |
+| Refresh token lifetime | 7 days, rotated and revoked on every use                                           |
+| Account lockout        | 5 failed attempts → 10 minutes                                                     |
+| Reset token            | Single-use, 15-minute expiry, SHA-256 at rest                                      |
+| OTP                    | Exactly 6 digits, 10-minute TTL, 5 attempts, 60-second resend cooldown             |
+| Password (server)      | `@MinLength(8)` on reset only — no complexity rule                                 |
+| CORS                   | `Access-Control-Allow-Origin: *`, no credentials → `withCredentials` stays `false` |
+
+## Backend recommendations
+
+None of these block the integration; each removes a workaround.
+
+1. **Emit a dedicated `ACCOUNT_LOCKED` code.** The exception filter sets `code`
+   to the thrown class name, so a lockout is indistinguishable from any other 403. Detection currently needs a message match as well — narrow, isolated in
+   `utils/auth-errors.ts`, and deletable the day a real code exists.
+2. **Add `GET /auth/me`.** Login returns only tokens, so `name` falls back to
+   the email and `permissions` starts empty.
+3. **Enforce the password policy server-side**, or tell us the real one so the
+   client can match it.
+4. **Make `send-otp` generic on an unknown identifier.** It currently 404s,
+   leaking account existence — `forgot-password` deliberately does not.
+5. **Fix the Postman collection**: logout's body and `allDevices` optionality.
 
 ## What lands next
 
-1. **Auth mutations** — an `auth.service.ts` on `createResourceService`, keys on
-   `createQueryKeys`, and one mutation hook per endpoint. Pass each hook's
-   `mutateAsync` as the matching form's `onSubmit`; the loading, field-error and
-   form-error paths already work.
-2. **Session hand-off** — `AuthProvider.setSession` on successful login, and the
-   token provider registered on `headerRegistry` (see
-   [API Layer](./api-layer.md)).
-3. **Real startup routing** — `useStartupRoute` awaits session validation and
-   passes the result to `resolveStartupRoute`'s existing `session` parameter.
-   The onboarding flag stays and keeps working independently.
-4. **Session expiry wiring** — the 401 seam in the response interceptor attempts
-   `/auth/refresh` and routes to `/session-expired` only when the refresh token
-   is genuinely gone; `/account-locked` is driven by the lockout error the
-   backend returns from `/auth/login`.
+1. **Permissions** — wire `GET /authorization/me/effective-permissions` so
+   `can()` stops failing closed.
+2. **Startup routing** — `useStartupRoute` awaits a session probe and passes the
+   result to `resolveStartupRoute`'s existing `session` parameter.
+3. **Session management UI** — the hooks (`useSessions`, `useRevokeSession`,
+   `useRevokeAllSessions`) are wired and tested; no screen consumes them yet.
+4. **OTP flows** — the screens and hooks exist for `LOGIN`/`MFA`/`EMAIL_VERIFY`;
+   none is currently reachable from a route.

@@ -46,9 +46,22 @@ wire format. Import via `@tests/fixtures/api`.
 
 ## Rendering helper
 
-Use `render` from `@tests/setup/render` — it wraps components in the platform
-providers (a test-tuned `QueryClient` with retries off, plus `TooltipProvider`).
+Use `render` from `@tests/setup/render` — it mirrors `AppProviders`: a
+test-tuned `QueryClient` (retries off), then `SessionProvider` → `AuthProvider`
+→ `PermissionProvider` → `TooltipProvider`, in the real order. The theme
+provider and toaster are omitted as irrelevant in jsdom.
 `createTestQueryClient` is exported for custom setups.
+
+Web Storage is cleared after every test, so a spec that signs in cannot leak a
+session into the next one.
+
+## Auth fixtures
+
+`tests/mocks/auth-handlers.ts` holds the default MSW handlers for the auth API
+plus the builders scenarios need: `makeAccessToken(claims)` mints a JWT-shaped
+token whose payload is real (nothing client-side verifies signatures), and
+`invalidCredentialsEnvelope` / `accountLockedEnvelope` reproduce the backend's
+exact failure bodies. Override per test with `server.use(...)`.
 
 ## jsdom gaps
 
@@ -80,7 +93,8 @@ vi.mock("next/navigation", async () => {
 ```
 
 Assert against `routerMock.push` / `routerMock.replace`, and call
-`resetRouterMock()` in `beforeEach`.
+`resetRouterMock()` in `beforeEach`. Screens that read the query string — the
+reset-password link, for one — get it from `setSearchParams({ token: "…" })`.
 
 ## Timers
 
@@ -93,6 +107,14 @@ Fake timers and `userEvent` do not mix here: `userEvent` awaits its own internal
 delays and stalls when the clock is frozen. Keep timer assertions and click
 assertions in **separate `describe` blocks**, with fake timers installed only in
 the former — see `tests/integration/auth-recovery-flow.test.tsx`.
+
+`useCountdown` ticks on a persistent `setInterval`, so a single bulk
+`advanceTimersByTime` fires every tick — the one-tick-per-`act` rule applies only
+to chained timeouts like the splash boot sequence.
+
+`testTimeout` is raised to 15 s for the `unit` project: integration specs mount
+the full provider tree and round-trip through MSW, and the first spec in a file
+also pays its module-loading cost.
 
 ## Writing tests
 
