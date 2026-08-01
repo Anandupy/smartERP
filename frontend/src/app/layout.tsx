@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 
 import { appConfig } from "@/config";
+import { AuthIntegration } from "@/features/auth";
 import { AppProviders } from "@/providers";
 
 import "./globals.css";
@@ -38,7 +39,11 @@ export default function RootLayout({
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          {/* Wires the API client to auth and restores a remembered session. */}
+          <AuthIntegration />
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

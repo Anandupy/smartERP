@@ -10,7 +10,7 @@ import { FadeIn } from "@/shared";
 import { AuthFooter } from "./auth-footer";
 import { AuthMessagePanel } from "./auth-message-panel";
 import { BrandMark } from "./brand-mark";
-import { ForgotPasswordForm } from "./forgot-password-form";
+import { ForgotPasswordFormConnected } from "./forgot-password-form-connected";
 
 /**
  * Step 1 of password recovery. The form owns validation and submission; this
@@ -42,7 +42,7 @@ export function ForgotPasswordScreen() {
             </p>
           </CardHeader>
           <CardContent className="space-y-5">
-            <ForgotPasswordForm />
+            <ForgotPasswordFormConnected />
             <Button asChild variant="outline" size="lg" className="h-11 w-full">
               <Link href={ROUTES.auth.login}>
                 <ArrowLeft aria-hidden="true" data-icon="inline-start" />

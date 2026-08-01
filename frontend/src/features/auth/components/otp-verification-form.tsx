@@ -25,22 +25,30 @@ import {
 import { useRecoveryStore } from "../store/recovery-store";
 
 export interface OtpVerificationFormProps {
+  /** Verification handler — wire `useVerifyOtp().mutateAsync` here. */
+  onSubmit?: (values: OtpFormValues) => Promise<unknown>;
   /**
-   * Verification handler. Unset in this phase, so the form validates and
-   * advances without a network call. Wiring `POST /auth/verify-otp` later means
-   * passing its `mutateAsync` here and handing the returned reset token to
-   * `completeVerification`.
+   * Where to go once a code verifies. Defaults to login, because the purpose
+   * that owns the flow decides the destination.
    */
-  onSubmit?: (values: OtpFormValues) => Promise<{ resetToken?: string } | void>;
+  redirectTo?: string;
 }
 
 /**
- * Step 3 of recovery: verify the one-time code.
+ * Verify a one-time code.
+ *
+ * **Not part of password recovery.** The backend resets passwords with an
+ * emailed link, and `verify-otp` returns only `{ success }` — it issues no
+ * token a reset could consume. This form is retained for the purposes that do
+ * use OTP: `LOGIN`, `MFA`, `EMAIL_VERIFY`, `PHONE_VERIFY`.
  *
  * `OtpField` carries the input behavior (paste, arrow keys, autofill); this
  * form adds validation, the submitting state, and error presentation.
  */
-export function OtpVerificationForm({ onSubmit }: OtpVerificationFormProps) {
+export function OtpVerificationForm({
+  onSubmit,
+  redirectTo = ROUTES.auth.login,
+}: OtpVerificationFormProps) {
   const router = useRouter();
   const completeVerification = useRecoveryStore(
     (state) => state.completeVerification,
@@ -55,9 +63,9 @@ export function OtpVerificationForm({ onSubmit }: OtpVerificationFormProps) {
   const handleSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null);
     try {
-      const result = await onSubmit?.(values);
-      completeVerification(result?.resetToken ?? null);
-      router.push(ROUTES.auth.resetPassword);
+      await onSubmit?.(values);
+      completeVerification();
+      router.push(redirectTo);
     } catch (error) {
       const boundToFields = applyServerFieldErrors(error, form.setError);
       if (!boundToFields) setSubmitError(error);

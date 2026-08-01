@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { ResetPasswordScreen } from "@/features/auth";
 
@@ -7,7 +8,17 @@ export const metadata: Metadata = {
   description: "Choose a new password for your CampusFlow account.",
 };
 
-/** Step 4 of password recovery. UI only in this phase — nothing is persisted. */
+/**
+ * Final step of password recovery, reached from the emailed reset link.
+ *
+ * The screen reads its token with `useSearchParams`, so it must sit behind a
+ * Suspense boundary — without one the whole route would opt out of static
+ * rendering.
+ */
 export default function ResetPasswordPage() {
-  return <ResetPasswordScreen />;
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordScreen />
+    </Suspense>
+  );
 }

@@ -7,7 +7,7 @@ import { FadeIn } from "@/shared";
 import { AuthFooter } from "./auth-footer";
 import { BrandMark } from "./brand-mark";
 import { LoginBrandPanel } from "./login-brand-panel";
-import { LoginForm } from "./login-form";
+import { LoginFormConnected } from "./login-form-connected";
 
 /**
  * The sign-in screen: brand panel from `lg` up, credentials card at every
@@ -46,7 +46,7 @@ export function LoginScreen() {
             </p>
           </CardHeader>
           <CardContent>
-            <LoginForm />
+            <LoginFormConnected />
           </CardContent>
         </Card>
       </FadeIn>

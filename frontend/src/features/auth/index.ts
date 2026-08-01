@@ -18,6 +18,8 @@ export { WelcomeScreen } from "./components/welcome-screen";
 export { WelcomeCta } from "./components/welcome-cta";
 export { LoginScreen } from "./components/login-screen";
 export { LoginForm, type LoginFormProps } from "./components/login-form";
+export { LoginFormConnected } from "./components/login-form-connected";
+export { AuthIntegration } from "./components/auth-integration";
 
 // Password recovery, in flow order
 export { ForgotPasswordScreen } from "./components/forgot-password-screen";
@@ -37,7 +39,12 @@ export {
   OtpVerificationForm,
   type OtpVerificationFormProps,
 } from "./components/otp-verification-form";
-export { ResetPasswordScreen } from "./components/reset-password-screen";
+export {
+  RESET_TOKEN_PARAM,
+  ResetPasswordScreen,
+} from "./components/reset-password-screen";
+export { ForgotPasswordFormConnected } from "./components/forgot-password-form-connected";
+export { ResetPasswordFormConnected } from "./components/reset-password-form-connected";
 export {
   ResetPasswordForm,
   type ResetPasswordFormProps,
@@ -81,6 +88,56 @@ export {
   type UseBootSequenceOptions,
 } from "./hooks/use-boot-sequence";
 export { useRecoveryStore } from "./store/recovery-store";
+export { useLockoutStore } from "./store/lockout-store";
+
+// Backend integration
+export { authService } from "./api/auth.service";
+export { authKeys } from "./api/auth.keys";
+export { useLogin } from "./hooks/use-login";
+export {
+  useForgotPassword,
+  useResetPassword,
+} from "./hooks/use-password-recovery";
+export {
+  useLogout,
+  useRevokeAllSessions,
+  useRevokeSession,
+  useSessions,
+} from "./hooks/use-sessions";
+export {
+  useResendOtp,
+  useResendVerification,
+  useSendOtp,
+  useVerifyEmail,
+  useVerifyOtp,
+} from "./hooks/use-otp";
+export {
+  getAccountLockedMessage,
+  isAccountLockedError,
+} from "./utils/auth-errors";
+export { decodeAccessToken } from "./utils/jwt";
+export {
+  clearTokens,
+  configureTokenStorage,
+  persistTokens,
+  refreshSession,
+  registerAuthIntegration,
+} from "./utils/session-manager";
+export {
+  toAuthUser,
+  toForgotPasswordRequest,
+  toLoginRequest,
+  toResetPasswordRequest,
+  toTokenPair,
+} from "./mappers/auth.mapper";
+export {
+  OTP_PURPOSES,
+  type AccessTokenClaims,
+  type AuthSessionDto,
+  type AuthTokensDto,
+  type LoginRequest,
+  type OtpPurpose,
+} from "./types/auth.dto";
 export {
   loginFormDefaults,
   loginFormSchema,

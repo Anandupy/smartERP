@@ -26,14 +26,11 @@ import { useRecoveryStore } from "../store/recovery-store";
 
 export interface ResetPasswordFormProps {
   /**
-   * Reset handler. Unset in this phase, so the form validates and advances
-   * without a network call. Wiring `POST /auth/reset-password` later means
-   * passing its `mutateAsync` here; the reset token is already carried in the
-   * flow store.
+   * Reset handler. The single-use token is supplied by the container from the
+   * emailed link's query string — not by this form and not by client state,
+   * because possession of the email is what authorizes the change.
    */
-  onSubmit?: (
-    values: ResetPasswordFormValues & { resetToken: string | null },
-  ) => Promise<void>;
+  onSubmit?: (values: ResetPasswordFormValues) => Promise<void>;
 }
 
 /**
@@ -45,7 +42,6 @@ export interface ResetPasswordFormProps {
  */
 export function ResetPasswordForm({ onSubmit }: ResetPasswordFormProps) {
   const router = useRouter();
-  const resetToken = useRecoveryStore((state) => state.resetToken);
   const resetFlow = useRecoveryStore((state) => state.reset);
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -59,7 +55,7 @@ export function ResetPasswordForm({ onSubmit }: ResetPasswordFormProps) {
   const handleSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null);
     try {
-      await onSubmit?.({ ...values, resetToken });
+      await onSubmit?.(values);
       resetFlow();
       router.push(ROUTES.auth.passwordSuccess);
     } catch (error) {
