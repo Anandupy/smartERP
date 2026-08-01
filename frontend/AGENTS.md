@@ -59,7 +59,7 @@ app  →  features  →  components / shared  →  core  →  config / constants
                        ↘ hooks / lib / utils / services / schemas / store ↗
 ```
 
-- **core** = cross-cutting platform (api, auth, query, theme) with zero business logic.
+- **core** = cross-cutting platform (api, auth, query, startup, theme) with zero business logic.
 - **features** = the only place domain logic lives; fully isolated.
 - **shared / components** = generic, presentational; no business logic.
 
@@ -101,20 +101,20 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 
 ## 6. Folder Responsibilities
 
-| Path                                     | Responsibility                                                 |
-| ---------------------------------------- | -------------------------------------------------------------- |
-| `src/app`                                | Routing, layouts, route-level error/loading/404 (thin).        |
-| `src/features/*`                         | Business modules; the only place with domain logic.            |
-| `src/components/{ui,form,layouts}`       | Design-system primitives, form infra, layout shells.           |
-| `src/shared`                             | Cross-feature presentational building blocks + error boundary. |
-| `src/core/{api,auth,query,theme}`        | Platform infrastructure; no business logic.                    |
-| `src/providers`                          | Client provider composition root.                              |
-| `src/services`                           | Transport service factories features build on.                 |
-| `src/store`                              | Platform-only Zustand stores (UI + preferences).               |
-| `src/hooks` `src/lib` `src/utils`        | Generic reusable helpers.                                      |
-| `src/schemas`                            | Shared Zod schemas.                                            |
-| `src/config` `src/constants` `src/types` | Env/app config, constants, shared contracts.                   |
-| `src/styles` `src/assets`                | Design-token CSS, curated icons/static accessors.              |
+| Path                                      | Responsibility                                                 |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| `src/app`                                 | Routing, layouts, route-level error/loading/404 (thin).        |
+| `src/features/*`                          | Business modules; the only place with domain logic.            |
+| `src/components/{ui,form,layouts}`        | Design-system primitives, form infra, layout shells.           |
+| `src/shared`                              | Cross-feature presentational building blocks + error boundary. |
+| `src/core/{api,auth,query,startup,theme}` | Platform infrastructure; no business logic.                    |
+| `src/providers`                           | Client provider composition root.                              |
+| `src/services`                            | Transport service factories features build on.                 |
+| `src/store`                               | Platform-only Zustand stores (UI + preferences).               |
+| `src/hooks` `src/lib` `src/utils`         | Generic reusable helpers.                                      |
+| `src/schemas`                             | Shared Zod schemas.                                            |
+| `src/config` `src/constants` `src/types`  | Env/app config, constants, shared contracts.                   |
+| `src/styles` `src/assets`                 | Design-token CSS, curated icons/static accessors.              |
 
 ## 7. Dependency Rules
 
@@ -197,10 +197,13 @@ Before committing, confirm:
 - Don't hard-code business logic, colors, shadows, header values, or `process.env`.
 - Don't add business logic to `shared`/`components/ui`.
 - Don't implement dynamic theming, dashboards, or workspace UI (out of scope).
-- Don't wire authentication network calls yet: `features/auth` ships splash,
-  welcome, and login as **UI only** ([`docs/authentication.md`](./docs/authentication.md)).
-  Recovery screens (forgot-password, OTP, reset, session-expired, account-locked)
-  are separate phases — don't add them speculatively.
+- Don't wire authentication network calls yet: `features/auth` ships every auth
+  screen as **UI only** ([`docs/authentication.md`](./docs/authentication.md)).
+  Each form takes an optional `onSubmit` — that is where the mutation goes.
+- Don't invent auth endpoints or payloads; the Postman collection is the source
+  of truth, mapped in `docs/authentication.md`.
+- Don't put startup/navigation decisions in page components — they belong in
+  `core/startup` ([§26](#26-application-startup-flow)).
 - Don't leave TODOs that break compilation, or skip verification gates.
 
 ## 15. Common Mistakes
@@ -328,3 +331,19 @@ Update this file (and the relevant `docs/*.md`) whenever any of these change:
 Rule: **documentation must never drift from implementation.** If a change makes
 any statement here false, fix it in the same commit. Keep this file concise
 (~250–400 lines) — push detail into `docs/` and cross-reference it.
+
+## 26. Application Startup Flow
+
+Where the app goes after `/splash` is **one decision in one place** — `core/startup`.
+Never hard-code navigation in a page component.
+
+- `resolveStartupRoute(context)` is the pure policy function; `useStartupRoute()`
+  reads the first-run flag through the `OnboardingStorage` seam.
+- The flag lives under `campusflow.onboarding.completed` and is **independent of
+  authentication**: a returning visitor with an expired session still skips welcome.
+- The onboarding check is temporary. Session validation slots into the resolver's
+  existing `session` parameter — do not restructure it, and do not implement
+  session/token validation until that phase.
+
+Detail: [`docs/authentication.md`](./docs/authentication.md) and
+[`docs/core-platform.md`](./docs/core-platform.md).

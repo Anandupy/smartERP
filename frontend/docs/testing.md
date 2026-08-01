@@ -52,10 +52,17 @@ providers (a test-tuned `QueryClient` with retries off, plus `TooltipProvider`).
 
 ## jsdom gaps
 
-`tests/setup/vitest.setup.ts` stubs `ResizeObserver` and
-`Element.prototype.scrollIntoView`, which jsdom does not implement and Radix
-primitives (checkbox, tooltip, popover, select) call from layout effects.
-Nothing asserts on observed sizes; the stubs only keep the primitives mountable.
+`tests/setup/vitest.setup.ts` stubs the layout APIs jsdom omits but headless UI
+libraries call from layout effects and timers:
+
+| Stub                               | Needed by                                |
+| ---------------------------------- | ---------------------------------------- |
+| `ResizeObserver`                   | Radix checkbox, tooltip, popover, select |
+| `Element.prototype.scrollIntoView` | Radix focus management                   |
+| `document.elementFromPoint`        | `input-otp` caret tracking               |
+
+Nothing asserts on measured geometry; the stubs only keep the primitives
+mountable.
 
 ## Routing
 
@@ -77,10 +84,15 @@ Assert against `routerMock.push` / `routerMock.replace`, and call
 
 ## Timers
 
-Components driven by staged timers (e.g. the splash boot sequence) schedule the
-next timeout from the effect that runs _after_ the previous state update
-commits. Advance **one step per `act`** — a single bulk
-`advanceTimersByTime(n * step)` fires only the first timer.
+Components driven by staged timers (e.g. the splash boot sequence, resend
+throttles, lockout countdowns) schedule the next timeout from the effect that
+runs _after_ the previous state update commits. Advance **one tick per `act`** —
+a single bulk `advanceTimersByTime(n * step)` fires only the first timer.
+
+Fake timers and `userEvent` do not mix here: `userEvent` awaits its own internal
+delays and stalls when the clock is frozen. Keep timer assertions and click
+assertions in **separate `describe` blocks**, with fake timers installed only in
+the former — see `tests/integration/auth-recovery-flow.test.tsx`.
 
 ## Writing tests
 

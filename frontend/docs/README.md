@@ -18,7 +18,7 @@ without restructuring.
 9. [State Management](./state-management.md)
 10. [Forms](./forms.md)
 11. [Error Handling](./error-handling.md)
-12. [Authentication Screens](./authentication.md)
+12. [Authentication Screens & Startup Flow](./authentication.md)
 13. [Testing Strategy](./testing.md)
 14. [Coding Standards](./coding-standards.md)
 15. [Contribution Guide](./contributing.md)
