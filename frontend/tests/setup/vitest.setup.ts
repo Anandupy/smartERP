@@ -6,10 +6,11 @@ import { afterAll, afterEach, beforeAll } from "vitest";
 import { server } from "@tests/mocks/server";
 
 /**
- * jsdom implements neither `ResizeObserver` nor `Element.scrollIntoView`, both
- * of which Radix primitives (checkbox, tooltip, popover, select …) call during
- * layout effects. Stubbing them here keeps every component test free of the
- * same boilerplate; nothing under test asserts on observed sizes.
+ * jsdom omits several layout APIs that headless UI libraries call from layout
+ * effects and timers: `ResizeObserver` and `scrollIntoView` (Radix checkbox,
+ * tooltip, popover, select) and `elementFromPoint` (`input-otp`'s caret
+ * tracking). Stubbing them here keeps every component test free of the same
+ * boilerplate; nothing under test asserts on measured geometry.
  */
 if (!("ResizeObserver" in globalThis)) {
   globalThis.ResizeObserver = class ResizeObserver {
@@ -21,6 +22,10 @@ if (!("ResizeObserver" in globalThis)) {
 
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
+}
+
+if (!document.elementFromPoint) {
+  document.elementFromPoint = () => null;
 }
 
 // Start the MSW server before the suite, reset between tests, close at the end.
