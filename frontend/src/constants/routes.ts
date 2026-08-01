@@ -10,7 +10,15 @@ export const ROUTES = Object.freeze({
     welcome: "/welcome",
     login: "/login",
     logout: "/logout",
+    // Password recovery, in flow order.
     forgotPassword: "/forgot-password",
+    emailSent: "/email-sent",
+    verifyOtp: "/verify-otp",
+    resetPassword: "/reset-password",
+    passwordSuccess: "/password-success",
+    // Session states.
+    accountLocked: "/account-locked",
+    sessionExpired: "/session-expired",
   },
   app: {
     root: "/app",
