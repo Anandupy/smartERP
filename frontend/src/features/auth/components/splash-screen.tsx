@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { Lock } from "@/assets/icons";
 import { Progress } from "@/components/ui/progress";
 import { appConfig } from "@/config";
 import { ROUTES } from "@/constants";
+import { useStartupRoute } from "@/core/startup";
 import { FadeIn } from "@/shared";
 
 import { SPLASH_BOOT_STEPS, SPLASH_STEP_DURATION_MS } from "../constants";
@@ -18,9 +19,9 @@ import { BrandMark } from "./brand-mark";
 
 export interface SplashScreenProps {
   /**
-   * Where the boot sequence hands off. Defaults to the welcome screen; once the
-   * session probe lands, an authenticated visitor is routed straight to the
-   * workspace instead and only this prop changes.
+   * Override where the boot sequence hands off. Left unset, the destination
+   * comes from `useStartupRoute` — the single place startup navigation policy
+   * lives — so this screen never decides anything itself.
    */
   redirectTo?: string;
 }
@@ -33,15 +34,21 @@ export interface SplashScreenProps {
  * `prefers-reduced-motion`. The progress bar is determinate so assistive tech
  * reports real progress rather than an endless busy state.
  */
-export function SplashScreen({
-  redirectTo = ROUTES.auth.welcome,
-}: SplashScreenProps) {
+export function SplashScreen({ redirectTo }: SplashScreenProps) {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
+  const startupRoute = useStartupRoute();
+
+  // The startup route resolves after mount (it reads Web Storage), so keep it
+  // in a ref: the boot sequence must not restart when it lands.
+  const destinationRef = useRef<string | null>(null);
+  useEffect(() => {
+    destinationRef.current = redirectTo ?? startupRoute;
+  }, [redirectTo, startupRoute]);
 
   const handleComplete = useCallback(() => {
-    router.replace(redirectTo);
-  }, [router, redirectTo]);
+    router.replace(destinationRef.current ?? ROUTES.auth.welcome);
+  }, [router]);
 
   const { label, progress } = useBootSequence({
     steps: SPLASH_BOOT_STEPS,
