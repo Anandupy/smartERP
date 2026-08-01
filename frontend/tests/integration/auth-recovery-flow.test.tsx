@@ -1,7 +1,9 @@
 import { act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { apiConfig } from "@/config";
 import { ROUTES } from "@/constants";
 import {
   EmailSentScreen,
@@ -11,6 +13,8 @@ import {
   ResetPasswordScreen,
   useRecoveryStore,
 } from "@/features/auth";
+import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
+import { server } from "@tests/mocks/server";
 import { render, screen, waitFor } from "@tests/setup/render";
 
 vi.mock("next/navigation", async () => {
@@ -19,8 +23,10 @@ vi.mock("next/navigation", async () => {
   return createNextNavigationMock();
 });
 
-const { routerMock, resetRouterMock } =
+const { routerMock, resetRouterMock, setSearchParams } =
   await import("@tests/mocks/next-navigation");
+
+const API_BASE = apiConfig.baseURL.replace(/\/$/, "");
 
 const IDENTIFIER = "admin@institution.edu";
 
@@ -108,13 +114,27 @@ describe("<EmailSentScreen />", () => {
     const throttled = screen.getByRole("button", { name: /resend in \d/i });
     expect(throttled).toBeDisabled();
 
-    for (let index = 0; index < RESEND_COOLDOWN_SECONDS; index += 1) {
-      act(() => void vi.advanceTimersByTime(1_000));
-    }
+    // `useCountdown` ticks on a persistent interval, so one bulk advance fires
+    // every tick — unlike the splash boot sequence, which chains timeouts.
+    act(() => void vi.advanceTimersByTime(RESEND_COOLDOWN_SECONDS * 1_000));
 
     expect(
-      screen.getByRole("button", { name: /^resend code$/i }),
+      screen.getByRole("button", { name: /^resend email$/i }),
     ).toBeEnabled();
+  });
+
+  it("offers no 'continue' step — the flow resumes in the inbox", () => {
+    seedFlow();
+    render(<EmailSentScreen />);
+
+    // Regression: this screen used to send users to /verify-otp, which dead-ends
+    // because the backend resets passwords with an emailed link, not a code.
+    expect(
+      screen.queryByRole("link", { name: /verification code/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /continue/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("sends the visitor back to the start when the flow state is gone", () => {
@@ -194,8 +214,11 @@ describe("<OtpVerificationScreen />", () => {
       screen.getByRole("button", { name: /verify and continue/i }),
     );
 
+    // OTP is no longer part of password recovery — the backend resets via an
+    // emailed link — so a verified code returns to login by default rather
+    // than to a reset screen that would have no token.
     await waitFor(() =>
-      expect(routerMock.push).toHaveBeenCalledWith(ROUTES.auth.resetPassword),
+      expect(routerMock.push).toHaveBeenCalledWith(ROUTES.auth.login),
     );
     expect(useRecoveryStore.getState().isVerified).toBe(true);
   });
@@ -209,17 +232,27 @@ describe("<OtpVerificationScreen />", () => {
 });
 
 describe("<ResetPasswordScreen />", () => {
-  it("requires a verified code, not just a started flow", () => {
-    seedFlow();
+  const RESET_LINK_TOKEN = "a4f7b2c9deadbeef";
+
+  it("explains an incomplete link instead of showing an unusable form", () => {
+    // No `?token=` — a mistyped link, one truncated by a mail client, or the
+    // page opened directly.
     render(<ResetPasswordScreen />);
 
     expect(
-      screen.getByRole("heading", { level: 1, name: /start again/i }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: /this reset link is incomplete/i,
+      }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /request a new link/i }),
+    ).toHaveAttribute("href", ROUTES.auth.forgotPassword);
+    expect(screen.queryByLabelText(/^new password$/i)).not.toBeInTheDocument();
   });
 
-  it("labels both password fields once the code is verified", () => {
-    seedFlow({ verified: true });
+  it("renders the form when the emailed link carries a token", () => {
+    setSearchParams({ token: RESET_LINK_TOKEN });
     render(<ResetPasswordScreen />);
 
     expect(
@@ -229,8 +262,17 @@ describe("<ResetPasswordScreen />", () => {
     expect(screen.getByLabelText(/confirm new password/i)).toBeInTheDocument();
   });
 
+  it("needs no prior client-side flow state", () => {
+    // The email is the proof of ownership, so a fresh browser must work.
+    setSearchParams({ token: RESET_LINK_TOKEN });
+    render(<ResetPasswordScreen />);
+
+    expect(useRecoveryStore.getState().identifier).toBeNull();
+    expect(screen.getByLabelText(/^new password$/i)).toBeInTheDocument();
+  });
+
   it("reflects policy progress as the password is typed", async () => {
-    seedFlow({ verified: true });
+    setSearchParams({ token: RESET_LINK_TOKEN });
     render(<ResetPasswordScreen />);
 
     expect(screen.getByText(/enter a password/i)).toBeInTheDocument();
@@ -244,7 +286,7 @@ describe("<ResetPasswordScreen />", () => {
   });
 
   it("reports a mismatched confirmation without submitting", async () => {
-    seedFlow({ verified: true });
+    setSearchParams({ token: RESET_LINK_TOKEN });
     render(<ResetPasswordScreen />);
 
     await userEvent.type(
@@ -265,8 +307,17 @@ describe("<ResetPasswordScreen />", () => {
     expect(routerMock.push).not.toHaveBeenCalled();
   });
 
-  it("clears the flow and advances on a valid reset", async () => {
-    seedFlow({ verified: true });
+  it("submits the link token and advances on success", async () => {
+    setSearchParams({ token: RESET_LINK_TOKEN });
+
+    let submitted: unknown = null;
+    server.use(
+      http.post(`${API_BASE}/auth/reset-password`, async ({ request }) => {
+        submitted = await request.json();
+        return HttpResponse.json(successEnvelope(null), { status: 201 });
+      }),
+    );
+
     render(<ResetPasswordScreen />);
 
     await userEvent.type(
@@ -284,11 +335,49 @@ describe("<ResetPasswordScreen />", () => {
     await waitFor(() =>
       expect(routerMock.push).toHaveBeenCalledWith(ROUTES.auth.passwordSuccess),
     );
-    expect(useRecoveryStore.getState().identifier).toBeNull();
+    // The token comes from the URL; `confirmPassword` never leaves the client.
+    expect(submitted).toEqual({
+      token: RESET_LINK_TOKEN,
+      password: "Str0ng-Passphrase!",
+    });
+  });
+
+  it("surfaces an expired or consumed token inline", async () => {
+    setSearchParams({ token: "stale-token" });
+    server.use(
+      http.post(`${API_BASE}/auth/reset-password`, () =>
+        HttpResponse.json(
+          errorEnvelope({
+            code: "BadRequestException",
+            message: "Invalid or expired password reset token",
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    render(<ResetPasswordScreen />);
+
+    await userEvent.type(
+      screen.getByLabelText(/^new password$/i),
+      "Str0ng-Passphrase!",
+    );
+    await userEvent.type(
+      screen.getByLabelText(/confirm new password/i),
+      "Str0ng-Passphrase!",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /update password/i }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /invalid or expired password reset token/i,
+    );
+    expect(routerMock.push).not.toHaveBeenCalled();
   });
 
   it("toggles visibility on each password field independently", async () => {
-    seedFlow({ verified: true });
+    setSearchParams({ token: RESET_LINK_TOKEN });
     render(<ResetPasswordScreen />);
 
     const newPassword = screen.getByLabelText(/^new password$/i);

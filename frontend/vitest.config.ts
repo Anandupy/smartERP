@@ -31,6 +31,10 @@ export default defineConfig({
           name: "unit",
           environment: "jsdom",
           globals: true,
+          // Integration specs mount the full provider tree and round-trip
+          // through MSW; the 5s default is tight for the first spec in a file,
+          // which also pays the module-loading cost.
+          testTimeout: 15_000,
           setupFiles: ["./tests/setup/vitest.setup.ts"],
           include: [
             "tests/unit/**/*.test.{ts,tsx}",

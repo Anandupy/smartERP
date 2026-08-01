@@ -1,9 +1,22 @@
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/core/api";
 import { LoginForm, LoginScreen } from "@/features/auth";
 import { render, screen, waitFor } from "@tests/setup/render";
+
+// The screen is now connected, so it drives the router through `useLogin`.
+vi.mock("next/navigation", async () => {
+  const { createNextNavigationMock } =
+    await import("@tests/mocks/next-navigation");
+  return createNextNavigationMock();
+});
+
+const { resetRouterMock } = await import("@tests/mocks/next-navigation");
+
+beforeEach(() => {
+  resetRouterMock();
+});
 
 describe("<LoginScreen />", () => {
   it("names the page and describes the task", () => {
@@ -96,10 +109,12 @@ describe("<LoginForm />", () => {
   });
 
   it("surfaces a normalized API failure as a form-level alert", async () => {
+    // Mirrors the real backend envelope: a 401 whose message says *why*.
     const onSubmit = vi.fn().mockRejectedValue(
       new ApiError({
         kind: "unauthorized",
-        message: "Bad credentials",
+        code: "UnauthorizedException",
+        message: "Invalid credentials",
         status: 401,
       }),
     );
@@ -114,7 +129,10 @@ describe("<LoginForm />", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/sign-in failed/i);
-    expect(alert).toHaveTextContent(/your session has expired/i);
+    // The backend's reason, not the generic "session expired" category copy —
+    // which would be actively misleading on a login form.
+    expect(alert).toHaveTextContent(/invalid credentials/i);
+    expect(alert).not.toHaveTextContent(/session has expired/i);
   });
 
   it("binds server field errors back onto the offending control", async () => {

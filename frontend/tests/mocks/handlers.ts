@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { apiConfig } from "@/config";
 
 import { successEnvelope } from "@tests/fixtures/api";
+import { authHandlers } from "./auth-handlers";
 
 /**
  * Default MSW request handlers. Feature tests extend these via
@@ -12,6 +13,7 @@ import { successEnvelope } from "@tests/fixtures/api";
 const base = apiConfig.baseURL.replace(/\/$/, "");
 
 export const handlers = [
+  ...authHandlers,
   http.get(`${base}/health`, () =>
     HttpResponse.json(successEnvelope({ status: "ok" })),
   ),

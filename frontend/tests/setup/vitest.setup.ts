@@ -34,6 +34,10 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  // Web Storage is shared across a file's tests, so a spec that persists a
+  // session would otherwise leak it into the next one.
+  window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 afterAll(() => server.close());

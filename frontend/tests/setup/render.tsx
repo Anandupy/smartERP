@@ -3,6 +3,7 @@ import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, PermissionProvider, SessionProvider } from "@/core/auth";
 
 /** A QueryClient tuned for deterministic tests (no retries, no caching). */
 export function createTestQueryClient(): QueryClient {
@@ -14,11 +15,22 @@ export function createTestQueryClient(): QueryClient {
   });
 }
 
+/**
+ * Mirrors `AppProviders`, minus the theme provider (irrelevant in jsdom) and
+ * the toaster. The order matches the real tree: `PermissionProvider` derives
+ * from `AuthProvider`, so it must sit inside it.
+ */
 function AllProviders({ children }: { children: ReactNode }) {
   const queryClient = createTestQueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>{children}</TooltipProvider>
+      <SessionProvider>
+        <AuthProvider>
+          <PermissionProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </PermissionProvider>
+        </AuthProvider>
+      </SessionProvider>
     </QueryClientProvider>
   );
 }
