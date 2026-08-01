@@ -19,11 +19,29 @@ const MESSAGES: Record<ApiErrorKind, string> = {
   unknown: "An unexpected error occurred.",
 };
 
-/** Resolve a friendly, display-ready message from any thrown value. */
+/**
+ * Resolve a friendly, display-ready message from any thrown value.
+ *
+ * A server-authored message always wins over the generic copy above. The
+ * backend states *why* a request failed — "Invalid credentials" — while the
+ * category can only describe *what kind* of failure it was, and for
+ * `unauthorized` that generic copy ("your session has expired") is actively
+ * misleading on a login form.
+ *
+ * `code` is the discriminator: `normalizeError` sets it only when a response
+ * body carried one, so its presence means `message` came from the server and
+ * not from Axios. That matters because the transport-level messages ("Network
+ * Error") are worse than the copy here, and the backend's exception filter
+ * already sanitizes its own — no stack traces, no database internals.
+ *
+ * Validation failures keep preferring their message even without a code, which
+ * is the behavior this function has always had: those messages name the field
+ * at fault and are useless when generalized.
+ */
 export function getErrorMessage(error: unknown): string {
   if (isApiError(error)) {
-    // Prefer a specific server message when the category is validation.
-    if (error.kind === "validation" && error.message) return error.message;
+    const hasServerMessage = Boolean(error.code) || error.kind === "validation";
+    if (hasServerMessage && error.message) return error.message;
     return MESSAGES[error.kind];
   }
   if (error instanceof Error && error.message) return error.message;

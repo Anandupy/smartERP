@@ -18,8 +18,13 @@ import { getErrorMessage } from "@/lib";
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() =>
     createQueryClient({
-      onQueryError: notify,
-      onMutationError: notify,
+      onQueryError: (error) => notify(error),
+      onMutationError: (error, meta) => {
+        // Forms that render the failure inline opt out, so a single error is
+        // never reported twice.
+        if (meta?.skipErrorToast) return;
+        notify(error);
+      },
     }),
   );
 

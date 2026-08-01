@@ -61,6 +61,52 @@ export function createWebTokenStorage(
 }
 
 /**
+ * Access token in memory, refresh token in Web Storage.
+ *
+ * This is the combination a body-based refresh flow wants. The access token is
+ * short-lived and never touches disk, which keeps the XSS blast radius small;
+ * the refresh token must outlive a page reload or the session cannot be
+ * restored, and with no HTTP-only cookie available Web Storage is the only
+ * place to put it. Swap to `createMemoryTokenStorage()` when the user has not
+ * asked to be remembered.
+ */
+export function createHybridTokenStorage(
+  storage: Storage | undefined = hasWindow ? window.localStorage : undefined,
+): TokenStorage {
+  const memory = createMemoryTokenStorage();
+
+  const readRefresh = (): Nullable<string> => {
+    try {
+      return storage?.getItem(STORAGE_KEYS.refreshToken) ?? null;
+    } catch {
+      // Blocked storage degrades to a memory-only session.
+      return null;
+    }
+  };
+
+  const writeRefresh = (token: Nullable<string>): void => {
+    try {
+      if (!storage) return;
+      if (token == null) storage.removeItem(STORAGE_KEYS.refreshToken);
+      else storage.setItem(STORAGE_KEYS.refreshToken, token);
+    } catch {
+      // Non-fatal: the session simply will not survive a reload.
+    }
+  };
+
+  return {
+    getAccessToken: memory.getAccessToken,
+    setAccessToken: memory.setAccessToken,
+    getRefreshToken: readRefresh,
+    setRefreshToken: writeRefresh,
+    clear: () => {
+      memory.clear();
+      writeRefresh(null);
+    },
+  };
+}
+
+/**
  * The active token storage singleton. Defaults to memory storage; swap the
  * implementation here (or via `setTokenStorage`) when the backend auth contract
  * is finalized.

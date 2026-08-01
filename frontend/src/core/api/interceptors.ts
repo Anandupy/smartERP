@@ -1,6 +1,7 @@
 import type {
   AxiosError,
   AxiosInstance,
+  AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
 
@@ -9,14 +10,22 @@ import { ApiError, normalizeError } from "./errors";
 
 /**
  * Optional hook invoked when a request fails with 401. This is the seam for the
- * future refresh-token flow: an auth module registers a handler that attempts a
- * silent refresh (and retries) or triggers logout. Until then it is unset and
- * 401s simply propagate as a normalized `ApiError`.
+ * refresh-token flow: an auth module registers a handler that attempts a silent
+ * refresh, or triggers logout. Until one is registered, 401s simply propagate
+ * as a normalized `ApiError`.
+ *
+ * Resolving `true` means "recovered — replay the original request once". Any
+ * other result (or a throw) lets the original `ApiError` propagate.
  */
 export type UnauthorizedHandler = (
   error: ApiError,
   config: InternalAxiosRequestConfig,
-) => void | Promise<void>;
+) => boolean | void | Promise<boolean | void>;
+
+/** Marks a config that has already been replayed, so a retry can never loop. */
+const RETRIED = Symbol("api.retried");
+
+type RetriableConfig = InternalAxiosRequestConfig & { [RETRIED]?: boolean };
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 
@@ -37,20 +46,42 @@ function onRequest(
   return config;
 }
 
-/** Normalize every rejected response into a typed `ApiError`. */
-async function onResponseError(error: AxiosError): Promise<never> {
-  const normalized = normalizeError(error);
-  const apiError = new ApiError(normalized);
+/**
+ * Normalize every rejected response into a typed `ApiError`, giving the
+ * unauthorized handler a chance to recover first.
+ */
+function createResponseErrorHandler(instance: AxiosInstance) {
+  return async function onResponseError(
+    error: AxiosError,
+  ): Promise<AxiosResponse> {
+    const normalized = normalizeError(error);
+    const apiError = new ApiError(normalized);
+    const config = error.config as RetriableConfig | undefined;
 
-  if (apiError.kind === "unauthorized" && unauthorizedHandler && error.config) {
-    // Placeholder for refresh-token / logout orchestration.
-    await unauthorizedHandler(apiError, error.config);
-  }
+    // Only the first 401 for a given request may trigger recovery: the replay
+    // is marked, so a refresh that itself 401s can never recurse.
+    if (
+      apiError.kind === "unauthorized" &&
+      unauthorizedHandler &&
+      config &&
+      !config[RETRIED]
+    ) {
+      config[RETRIED] = true;
+      const recovered = await unauthorizedHandler(apiError, config);
+      if (recovered === true) {
+        // Fresh credentials are attached by the request interceptor on replay.
+        return instance.request(config);
+      }
+    }
 
-  return Promise.reject(apiError);
+    return Promise.reject(apiError);
+  };
 }
 
 export function attachInterceptors(instance: AxiosInstance): void {
   instance.interceptors.request.use(onRequest);
-  instance.interceptors.response.use((response) => response, onResponseError);
+  instance.interceptors.response.use(
+    (response) => response,
+    createResponseErrorHandler(instance),
+  );
 }

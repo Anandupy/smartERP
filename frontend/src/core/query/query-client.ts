@@ -39,8 +39,12 @@ const defaultOptions: DefaultOptions = {
 export interface QueryClientHandlers {
   /** Invoked for every query error that has an active observer. */
   onQueryError?: (error: unknown) => void;
-  /** Invoked for every mutation error. */
-  onMutationError?: (error: unknown) => void;
+  /**
+   * Invoked for every mutation error, with the mutation's `meta` so the
+   * consumer can opt out of global reporting — a form that renders the failure
+   * inline should not also raise a toast for it.
+   */
+  onMutationError?: (error: unknown, meta?: Record<string, unknown>) => void;
 }
 
 /**
@@ -56,7 +60,8 @@ export function createQueryClient(
       onError: (error) => handlers.onQueryError?.(error),
     }),
     mutationCache: new MutationCache({
-      onError: (error) => handlers.onMutationError?.(error),
+      onError: (error, _variables, _context, mutation) =>
+        handlers.onMutationError?.(error, mutation.meta),
     }),
   });
 }

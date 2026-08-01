@@ -7,6 +7,7 @@ export {
 } from "./guards/protected-route";
 export { GuestRoute, type GuestRouteProps } from "./guards/guest-route";
 export {
+  createHybridTokenStorage,
   createMemoryTokenStorage,
   createWebTokenStorage,
   getTokenStorage,
