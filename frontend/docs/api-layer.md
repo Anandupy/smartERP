@@ -21,6 +21,31 @@ const page = await api.getEnvelope<Student[]>("/students", { params });
 Configuration comes from `config/api.config.ts` (base URL, timeout, retry) which
 reads validated env from `config/env.ts`.
 
+## API versioning
+
+The backend versions its surface (`v1` today). The frontend never spells a
+version into a request path — `api.config.ts` composes it once:
+
+```ts
+apiConfig.root; // "http://localhost:3001"    ← NEXT_PUBLIC_API_URL
+apiConfig.version; // "v1"                    ← NEXT_PUBLIC_API_VERSION
+apiConfig.baseURL; // "http://localhost:3001/v1" ← what the client uses
+
+api.post("/auth/login", body); // → POST http://localhost:3001/v1/auth/login
+```
+
+Rules:
+
+- `NEXT_PUBLIC_API_URL` is the **unversioned** root — never include `/v1` in it.
+- `NEXT_PUBLIC_API_VERSION` is validated against `/^v\d+$/`, so a typo fails at
+  boot instead of producing 404s at runtime.
+- Services call version-agnostic paths (`api.get("/students")`); the client
+  resolves them against `baseURL`. Moving to `v2` is a deployment change.
+- Need a version-agnostic URL (health probe, docs link)? Build it from
+  `apiConfig.root`, and only then.
+
+Both variables are documented in `.env.example`.
+
 ## Configurable headers
 
 `headers.ts` provides a `headerRegistry`. Providers are pure functions evaluated

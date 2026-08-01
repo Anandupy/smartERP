@@ -51,9 +51,16 @@ export function ProfileForm() {
 
 - **`useZodForm(schema, props)`** — `useForm` pre-wired with `zodResolver`.
   Input type drives fields; `handleSubmit` receives the transformed output type.
-- **Field wrappers** (`components/form/fields`) — e.g. `TextField` binds label,
-  control, description, and validation message with correct a11y ids. Add more
-  wrappers (`SelectField`, `CheckboxField`, …) following the same pattern.
+- **Field wrappers** (`components/form/fields`) — bind label, control,
+  description, and validation message with correct a11y ids. Add more wrappers
+  (`SelectField`, `DateField`, …) following the same pattern.
+
+  | Wrapper         | Notes                                                                                                                                                |
+  | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `TextField`     | Text/email/etc. Optional `startIcon` (decorative, `aria-hidden`), `labelAction` (node on the label row's trailing edge), `inputClassName` (density). |
+  | `PasswordField` | Same options, plus an accessible show/hide toggle: action-phrased `aria-label`, `aria-pressed`, and a hidden live region announcing the change.      |
+  | `CheckboxField` | Boolean control; Radix wires the label so clicking the text toggles it.                                                                              |
+
 - **`applyServerFieldErrors`** — bridges normalized API `fieldErrors` into RHF.
 - **Primitives** (`components/ui/form.tsx`) — shadcn `Form*` components adapted to
   the unified `radix-ui` package; wrappers compose these.

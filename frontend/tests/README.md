@@ -26,4 +26,9 @@ tests/
 - **Fixtures:** build envelopes with `@tests/fixtures/api`.
 - **Rendering:** use `render` from `@tests/setup/render` (wraps components in the
   platform providers) instead of Testing Library's raw `render`.
+- **Routing:** screens that navigate mock the App Router via
+  `@tests/mocks/next-navigation` — the documented exception to "mock at the
+  network boundary".
+- **jsdom gaps:** `ResizeObserver` and `scrollIntoView` are stubbed globally in
+  `setup/vitest.setup.ts` for Radix primitives.
 - **Aliases:** `@/…` → `src`, `@tests/…` → `tests`.

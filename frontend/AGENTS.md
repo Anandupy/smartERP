@@ -11,6 +11,7 @@ The backend lives in a sibling workspace and is out of scope here; the only
 shared contract is the API response envelope ([§21](#21-backend-api-response-contract)).
 
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
@@ -41,7 +42,8 @@ frontend/
 ├── public/         # static assets served as-is
 ├── AGENTS.md       # this file · CLAUDE.md re-exports it via @AGENTS.md
 └── config: package.json, tsconfig.json, next.config.ts, eslint.config.mjs,
-           .prettierrc.json, vitest.config.ts, playwright.config.ts, components.json
+           .prettierrc.json, vitest.config.ts, playwright.config.ts,
+           components.json, .env.example (every supported env var)
 ```
 
 Full tree and rationale: [`docs/folder-structure.md`](./docs/folder-structure.md)
@@ -73,7 +75,8 @@ docs/architecture.md  +  docs/source-layout.md
 module docs for the area you touch
   (docs/api-layer.md, docs/response-handling.md, docs/core-platform.md,
    docs/providers.md, docs/layouts.md, docs/state-management.md,
-   docs/forms.md, docs/error-handling.md, docs/theme-integration.md)
+   docs/forms.md, docs/error-handling.md, docs/authentication.md,
+   docs/theme-integration.md)
       ↓
 docs/contributing.md  +  src/features/_template  (feature conventions)
       ↓
@@ -98,20 +101,20 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 
 ## 6. Folder Responsibilities
 
-| Path | Responsibility |
-| ---- | -------------- |
-| `src/app` | Routing, layouts, route-level error/loading/404 (thin). |
-| `src/features/*` | Business modules; the only place with domain logic. |
-| `src/components/{ui,form,layouts}` | Design-system primitives, form infra, layout shells. |
-| `src/shared` | Cross-feature presentational building blocks + error boundary. |
-| `src/core/{api,auth,query,theme}` | Platform infrastructure; no business logic. |
-| `src/providers` | Client provider composition root. |
-| `src/services` | Transport service factories features build on. |
-| `src/store` | Platform-only Zustand stores (UI + preferences). |
-| `src/hooks` `src/lib` `src/utils` | Generic reusable helpers. |
-| `src/schemas` | Shared Zod schemas. |
-| `src/config` `src/constants` `src/types` | Env/app config, constants, shared contracts. |
-| `src/styles` `src/assets` | Design-token CSS, curated icons/static accessors. |
+| Path                                     | Responsibility                                                 |
+| ---------------------------------------- | -------------------------------------------------------------- |
+| `src/app`                                | Routing, layouts, route-level error/loading/404 (thin).        |
+| `src/features/*`                         | Business modules; the only place with domain logic.            |
+| `src/components/{ui,form,layouts}`       | Design-system primitives, form infra, layout shells.           |
+| `src/shared`                             | Cross-feature presentational building blocks + error boundary. |
+| `src/core/{api,auth,query,theme}`        | Platform infrastructure; no business logic.                    |
+| `src/providers`                          | Client provider composition root.                              |
+| `src/services`                           | Transport service factories features build on.                 |
+| `src/store`                              | Platform-only Zustand stores (UI + preferences).               |
+| `src/hooks` `src/lib` `src/utils`        | Generic reusable helpers.                                      |
+| `src/schemas`                            | Shared Zod schemas.                                            |
+| `src/config` `src/constants` `src/types` | Env/app config, constants, shared contracts.                   |
+| `src/styles` `src/assets`                | Design-token CSS, curated icons/static accessors.              |
 
 ## 7. Dependency Rules
 
@@ -151,10 +154,12 @@ Full detail: [`docs/testing.md`](./docs/testing.md).
 - Tests live under `tests/{unit,integration,e2e,fixtures,mocks,setup}` — never in `src`.
 - Mock at the **network boundary** with MSW (`tests/mocks`), not the module boundary;
   build responses with `tests/fixtures` envelope builders. Unhandled requests fail tests.
+  The one sanctioned module mock is the App Router (`@tests/mocks/next-navigation`),
+  a framework boundary jsdom cannot provide.
 - Render components with `render` from `@tests/setup/render` (wraps platform providers).
 - Prefer role/text queries over test ids. Add/adjust tests for every behavior change.
 - `pnpm test` = Vitest unit + integration; `pnpm test:e2e` = Playwright; `pnpm
-  test:storybook` = browser component tests.
+test:storybook` = browser component tests.
 
 ## 11. Commit Rules
 
@@ -191,7 +196,11 @@ Before committing, confirm:
 - Don't import one feature from another, or reach past a barrel.
 - Don't hard-code business logic, colors, shadows, header values, or `process.env`.
 - Don't add business logic to `shared`/`components/ui`.
-- Don't implement dynamic theming, login, dashboards, or workspace UI (out of scope).
+- Don't implement dynamic theming, dashboards, or workspace UI (out of scope).
+- Don't wire authentication network calls yet: `features/auth` ships splash,
+  welcome, and login as **UI only** ([`docs/authentication.md`](./docs/authentication.md)).
+  Recovery screens (forgot-password, OTP, reset, session-expired, account-locked)
+  are separate phases — don't add them speculatively.
 - Don't leave TODOs that break compilation, or skip verification gates.
 
 ## 15. Common Mistakes
@@ -258,6 +267,9 @@ wire shapes into features. Full detail: [`docs/response-handling.md`](./docs/res
 { success: false, code: string, message: string, requestId?: string, timestamp?: string }
 ```
 
+- The backend is **versioned**. `NEXT_PUBLIC_API_URL` is the unversioned root and
+  `NEXT_PUBLIC_API_VERSION` (`v1` today) is appended once in `config/api.config.ts`.
+  Never write a version segment into a service path.
 - `api.get/post/…` unwrap `data`; `api.getEnvelope` returns `data` + `meta`
   (pagination in `meta.pagination`).
 - Failures are normalized to a typed **`ApiError`** (`kind`, `status`, `code`,
@@ -271,8 +283,8 @@ Single client composition root in `src/providers` (`AppProviders`), mounted once
 in `src/app/layout.tsx`. Order matters:
 
 ```
-ThemeProvider → QueryProvider → SessionProvider → AuthProvider → PermissionProvider
-(+ theme-aware Toaster)
+ThemeProvider → QueryProvider → SessionProvider → AuthProvider →
+PermissionProvider → TooltipProvider   (+ theme-aware Toaster)
 ```
 
 `QueryProvider` owns the toast dependency so `core/query` stays UI-free. Detail:

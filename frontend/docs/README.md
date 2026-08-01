@@ -18,10 +18,11 @@ without restructuring.
 9. [State Management](./state-management.md)
 10. [Forms](./forms.md)
 11. [Error Handling](./error-handling.md)
-12. [Testing Strategy](./testing.md)
-13. [Coding Standards](./coding-standards.md)
-14. [Contribution Guide](./contributing.md)
-15. [Future Theme Integration](./theme-integration.md)
+12. [Authentication Screens](./authentication.md)
+13. [Testing Strategy](./testing.md)
+14. [Coding Standards](./coding-standards.md)
+15. [Contribution Guide](./contributing.md)
+16. [Future Theme Integration](./theme-integration.md)
 
 ## Tech Stack
 

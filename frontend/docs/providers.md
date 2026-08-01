@@ -11,11 +11,14 @@ ThemeProvider              # color mode (next-themes) — reaches toasts too
     SessionProvider        # active tenant/branch/workspace scope
       AuthProvider         # authentication state
         PermissionProvider # derived permission checks (depends on auth)
+          TooltipProvider  # shared Radix tooltip delay/lifecycle context
 Toaster                    # Sonner portal (theme-aware)
 ```
 
 Order matters: `PermissionProvider` derives from `AuthProvider`; the toaster is
-theme-aware so it sits under `ThemeProvider`.
+theme-aware so it sits under `ThemeProvider`. `TooltipProvider` is innermost —
+it is pure UI context with no dependencies, and mounting it once here means no
+screen has to remember to wrap its own tooltips.
 
 ## Why the query provider owns toasts
 
