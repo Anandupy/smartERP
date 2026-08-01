@@ -7,6 +7,12 @@ import { env } from "./env";
 export const appConfig = Object.freeze({
   name: env.NEXT_PUBLIC_APP_NAME,
   description: "CampusFlow ERP",
+  /** Product edition shown on brand surfaces (splash, welcome). */
+  edition: "Enterprise Edition",
+  /** Release string shown on brand surfaces; overridable per deployment. */
+  version: env.NEXT_PUBLIC_APP_VERSION,
+  /** Rendered in auth footers. */
+  legalEntity: "CampusFlow Enterprise ERP",
   /** Default locale; wired up when i18n lands. */
   defaultLocale: "en",
   /** Default direction; workspace themes may override to "rtl" later. */
