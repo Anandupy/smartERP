@@ -27,6 +27,15 @@ import { Public } from '@/common/decorators/public.decorator';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Get('me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current authenticated user profile & context' })
+  async getMe(@Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    const data = await this.authService.getMe(userId, req.context);
+    return { data, message: 'Profile retrieved successfully' };
+  }
+
   @Public()
   @Post('login')
   @ApiOperation({ summary: 'Login with email/username/phone' })

@@ -37,7 +37,7 @@ export class AuditEventMapper {
         (event as any).payload?.updatedBy ||
         (event as any).payload?.performedBy ||
         null,
-      userEmail: (context as any)?.userEmail || null,
+      userEmail: context?.userEmail || null,
       role: context?.role || (event as any).payload?.role || null,
       organizationId:
         context?.organizationId ||
@@ -50,26 +50,25 @@ export class AuditEventMapper {
         null,
       requestId:
         context?.requestId || (event as any).payload?.requestId || null,
-      traceId:
-        (context as any)?.traceId || (event as any).payload?.traceId || null,
+      traceId: context?.traceId || (event as any).payload?.traceId || null,
       correlationId:
-        (context as any)?.correlationId ||
+        context?.correlationId ||
         (event as any).payload?.correlationId ||
         context?.requestId ||
         null,
-      ipAddress: (context as any)?.ipAddress || null,
-      userAgent: (context as any)?.userAgent || null,
+      ipAddress: context?.ipAddress || null,
+      userAgent: context?.userAgent || null,
       httpMethod:
-        (context as any)?.httpMethod ||
+        context?.httpMethod ||
         event.metadata?.httpMethod ||
         (event as any).payload?.httpMethod ||
         null,
       route:
-        (context as any)?.route ||
+        context?.route ||
         event.metadata?.route ||
         (event as any).payload?.route ||
         null,
-      executionTime: (context as any)?.executionTime || null,
+      executionTime: context?.executionTime || null,
       severity: event.metadata?.severity || 'INFO',
       status: event.metadata?.status || 'SUCCESS',
       metadata: {
@@ -123,6 +122,7 @@ export class AuditEventMapper {
     }
     if (agg.includes('BRANCH') || agg.includes('ORGANIZATION'))
       return 'ORGANIZATION';
+    if (agg.includes('CONTEXT')) return 'CONTEXT';
     if (agg.includes('USER') || agg.includes('AUTH')) return 'AUTH';
     if (agg.includes('ACADEMIC')) return 'ACADEMIC';
 

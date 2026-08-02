@@ -391,7 +391,11 @@ export class SeederService implements OnApplicationBootstrap {
       { code: 'FEES', name: 'Fee Management', displayOrder: 3 },
       { code: 'SETTINGS', name: 'System Settings', displayOrder: 4 },
       { code: 'SYSTEM', name: 'System Administration', displayOrder: 5 },
-      { code: 'COMMUNICATION', name: 'Communication Platform', displayOrder: 6 },
+      {
+        code: 'COMMUNICATION',
+        name: 'Communication Platform',
+        displayOrder: 6,
+      },
     ];
 
     const moduleMap = new Map<string, string>();

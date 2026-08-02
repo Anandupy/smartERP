@@ -17,15 +17,12 @@ Centralized Academic Year context is integrated throughout the backend pipeline 
 - `x-academic-year-id`: Active Academic Year UUID
 
 ### Resolution Flow & Guard Pipeline
-1. **RequestContextMiddleware**: Extracts `x-request-id`, `x-branch-id`, and `x-academic-year-id` from HTTP request headers into `req.context`.
+1. **RequestContextMiddleware**: Extracts `x-request-id`, `trace-id` into `req.context`.
 2. **JwtAuthGuard**: Validates user authentication.
-3. **RolesGuard**: Enforces RBAC permissions and user branch isolation.
-4. **AcademicYearGuard**: Triggered via `@RequireAcademicYear()` metadata decorator on controllers requiring academic year context:
-   - Validates UUID format of `x-branch-id` and `x-academic-year-id`.
-   - Verifies the Academic Year exists and is active (`isDeleted: false`).
-   - Verifies the Academic Year belongs to the target `branchId`.
-   - If header is omitted, falls back to the branch's currently selected academic year (`isSelected == true`).
-   - Attaches the validated `academicYear` object into `req.context.academicYear` and `req.context.academicYearId`.
+3. **RolesGuard**: Enforces RBAC permissions.
+4. **PermissionGuard**: Resolves fine-grained permissions.
+5. **ExecutionContextGuard**: Automatically resolves and validates `academicYearId` via `ContextResolverService` (from `x-academic-year-id` header or branch active/selected AY fallback). Populates `req.context.academicYearId`.
+6. **AcademicYearGuard**: Consumes pre-validated `req.context.academicYearId` for `@RequireAcademicYear()` decorated endpoints.
 
 ### Endpoints Requiring Academic Year Context
 - **Academic Units** (`/v1/academic-units/*`)

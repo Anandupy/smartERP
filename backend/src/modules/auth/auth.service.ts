@@ -28,6 +28,9 @@ import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
 import { OtpService } from '@/modules/communication/otp/otp.service';
 import { OtpPurpose } from '@/generated/client';
 
+import { AuthorizationService } from '@/modules/authorization/authorization.service';
+import { ContextDiscoveryService } from '@/modules/context/services/context-discovery.service';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -39,7 +42,50 @@ export class AuthService {
     private readonly eventBus: EventBus,
     private readonly maintenanceService: MaintenanceService,
     private readonly otpService: OtpService,
+    private readonly authorizationService: AuthorizationService,
+    private readonly contextDiscoveryService: ContextDiscoveryService,
   ) {}
+
+  async getMe(userId: string, currentContext?: any) {
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { passwordHash, twoFactorSecret, ...sanitizedUser } = user as any;
+
+    const { effectivePermissions } =
+      await this.authorizationService.getUserEffectivePermissions(
+        userId,
+        user.role,
+      );
+
+    const discovery = await this.contextDiscoveryService.discoverContexts(
+      userId,
+      user.role,
+      user.organizationId,
+      user.branchId,
+      currentContext?.organizationId,
+      currentContext?.branchId,
+    );
+
+    const context = {
+      organizationId:
+        currentContext?.organizationId || user.organizationId || null,
+      branchId: currentContext?.branchId || user.branchId || null,
+      academicYearId: currentContext?.academicYearId || null,
+    };
+
+    return {
+      user: sanitizedUser,
+      role: user.role,
+      permissions: effectivePermissions,
+      context,
+      availableOrganizations: discovery.availableOrganizations,
+      availableBranches: discovery.availableBranches,
+      availableAcademicYears: discovery.availableAcademicYears,
+    };
+  }
 
   async login(
     dto: LoginDto,

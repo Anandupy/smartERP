@@ -13,6 +13,7 @@ This backend system is designed to handle complex business logic for SMEs, featu
 - **Prisma ORM**: Type-safe database interactions with PostgreSQL.
 - **Global Error Handling**: Centralized exception filters for consistent API responses.
 - **Comprehensive Logging**: Custom Winston-based logging with daily rotation.
+- **Enterprise Execution Context Platform**: Stateless, request-scoped resolution of Organization, Branch, and Academic Year context with header validation and auto-discovery.
 - **Request Context**: Context-aware logging and tracing for every request.
 - **Husky & Lint-staged**: Pre-commit hooks to ensure code quality and prevent debug logs (console.log) from being committed.
 - **Swagger Documentation**: Interactive API documentation available at `/docs`.

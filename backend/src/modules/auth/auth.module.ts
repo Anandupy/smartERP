@@ -10,10 +10,15 @@ import { PrismaModule } from '@/infrastructure/database/prisma.module';
 import { SecurityModule } from '@/common/services/security.module';
 import { CommunicationModule } from '@/modules/communication/communication.module';
 
+import { AuthorizationModule } from '@/modules/authorization/authorization.module';
+import { ContextModule } from '@/modules/context/context.module';
+
 @Module({
   imports: [
     PrismaModule,
     UserModule,
+    AuthorizationModule,
+    ContextModule,
     PassportModule,
     SecurityModule,
     CommunicationModule,

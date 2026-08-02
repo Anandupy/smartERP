@@ -30,6 +30,8 @@ import { CommunicationModule } from '@/modules/communication/communication.modul
 import { AuthorizationModule } from '@/modules/authorization/authorization.module';
 import { PermissionGuard } from '@/common/guards/permission.guard';
 import { WorkspaceModule } from '@/modules/workspace/workspace.module';
+import { ContextModule } from '@/modules/context/context.module';
+import { ExecutionContextGuard } from '@/modules/context/guards/execution-context.guard';
 
 @Module({
   imports: [
@@ -46,6 +48,7 @@ import { WorkspaceModule } from '@/modules/workspace/workspace.module';
     AuthModule,
     UserModule,
     AuthorizationModule,
+    ContextModule,
     WorkspaceModule,
     SystemSettingsModule,
     OrganizationModule,
@@ -70,6 +73,10 @@ import { WorkspaceModule } from '@/modules/workspace/workspace.module';
     {
       provide: APP_GUARD,
       useClass: PermissionGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ExecutionContextGuard,
     },
     {
       provide: APP_GUARD,

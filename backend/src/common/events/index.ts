@@ -13,3 +13,4 @@ export * from './auth-recovery.events';
 export * from './workspace.events';
 export * from './authorization.events';
 export * from './communication.events';
+export * from './context.events';

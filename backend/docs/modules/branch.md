@@ -8,15 +8,13 @@ Centralized Branch context is integrated throughout the backend request pipeline
 - `x-branch-id`: Active Branch UUID
 
 ### Resolution Flow & Guard Pipeline
-1. **RequestContextMiddleware**: Extracts `x-request-id`, `x-branch-id`, and `x-academic-year-id` from HTTP request headers into `req.context`.
+1. **RequestContextMiddleware**: Extracts `x-request-id`, `trace-id` into `req.context`.
 2. **JwtAuthGuard**: Validates user authentication.
-3. **RolesGuard**: Enforces RBAC permissions and user branch isolation.
-4. **BranchGuard**: Triggered via `@RequireBranch()` or `@RequireAcademicYear()` metadata decorators:
-   - Validates UUID format of `x-branch-id`.
-   - Verifies the Branch exists, `isActive === true`, and `isDeleted === false`.
-   - Verifies Organization / Tenant boundary (`branch.organizationId === req.user.organizationId`).
-   - Populates `req.context.branchId`, `req.context.organizationId`, and `req.context.branch` object.
-5. **AcademicYearGuard**: Consumes the pre-validated `req.context.branchId` and validates Academic Year context.
+3. **RolesGuard**: Enforces RBAC permissions.
+4. **PermissionGuard**: Resolves fine-grained permissions.
+5. **ExecutionContextGuard**: Resolves and validates execution scope (`organizationId`, `branchId`, `academicYearId`) from headers or auto-discovery via `ContextResolverService`. Populates `req.context`.
+6. **BranchGuard**: Consumes pre-validated `req.context.branchId` for `@RequireBranch()` decorated endpoints.
+7. **AcademicYearGuard**: Consumes pre-validated `req.context.academicYearId`.
 
 ### Endpoints Requiring Branch Context (`@RequireBranch()`)
 - **Academic Years** (`/v1/academic-years/*`)

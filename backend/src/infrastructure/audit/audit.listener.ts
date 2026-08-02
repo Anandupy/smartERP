@@ -63,6 +63,9 @@ export class AuditListener implements OnModuleInit {
     'workspace.menu_updated',
     'workspace.menu_deleted',
     'workspace.config_updated',
+    'context.validation_failed',
+    'context.access_denied',
+    'context.selection_required',
   ]);
 
   constructor(

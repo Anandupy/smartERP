@@ -11,6 +11,8 @@ import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OtpPurpose } from '@/generated/client';
 import * as crypto from 'crypto';
+import { AuthorizationService } from '@/modules/authorization/authorization.service';
+import { ContextDiscoveryService } from '@/modules/context/services/context-discovery.service';
 
 describe('AuthService Recovery & Verification', () => {
   let service: AuthService;
@@ -64,6 +66,8 @@ describe('AuthService Recovery & Verification', () => {
         { provide: EventBus, useValue: eventBus },
         { provide: MaintenanceService, useValue: {} },
         { provide: OtpService, useValue: otpService },
+        { provide: AuthorizationService, useValue: { getUserEffectivePermissions: jest.fn() } },
+        { provide: ContextDiscoveryService, useValue: { discoverContexts: jest.fn() } },
       ],
     }).compile();
 

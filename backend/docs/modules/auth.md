@@ -43,6 +43,9 @@ The `User` model represents an authentication identity. It is decoupled from bus
 ## Session Management
 Users can manage their active sessions via the following APIs:
 
+### GET /v1/auth/me
+Returns the authenticated user profile, assigned role, effective permissions, active execution context (`organizationId`, `branchId`, `academicYearId`), and available organizations, branches, and academic years for context selection.
+
 ### GET /v1/auth/sessions
 Returns a list of active sessions for the authenticated user, including device info and IP address.
 

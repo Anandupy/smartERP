@@ -10,6 +10,9 @@ import { UnauthorizedException } from '@nestjs/common';
 import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
 import { OtpService } from '@/modules/communication/otp/otp.service';
 
+import { AuthorizationService } from '@/modules/authorization/authorization.service';
+import { ContextDiscoveryService } from '@/modules/context/services/context-discovery.service';
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -42,6 +45,18 @@ describe('AuthService', () => {
     },
   };
 
+  const mockAuthorizationService = {
+    getUserEffectivePermissions: jest.fn().mockResolvedValue({ effectivePermissions: [] }),
+  };
+
+  const mockContextDiscoveryService = {
+    discoverContexts: jest.fn().mockResolvedValue({
+      availableOrganizations: [],
+      availableBranches: [],
+      availableAcademicYears: [],
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,6 +69,8 @@ describe('AuthService', () => {
         { provide: EventBus, useValue: mockEventBus },
         { provide: MaintenanceService, useValue: mockMaintenanceService },
         { provide: OtpService, useValue: {} },
+        { provide: AuthorizationService, useValue: mockAuthorizationService },
+        { provide: ContextDiscoveryService, useValue: mockContextDiscoveryService },
       ],
     }).compile();
 
