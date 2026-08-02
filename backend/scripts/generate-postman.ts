@@ -1,4 +1,4 @@
-/* eslint-disable no-console, @typescript-eslint/no-floating-promises */
+/* eslint-disable */
 import * as path from 'path';
 import axios from 'axios';
 import { PostmanGeneratorEngine } from './postman/index';
@@ -24,30 +24,37 @@ async function run() {
 
   let swaggerData: any;
   try {
-    const response = await axios.get(SWAGGER_JSON_URL, { timeout: 5000 });
+    const response = await axios.get(SWAGGER_JSON_URL, { timeout: 3000 });
     swaggerData = response.data;
-    console.log('✅ Swagger schema fetched successfully.');
-  } catch (error: any) {
+    console.log('✅ Swagger schema fetched successfully from running server.');
+  } catch {
     console.log(
-      '\n================================================================',
+      'ℹ️ HTTP endpoint unreachable at ' +
+        SWAGGER_JSON_URL +
+        '. Generating Swagger schema in-memory from NestJS app source...',
     );
-    console.log('⚠️  BACKEND OFFLINE OR UNREACHABLE');
-    console.log(`Could not connect to the backend at ${SWAGGER_JSON_URL}`);
-    console.log(
-      '================================================================',
-    );
-    console.log('👉 Please start the backend server using:');
-    console.log('   pnpm run start:dev');
-    console.log(
-      '\nThe Postman collection generation will run automatically when',
-    );
-    console.log(
-      'the server starts/restarts or when files change in watch mode.',
-    );
-    console.log(
-      '================================================================\n',
-    );
-    return; // Exit gracefully, don't crash
+    try {
+      const { NestFactory } = await import('@nestjs/core');
+      const { AppModule } = await import('../src/app.module');
+      const { DocumentBuilder, SwaggerModule } =
+        await import('@nestjs/swagger');
+
+      const app = await NestFactory.create(AppModule, { logger: false });
+      const swaggerConfig = new DocumentBuilder()
+        .setTitle('ERP API')
+        .setDescription('The ERP system API description')
+        .setVersion('1.0')
+        .addBearerAuth()
+        .build();
+      swaggerData = SwaggerModule.createDocument(app, swaggerConfig);
+      await app.close();
+      console.log(
+        '✅ Swagger schema generated in-memory from NestJS app source.',
+      );
+    } catch (err: any) {
+      console.error('❌ In-memory Swagger generation failed:', err);
+      return;
+    }
   }
 
   console.log('⚙️  Running Enterprise Postman Generator Engine v2...');
@@ -60,8 +67,12 @@ async function run() {
     });
 
     const result = await engine.generate();
-    console.log(`🚀 Collection generated successfully: ${result.collectionPath}`);
-    console.log(`🌍 Environment generated successfully: ${result.environmentPath}`);
+    console.log(
+      `🚀 Collection generated successfully: ${result.collectionPath}`,
+    );
+    console.log(
+      `🌍 Environment generated successfully: ${result.environmentPath}`,
+    );
   } catch (err: any) {
     console.error('❌ Postman generation failed: ', err);
   }

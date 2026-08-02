@@ -80,17 +80,27 @@ export class RequestBuilder {
   /**
    * Priority 1: Clean Swagger summary into concise enterprise request name
    */
-  private cleanSwaggerSummary(summary: string, method: string, url: string): string {
+  private cleanSwaggerSummary(
+    summary: string,
+    method: string,
+    url: string,
+  ): string {
     let s = summary.trim();
 
     // Remove noise in parentheses
     s = s.replace(/\(filtered\/paged\)/gi, '');
     s = s.replace(/\(set as current\)/gi, '');
     s = s.replace(/\(ISO format\)/gi, '');
-    s = s.replace(/\(search by primary mobile, aadhaar, or name\)/gi, 'by Mobile/Aadhaar/Name');
+    s = s.replace(
+      /\(search by primary mobile, aadhaar, or name\)/gi,
+      'by Mobile/Aadhaar/Name',
+    );
 
     // Standardize verbs
-    s = s.replace(/^Get all (\w+) for (a branch|branch and academic year|branch)/gi, 'List $1');
+    s = s.replace(
+      /^Get all (\w+) for (a branch|branch and academic year|branch)/gi,
+      'List $1',
+    );
     s = s.replace(/^Get all (\w+)/gi, 'List $1');
     s = s.replace(/^Get (\w+) details by ID/gi, 'Get $1 by ID');
     s = s.replace(/^Get (\w+) details/gi, 'Get $1');
@@ -100,6 +110,9 @@ export class RequestBuilder {
     s = s.replace(/^Register a /gi, 'Register ');
     s = s.replace(/^Soft delete /gi, 'Delete ');
     s = s.replace(/^Toggle (\w+) status/gi, 'Toggle $1 Status');
+
+    // Strip generic filler words (item, items, resource, resources, object, objects)
+    s = s.replace(/\s+(item|items|resource|resources|object|objects)\b/gi, '');
 
     s = s.replace(/\s+/g, ' ').trim();
 
@@ -217,17 +230,26 @@ export class RequestBuilder {
       if (method === 'DELETE') return 'Revoke Session';
     }
 
-    if (lowerUrl.includes('/academic-years/current')) return 'Get Current Academic Year';
-    if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/select')) return 'Select Academic Year';
-    if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/activate')) return 'Activate Academic Year';
-    if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/lock')) return 'Lock Academic Year';
+    if (lowerUrl.includes('/academic-years/current'))
+      return 'Get Current Academic Year';
+    if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/select'))
+      return 'Select Academic Year';
+    if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/activate'))
+      return 'Activate Academic Year';
+    if (lowerUrl.includes('/academic-years/') && lowerUrl.includes('/lock'))
+      return 'Lock Academic Year';
 
-    if (lowerUrl.includes('/check-duplicates')) return 'Check Duplicate Applicant Records';
-    if (lowerUrl.includes('/workflow/transition')) return 'Transition Applicant Workflow Status';
-    if (lowerUrl.includes('/workflow/history')) return 'Get Workflow Transition History';
+    if (lowerUrl.includes('/check-duplicates'))
+      return 'Check Duplicate Applicant Records';
+    if (lowerUrl.includes('/workflow/transition'))
+      return 'Transition Applicant Workflow Status';
+    if (lowerUrl.includes('/workflow/history'))
+      return 'Get Workflow Transition History';
 
-    if (lowerUrl.includes('/guardians/search')) return 'Search Guardians by Mobile/Aadhaar/Name';
-    if (lowerUrl.includes('/guardians/applicant/') && lowerUrl.includes('/map')) return 'Map Guardian to Applicant';
+    if (lowerUrl.includes('/guardians/search'))
+      return 'Search Guardians by Mobile/Aadhaar/Name';
+    if (lowerUrl.includes('/guardians/applicant/') && lowerUrl.includes('/map'))
+      return 'Map Guardian to Applicant';
 
     const resourceName = this.extractResourceName(url);
 
