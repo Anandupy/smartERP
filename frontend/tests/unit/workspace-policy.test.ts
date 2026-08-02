@@ -4,6 +4,7 @@ import { ROUTES } from "@/constants";
 import {
   academicYearsFor,
   branchesFor,
+  canSkipSelection,
   hasRealChoice,
   narrowSelection,
   resolvePostAuthRoute,
@@ -65,6 +66,22 @@ function availability(
     ...overrides,
   };
 }
+
+/** Exactly one organization, campus and year — the single-tenant install. */
+const SINGLE = availability({
+  organizations: [ORGANIZATIONS[0]],
+  branches: [BRANCHES[0]],
+  academicYears: [YEARS[0]],
+});
+
+const SINGLE_SELECTION = {
+  organizationId: "org-1",
+  branchId: "branch-1",
+  academicYearId: "ay-2026",
+};
+
+/** The opt-in behavior: skip the screen when there is nothing to ask. */
+const SKIPPABLE = { alwaysShowSelection: false };
 
 describe("role gate", () => {
   it("asks only super and organization administrators to choose", () => {
@@ -212,21 +229,44 @@ describe("resolution", () => {
     expect(result.selection.branchId).toBe("branch-1");
   });
 
-  it("skips the screen when a privileged user has only one possible answer", () => {
-    const result = resolveWorkspaceAccess(
-      availability({
-        organizations: [ORGANIZATIONS[0]],
-        branches: [BRANCHES[0]],
-        academicYears: [YEARS[0]],
-      }),
-    );
+  it("still asks a privileged user with only one possible answer", () => {
+    // The default policy is "always show": the user is shown the organization,
+    // campus and year they are entering and confirms them, rather than being
+    // moved somewhere they were never told about.
+    const result = resolveWorkspaceAccess(SINGLE);
+
+    expect(result.status).toBe("selecting");
+    // Pre-answered, so Continue is the only thing left to do.
+    expect(result.selection).toEqual(SINGLE_SELECTION);
+  });
+
+  it("skips that screen once the institution allows it", () => {
+    const result = resolveWorkspaceAccess(SINGLE, undefined, SKIPPABLE);
 
     expect(result.status).toBe("ready");
-    expect(result.selection).toEqual({
-      organizationId: "org-1",
-      branchId: "branch-1",
-      academicYearId: "ay-2026",
+    expect(result.selection).toEqual(SINGLE_SELECTION);
+  });
+
+  it("keeps asking under either policy when a real choice exists", () => {
+    // The setting only governs the case with one possible answer; it can never
+    // choose *for* a user who has alternatives.
+    expect(
+      resolveWorkspaceAccess(availability(), undefined, SKIPPABLE).status,
+    ).toBe("selecting");
+  });
+
+  it("sends a backend-scoped role through under either policy", () => {
+    // The role gate is settled before the setting is consulted, so an
+    // institution that turns "always show" on does not start asking teachers.
+    const scoped = availability({
+      role: "STAFF",
+      defaults: SINGLE_SELECTION,
     });
+
+    expect(resolveWorkspaceAccess(scoped).status).toBe("ready");
+    expect(resolveWorkspaceAccess(scoped, undefined, SKIPPABLE).status).toBe(
+      "ready",
+    );
   });
 
   it("asks a privileged user to choose when a real choice exists", () => {
@@ -321,6 +361,32 @@ describe("hasRealChoice", () => {
         academicYearId: "ay-2026",
       }),
     ).toBe(true);
+  });
+});
+
+describe("canSkipSelection", () => {
+  it("is false by default, even with nothing to ask", () => {
+    expect(canSkipSelection(SINGLE, SINGLE_SELECTION)).toBe(false);
+  });
+
+  it("is true only when skipping is allowed and nothing is being asked", () => {
+    expect(canSkipSelection(SINGLE, SINGLE_SELECTION, SKIPPABLE)).toBe(true);
+  });
+
+  it("is false when a level still has alternatives", () => {
+    expect(canSkipSelection(availability(), SINGLE_SELECTION, SKIPPABLE)).toBe(
+      false,
+    );
+  });
+
+  it("is false when a level is unanswered", () => {
+    expect(
+      canSkipSelection(
+        SINGLE,
+        { ...SINGLE_SELECTION, academicYearId: null },
+        SKIPPABLE,
+      ),
+    ).toBe(false);
   });
 });
 

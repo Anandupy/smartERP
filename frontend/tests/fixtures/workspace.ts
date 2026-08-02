@@ -9,8 +9,9 @@ import type {
  * Identity fixtures for the workspace flow.
  *
  * Shaped so the interesting cases are one call apart: the default payload has a
- * real choice at every level, and `singleChoiceIdentity` has none — which is
- * the difference between showing the selection screen and skipping it.
+ * real choice at every level, `singleChoiceIdentity` has none, and
+ * `scopedRoleIdentity` is not entitled to choose at all — the three inputs the
+ * resolution policy branches on.
  */
 
 export const organizationsFixture: IdentityScopeDto[] = [
@@ -83,7 +84,9 @@ export function identityDto(overrides: Partial<IdentityDto> = {}): IdentityDto {
 
 /**
  * A privileged user with exactly one organization, campus and academic year —
- * the single-tenant install that must never see a selection step.
+ * the single-tenant install. Every level settles automatically, so this is the
+ * payload that distinguishes "pre-answered and confirmed" from "skipped
+ * outright": which one happens is `alwaysShowSelection`'s call.
  */
 export function singleChoiceIdentity(): IdentityDto {
   return identityDto({

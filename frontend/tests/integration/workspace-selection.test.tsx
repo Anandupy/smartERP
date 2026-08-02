@@ -12,6 +12,8 @@ import {
 } from "@/core/auth";
 import {
   createMemoryWorkspaceStorage,
+  resetWorkspaceSelectionPolicy,
+  setWorkspaceSelectionPolicy,
   setWorkspaceStorage,
   useWorkspaceStore,
 } from "@/core/workspace";
@@ -88,6 +90,7 @@ beforeEach(() => {
   resetRouterMock();
   setTokenStorage(createMemoryTokenStorage());
   setWorkspaceStorage(createMemoryWorkspaceStorage());
+  resetWorkspaceSelectionPolicy();
   useWorkspaceStore.getState().clear();
 });
 
@@ -183,8 +186,35 @@ describe("continuing", () => {
   });
 });
 
-describe("skipping the choice", () => {
-  it("goes straight to the app when there is only one possible answer", async () => {
+describe("a single possible workspace", () => {
+  it("still shows the scope, pre-answered, and waits for Continue", async () => {
+    respondWith(singleChoiceIdentity());
+    renderScreen();
+
+    // The three levels are shown and already answered: the point is that the
+    // user sees where they are about to work, not that they pick it.
+    expect(
+      await screen.findByRole("combobox", { name: /organization/i }),
+    ).toHaveTextContent(/universal educational trust/i);
+    expect(
+      screen.getByRole("radio", { name: /downtown campus/i }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("combobox", { name: /academic year/i }),
+    ).toHaveTextContent(/ay 2026-2027/i);
+
+    // Nothing has moved on its own — this is the whole requirement.
+    expect(routerMock.replace).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    await waitFor(() =>
+      expect(routerMock.replace).toHaveBeenCalledWith(ROUTES.app.root),
+    );
+  });
+
+  it("goes straight through once the institution opts out of the screen", async () => {
+    setWorkspaceSelectionPolicy({ alwaysShowSelection: false });
     respondWith(singleChoiceIdentity());
     renderScreen();
 
@@ -197,7 +227,9 @@ describe("skipping the choice", () => {
       screen.queryByRole("combobox", { name: /organization/i }),
     ).not.toBeInTheDocument();
   });
+});
 
+describe("skipping the choice", () => {
   it("goes straight to the app for a backend-scoped role", async () => {
     // A branch administrator does not choose which campus they administer,
     // even though the payload lists several.

@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   createMemoryWorkspaceStorage,
   getWorkspaceStorage,
+  resetWorkspaceSelectionPolicy,
+  setWorkspaceSelectionPolicy,
   setWorkspaceStorage,
   useWorkspaceStore,
   type WorkspaceAvailability,
@@ -64,8 +66,15 @@ function availability(
   };
 }
 
+const SINGLE_CHOICE = {
+  organizations: [ORGANIZATIONS[0]],
+  branches: [BRANCHES[0]],
+  academicYears: [YEARS[0]],
+};
+
 beforeEach(() => {
   setWorkspaceStorage(createMemoryWorkspaceStorage());
+  resetWorkspaceSelectionPolicy();
   useWorkspaceStore.getState().clear();
 });
 
@@ -81,14 +90,23 @@ describe("publishing availability", () => {
     expect(useWorkspaceStore.getState().status).toBe("selecting");
   });
 
-  it("resolves and persists immediately when there is nothing to choose", () => {
-    useWorkspaceStore.getState().setAvailability(
-      availability({
-        organizations: [ORGANIZATIONS[0]],
-        branches: [BRANCHES[0]],
-        academicYears: [YEARS[0]],
-      }),
-    );
+  it("pre-answers a single-choice scope but waits for confirmation", () => {
+    useWorkspaceStore.getState().setAvailability(availability(SINGLE_CHOICE));
+
+    expect(useWorkspaceStore.getState().status).toBe("selecting");
+    expect(useWorkspaceStore.getState().selection).toEqual({
+      organizationId: "org-1",
+      branchId: "branch-1",
+      academicYearId: "ay-2026",
+    });
+    // Nothing is remembered until the user accepts it — an offer is not a
+    // choice, and persisting one would skip the screen on the next sign-in.
+    expect(getWorkspaceStorage().read().organizationId).toBeNull();
+  });
+
+  it("resolves and persists immediately once the policy allows skipping", () => {
+    setWorkspaceSelectionPolicy({ alwaysShowSelection: false });
+    useWorkspaceStore.getState().setAvailability(availability(SINGLE_CHOICE));
 
     expect(useWorkspaceStore.getState().status).toBe("ready");
     expect(getWorkspaceStorage().read()).toEqual({
@@ -172,13 +190,8 @@ describe("confirming", () => {
 
 describe("clearing", () => {
   it("forgets the scope on disk as well as in memory", () => {
-    useWorkspaceStore.getState().setAvailability(
-      availability({
-        organizations: [ORGANIZATIONS[0]],
-        branches: [BRANCHES[0]],
-        academicYears: [YEARS[0]],
-      }),
-    );
+    useWorkspaceStore.getState().setAvailability(availability(SINGLE_CHOICE));
+    useWorkspaceStore.getState().confirm();
     expect(getWorkspaceStorage().read().organizationId).toBe("org-1");
 
     useWorkspaceStore.getState().clear();
