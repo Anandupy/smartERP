@@ -29,14 +29,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm must exist before setup-node resolves the pnpm cache, otherwise
+      # the cache step fails on a clean runner.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           cache: 'pnpm'
-
-      - name: Install pnpm
-        run: npm install -g pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -46,8 +50,19 @@ jobs:
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/erp_test?schema=public"
 
-      - name: Push DB Schema (Safe Push)
-        run: pnpm prisma db push --skip-generate
+      # Deploy migrations rather than `db push`. Pushing the schema meant the
+      # migration path was never exercised, which is how the history silently
+      # fell 34 tables behind the schema. CI now fails if a migration is
+      # missing or broken.
+      - name: Apply Migrations
+        run: pnpm prisma:migrate:deploy
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/erp_test?schema=public"
+
+      # A schema reachable by migration must also be identical to the schema
+      # Prisma generates from. An empty diff proves there is no drift.
+      - name: Verify No Schema Drift
+        run: pnpm migrate:verify
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/erp_test?schema=public"
 
