@@ -8,10 +8,10 @@ import type { WorkspaceStatus } from "./types";
  * is made.
  *
  * At sign-in the scope is still `idle` (identity has not loaded), so login
- * always hands off to the workspace route. That route resolves the scope and,
- * when there is nothing to choose, forwards to the app immediately. The auth
- * feature therefore never learns what a workspace is — it asks this function
- * and follows the answer.
+ * always hands off to the workspace route. That route resolves the scope and
+ * forwards to the app once it is `ready` — immediately for a backend-scoped
+ * role, on Continue for anyone who chooses. The auth feature therefore never
+ * learns what a workspace is: it asks this function and follows the answer.
  *
  * Pure and total: pass the current status, get a path.
  */

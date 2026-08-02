@@ -26,10 +26,17 @@ export {
   type WorkspaceStorage,
 } from "./workspace-storage";
 export {
+  DEFAULT_WORKSPACE_SELECTION_POLICY,
+  getWorkspaceSelectionPolicy,
+  resetWorkspaceSelectionPolicy,
+  setWorkspaceSelectionPolicy,
+} from "./workspace-settings";
+export {
   EMPTY_SELECTION,
   ROLES_REQUIRING_SELECTION,
   academicYearsFor,
   branchesFor,
+  canSkipSelection,
   hasRealChoice,
   isSelectionComplete,
   narrowSelection,
@@ -47,6 +54,7 @@ export type {
   WorkspaceOrganization,
   WorkspaceResolution,
   WorkspaceSelection,
+  WorkspaceSelectionPolicy,
   WorkspaceStatus,
   WorkspaceUnavailableReason,
 } from "./types";

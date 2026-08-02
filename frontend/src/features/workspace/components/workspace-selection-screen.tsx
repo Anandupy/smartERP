@@ -25,13 +25,15 @@ export interface WorkspaceSelectionScreenProps {
 }
 
 /**
- * The workspace selection screen — and, for most users, a screen they never
- * see.
+ * The workspace selection screen.
  *
  * It is the app's single resolution point after sign-in: it loads identity,
  * hands it to the platform, and then renders whichever of five outcomes
- * applies. A user with one organization, one campus and one academic year
- * passes straight through it to the app; only a genuine choice stops here.
+ * applies. Which outcome — including whether a user who has only one possible
+ * workspace still confirms it — is `resolveWorkspaceAccess`'s decision, not
+ * this component's. Under the shipped policy every user entitled to choose sees
+ * the three levels and presses Continue; only backend-scoped roles pass
+ * straight through.
  *
  * The card's heading is the page `<h1>`, because the greeting on the brand
  * panel is `lg`-and-up only and a heading that disappears on a phone is not a

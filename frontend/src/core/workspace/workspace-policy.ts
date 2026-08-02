@@ -5,7 +5,9 @@ import type {
   WorkspaceOptions,
   WorkspaceResolution,
   WorkspaceSelection,
+  WorkspaceSelectionPolicy,
 } from "./types";
+import { DEFAULT_WORKSPACE_SELECTION_POLICY } from "./workspace-settings";
 
 /**
  * The whole workspace decision, as pure functions.
@@ -164,6 +166,35 @@ export function hasRealChoice(
 }
 
 /**
+ * May the selection screen be skipped for a user who is entitled to choose?
+ *
+ * The single question behind "why did I not see the workspace screen?", and the
+ * only place the answer is decided. Two conditions, in order:
+ *
+ * 1. the institution allows skipping at all (`alwaysShowSelection` off), and
+ * 2. there is genuinely nothing to ask — one organization, one campus, one year,
+ *    all already settled.
+ *
+ * Shipping with `alwaysShowSelection: true` means this returns `false` for
+ * everyone: a privileged user always confirms their scope explicitly. Turning
+ * the flag off restores the pass-through, and no other code changes — which is
+ * exactly what makes the behavior a setting rather than a rewrite.
+ *
+ * Backend-scoped roles never reach here; they are settled a step earlier and are
+ * unaffected by the flag either way.
+ */
+export function canSkipSelection(
+  availability: WorkspaceAvailability,
+  selection: WorkspaceSelection,
+  policy: WorkspaceSelectionPolicy = DEFAULT_WORKSPACE_SELECTION_POLICY,
+): boolean {
+  if (policy.alwaysShowSelection) return false;
+  return (
+    isSelectionComplete(selection) && !hasRealChoice(availability, selection)
+  );
+}
+
+/**
  * Decide what happens after sign-in: go straight to the app, ask the user to
  * choose, or explain that there is nothing to enter.
  *
@@ -174,18 +205,19 @@ export function hasRealChoice(
  * 2. **Not the user's decision** — a role outside
  *    {@link ROLES_REQUIRING_SELECTION} is scoped by the backend, so its
  *    `defaults` are taken as-is and it never sees the screen.
- * 3. **Only one possible answer** — a privileged user with exactly one
- *    organization, branch and year is not offered a choice they cannot make.
- *    This is why single-tenant installs never see a selection step.
- * 4. **Otherwise** — a real choice exists, seeded from `seed` (the user's last
- *    selection) and then the backend defaults.
+ * 3. **Nothing worth asking** — only when {@link canSkipSelection} says so.
+ *    Under the shipped policy it never does, so a privileged user confirms even
+ *    a single-tenant scope; that is the one line that changes the behavior.
+ * 4. **Otherwise** — the user chooses, from a form seeded with `seed` (their
+ *    last selection) and then the backend defaults.
  *
- * Pure and total, so the entire policy is one testable function rather than
- * conditions spread across pages.
+ * Pure and total: the policy is passed in rather than read, so the entire
+ * decision is one testable function rather than conditions spread across pages.
  */
 export function resolveWorkspaceAccess(
   availability: WorkspaceAvailability,
   seed: WorkspaceSelection = EMPTY_SELECTION,
+  policy: WorkspaceSelectionPolicy = DEFAULT_WORKSPACE_SELECTION_POLICY,
 ): WorkspaceResolution {
   // The user's own last choice outranks the backend default; the backend
   // default outranks nothing. Both are then clamped to what is actually on
@@ -231,12 +263,7 @@ export function resolveWorkspaceAccess(
     return { status: "unavailable", selection, reason: "no-academic-years" };
   }
 
-  const complete =
-    selection.organizationId !== null &&
-    selection.branchId !== null &&
-    selection.academicYearId !== null;
-
-  if (complete && !hasRealChoice(availability, selection)) {
+  if (canSkipSelection(availability, selection, policy)) {
     return { status: "ready", selection, reason: null };
   }
 

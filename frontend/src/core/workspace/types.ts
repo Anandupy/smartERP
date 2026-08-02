@@ -69,6 +69,21 @@ export interface WorkspaceAvailability {
 }
 
 /**
+ * Configurable behavior of the resolution policy.
+ *
+ * Separate from `WorkspaceAvailability` because it describes the *institution's
+ * preference*, not the user's access: the same payload resolves differently
+ * depending on it. Values live behind the `workspace-settings` seam.
+ */
+export interface WorkspaceSelectionPolicy {
+  /**
+   * Show the selection screen even when exactly one organization, branch and
+   * academic year exist and the answer is therefore already known.
+   */
+  alwaysShowSelection: boolean;
+}
+
+/**
  * Where the workspace platform currently stands.
  *
  * - `idle` — nothing loaded yet; the app cannot decide anything.

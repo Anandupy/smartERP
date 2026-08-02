@@ -12,6 +12,7 @@ import {
   narrowSelection,
   resolveWorkspaceAccess,
 } from "./workspace-policy";
+import { getWorkspaceSelectionPolicy } from "./workspace-settings";
 import { getWorkspaceStorage } from "./workspace-storage";
 
 /**
@@ -59,13 +60,18 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
   ...INITIAL,
 
   setAvailability: (availability) => {
+    // Both seams are read here rather than inside the resolver, which stays a
+    // pure function of its arguments: the store is the impure edge.
     const resolution = resolveWorkspaceAccess(
       availability,
       getWorkspaceStorage().read(),
+      getWorkspaceSelectionPolicy(),
     );
 
     // Only a resolved scope is worth remembering. Persisting a half-made
     // selection would reopen the screen on the level the user never reached.
+    // Under the shipped policy that is `confirm()`'s job in every case, since
+    // publishing availability no longer resolves anything on its own.
     if (resolution.status === "ready") {
       getWorkspaceStorage().write(resolution.selection);
     }
