@@ -64,11 +64,22 @@ import { ExecutionContextGuard } from '@/modules/context/guards/execution-contex
     CommunicationModule,
   ],
   controllers: [],
+  // Global guards execute in registration order. The order below is the
+  // pipeline contract documented in docs/core/guard-pipeline.md:
+  // authenticate, then establish scope, then authorize against that scope,
+  // then assert the scope satisfies the route's requirements.
   providers: [
+    // 1. Authentication — establishes request.user.
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    // 2. Execution context — the only writer of identity and tenant scope.
+    {
+      provide: APP_GUARD,
+      useClass: ExecutionContextGuard,
+    },
+    // 3. Authorization — decides against the resolved scope.
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
@@ -77,17 +88,15 @@ import { ExecutionContextGuard } from '@/modules/context/guards/execution-contex
       provide: APP_GUARD,
       useClass: PermissionGuard,
     },
-    {
-      provide: APP_GUARD,
-      useClass: ExecutionContextGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: BranchGuard,
-    },
+    // 4. Availability — maintenance windows are scoped by the resolved context.
     {
       provide: APP_GUARD,
       useClass: MaintenanceGuard,
+    },
+    // 5. Route scope requirements — assertions over the resolved context.
+    {
+      provide: APP_GUARD,
+      useClass: BranchGuard,
     },
     {
       provide: APP_GUARD,

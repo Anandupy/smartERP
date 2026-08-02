@@ -13,7 +13,15 @@ import {
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { RoleType } from '@/generated/client';
 import { LoggerService } from '../logger/logger.service';
+import { AuthenticatedRequest } from '../logger/request-context.middleware';
 
+/**
+ * Enforces fine-grained permissions declared by `@RequirePermission()`.
+ *
+ * Read-only with respect to the request context. It must run after
+ * `ExecutionContextGuard` so that a permission decision is never made against
+ * an unresolved scope — see `docs/core/guard-pipeline.md`.
+ */
 @Injectable()
 export class PermissionGuard implements CanActivate {
   constructor(
@@ -41,12 +49,12 @@ export class PermissionGuard implements CanActivate {
         context.getClass(),
       ]) || 'ALL';
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    // Retrieve authenticated user context
-    const user = request.user;
-    const userId = request.context?.userId || user?.id || user?.sub;
-    const role = (request.context?.role || user?.role) as RoleType;
+    // Identity comes from the resolved context, which ExecutionContextGuard
+    // populates before this guard runs.
+    const userId = request.context?.userId;
+    const role = request.context?.role as RoleType;
 
     if (!userId || !role) {
       this.logger.warn(

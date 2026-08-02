@@ -100,6 +100,8 @@ a missing or placeholder `JWT_SECRET` prevents the process from booting.
 
 ## Core Architecture Documentation
 - [Configuration Contract](./core/configuration.md)
+- [Execution Context Lifecycle](./core/execution-context.md)
+- [Guard Pipeline](./core/guard-pipeline.md)
 - [Logging System](./core/logging.md)
 - [Event-Driven Architecture](./core/events.md)
 - [Audit Architecture](./core/audit.md)

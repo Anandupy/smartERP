@@ -1,205 +1,116 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
-import {
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-  ExecutionContext,
-} from '@nestjs/common';
+import { BadRequestException, ExecutionContext } from '@nestjs/common';
 import { BranchGuard } from '@/common/guards/branch.guard';
-import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { UserRole } from '@/common/enums/role.enum';
+import { REQUIRE_BRANCH_KEY } from '@/common/decorators/branch.decorator';
+import { REQUIRE_ACADEMIC_YEAR_KEY } from '@/common/decorators/academic-year.decorator';
+import { MutableRequestContext } from '@/common/logger/request-context.middleware';
+import { buildRequestContext } from '../factories/request-context.factory';
 
+/**
+ * BranchGuard asserts the branch scope that ExecutionContextGuard resolved.
+ * It performs no lookups of its own, so these tests exercise the assertion
+ * only — resolution and tenant-boundary rules are covered by the context
+ * resolver and validator suites.
+ */
 describe('BranchGuard', () => {
   let guard: BranchGuard;
-  let reflector: Reflector;
-  let prisma: PrismaService;
 
   const validBranchId = '11111111-1111-7111-a111-111111111111';
   const validOrgId = '99999999-9999-7999-a999-999999999999';
-  const otherOrgId = '88888888-8888-7888-a888-888888888888';
-
-  const mockPrisma = {
-    branch: {
-      findUnique: jest.fn(),
-    },
-  };
 
   const mockReflector = {
     getAllAndOverride: jest.fn(),
   };
 
   const createMockContext = (
-    headers: Record<string, string> = {},
-    user: any = null,
-    contextData: any = {},
+    contextData: Partial<MutableRequestContext> = {},
   ) => {
     const req: any = {
-      headers,
-      user,
-      context: {
-        requestId: 'req-123',
-        branchId: headers['x-branch-id'] || user?.branchId || null,
-        organizationId: user?.organizationId || null,
-        role: user?.role || null,
-        ...contextData,
-      },
+      headers: {},
+      context: buildRequestContext(contextData),
     };
 
     return {
-      switchToHttp: () => ({
-        getRequest: () => req,
-      }),
+      switchToHttp: () => ({ getRequest: () => req }),
       getHandler: () => ({}),
       getClass: () => ({}),
     } as unknown as ExecutionContext;
   };
 
+  /** Declares which scope decorators the route under test carries. */
+  const declareRoute = (options: {
+    branch?: unknown;
+    academicYear?: unknown;
+  }) => {
+    mockReflector.getAllAndOverride.mockImplementation((key: string) => {
+      if (key === REQUIRE_BRANCH_KEY) return options.branch ?? null;
+      if (key === REQUIRE_ACADEMIC_YEAR_KEY)
+        return options.academicYear ?? null;
+      return null;
+    });
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        BranchGuard,
-        { provide: Reflector, useValue: mockReflector },
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [BranchGuard, { provide: Reflector, useValue: mockReflector }],
     }).compile();
 
     guard = module.get<BranchGuard>(BranchGuard);
-    reflector = module.get<Reflector>(Reflector);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should pass through if endpoint has neither @RequireBranch nor @RequireAcademicYear', async () => {
-    mockReflector.getAllAndOverride.mockReturnValue(null);
+  it('passes through when the route declares neither scope decorator', () => {
+    declareRoute({});
+
+    expect(guard.canActivate(createMockContext())).toBe(true);
+  });
+
+  it('passes when @RequireBranch() is declared and the context carries a branch', () => {
+    declareRoute({ branch: { optional: false } });
+
+    const context = createMockContext({
+      branchId: validBranchId,
+      organizationId: validOrgId,
+    });
+
+    expect(guard.canActivate(context)).toBe(true);
+  });
+
+  it('throws when @RequireBranch() is declared and no branch was resolved', () => {
+    declareRoute({ branch: { optional: false } });
+
+    expect(() => guard.canActivate(createMockContext())).toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('passes with no resolved branch when @RequireBranch({ optional: true })', () => {
+    declareRoute({ branch: { optional: true } });
+
+    expect(guard.canActivate(createMockContext())).toBe(true);
+  });
+
+  it('requires a branch when only @RequireAcademicYear() is declared', () => {
+    declareRoute({ academicYear: { optional: false, allowFallback: true } });
+
+    expect(() => guard.canActivate(createMockContext())).toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('does not read branch scope from request headers', () => {
+    declareRoute({ branch: { optional: false } });
+
     const context = createMockContext();
-
-    const canActivate = await guard.canActivate(context);
-    expect(canActivate).toBe(true);
-    expect(mockPrisma.branch.findUnique).not.toHaveBeenCalled();
-  });
-
-  it('should throw BadRequestException if branchId is missing', async () => {
-    mockReflector.getAllAndOverride.mockImplementation((key) => {
-      if (key === 'requireBranch') return { optional: false };
-      return null;
-    });
-    const context = createMockContext({});
-
-    await expect(guard.canActivate(context)).rejects.toThrow(BadRequestException);
-  });
-
-  it('should throw BadRequestException if branchId has invalid UUID format', async () => {
-    mockReflector.getAllAndOverride.mockImplementation((key) => {
-      if (key === 'requireBranch') return { optional: false };
-      return null;
-    });
-    const context = createMockContext({ 'x-branch-id': 'invalid-uuid' });
-
-    await expect(guard.canActivate(context)).rejects.toThrow(BadRequestException);
-  });
-
-  it('should throw NotFoundException if branch does not exist or is inactive/deleted', async () => {
-    mockReflector.getAllAndOverride.mockImplementation((key) => {
-      if (key === 'requireBranch') return { optional: false };
-      return null;
-    });
-    mockPrisma.branch.findUnique.mockResolvedValue(null);
-
-    const context = createMockContext({ 'x-branch-id': validBranchId });
-
-    await expect(guard.canActivate(context)).rejects.toThrow(NotFoundException);
-  });
-
-  it('should throw ForbiddenException if user belongs to a different organization and is not SUPER_ADMIN', async () => {
-    mockReflector.getAllAndOverride.mockImplementation((key) => {
-      if (key === 'requireBranch') return { optional: false };
-      return null;
-    });
-    mockPrisma.branch.findUnique.mockResolvedValue({
-      id: validBranchId,
-      organizationId: validOrgId,
-      name: 'Alpha Branch',
-      code: 'ALPHA',
-      institutionType: 'SCHOOL',
-      isActive: true,
-      isDeleted: false,
-    });
-
-    const user = {
-      id: 'user-1',
-      role: UserRole.ORG_ADMIN,
-      organizationId: otherOrgId, // Mismatching Organization!
-    };
-
-    const context = createMockContext({ 'x-branch-id': validBranchId }, user);
-
-    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
-  });
-
-  it('should pass and attach branch to context when valid headers & user org match', async () => {
-    mockReflector.getAllAndOverride.mockImplementation((key) => {
-      if (key === 'requireBranch') return { optional: false };
-      return null;
-    });
-
-    const mockBranch = {
-      id: validBranchId,
-      organizationId: validOrgId,
-      name: 'Alpha Branch',
-      code: 'ALPHA',
-      institutionType: 'SCHOOL',
-      isActive: true,
-      isDeleted: false,
-    };
-    mockPrisma.branch.findUnique.mockResolvedValue(mockBranch);
-
-    const user = {
-      id: 'user-1',
-      role: UserRole.ORG_ADMIN,
-      organizationId: validOrgId,
-    };
-
-    const context = createMockContext({ 'x-branch-id': validBranchId }, user);
-
-    const canActivate = await guard.canActivate(context);
-    expect(canActivate).toBe(true);
-
     const req = context.switchToHttp().getRequest<any>();
-    expect(req.context.branchId).toBe(validBranchId);
-    expect(req.context.organizationId).toBe(validOrgId);
-    expect(req.context.branch.name).toBe('Alpha Branch');
-  });
+    // A spoofed header must not satisfy the requirement: only the resolved
+    // context counts.
+    req.headers['x-branch-id'] = validBranchId;
 
-  it('should allow SUPER_ADMIN to access branch across organizations', async () => {
-    mockReflector.getAllAndOverride.mockImplementation((key) => {
-      if (key === 'requireBranch') return { optional: false };
-      return null;
-    });
-
-    const mockBranch = {
-      id: validBranchId,
-      organizationId: validOrgId,
-      name: 'Alpha Branch',
-      code: 'ALPHA',
-      institutionType: 'SCHOOL',
-      isActive: true,
-      isDeleted: false,
-    };
-    mockPrisma.branch.findUnique.mockResolvedValue(mockBranch);
-
-    const user = {
-      id: 'superadmin-1',
-      role: UserRole.SUPER_ADMIN,
-      organizationId: otherOrgId,
-    };
-
-    const context = createMockContext({ 'x-branch-id': validBranchId }, user);
-
-    const canActivate = await guard.canActivate(context);
-    expect(canActivate).toBe(true);
+    expect(() => guard.canActivate(context)).toThrow(BadRequestException);
   });
 });
