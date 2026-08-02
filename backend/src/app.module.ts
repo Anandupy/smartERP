@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import envConfig from '@/config/env.config';
 import databaseConfig from '@/config/database.config';
+import { validateEnv } from '@/config/env.validation';
 import { PrismaModule } from '@/infrastructure/database/prisma.module';
 import { EventsModule } from '@/infrastructure/events/events.module';
 import { AuditModule } from '@/infrastructure/audit/audit.module';
@@ -39,6 +40,8 @@ import { ExecutionContextGuard } from '@/modules/context/guards/execution-contex
       isGlobal: true,
       load: [envConfig, databaseConfig],
       envFilePath: '.env',
+      // Fail fast: a misconfigured deployment must never reach the first request.
+      validate: validateEnv,
     }),
     LoggerModule,
     PrismaModule,

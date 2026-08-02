@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions, JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
@@ -25,9 +25,14 @@ import { ContextModule } from '@/modules/context/context.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') || 'default-secret',
-        signOptions: { expiresIn: '15m' },
+      useFactory: (config: ConfigService): JwtModuleOptions => ({
+        // Guaranteed present by validateEnv; no fallback secret is acceptable here.
+        secret: config.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          // Format is validated by validateEnv (e.g. '15m', '1h', '7d').
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ||
+            '15m') as JwtSignOptions['expiresIn'],
+        },
       }),
     }),
   ],
