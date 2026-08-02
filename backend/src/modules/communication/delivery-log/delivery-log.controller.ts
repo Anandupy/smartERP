@@ -10,7 +10,7 @@ import { QueryDeliveryLogDto } from './dto/query-delivery-log.dto';
 @ApiTags('Communication Delivery Logs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('v1/communication/delivery-logs')
+@Controller('communication/delivery-logs')
 export class DeliveryLogController {
   constructor(private readonly deliveryLogService: DeliveryLogService) {}
 

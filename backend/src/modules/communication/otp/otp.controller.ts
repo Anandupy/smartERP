@@ -5,7 +5,7 @@ import { GenerateOtpDto } from './dto/generate-otp.dto';
 import { VerifyCommunicationOtpDto } from './dto/verify-communication-otp.dto';
 
 @ApiTags('Communication OTP')
-@Controller('v1/communication/otp')
+@Controller('communication/otp')
 export class OtpController {
   constructor(private readonly otpService: OtpService) {}
 

@@ -23,7 +23,7 @@ import { RenderTemplatePreviewDto } from './dto/render-template-preview.dto';
 @ApiTags('Communication Templates')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('v1/communication/templates')
+@Controller('communication/templates')
 export class TemplateController {
   constructor(private readonly templateService: TemplateService) {}
 

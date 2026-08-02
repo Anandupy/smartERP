@@ -32,7 +32,7 @@ import { UpdateMenuStatusDto } from '../dto/menu/menu-status.dto';
 @ApiBearerAuth()
 @Roles(UserRole.SUPER_ADMIN)
 @RequirePermission(PERMISSIONS.Settings.Manage)
-@Controller('v1/admin/navigation/menus')
+@Controller('admin/navigation/menus')
 export class NavigationAdminMenuController {
   constructor(private readonly menuAdminService: MenuAdminService) {}
 

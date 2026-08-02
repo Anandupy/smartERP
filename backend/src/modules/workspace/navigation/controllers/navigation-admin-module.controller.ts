@@ -27,7 +27,7 @@ import { UpdateModuleStatusDto } from '../dto/module/module-status.dto';
 @ApiBearerAuth()
 @Roles(UserRole.SUPER_ADMIN)
 @RequirePermission(PERMISSIONS.Settings.Manage)
-@Controller('v1/admin/navigation/modules')
+@Controller('admin/navigation/modules')
 export class NavigationAdminModuleController {
   constructor(private readonly moduleAdminService: ModuleAdminService) {}
 

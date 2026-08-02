@@ -18,7 +18,7 @@ import { UpdateCommunicationConfigDto } from './dto/update-config.dto';
 @ApiTags('Communication Settings')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('v1/communication/settings')
+@Controller('communication/settings')
 export class CommunicationConfigController {
   constructor(private readonly configService: CommunicationConfigService) {}
 

@@ -14,7 +14,7 @@ import { WorkspaceSetupStatusDto } from './dto/workspace-setup-status.dto';
 
 @ApiTags('Workspace Setup')
 @ApiBearerAuth()
-@Controller('v1/workspace/setup')
+@Controller('workspace/setup')
 export class WorkspaceSetupController {
   constructor(private readonly setupService: WorkspaceSetupService) {}
 

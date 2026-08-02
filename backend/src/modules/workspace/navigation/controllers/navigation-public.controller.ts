@@ -11,7 +11,7 @@ import { NavigationService } from '../services/navigation.service';
 
 @ApiTags('Workspace - Navigation')
 @ApiBearerAuth()
-@Controller('v1/workspace/navigation')
+@Controller('workspace/navigation')
 export class NavigationPublicController {
   constructor(
     private readonly navigationService: NavigationService,

@@ -7,7 +7,7 @@ import { UpdateNotificationPreferenceDto } from './dto/update-preference.dto';
 @ApiTags('Notification Preferences')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('v1/communication/preferences')
+@Controller('communication/preferences')
 export class NotificationPreferenceController {
   constructor(
     private readonly preferenceService: NotificationPreferenceService,

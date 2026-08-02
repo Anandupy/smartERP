@@ -20,7 +20,7 @@ import { QueryNotificationDto } from './dto/query-notification.dto';
 @ApiTags('In-App Notification Center')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('v1/communication/notifications')
+@Controller('communication/notifications')
 export class InAppNotificationController {
   constructor(private readonly notificationService: InAppNotificationService) {}
 

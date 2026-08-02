@@ -17,7 +17,7 @@ import { UpsertWorkspaceConfigDto } from './configuration/dto/workspace-config.d
 
 @ApiTags('Workspace')
 @ApiBearerAuth()
-@Controller('v1/workspace')
+@Controller('workspace')
 export class WorkspaceController {
   constructor(
     private readonly workspaceService: WorkspaceService,
