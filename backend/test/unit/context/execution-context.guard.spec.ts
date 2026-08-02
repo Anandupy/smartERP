@@ -3,11 +3,34 @@ import { ExecutionContextGuard } from '@/modules/context/guards/execution-contex
 import { ContextResolverService } from '@/modules/context/services/context-resolver.service';
 import { Reflector } from '@nestjs/core';
 import { RoleType } from '@/generated/client';
+import { buildRequestContext } from '../../factories/request-context.factory';
 
 describe('ExecutionContextGuard', () => {
   let guard: ExecutionContextGuard;
   let reflector: any;
   let resolver: any;
+
+  const buildRequest = (overrides: Record<string, unknown> = {}) => ({
+    user: {
+      id: 'u1',
+      role: RoleType.STAFF,
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+    },
+    headers: { 'x-academic-year-id': 'ay-1' },
+    requestId: 'req-123',
+    // In production RequestContextMiddleware always creates this before any
+    // guard runs; the guard mutates it rather than creating it.
+    context: buildRequestContext({ requestId: 'req-123' }),
+    ...overrides,
+  });
+
+  const asExecutionContext = (req: any) =>
+    ({
+      switchToHttp: () => ({ getRequest: () => req }),
+      getHandler: () => {},
+      getClass: () => {},
+    }) as any;
 
   beforeEach(async () => {
     reflector = {
@@ -41,19 +64,7 @@ describe('ExecutionContextGuard', () => {
 
   it('should resolve and attach execution context to request for authenticated users', async () => {
     reflector.getAllAndOverride.mockReturnValue(false);
-    const mockReq: any = {
-      user: { id: 'u1', role: RoleType.STAFF, organizationId: 'org-1', branchId: 'branch-1' },
-      headers: { 'x-academic-year-id': 'ay-1' },
-      requestId: 'req-123',
-    };
-
-    const mockExecutionContext = {
-      switchToHttp: () => ({
-        getRequest: () => mockReq,
-      }),
-      getHandler: () => {},
-      getClass: () => {},
-    } as any;
+    const mockReq = buildRequest();
 
     resolver.resolveContext.mockResolvedValue({
       context: {
@@ -69,11 +80,66 @@ describe('ExecutionContextGuard', () => {
       source: 'HEADER',
     });
 
-    const can = await guard.canActivate(mockExecutionContext);
+    const can = await guard.canActivate(asExecutionContext(mockReq));
     expect(can).toBe(true);
     expect(mockReq.context.organizationId).toBe('org-1');
     expect(mockReq.context.branchId).toBe('branch-1');
     expect(mockReq.context.academicYearId).toBe('ay-1');
     expect(mockReq.context.programId).toBeNull();
+  });
+
+  it('should write identity onto the context and request', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    const mockReq: any = buildRequest();
+
+    resolver.resolveContext.mockResolvedValue({
+      context: {
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        academicYearId: 'ay-1',
+        programId: null,
+        departmentId: null,
+        campusId: null,
+        branch: null,
+        academicYear: null,
+      },
+      source: 'AUTO',
+    });
+
+    await guard.canActivate(asExecutionContext(mockReq));
+
+    expect(mockReq.context.userId).toBe('u1');
+    expect(mockReq.context.role).toBe(RoleType.STAFF);
+    // Controllers read req.userId for audit attribution.
+    expect(mockReq.userId).toBe('u1');
+  });
+
+  it('records identity even when context resolution fails', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    const mockReq: any = buildRequest();
+
+    resolver.resolveContext.mockRejectedValue(
+      new Error('No active organization available for user.'),
+    );
+
+    await expect(
+      guard.canActivate(asExecutionContext(mockReq)),
+    ).rejects.toThrow('No active organization available for user.');
+
+    // The failure must still be attributable.
+    expect(mockReq.context.userId).toBe('u1');
+    expect(mockReq.context.role).toBe(RoleType.STAFF);
+    expect(mockReq.context.organizationId).toBeNull();
+  });
+
+  it('leaves the context untouched when there is no authenticated user', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    const mockReq: any = buildRequest({ user: undefined });
+
+    const can = await guard.canActivate(asExecutionContext(mockReq));
+
+    expect(can).toBe(true);
+    expect(resolver.resolveContext).not.toHaveBeenCalled();
+    expect(mockReq.context.userId).toBeNull();
   });
 });

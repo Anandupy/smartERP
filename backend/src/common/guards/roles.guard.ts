@@ -7,7 +7,17 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { UserRole } from '../enums/role.enum';
+import { AuthenticatedRequest } from '../logger/request-context.middleware';
 
+/**
+ * Enforces the coarse role hierarchy declared by `@Roles()`.
+ *
+ * Read-only with respect to the request context: identity and tenant scope are
+ * owned by `ExecutionContextGuard`. Cross-organization and cross-branch access
+ * is rejected by `ContextValidatorService` during context resolution, so this
+ * guard no longer silently rewrites the branch scope to defend against header
+ * spoofing.
+ */
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -31,12 +41,11 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-    // Get role and userId from user object (JWT or DB)
-    const user = request.user;
-    const role = user?.role as UserRole;
-    const userId = user?.id || user?.sub;
+    // The role decision uses the resolved context, which ExecutionContextGuard
+    // populates before this guard runs.
+    const role = request.context?.role as UserRole;
 
     if (!role) {
       throw new ForbiddenException('No role provided');
@@ -56,22 +65,6 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException(
         'You do not have permission to access this resource',
       );
-    }
-
-    // Ensure userId is attached for audit
-    request.userId = userId;
-
-    // Populate context from authenticated user
-    if (request.context) {
-      request.context.userId = userId;
-      request.context.role = role;
-      request.context.organizationId = user?.organizationId || null;
-
-      // Security: If not SUPER_ADMIN, enforce the user's assigned branchId
-      // This prevents header/query spoofing for multi-tenancy
-      if (role !== UserRole.SUPER_ADMIN && user?.branchId) {
-        request.context.branchId = user.branchId;
-      }
     }
 
     return true;

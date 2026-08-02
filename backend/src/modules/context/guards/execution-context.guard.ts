@@ -1,10 +1,22 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
-import { AuthenticatedRequest } from '@/common/logger/request-context.middleware';
+import {
+  AuthenticatedRequest,
+  AuthenticatedUser,
+} from '@/common/logger/request-context.middleware';
+import { RequestContextService } from '@/common/logger/request-context.service';
 import { ContextResolverService } from '../services/context-resolver.service';
 import { RoleType } from '@/generated/client';
 
+/**
+ * The sole owner of the request execution scope.
+ *
+ * No other guard, interceptor or service writes identity or tenant scope onto
+ * the request context; the `RequestContext` type is read-only everywhere else,
+ * so an attempt to do so fails to compile. See
+ * `docs/core/execution-context.md` for the full lifecycle.
+ */
 @Injectable()
 export class ExecutionContextGuard implements CanActivate {
   constructor(
@@ -23,70 +35,67 @@ export class ExecutionContextGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const user = request.user;
+    const userId = this.resolveUserId(user);
 
-    // Skip context resolution if no authenticated user is present
-    if (!request.user || (!request.user.id && !(request.user as any).sub)) {
+    // Nothing to resolve without an authenticated principal.
+    if (!userId) {
       return true;
     }
 
-    const userId = request.user.id || (request.user as any).sub;
-    const role = (request.user.role ||
-      (request.context?.role as any)) as RoleType;
+    const role = user?.role as RoleType;
 
-    const rawOrgHeader =
-      (request.headers['x-organization-id'] as string) ||
-      (request.headers['X-Organization-Id'] as string) ||
-      null;
+    // Controllers read `req.userId` to attribute writes. It is written here,
+    // by the context owner, rather than by RolesGuard — which only ran for
+    // routes carrying @Roles() and left it undefined everywhere else.
+    request.userId = userId;
 
-    const rawBranchHeader =
-      (request.headers['x-branch-id'] as string) ||
-      (request.headers['X-Branch-Id'] as string) ||
-      null;
-
-    const rawAyHeader =
-      (request.headers['x-academic-year-id'] as string) ||
-      (request.headers['X-Academic-Year-Id'] as string) ||
-      null;
+    // Identity is written before resolution is attempted so that a failed
+    // resolution is still attributable in audit logs and error reporting.
+    RequestContextService.applyExecutionScope(request.context, {
+      userId,
+      role: role ?? null,
+      organizationId: null,
+      branchId: null,
+      academicYearId: null,
+      branch: null,
+      academicYear: null,
+    });
 
     const result = await this.contextResolver.resolveContext({
       user: {
         id: userId,
         role,
-        organizationId: request.user.organizationId || null,
-        branchId: request.user.branchId || null,
+        organizationId: user?.organizationId || null,
+        branchId: user?.branchId || null,
       },
       headers: {
-        organizationId: rawOrgHeader,
-        branchId: rawBranchHeader,
-        academicYearId: rawAyHeader,
+        organizationId: this.header(request, 'x-organization-id'),
+        branchId: this.header(request, 'x-branch-id'),
+        academicYearId: this.header(request, 'x-academic-year-id'),
       },
       requestId: request.requestId || request.context?.requestId,
     });
 
-    // Populate request.context execution scope cleanly
-    if (!request.context) {
-      request.context = {
-        requestId: request.requestId || 'unknown',
-        organizationId: result.context.organizationId,
-        branchId: result.context.branchId,
-        academicYearId: result.context.academicYearId,
-        programId: null,
-        departmentId: null,
-        campusId: null,
-        branch: result.context.branch || null,
-        academicYear: result.context.academicYear || null,
-      } as any;
-    } else {
-      request.context.organizationId = result.context.organizationId;
-      request.context.branchId = result.context.branchId;
-      request.context.academicYearId = result.context.academicYearId;
-      (request.context as any).programId = null;
-      (request.context as any).departmentId = null;
-      (request.context as any).campusId = null;
-      request.context.branch = result.context.branch || null;
-      request.context.academicYear = result.context.academicYear || null;
-    }
+    RequestContextService.applyExecutionScope(request.context, {
+      userId,
+      role: role ?? null,
+      organizationId: result.context.organizationId,
+      branchId: result.context.branchId,
+      academicYearId: result.context.academicYearId,
+      branch: result.context.branch ?? null,
+      academicYear: result.context.academicYear ?? null,
+    });
 
     return true;
+  }
+
+  private resolveUserId(user: AuthenticatedUser | undefined): string | null {
+    return user?.id || user?.sub || null;
+  }
+
+  private header(request: AuthenticatedRequest, name: string): string | null {
+    const value = request.headers[name];
+    return typeof value === 'string' ? value : null;
   }
 }

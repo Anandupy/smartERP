@@ -1,16 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
-import { RequestContext } from './request-context.middleware';
+import {
+  ExecutionScope,
+  MutableRequestContext,
+  RequestContext,
+} from './request-context.middleware';
 
 @Injectable()
 export class RequestContextService {
   private static readonly asyncLocalStorage =
-    new AsyncLocalStorage<RequestContext>();
+    new AsyncLocalStorage<MutableRequestContext>();
 
   /**
    * Run callback within a RequestContext scope
    */
-  static run<T>(context: RequestContext, callback: () => T): T {
+  static run<T>(context: MutableRequestContext, callback: () => T): T {
     return this.asyncLocalStorage.run(context, callback);
   }
 
@@ -19,6 +23,31 @@ export class RequestContextService {
    */
   static getStore(): RequestContext | undefined {
     return this.asyncLocalStorage.getStore();
+  }
+
+  /**
+   * The single mutation point for the request context.
+   *
+   * `ExecutionContextGuard` is the only caller. The AsyncLocalStorage store and
+   * `req.context` are the same object, so writing here updates both views at
+   * once and no consumer can observe them diverging.
+   *
+   * Every scope field is assigned on each call, so the context after resolution
+   * never mixes values from two different resolution attempts.
+   */
+  static applyExecutionScope(
+    context: RequestContext,
+    scope: ExecutionScope,
+  ): void {
+    const writable = context as MutableRequestContext;
+
+    writable.userId = scope.userId;
+    writable.role = scope.role;
+    writable.organizationId = scope.organizationId;
+    writable.branchId = scope.branchId;
+    writable.academicYearId = scope.academicYearId;
+    writable.branch = scope.branch;
+    writable.academicYear = scope.academicYear;
   }
 
   /**

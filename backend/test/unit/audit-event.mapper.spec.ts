@@ -3,6 +3,7 @@ import { StudentCreatedEvent } from '@/common/events/examples/student-created.ev
 import { BranchCreatedEvent } from '@/common/events/examples/branch-created.event';
 import { UserLoggedInEvent } from '@/common/events/examples/user-logged-in.event';
 import { RequestContext } from '@/common/logger/request-context.middleware';
+import { buildRequestContext } from '../factories/request-context.factory';
 
 describe('AuditEventMapper', () => {
   let mapper: AuditEventMapper;
@@ -66,14 +67,14 @@ describe('AuditEventMapper', () => {
       admissionNo: 'ADM-100',
     });
 
-    const mockContext: RequestContext = {
+    const mockContext: RequestContext = buildRequestContext({
       requestId: 'req-uuid-777',
       userId: 'admin-user-id',
       role: 'ORG_ADMIN',
       organizationId: 'org-uuid-1',
       branchId: 'branch-uuid-2',
       academicYearId: 'ay-uuid-3',
-    };
+    });
 
     const auditData = mapper.mapToAuditLog(event, mockContext);
 
