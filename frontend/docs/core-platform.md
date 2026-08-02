@@ -1,6 +1,6 @@
 # Core Platform
 
-`src/core/` owns cross-cutting infrastructure with **zero business logic**. Five
+`src/core/` owns cross-cutting infrastructure with **zero business logic**. Six
 sub-domains:
 
 ## `core/api`
@@ -50,6 +50,27 @@ The onboarding flag is deliberately independent of authentication, and the
 current check is temporary: session validation slots into the resolver's
 existing `session` parameter. See [Authentication](./authentication.md).
 
+## `core/workspace`
+
+Which organization / branch / academic year the app is operating in — and
+whether the user gets to choose. No transport and no UI: the workspace feature
+fetches `/auth/me` and publishes it here.
+
+- `resolveWorkspaceAccess(availability, seed)` — pure, total policy function
+  returning `ready` / `selecting` / `unavailable` plus the settled selection.
+- `branchesFor` / `academicYearsFor` / `narrowSelection` — the single filtering
+  and cascading implementation.
+- `useWorkspaceStore` — module-level, so header providers (plain functions) and
+  components read one value.
+- `useWorkspace()` — the consumer API: resolved organization, branch and year.
+- `WorkspaceStorage` — swappable seam persisting **only the three ids**.
+- `registerWorkspaceHeaders()` — points `X-Tenant-Id` / `X-Branch-Id` /
+  `X-Academic-Year` at the active scope, and only once it is `ready`.
+- `resolvePostAuthRoute(status)` — where sign-in leads, decided in one place.
+- `RequireWorkspace` — gate for scoped areas.
+
+See [Workspace](./workspace.md).
+
 ## `core/theme`
 
 Theme **abstraction** — dynamic theming is intentionally not implemented.
@@ -64,5 +85,6 @@ Theme **abstraction** — dynamic theming is intentionally not implemented.
 
 Every seam is configurable without editing core: header providers
 (`headerRegistry`), token storage (`setTokenStorage`), onboarding storage
-(`setOnboardingStorage`), unauthorized handling (`setUnauthorizedHandler`), query
-error handling (provider), and theme registration (`themeRegistry`).
+(`setOnboardingStorage`), workspace storage (`setWorkspaceStorage`),
+unauthorized handling (`setUnauthorizedHandler`), query error handling
+(provider), and theme registration (`themeRegistry`).

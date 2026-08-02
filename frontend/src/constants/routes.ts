@@ -20,6 +20,14 @@ export const ROUTES = Object.freeze({
     accountLocked: "/account-locked",
     sessionExpired: "/session-expired",
   },
+  /**
+   * Workspace scope selection. Sits between authentication and the app: a user
+   * with more than one valid organization/branch/academic-year combination
+   * chooses here before any scoped screen renders.
+   */
+  workspace: {
+    root: "/workspace",
+  },
   app: {
     root: "/app",
   },
