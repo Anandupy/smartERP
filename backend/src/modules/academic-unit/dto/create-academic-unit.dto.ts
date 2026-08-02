@@ -8,7 +8,7 @@ import {
   IsObject,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AcademicUnitType } from '@prisma/client';
+import { AcademicUnitType } from '@/generated/client';
 
 export class CreateAcademicUnitDto {
   @ApiProperty({ description: 'Branch ID' })

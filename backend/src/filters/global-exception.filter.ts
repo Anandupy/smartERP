@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/generated/client';
 import { LoggerService } from '@/common/logger/logger.service';
 import { AuthenticatedRequest } from '@/common/logger/request-context.middleware';
 import { PrismaErrorTranslator } from './prisma-error-translator';

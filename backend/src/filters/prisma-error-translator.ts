@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/generated/client';
 
 export interface TranslatedError {
   status: HttpStatus;

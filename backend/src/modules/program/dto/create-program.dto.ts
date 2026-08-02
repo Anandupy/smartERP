@@ -6,7 +6,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProgramLevel } from '@prisma/client';
+import { ProgramLevel } from '@/generated/client';
 
 export class CreateProgramDto {
   @ApiProperty({ description: 'Target Branch UUID' })

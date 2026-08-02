@@ -13,7 +13,7 @@ import {
 } from '@/common/events';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
-import { Program } from '@prisma/client';
+import { Program } from '@/generated/client';
 
 @Injectable()
 export class ProgramService {

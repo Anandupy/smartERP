@@ -9,7 +9,7 @@ import {
   Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { RoleType } from '@prisma/client';
+import { RoleType } from '@/generated/client';
 
 export class CreateUserDto {
   @ApiProperty({ description: 'Full name of the user', example: 'John Doe' })

@@ -11,7 +11,7 @@ import {
   StructureMode,
   InstitutionType,
   AffiliationType,
-} from '@prisma/client';
+} from '@/generated/client';
 
 export class CreateBranchDto {
   @ApiProperty({ description: 'Organization UUID' })

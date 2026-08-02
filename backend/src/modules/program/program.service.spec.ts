@@ -6,7 +6,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { ProgramLevel } from '@prisma/client';
+import { ProgramLevel } from '@/generated/client';
 
 describe('ProgramService', () => {
   let service: ProgramService;
