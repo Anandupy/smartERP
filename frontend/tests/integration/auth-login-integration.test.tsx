@@ -86,7 +86,7 @@ describe("login → backend", () => {
     await signIn();
 
     await waitFor(() =>
-      expect(routerMock.replace).toHaveBeenCalledWith(ROUTES.app.root),
+      expect(routerMock.replace).toHaveBeenCalledWith(ROUTES.workspace.root),
     );
 
     expect(getTokenStorage().getAccessToken()).toBe(authTokens.accessToken);
@@ -149,7 +149,7 @@ describe("login → backend", () => {
     await signIn({ remember: false });
 
     await waitFor(() =>
-      expect(routerMock.replace).toHaveBeenCalledWith(ROUTES.app.root),
+      expect(routerMock.replace).toHaveBeenCalledWith(ROUTES.workspace.root),
     );
 
     // Memory-backed storage: nothing survives a reload, which is the point.
@@ -163,7 +163,7 @@ describe("login → backend", () => {
     await signIn({ remember: true });
 
     await waitFor(() =>
-      expect(routerMock.replace).toHaveBeenCalledWith(ROUTES.app.root),
+      expect(routerMock.replace).toHaveBeenCalledWith(ROUTES.workspace.root),
     );
 
     expect(window.localStorage.getItem("campusflow:auth.refresh-token")).toBe(

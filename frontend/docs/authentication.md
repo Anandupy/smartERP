@@ -41,6 +41,12 @@ launch → /splash → resolveStartupRoute(context)
                      └── otherwise          → /login
 ```
 
+Where a **successful sign-in** leads is a separate decision, owned by
+`core/workspace`: `useLogin` calls `resolvePostAuthRoute()`, which hands off to
+`/workspace`. That route resolves the scope and forwards straight to `/app` when
+there is nothing to choose — so the auth feature never learns what a workspace
+is. See [Workspace](./workspace.md).
+
 | Piece                 | Responsibility                                                     |
 | --------------------- | ------------------------------------------------------------------ |
 | `resolveStartupRoute` | Pure, total policy function — the whole decision, trivially tested |
@@ -78,7 +84,7 @@ shell.
 
 ```
 (auth)/layout.tsx → GuestRoute
-  └── SplashScreen        → AuthBrandPanel                       (full-bleed)
+  └── SplashScreen        → BrandCanvas                          (full-bleed)
   └── WelcomeScreen       → AuthSplitLayout + WelcomeBrandPanel
   └── LoginScreen         → AuthSplitLayout + LoginBrandPanel
   └── form screens        → AuthSplitLayout + AuthMessagePanel   (Card + form)
@@ -89,9 +95,11 @@ shell.
   panel beside a centered content column, with a `footer` slot. It contains no
   brand content — the feature injects every pixel of it. See
   [Layouts](./layouts.md).
-- **`AuthBrandPanel`** (feature) is the decorative canvas shared by all brand
-  moments: brand canvas, a token-tinted dot grid, and two blurred ambient orbs.
-  Every layer is `aria-hidden` and `pointer-events-none`.
+- **`BrandCanvas`** (`shared/components/brand`) is the decorative canvas shared
+  by all brand moments: brand canvas, a token-tinted dot grid, and two blurred
+  ambient orbs. Every layer is `aria-hidden` and `pointer-events-none`. It and
+  `BrandMark` live in `shared` rather than here because workspace selection
+  opens on them too — see [Workspace](./workspace.md).
 - **`AuthMessagePanel`** (feature) is the reassurance panel every recovery and
   session screen shares — one component parameterized by glyph and copy, rather
   than seven near-identical panels.
@@ -280,6 +288,7 @@ replayed at most once, so a persistently-401 endpoint cannot loop.
 | Failure                         | Where it surfaces                                   |
 | ------------------------------- | --------------------------------------------------- |
 | Invalid credentials             | Inline `Alert` on the form                          |
+| Identity (`/auth/me`) failure   | `ApiErrorState` on the workspace screen, with retry |
 | **Account locked**              | Routed to `/account-locked`, message shown verbatim |
 | Expired/consumed reset token    | Inline `Alert`                                      |
 | 401 on an authenticated request | Silent refresh; `/session-expired` if that fails    |
@@ -294,15 +303,16 @@ fires against it. It remains wired for a backend that does emit them.
 
 ### Identity
 
-`/auth/login` returns only `{ accessToken, refreshToken }`, and there is **no
-`/auth/me`**. `AuthUser` is therefore built from the access token's claims
-(`sub`, `email`, `role`, `organizationId`, `branchId`), with two honest
-fallbacks:
+`/auth/login` returns only `{ accessToken, refreshToken }`, so identity arrives
+in **two stages**:
 
-- `name` falls back to the email — no name claim exists.
-- `permissions` is empty, so every `can()` check **fails closed** until
-  `GET /authorization/me/effective-permissions` is wired. Hiding UI the user may
-  be entitled to is the safe direction.
+1. **At sign-in**, `AuthUser` is built from the access token's claims (`sub`,
+   `email`, `role`, `organizationId`, `branchId`). `name` falls back to the
+   email and `permissions` is empty, so every `can()` check fails closed.
+2. **On the workspace route**, `GET /auth/me` replaces it with the real record —
+   the actual full name and the effective permissions. `setUser` exists on
+   `AuthContext` for exactly this: the second stage must not re-write
+   credentials it was never given. See [Workspace](./workspace.md).
 
 Claims are decoded without signature verification, for display only. The server
 is the only party that validates a token.
@@ -430,6 +440,7 @@ services call version-agnostic paths — see [API Layer](./api-layer.md).
 | `/auth/resend-otp`          | POST       | `{ identifier, purpose }`      | Email sent · OTP     |
 | `/auth/verify-otp`          | POST       | `{ identifier, purpose, otp }` | OTP verification     |
 | `/auth/reset-password`      | POST       | `{ token, password }`          | Reset password       |
+| `/auth/me`                  | GET        | Identity, permissions, scopes  | Workspace selection  |
 | `/auth/refresh`             | POST       | Rotates the access token       | Session expired      |
 | `/auth/logout`              | POST       | `?allDevices=`                 | (workspace)          |
 | `/auth/verify-email`        | POST       | `{ email, otp }`               | (email verification) |
@@ -461,8 +472,9 @@ None of these block the integration; each removes a workaround.
 1. **Emit a dedicated `ACCOUNT_LOCKED` code.** The exception filter sets `code`
    to the thrown class name, so a lockout is indistinguishable from any other 403. Detection currently needs a message match as well — narrow, isolated in
    `utils/auth-errors.ts`, and deletable the day a real code exists.
-2. **Add `GET /auth/me`.** Login returns only tokens, so `name` falls back to
-   the email and `permissions` starts empty.
+2. ~~**Add `GET /auth/me`.**~~ **Done** — the endpoint now supplies the real
+   name, the effective permissions and the available scopes. See
+   [Workspace](./workspace.md).
 3. **Enforce the password policy server-side**, or tell us the real one so the
    client can match it.
 4. **Make `send-otp` generic on an unknown identifier.** It currently 404s,
@@ -471,11 +483,9 @@ None of these block the integration; each removes a workaround.
 
 ## What lands next
 
-1. **Permissions** — wire `GET /authorization/me/effective-permissions` so
-   `can()` stops failing closed.
-2. **Startup routing** — `useStartupRoute` awaits a session probe and passes the
+1. **Startup routing** — `useStartupRoute` awaits a session probe and passes the
    result to `resolveStartupRoute`'s existing `session` parameter.
-3. **Session management UI** — the hooks (`useSessions`, `useRevokeSession`,
+2. **Session management UI** — the hooks (`useSessions`, `useRevokeSession`,
    `useRevokeAllSessions`) are wired and tested; no screen consumes them yet.
-4. **OTP flows** — the screens and hooks exist for `LOGIN`/`MFA`/`EMAIL_VERIFY`;
+3. **OTP flows** — the screens and hooks exist for `LOGIN`/`MFA`/`EMAIL_VERIFY`;
    none is currently reachable from a route.

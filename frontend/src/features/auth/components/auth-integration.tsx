@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 
 import { ROUTES } from "@/constants";
 import { getTokenStorage, useAuth } from "@/core/auth";
+import { getWorkspaceState } from "@/core/workspace";
 
 import { toAuthUser, toTokenPair } from "../mappers/auth.mapper";
 import { decodeAccessToken } from "../utils/jwt";
@@ -44,6 +45,9 @@ export function AuthIntegration() {
   useEffect(() => {
     sessionLostRef.current = () => {
       clearSession();
+      // The scope outlives the session in storage, so an unrecoverable 401 has
+      // to drop it too — otherwise the next sign-in inherits a stale campus.
+      getWorkspaceState().clear();
       router.replace(ROUTES.auth.sessionExpired);
     };
   }, [clearSession, router]);

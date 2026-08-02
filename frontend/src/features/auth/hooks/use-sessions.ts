@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from "@/constants";
 import { useAuth } from "@/core/auth";
 import { invalidateKeys } from "@/core/query";
+import { getWorkspaceState } from "@/core/workspace";
 
 import { authKeys } from "../api/auth.keys";
 import { authService } from "../api/auth.service";
@@ -58,6 +59,10 @@ export function useRevokeAllSessions() {
  * dropped either way: a failed logout must never strand the user in a
  * half-signed-in state, and the refresh token is revoked server-side on the
  * next rotation regardless.
+ *
+ * The workspace scope is cleared with them. It is persisted deliberately, so
+ * leaving it behind would hand the next person to sign in on this machine the
+ * previous user's campus — and the scope headers to go with it.
  */
 export function useLogout() {
   const router = useRouter();
@@ -73,6 +78,7 @@ export function useLogout() {
     onSettled: () => {
       clearTokens();
       clearSession();
+      getWorkspaceState().clear();
       queryClient.clear();
       router.replace(ROUTES.auth.login);
     },

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { ROUTES } from "@/constants";
 import { useAuth } from "@/core/auth";
+import { resolvePostAuthRoute } from "@/core/workspace";
 
 import { authService } from "../api/auth.service";
 import {
@@ -30,6 +31,11 @@ import { decodeAccessToken } from "../utils/jwt";
  * `utils/auth-errors`; this hook only reacts to it. Every other failure is
  * re-thrown for `LoginForm` to render inline, which is why the toast is
  * suppressed via `meta`.
+ *
+ * Where a successful sign-in *leads* is deliberately not decided here.
+ * `resolvePostAuthRoute` owns that, so this hook never learns what a workspace
+ * is: at this moment the scope is still unresolved, and the route it returns
+ * resolves it — forwarding straight to the app when there is nothing to choose.
  */
 export function useLogin() {
   const router = useRouter();
@@ -48,7 +54,7 @@ export function useLogin() {
       const claims = decodeAccessToken(tokens.accessToken);
       if (claims) setSession(toAuthUser(claims), toTokenPair(tokens));
 
-      router.replace(ROUTES.app.root);
+      router.replace(resolvePostAuthRoute());
     },
     onError: (error) => {
       const lockedMessage = getAccountLockedMessage(error);
