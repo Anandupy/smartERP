@@ -3,6 +3,7 @@ import { AppModule } from '@/app.module';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '@/common/logger/logger.service';
 import helmet from 'helmet';
+import { json, urlencoded } from 'express';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
@@ -35,9 +36,31 @@ async function bootstrap() {
 
   // Security setup
   app.use(helmet());
+  // Express defaults to 100kb; stated explicitly so the limit is a decision
+  // rather than a framework default nobody has looked at.
+  app.use(json({ limit: '1mb' }));
+  app.use(urlencoded({ extended: true, limit: '1mb' }));
   app.use(compression());
   app.use(cookieParser());
-  app.enableCors();
+  // CORS_ORIGINS is required in production by validateEnv, but nothing read it:
+  // enableCors() with no arguments reflects any Origin, so the deployed API was
+  // accepting cross-site credentialed requests from everywhere while the
+  // configuration claimed an allow-list.
+  const corsOrigins = configService.get<string>('env.corsOrigins');
+  const allowedOrigins = corsOrigins
+    ? corsOrigins
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+    : [];
+
+  app.enableCors({
+    // Outside production an empty list stays permissive so local tooling and
+    // Swagger UI keep working; validateEnv guarantees the list is non-empty in
+    // production.
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    credentials: true,
+  });
 
   // API Versioning
   app.enableVersioning({

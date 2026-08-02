@@ -2,6 +2,7 @@
 import * as path from 'path';
 import axios from 'axios';
 import { PostmanGeneratorEngine } from './postman/index';
+import { registerPathAliases } from './register-paths';
 
 /**
  * CampusFlow ERP Enterprise Postman Collection Generator CLI
@@ -22,6 +23,8 @@ const OUTPUT_DIR = path.join(__dirname, '../postman');
 async function run() {
   console.log('🔄 Fetching Swagger schema from: ' + SWAGGER_JSON_URL);
 
+  registerPathAliases();
+
   let swaggerData: any;
   try {
     const response = await axios.get(SWAGGER_JSON_URL, { timeout: 3000 });
@@ -35,24 +38,37 @@ async function run() {
     );
     try {
       const { NestFactory } = await import('@nestjs/core');
+      const { VersioningType } = await import('@nestjs/common');
       const { AppModule } = await import('../src/app.module');
       const { DocumentBuilder, SwaggerModule } =
         await import('@nestjs/swagger');
+      const { applyResponseEnvelope } =
+        await import('../src/common/http/swagger-envelope');
 
       const app = await NestFactory.create(AppModule, { logger: false });
+
+      // Mirror main.ts, or the generated collection describes routes the
+      // server does not serve: without versioning every path loses its /v1
+      // prefix, and without the envelope every example shows the bare payload
+      // instead of the response clients actually receive.
+      app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+
       const swaggerConfig = new DocumentBuilder()
         .setTitle('ERP API')
         .setDescription('The ERP system API description')
         .setVersion('1.0')
         .addBearerAuth()
         .build();
-      swaggerData = SwaggerModule.createDocument(app, swaggerConfig);
+      swaggerData = applyResponseEnvelope(
+        SwaggerModule.createDocument(app, swaggerConfig),
+      );
       await app.close();
       console.log(
         '✅ Swagger schema generated in-memory from NestJS app source.',
       );
     } catch (err: any) {
       console.error('❌ In-memory Swagger generation failed:', err);
+      process.exitCode = 1;
       return;
     }
   }
@@ -75,6 +91,7 @@ async function run() {
     );
   } catch (err: any) {
     console.error('❌ Postman generation failed: ', err);
+    process.exitCode = 1;
   }
 }
 

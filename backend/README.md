@@ -35,45 +35,66 @@ This backend system is designed to handle complex business logic for SMEs, featu
 ## ⚙️ Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd backend
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Environment Variables**
-   Create a `.env` file in the root directory and add your configuration:
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/erp_db?schema=public"
-   JWT_SECRET="your-secret-key"
-   PORT=3000
-   ```
 
-4. **Database & Prisma Setup**
+   Copy the template and fill it in. Every variable is validated at startup, so
+   a missing or placeholder secret stops the process rather than booting into an
+   insecure state.
 
-   Always ensure your database is running before executing these commands.
-
-   **For Development (with Migrations):**
    ```bash
-   # Create and apply migrations
-   npx prisma migrate dev --name init
+   cp .env.example .env
    ```
 
-   **For Quick Sync (Development only, skips migration history):**
+   Generate the two required secrets:
+
    ```bash
-   # Sync schema directly to database
-   npx prisma db push
+   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
    ```
 
-   **Generate Prisma Client:**
+   See [Configuration Contract](docs/core/configuration.md) for the full
+   reference.
+
+4. **Database setup**
+
+   Start PostgreSQL, then apply the migrations:
+
    ```bash
-   # Generate/Regenerate Prisma Client
-   npx prisma generate
+   pnpm prisma:migrate:deploy   # creates the full schema
+   pnpm migrate:verify          # confirms no drift
+   pnpm seed                    # permissions, modules, menus
    ```
+
+   > [!WARNING]
+   > Do not use `prisma db push`. Pushing the schema is what let the migration
+   > history fall 34 tables behind the schema, so `migrate deploy` produced a
+   > broken database. CI now fails on any drift. See
+   > [Migration Strategy](docs/core/migrations.md).
+
+   To change the schema, edit `prisma/modules/**` and generate a migration:
+
+   ```bash
+   pnpm prisma:migrate:dev -- --name describe_the_change
+   ```
+
+## 🚀 First Run
+
+A fresh installation has no Organization, Branch or Academic Year. Log in as the
+seeded Super Admin and call `GET /v1/auth/me`; it reports `setup.setupRequired`
+and the resources still missing. Work through the setup flow — see
+[Workspace Bootstrap](docs/core/workspace-bootstrap.md) — before the rest of the
+API becomes available.
 
 ## 🏃 Running the App
 

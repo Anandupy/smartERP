@@ -10,23 +10,33 @@
  *
  * Seeding is idempotent, so re-running it is safe.
  */
-import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
-import { SeederService } from '../src/infrastructure/database/seeder.service';
+import { registerPathAliases } from './register-paths';
 
 async function main() {
+  // Must precede any import from src/ — see register-paths.ts.
+  const cleanup = registerPathAliases();
   const logger = new Logger('Seed');
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: ['error', 'warn', 'log'],
-  });
 
   try {
-    logger.log(`Seeding (${process.env.NODE_ENV ?? 'development'})...`);
-    await app.get(SeederService).run();
-    logger.log('Seeding completed.');
+    const { NestFactory } = await import('@nestjs/core');
+    const { AppModule } = await import('../src/app.module');
+    const { SeederService } =
+      await import('../src/infrastructure/database/seeder.service');
+
+    const app = await NestFactory.createApplicationContext(AppModule, {
+      logger: ['error', 'warn', 'log'],
+    });
+
+    try {
+      logger.log(`Seeding (${process.env.NODE_ENV ?? 'development'})...`);
+      await app.get(SeederService).run();
+      logger.log('Seeding completed.');
+    } finally {
+      await app.close();
+    }
   } finally {
-    await app.close();
+    cleanup();
   }
 }
 

@@ -48,8 +48,16 @@ answer" rather than "unhealthy" — a slower and less specific signal.
 }
 ```
 
-Terminus responses keep their own shape rather than the API envelope, because
-monitoring tools expect the standard structure.
+The terminus payload is wrapped by `GlobalResponseInterceptor` like every other
+response, so the structure above appears under `data`:
+
+```jsonc
+{ "success": true, "message": "Success", "data": { "status": "ok", "info": { … } }, … }
+```
+
+A probe that only checks the HTTP status — which is what Kubernetes and most
+load balancers do — is unaffected. A monitor that parses the body must read
+`data`.
 
 ---
 

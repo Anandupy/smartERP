@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
-import {
+import type {
   ExecutionScope,
   MutableRequestContext,
   RequestContext,
-} from './request-context.middleware';
+} from './request-context.types';
 
 @Injectable()
 export class RequestContextService {
