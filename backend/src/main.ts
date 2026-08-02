@@ -24,6 +24,14 @@ async function bootstrap() {
   const env =
     configService.get<string>('env.nodeEnv', 'development') || 'development';
 
+  // Behind a reverse proxy, req.ip is the proxy unless Express is told to trust
+  // it — which would make every caller share one rate-limit bucket. Off by
+  // default: trusting X-Forwarded-For when nothing strips it lets a client
+  // forge its own source address.
+  if (configService.get<boolean>('env.trustProxy')) {
+    app.getHttpAdapter().getInstance().set('trust proxy', true);
+  }
+
   // Security setup
   app.use(helmet());
   app.use(compression());

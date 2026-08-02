@@ -151,6 +151,16 @@ export class EnvironmentVariables {
   @IsOptional()
   CORS_ORIGINS?: string;
 
+  /**
+   * Trust X-Forwarded-For. Enable only when the app sits behind a proxy you
+   * control � otherwise a client can forge its own source address and defeat
+   * IP-based rate limiting.
+   */
+  @Transform(toBoolean)
+  @IsBoolean()
+  @IsOptional()
+  TRUST_PROXY?: boolean;
+
   // --- Throttling ---------------------------------------------------------
 
   @Transform(toBoolean)

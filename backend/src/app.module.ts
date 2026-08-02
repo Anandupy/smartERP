@@ -35,6 +35,8 @@ import { ContextModule } from '@/modules/context/context.module';
 import { ExecutionContextGuard } from '@/modules/context/guards/execution-context.guard';
 import { WorkspaceSetupGuard } from '@/common/guards/workspace-setup.guard';
 import { WorkspaceSetupModule } from '@/modules/workspace/setup/workspace-setup.module';
+import { ThrottlingModule } from '@/common/throttling/throttling.module';
+import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-throttler.guard';
 
 @Module({
   imports: [
@@ -46,6 +48,7 @@ import { WorkspaceSetupModule } from '@/modules/workspace/setup/workspace-setup.
       validate: validateEnv,
     }),
     LoggerModule,
+    ThrottlingModule,
     PrismaModule,
     EventsModule,
     AuditModule,
@@ -72,6 +75,12 @@ import { WorkspaceSetupModule } from '@/modules/workspace/setup/workspace-setup.
   // authenticate, then establish scope, then authorize against that scope,
   // then assert the scope satisfies the route's requirements.
   providers: [
+    // 0. Rate limiting — runs first so an abusive caller is rejected before any
+    //    database work happens. Inert on authenticated routes.
+    {
+      provide: APP_GUARD,
+      useClass: PublicRouteThrottlerGuard,
+    },
     // 1. Authentication — establishes request.user.
     {
       provide: APP_GUARD,

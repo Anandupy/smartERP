@@ -19,6 +19,7 @@ export default registerAs('env', () => ({
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
 
   corsOrigins: process.env.CORS_ORIGINS,
+  trustProxy: process.env.TRUST_PROXY === 'true',
 
   logLevel: process.env.LOG_LEVEL || 'info',
   logDir: process.env.LOG_DIR,

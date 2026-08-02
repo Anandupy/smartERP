@@ -22,6 +22,8 @@ import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE_BUCKET } from '@/common/throttling/throttler.config';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -43,6 +45,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.AUTH]: {} })
   @Post('login')
   @ApiOperation({ summary: 'Login with email/username/phone' })
   async login(@Body() dto: LoginDto, @Req() req: Request) {
@@ -56,6 +59,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.AUTH]: {} })
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Body('refreshToken') token: string) {
@@ -102,6 +106,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.PASSWORD_RESET]: {} })
   @Post('forgot-password')
   @ApiOperation({ summary: 'Request password reset link/OTP' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -109,6 +114,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.PASSWORD_RESET]: {} })
   @Post('reset-password')
   @ApiOperation({ summary: 'Reset password using secure token' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
@@ -116,6 +122,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('verify-email')
   @ApiOperation({ summary: 'Verify email address using OTP' })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
@@ -123,6 +130,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('resend-verification')
   @ApiOperation({ summary: 'Resend email verification OTP' })
   async resendVerification(@Body() dto: ResendVerificationDto) {
@@ -130,6 +138,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('send-otp')
   @ApiOperation({ summary: 'Generate and send OTP for specific purpose' })
   async sendOtp(@Body() dto: SendOtpDto) {
@@ -137,6 +146,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('verify-otp')
   @ApiOperation({ summary: 'Verify OTP code' })
   async verifyOtp(@Body() dto: VerifyAuthOtpDto) {
@@ -144,6 +154,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('resend-otp')
   @ApiOperation({ summary: 'Resend OTP' })
   async resendOtp(@Body() dto: ResendOtpDto) {
