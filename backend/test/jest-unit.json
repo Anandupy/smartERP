@@ -5,7 +5,8 @@
   "testRegex": ".spec.ts$",
   "testPathIgnorePatterns": [
     ".e2e-spec.ts$",
-    ".integration-spec.ts$"
+    ".integration-spec.ts$",
+    "/integration/"
   ],
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"

@@ -53,33 +53,60 @@ src/modules/context/
 │   └── execution-context.guard.ts
 ├── interfaces/
 │   └── execution-context.interface.ts
-├── services/
-│   ├── context-discovery.service.ts
-│   ├── context-validator.service.ts
-│   └── context-resolver.service.ts
-└── tests/
-    ├── context-discovery.spec.ts
-    ├── context-resolver.spec.ts
-    ├── context-validator.spec.ts
-    └── execution-context.guard.spec.ts
+└── services/
+    ├── context-discovery.service.ts
+    ├── context-validator.service.ts
+    └── context-resolver.service.ts
+
+test/ (centralized test layout)
+├── unit/
+│   └── context/
+│       ├── context-discovery.service.spec.ts
+│       ├── context-resolver.service.spec.ts
+│       ├── context-validator.service.spec.ts
+│       └── execution-context.guard.spec.ts
+└── integration/
+    └── context/
+        ├── auth-me.context.spec.ts
+        ├── execution-context.spec.ts
+        └── context-selection.spec.ts
 ```
 
 ---
 
-## Clean Identity & Execution Context Separation
+## Strict Architectural Separation: Identity vs Execution Context
 
-- **`req.user`**: Contains user identity (`id`, `sub`, `role`, `permissions`, `organizationId`, `branchId`).
-- **`req.context`**: Contains request execution scope:
-  ```json
-  {
-    "organizationId": "018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6b",
-    "branchId": "018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6c",
-    "academicYearId": "018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6d",
-    "programId": null,
-    "departmentId": null,
-    "campusId": null
-  }
-  ```
+CampusFlow ERP enforces a strict architectural boundary between **Identity** and **Execution Context**:
+
+- **Authentication** answers: *"Who is the user?"*
+- **Execution Context Platform** answers: *"Where is the user currently operating?"*
+
+### `req.user` (Identity Only)
+Contains only authenticated identity information. No execution scope belongs here:
+```typescript
+req.user = {
+  userId: string,
+  role: RoleType,
+  permissions: string[],
+  // authentication metadata
+}
+```
+
+### `req.context` (Execution Scope Only)
+Contains only the active request execution scope:
+```typescript
+req.context = {
+  organizationId: "018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6b",
+  branchId: "018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6c",
+  academicYearId: "018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6d",
+  programId: null,      // future expansion
+  departmentId: null,   // future expansion
+  campusId: null,       // future expansion
+}
+```
+
+> [!IMPORTANT]
+> **Architectural Rule**: Downstream business modules (Admissions, Students, HR, Fees, Attendance, etc.) must consume execution scope exclusively from `req.context`. They must **NEVER** read execution scope from `req.user` or HTTP headers directly.
 
 ---
 
