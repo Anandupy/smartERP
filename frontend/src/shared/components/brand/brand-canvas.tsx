@@ -1,26 +1,29 @@
 import { cn } from "@/lib/utils";
 
-export interface AuthBrandPanelProps extends React.ComponentProps<"div"> {
+export interface BrandCanvasProps extends React.ComponentProps<"div"> {
   /** Render the ambient light orbs (skipped on dense surfaces). */
   withOrbs?: boolean;
 }
 
 /**
- * The shared decorative canvas behind every auth brand moment: a warm brand
- * canvas, a token-tinted dot grid, and two blurred ambient orbs.
+ * The decorative canvas behind every brand moment: a warm brand canvas, a
+ * token-tinted dot grid, and two blurred ambient orbs.
  *
  * Every layer is decorative (`aria-hidden`, `pointer-events-none`) and derives
  * its color from semantic tokens (`--color-canvas`, `--color-foreground`,
  * `--color-accent`), so dark mode and future workspace themes restyle it with
  * no component change. `overflow-hidden` keeps the bleed from ever producing
  * horizontal page scroll.
+ *
+ * Lives in `shared` because it carries no domain: the splash, login and
+ * workspace-selection panels are the same canvas with different content on it.
  */
-export function AuthBrandPanel({
+export function BrandCanvas({
   withOrbs = true,
   className,
   children,
   ...props
-}: AuthBrandPanelProps) {
+}: BrandCanvasProps) {
   return (
     <div
       className={cn(

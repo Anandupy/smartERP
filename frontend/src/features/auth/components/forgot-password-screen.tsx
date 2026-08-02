@@ -5,11 +5,10 @@ import { AuthSplitLayout } from "@/components/layouts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
-import { FadeIn } from "@/shared";
+import { BrandMark, FadeIn } from "@/shared";
 
 import { AuthFooter } from "./auth-footer";
 import { AuthMessagePanel } from "./auth-message-panel";
-import { BrandMark } from "./brand-mark";
 import { ForgotPasswordFormConnected } from "./forgot-password-form-connected";
 
 /**

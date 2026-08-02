@@ -24,7 +24,12 @@ features/<name>/
 ## Rules
 
 - No business logic in `shared` or `components/ui`. Those stay generic.
-- Import a feature only through its `index.ts` barrel.
+- Import a feature only through its `index.ts` barrel — and **never from
+  another feature**, not even its barrel. When two features need the same
+  thing, promote it: `BrandMark`/`BrandCanvas` moved to `shared`, and the
+  workspace scope lives in `core/workspace`. Where two features genuinely have
+  to meet, the **route** composes them (see `app/(workspace)/workspace/page.tsx`,
+  which passes auth's `SignOutButton` into the workspace screen's slot).
 - Build services on `services/createResourceService` and keys on
   `core/query/createQueryKeys` for consistency.
 - Pages under `app/` should be thin: they render feature components/hooks.

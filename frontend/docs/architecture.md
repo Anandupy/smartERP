@@ -18,6 +18,12 @@
 
 - **No business logic in shared UI.** `components/` and `shared/` are generic and
   presentational. Domain rules live in features.
+- **Cross-feature needs move up, never sideways.** When a second feature needs
+  something, it is promoted into `shared` or `core` rather than imported from
+  its current owner — as `BrandMark`/`BrandCanvas` were when workspace selection
+  joined authentication in opening on the brand, and as the workspace _scope_
+  is, so that every future module reads it from `core/workspace`. See
+  [Workspace](./workspace.md).
 - **Swappable platform seams.** Auth, theming, tokens, headers, token storage,
   and the response envelope are behind interfaces so unfinished backends can be
   filled in later without touching consumers.
@@ -31,7 +37,7 @@
 | `features`                             | Business modules; the only place with domain logic.            |
 | `components`                           | Design-system primitives (`ui`), form infra, layout shells.    |
 | `shared`                               | Cross-feature presentational building blocks + error boundary. |
-| `core`                                 | API transport, auth contracts, query config, theming.          |
+| `core`                                 | API transport, auth contracts, query config, theming, scope.   |
 | `providers`                            | Client provider composition root.                              |
 | `hooks`/`utils`/`lib`                  | Generic, reusable, framework-light helpers.                    |
 | `services`                             | Transport service factories features build on.                 |

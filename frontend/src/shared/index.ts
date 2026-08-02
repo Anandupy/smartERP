@@ -1,3 +1,4 @@
+export * from "./components/brand";
 export * from "./components/feedback";
 export * from "./components/layout";
 export * from "./components/motion";

@@ -65,7 +65,8 @@ export {
 } from "./components/session-expired-screen";
 
 // Shared building blocks
-export { BrandMark, type BrandMarkProps } from "./components/brand-mark";
+// (`BrandMark` and `BrandCanvas` were promoted to `@/shared` — the brand is not
+// owned by authentication now that workspace selection opens on it too.)
 export { AuthFooter, type AuthFooterProps } from "./components/auth-footer";
 export {
   AuthStatusScreen,

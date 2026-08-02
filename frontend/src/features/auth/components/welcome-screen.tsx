@@ -2,10 +2,9 @@ import { Landmark } from "@/assets/icons";
 import { AuthSplitLayout } from "@/components/layouts";
 import { Card, CardContent } from "@/components/ui/card";
 import { appConfig } from "@/config";
-import { FadeIn } from "@/shared";
+import { BrandMark, FadeIn } from "@/shared";
 
 import { AuthFooter } from "./auth-footer";
-import { BrandMark } from "./brand-mark";
 import { WelcomeBrandPanel } from "./welcome-brand-panel";
 import { WelcomeCta } from "./welcome-cta";
 

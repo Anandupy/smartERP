@@ -1,10 +1,9 @@
 import { AuthSplitLayout } from "@/components/layouts";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { FadeIn } from "@/shared";
+import { BrandMark, FadeIn } from "@/shared";
 
 import { AuthFooter } from "./auth-footer";
-import { BrandMark } from "./brand-mark";
 
 export type AuthStatusTone = "brand" | "success" | "danger";
 

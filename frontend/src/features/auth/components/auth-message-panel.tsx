@@ -1,7 +1,6 @@
 import { appConfig } from "@/config";
 import { cn } from "@/lib/utils";
-
-import { AuthBrandPanel } from "./auth-brand-panel";
+import { BrandCanvas } from "@/shared";
 
 export interface AuthMessagePanelProps {
   /** Decorative glyph rendered in the panel's tile. */
@@ -29,7 +28,7 @@ export function AuthMessagePanel({
   className,
 }: AuthMessagePanelProps) {
   return (
-    <AuthBrandPanel
+    <BrandCanvas
       className={cn("justify-center gap-10 p-10 xl:p-14", className)}
     >
       <p className="text-primary text-2xl font-semibold tracking-tight xl:text-3xl">
@@ -50,6 +49,6 @@ export function AuthMessagePanel({
       </div>
 
       {children}
-    </AuthBrandPanel>
+    </BrandCanvas>
   );
 }

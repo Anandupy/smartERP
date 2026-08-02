@@ -1,9 +1,9 @@
 import { ShieldCheck } from "@/assets/icons";
 import { Badge } from "@/components/ui/badge";
 import { appConfig } from "@/config";
+import { BrandCanvas } from "@/shared";
 
 import { AUTH_TRUST_BADGES } from "../constants";
-import { AuthBrandPanel } from "./auth-brand-panel";
 import { WorkspacePreview } from "./workspace-preview";
 
 /**
@@ -15,7 +15,7 @@ import { WorkspacePreview } from "./workspace-preview";
  */
 export function WelcomeBrandPanel() {
   return (
-    <AuthBrandPanel className="justify-between gap-8 p-10 xl:p-14">
+    <BrandCanvas className="justify-between gap-8 p-10 xl:p-14">
       <p className="text-primary text-3xl font-semibold tracking-tight xl:text-4xl">
         {appConfig.name} ERP
       </p>
@@ -47,6 +47,6 @@ export function WelcomeBrandPanel() {
           ))}
         </ul>
       </div>
-    </AuthBrandPanel>
+    </BrandCanvas>
   );
 }

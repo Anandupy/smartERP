@@ -8,12 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
 import { useCountdown } from "@/hooks";
-import { FadeIn } from "@/shared";
+import { BrandMark, FadeIn } from "@/shared";
 
 import { RESEND_COOLDOWN_SECONDS } from "../constants";
 import { AuthFooter } from "./auth-footer";
 import { AuthMessagePanel } from "./auth-message-panel";
-import { BrandMark } from "./brand-mark";
 import { OtpVerificationForm } from "./otp-verification-form";
 import { RecoveryFlowGuard } from "./recovery-flow-guard";
 

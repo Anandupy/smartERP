@@ -1,8 +1,7 @@
 import { GraduationCap } from "@/assets/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { appConfig } from "@/config";
-
-import { AuthBrandPanel } from "./auth-brand-panel";
+import { BrandCanvas } from "@/shared";
 
 /** Illustrative rows for the decorative gradebook preview. */
 const PREVIEW_ROWS = [
@@ -19,7 +18,7 @@ const PREVIEW_ROWS = [
  */
 export function LoginBrandPanel() {
   return (
-    <AuthBrandPanel className="justify-center gap-6 p-10 xl:p-14">
+    <BrandCanvas className="justify-center gap-6 p-10 xl:p-14">
       <div className="space-y-3">
         <p className="text-primary text-4xl font-bold tracking-tight xl:text-5xl">
           {appConfig.name} ERP
@@ -69,6 +68,6 @@ export function LoginBrandPanel() {
           </li>
         </ul>
       </div>
-    </AuthBrandPanel>
+    </BrandCanvas>
   );
 }

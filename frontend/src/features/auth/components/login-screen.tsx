@@ -2,10 +2,9 @@ import Link from "next/link";
 
 import { AuthSplitLayout } from "@/components/layouts";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FadeIn } from "@/shared";
+import { BrandMark, FadeIn } from "@/shared";
 
 import { AuthFooter } from "./auth-footer";
-import { BrandMark } from "./brand-mark";
 import { LoginBrandPanel } from "./login-brand-panel";
 import { LoginFormConnected } from "./login-form-connected";
 

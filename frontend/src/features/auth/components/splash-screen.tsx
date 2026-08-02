@@ -9,13 +9,11 @@ import { Progress } from "@/components/ui/progress";
 import { appConfig } from "@/config";
 import { ROUTES } from "@/constants";
 import { useStartupRoute } from "@/core/startup";
-import { FadeIn } from "@/shared";
+import { BrandCanvas, BrandMark, FadeIn } from "@/shared";
 
 import { SPLASH_BOOT_STEPS, SPLASH_STEP_DURATION_MS } from "../constants";
 import { useBootSequence } from "../hooks/use-boot-sequence";
-import { AuthBrandPanel } from "./auth-brand-panel";
 import { AuthFooter } from "./auth-footer";
-import { BrandMark } from "./brand-mark";
 
 export interface SplashScreenProps {
   /**
@@ -57,7 +55,7 @@ export function SplashScreen({ redirectTo }: SplashScreenProps) {
   });
 
   return (
-    <AuthBrandPanel className="min-h-dvh items-center justify-center px-6 py-16">
+    <BrandCanvas className="min-h-dvh items-center justify-center px-6 py-16">
       <main className="flex w-full max-w-md flex-col items-center">
         <FadeIn>
           <motion.div
@@ -99,6 +97,6 @@ export function SplashScreen({ redirectTo }: SplashScreenProps) {
       <FadeIn delay={0.3} className="absolute inset-x-0 bottom-6 px-6">
         <AuthFooter className="text-center opacity-70" />
       </FadeIn>
-    </AuthBrandPanel>
+    </BrandCanvas>
   );
 }

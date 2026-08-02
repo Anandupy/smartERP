@@ -25,7 +25,10 @@ const WORDMARK: Record<NonNullable<BrandMarkProps["size"]>, string> = {
 /**
  * The CampusFlow lockup: a primary-filled glyph tile plus the wordmark. The
  * only place the brand identity is expressed, so a workspace theme restyles
- * every auth surface by restyling its tokens.
+ * every branded surface by restyling its tokens.
+ *
+ * Lives in `shared` because the brand is not owned by any one feature —
+ * authentication and workspace selection both open on it.
  */
 export function BrandMark({
   size = "md",
