@@ -1,8 +1,9 @@
 model RefreshToken {
   id           String    @id @default(uuid(7))
   userId       String
-  token        String    @unique
-  tokenHash    String?   @unique
+  /// SHA-256 of the token handed to the client. The raw value is never stored:
+  /// a database disclosure must not yield usable session credentials.
+  tokenHash    String    @unique
   device       String?
   ipAddress    String?
   userAgent    String?

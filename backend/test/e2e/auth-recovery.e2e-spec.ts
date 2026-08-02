@@ -65,7 +65,8 @@ describe('AuthController Recovery & Verification (e2e)', () => {
 
       // Check if event was published
       const publishedResetEvent = eventSpy.mock.calls.find(
-        (call) => call[0].eventName === 'communication.password_reset_requested',
+        (call) =>
+          call[0].eventName === 'communication.password_reset_requested',
       )?.[0] as any;
 
       expect(publishedResetEvent).toBeDefined();
@@ -86,7 +87,8 @@ describe('AuthController Recovery & Verification (e2e)', () => {
       expect(response.body.message).toContain('If the email matches');
 
       const publishedResetEvent = eventSpy.mock.calls.find(
-        (call) => call[0].eventName === 'communication.password_reset_requested',
+        (call) =>
+          call[0].eventName === 'communication.password_reset_requested',
       );
       expect(publishedResetEvent).toBeUndefined();
 
@@ -102,7 +104,8 @@ describe('AuthController Recovery & Verification (e2e)', () => {
         .send({ email });
 
       const publishedResetEvent = eventSpy.mock.calls.find(
-        (call) => call[0].eventName === 'communication.password_reset_requested',
+        (call) =>
+          call[0].eventName === 'communication.password_reset_requested',
       )?.[0] as any;
       const resetToken = publishedResetEvent.payload.resetToken;
 
@@ -110,7 +113,6 @@ describe('AuthController Recovery & Verification (e2e)', () => {
       await prisma.refreshToken.create({
         data: {
           userId,
-          token: `old-refresh-token-${Date.now()}`,
           tokenHash: `old-hash-${Date.now()}`,
           expiresAt: new Date(Date.now() + 100000),
           device: 'Desktop',
@@ -157,7 +159,8 @@ describe('AuthController Recovery & Verification (e2e)', () => {
         .send({ email });
 
       const publishedResetEvent = eventSpy.mock.calls.find(
-        (call) => call[0].eventName === 'communication.password_reset_requested',
+        (call) =>
+          call[0].eventName === 'communication.password_reset_requested',
       )?.[0] as any;
       const resetToken = publishedResetEvent.payload.resetToken;
 
@@ -209,7 +212,8 @@ describe('AuthController Recovery & Verification (e2e)', () => {
 
       // Find the email verification requested event to get OTP
       const verifyRequestedEvent = eventSpy.mock.calls.find(
-        (call) => call[0].eventName === 'communication.email_verification_requested',
+        (call) =>
+          call[0].eventName === 'communication.email_verification_requested',
       )?.[0] as any;
 
       expect(verifyRequestedEvent).toBeDefined();
@@ -225,7 +229,9 @@ describe('AuthController Recovery & Verification (e2e)', () => {
       expect(verifyRes.body.success).toBe(true);
 
       // Check DB user updated
-      const updatedUser = await prisma.user.findUnique({ where: { id: userId } });
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: userId },
+      });
       expect(updatedUser?.isEmailVerified).toBe(true);
       expect(updatedUser?.emailVerifiedAt).toBeDefined();
 
@@ -240,7 +246,8 @@ describe('AuthController Recovery & Verification (e2e)', () => {
         .send({ email });
 
       const verifyRequestedEvent = eventSpy.mock.calls.find(
-        (call) => call[0].eventName === 'communication.email_verification_requested',
+        (call) =>
+          call[0].eventName === 'communication.email_verification_requested',
       )?.[0] as any;
       const correctOtp = verifyRequestedEvent.payload.rawOtp;
 
@@ -249,7 +256,7 @@ describe('AuthController Recovery & Verification (e2e)', () => {
         const verifyRes = await request(app.getHttpServer())
           .post('/auth/verify-email')
           .send({ email, otp: '000000' });
-        
+
         expect(verifyRes.status).toBe(400);
       }
 
@@ -275,7 +282,7 @@ describe('AuthController Recovery & Verification (e2e)', () => {
       const res2 = await request(app.getHttpServer())
         .post('/auth/resend-verification')
         .send({ email });
-      
+
       expect(res2.status).toBe(403);
       expect(res2.body.message).toContain('Please wait');
     });

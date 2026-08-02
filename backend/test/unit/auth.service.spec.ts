@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup.service';
 import { AuthService } from '@/modules/auth/auth.service';
@@ -40,6 +41,7 @@ describe('AuthService', () => {
     refreshToken: {
       create: jest.fn(),
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
       findMany: jest.fn(),
@@ -130,6 +132,43 @@ describe('AuthService', () => {
         }),
       }),
     );
+
+    // The raw token must never reach the database: hashing only protects the
+    // session if the plaintext is absent.
+    const persisted = mockPrisma.refreshToken.create.mock.calls[0][0].data;
+    const values = Object.values(persisted);
+    expect(values).not.toContain(result.refreshToken);
+
+    // And the stored digest must actually correspond to the issued token.
+    expect(persisted.tokenHash).toBe(
+      createHash('sha256').update(result.refreshToken).digest('hex'),
+    );
+  });
+
+  it('issues refresh tokens from the CSPRNG, not a UUID', async () => {
+    const user = {
+      id: 'user-1',
+      email: 'test@test.com',
+      role: 'STAFF',
+      passwordHash: 'hash',
+      failedLoginAttempts: 0,
+    };
+    mockUserService.findByIdentifier.mockResolvedValue(user);
+    mockPasswordService.compare.mockResolvedValue(true);
+    mockPrisma.user.update.mockResolvedValue(user);
+    mockPrisma.refreshToken.create.mockResolvedValue({ id: 'rt-1' });
+
+    const { refreshToken } = await service.login(
+      { identifier: 'test@test.com', password: 'password' },
+      {},
+    );
+
+    // A UUIDv7 embeds a timestamp and carries only 74 random bits.
+    expect(refreshToken).not.toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    // 48 bytes base64url-encoded.
+    expect(refreshToken).toHaveLength(64);
   });
 
   it('should refresh token and rotate (revoke old, create new)', async () => {
@@ -144,7 +183,8 @@ describe('AuthService', () => {
       ipAddress: '1.1.1.1',
     };
 
-    mockPrisma.refreshToken.findFirst.mockResolvedValue(refreshTokenRecord);
+    // The service looks the session up by hash, which is now unique.
+    mockPrisma.refreshToken.findUnique.mockResolvedValue(refreshTokenRecord);
     mockPrisma.refreshToken.update.mockResolvedValue({
       ...refreshTokenRecord,
       isRevoked: true,

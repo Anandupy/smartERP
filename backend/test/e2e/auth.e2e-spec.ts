@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -140,8 +141,12 @@ describe('AuthController (e2e)', () => {
       expect(response.body.data.refreshToken).not.toBe(refreshToken);
 
       // Old token should be revoked
-      const oldTokenRecord = await prisma.refreshToken.findFirst({
-        where: { token: refreshToken },
+      // Only the hash is stored, so the old session is looked up the same way
+      // the service looks it up.
+      const oldTokenRecord = await prisma.refreshToken.findUnique({
+        where: {
+          tokenHash: createHash('sha256').update(refreshToken).digest('hex'),
+        },
       });
       expect(oldTokenRecord?.isRevoked).toBe(true);
     });

@@ -23,7 +23,6 @@ import {
 import { UserService } from '@/modules/user/user.service';
 import { PasswordService } from '@/common/services/password.service';
 import { LoginDto } from './dto/login.dto';
-import { v7 as uuidv7 } from 'uuid';
 import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
 import { OtpService } from '@/modules/communication/otp/otp.service';
 import { OtpPurpose } from '@/generated/client';
@@ -162,13 +161,8 @@ export class AuthService {
   async refreshToken(token: string) {
     const tokenHash = this.hashToken(token);
 
-    const refreshToken = await this.prisma.refreshToken.findFirst({
-      where: {
-        OR: [
-          { tokenHash },
-          { token }, // Fallback for old tokens
-        ],
-      },
+    const refreshToken = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
       include: { user: true },
     });
 
@@ -205,10 +199,8 @@ export class AuthService {
   async logout(token: string, allDevices = false) {
     const tokenHash = this.hashToken(token);
 
-    const refreshToken = await this.prisma.refreshToken.findFirst({
-      where: {
-        OR: [{ tokenHash }, { token }],
-      },
+    const refreshToken = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
     });
 
     if (!refreshToken) return;
@@ -500,6 +492,13 @@ export class AuthService {
     return { message: 'OTP resent successfully' };
   }
 
+  /**
+   * Derives the stored form of a refresh token.
+   *
+   * SHA-256 rather than bcrypt: the input is 384 bits of CSPRNG output, so
+   * there is no low-entropy secret to slow an attacker down against, and the
+   * digest has to be indexable for lookup.
+   */
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
@@ -525,7 +524,10 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
-    const refreshTokenValue = uuidv7();
+    // 384 bits from the CSPRNG. uuidv7 was unsuitable here: it embeds a
+    // timestamp and carries only 74 random bits, so a refresh token was far
+    // more guessable than its length suggested.
+    const refreshTokenValue = crypto.randomBytes(48).toString('base64url');
     const tokenHash = this.hashToken(refreshTokenValue);
     const refreshTokenExpiry = new Date();
     refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7); // 7 days
@@ -533,7 +535,6 @@ export class AuthService {
     await this.prisma.refreshToken.create({
       data: {
         userId,
-        token: refreshTokenValue,
         tokenHash,
         ipAddress: sessionInfo?.ipAddress,
         userAgent: sessionInfo?.userAgent,
