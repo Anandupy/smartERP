@@ -19,10 +19,11 @@ without restructuring.
 10. [Forms](./forms.md)
 11. [Error Handling](./error-handling.md)
 12. [Authentication Screens & Startup Flow](./authentication.md)
-13. [Testing Strategy](./testing.md)
-14. [Coding Standards](./coding-standards.md)
-15. [Contribution Guide](./contributing.md)
-16. [Future Theme Integration](./theme-integration.md)
+13. [Workspace Scope Platform](./workspace.md)
+14. [Testing Strategy](./testing.md)
+15. [Coding Standards](./coding-standards.md)
+16. [Contribution Guide](./contributing.md)
+17. [Future Theme Integration](./theme-integration.md)
 
 ## Tech Stack
 
