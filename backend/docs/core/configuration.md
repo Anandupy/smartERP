@@ -10,12 +10,12 @@ fallback secret.
 
 ## 1. Where it lives
 
-| File | Responsibility |
-| :--- | :--- |
-| `src/config/env.validation.ts` | The contract. Declares every variable, its type, format and cross-field rules. Exports `validateEnv`. |
-| `src/config/env.config.ts` | Namespaced accessor (`env.*`) built from validated values. Contains **no** secret fallbacks. |
-| `src/config/database.config.ts` | Namespaced accessor (`database.url`). |
-| `.env.example` | Committed template. Documents every variable and how to generate secrets. |
+| File                            | Responsibility                                                                                        |
+| :------------------------------ | :---------------------------------------------------------------------------------------------------- |
+| `src/config/env.validation.ts`  | The contract. Declares every variable, its type, format and cross-field rules. Exports `validateEnv`. |
+| `src/config/env.config.ts`      | Namespaced accessor (`env.*`) built from validated values. Contains **no** secret fallbacks.          |
+| `src/config/database.config.ts` | Namespaced accessor (`database.url`).                                                                 |
+| `.env.example`                  | Committed template. Documents every variable and how to generate secrets.                             |
 
 `validateEnv` is wired as the `validate` hook of the global `ConfigModule`:
 
@@ -25,7 +25,7 @@ ConfigModule.forRoot({
   load: [envConfig, databaseConfig],
   envFilePath: '.env',
   validate: validateEnv,
-})
+});
 ```
 
 ---
@@ -50,59 +50,73 @@ Fix the variables above in your .env file (see .env.example) and restart.
 
 ### Runtime
 
-| Variable | Required | Default | Rules |
-| :--- | :--- | :--- | :--- |
-| `NODE_ENV` | No | `development` | One of `development`, `test`, `production` |
-| `PORT` | No | `3000` | Integer, 1–65535 |
+| Variable   | Required | Default       | Rules                                      |
+| :--------- | :------- | :------------ | :----------------------------------------- |
+| `NODE_ENV` | No       | `development` | One of `development`, `test`, `production` |
+| `PORT`     | No       | `3000`        | Integer, 1–65535                           |
 
 ### Database
 
-| Variable | Required | Default | Rules |
-| :--- | :--- | :--- | :--- |
-| `DATABASE_URL` | **Yes** | — | Must match `postgresql://` or `postgres://` |
+| Variable       | Required | Default | Rules                                       |
+| :------------- | :------- | :------ | :------------------------------------------ |
+| `DATABASE_URL` | **Yes**  | —       | Must match `postgresql://` or `postgres://` |
 
 ### Authentication
 
-| Variable | Required | Default | Rules |
-| :--- | :--- | :--- | :--- |
-| `JWT_SECRET` | **Yes** | — | Not a known placeholder; ≥ 32 chars in production |
-| `JWT_REFRESH_SECRET` | **Yes** | — | Same rules; must differ from `JWT_SECRET` |
-| `JWT_EXPIRES_IN` | No | `15m` | `<number><s\|m\|h\|d>` |
-| `JWT_REFRESH_EXPIRES_IN` | No | `7d` | `<number><s\|m\|h\|d>` |
-| `ENCRYPTION_KEY` | No | — | ≥ 32 chars **when supplied**. Reserved; see §5 |
+| Variable                 | Required | Default | Rules                                             |
+| :----------------------- | :------- | :------ | :------------------------------------------------ |
+| `JWT_SECRET`             | **Yes**  | —       | Not a known placeholder; ≥ 32 chars in production |
+| `JWT_REFRESH_SECRET`     | **Yes**  | —       | Same rules; must differ from `JWT_SECRET`         |
+| `JWT_EXPIRES_IN`         | No       | `15m`   | `<number><s\|m\|h\|d>`                            |
+| `JWT_REFRESH_EXPIRES_IN` | No       | `7d`    | `<number><s\|m\|h\|d>`                            |
+| `ENCRYPTION_KEY`         | No       | —       | ≥ 32 chars **when supplied**. Reserved; see §5    |
 
 ### Bootstrap seeding
 
-| Variable | Required | Default | Rules |
-| :--- | :--- | :--- | :--- |
-| `SEED_ON_BOOTSTRAP` | No | — | Boolean. Must not be `true` in production |
-| `ADMIN_EMAIL` | Conditional | — | Required when `SEED_ON_BOOTSTRAP=true` |
-| `ADMIN_PASSWORD` | Conditional | — | Required when `SEED_ON_BOOTSTRAP=true` |
+| Variable            | Required    | Default | Rules                                     |
+| :------------------ | :---------- | :------ | :---------------------------------------- |
+| `SEED_ON_BOOTSTRAP` | No          | —       | Boolean. Must not be `true` in production |
+| `ADMIN_EMAIL`       | Conditional | —       | Required when `SEED_ON_BOOTSTRAP=true`    |
+| `ADMIN_PASSWORD`    | Conditional | —       | Required when `SEED_ON_BOOTSTRAP=true`    |
+
+Seeding on boot is **opt-out** outside production: an unset variable still
+seeds, which is the long-standing development behaviour.
+
+In production the seeder never runs on boot, regardless of this variable —
+automatic seeding would create a privileged account from environment
+credentials on every deploy, and rewrite the permission and menu catalogues.
+Seed a production database explicitly:
+
+```bash
+pnpm seed
+```
+
+Seeding is idempotent, so re-running it is safe.
 
 ### HTTP
 
-| Variable | Required | Default | Rules |
-| :--- | :--- | :--- | :--- |
-| `CORS_ORIGINS` | **In production** | — | Comma-separated origin allow-list |
+| Variable       | Required          | Default | Rules                             |
+| :------------- | :---------------- | :------ | :-------------------------------- |
+| `CORS_ORIGINS` | **In production** | —       | Comma-separated origin allow-list |
 
 ### Throttling
 
 All throttling is in-memory — **no Redis is required or used**.
 
-| Variable | Default | Purpose |
-| :--- | :--- | :--- |
-| `THROTTLE_ENABLED` | `true` | Master switch (tests set `false`) |
-| `THROTTLE_TTL` / `THROTTLE_LIMIT` | `60` / `120` | Global default bucket |
-| `THROTTLE_AUTH_TTL` / `THROTTLE_AUTH_LIMIT` | `300` / `10` | Credential endpoints |
-| `THROTTLE_OTP_TTL` / `THROTTLE_OTP_LIMIT` | `300` / `5` | OTP issue & verify |
-| `THROTTLE_PASSWORD_RESET_TTL` / `_LIMIT` | `900` / `5` | Password reset |
+| Variable                                    | Default      | Purpose                           |
+| :------------------------------------------ | :----------- | :-------------------------------- |
+| `THROTTLE_ENABLED`                          | `true`       | Master switch (tests set `false`) |
+| `THROTTLE_TTL` / `THROTTLE_LIMIT`           | `60` / `120` | Global default bucket             |
+| `THROTTLE_AUTH_TTL` / `THROTTLE_AUTH_LIMIT` | `300` / `10` | Credential endpoints              |
+| `THROTTLE_OTP_TTL` / `THROTTLE_OTP_LIMIT`   | `300` / `5`  | OTP issue & verify                |
+| `THROTTLE_PASSWORD_RESET_TTL` / `_LIMIT`    | `900` / `5`  | Password reset                    |
 
 ### Logging
 
-| Variable | Default | Rules |
-| :--- | :--- | :--- |
-| `LOG_LEVEL` | `info` | One of `fatal`, `error`, `warn`, `info`, `debug`, `trace` |
-| `LOG_DIR` | `<cwd>/logs` | Directory for `app.log` / `error.log` |
+| Variable    | Default      | Rules                                                     |
+| :---------- | :----------- | :-------------------------------------------------------- |
+| `LOG_LEVEL` | `info`       | One of `fatal`, `error`, `warn`, `info`, `debug`, `trace` |
+| `LOG_DIR`   | `<cwd>/logs` | Directory for `app.log` / `error.log`                     |
 
 ---
 

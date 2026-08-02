@@ -28,6 +28,7 @@
     "prisma:migrate:dev": "npm run prisma:build && prisma migrate dev",
     "prisma:migrate:deploy": "npm run prisma:build && prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "seed": "tsx scripts/seed.ts",
     "prisma:seed": "ts-node test/seeds/realistic-data.seed.ts",
     "prisma:push:safe": "ts-node scripts/safe-prisma.ts db push",
     "prisma:reset:safe": "ts-node scripts/safe-prisma.ts migrate reset",

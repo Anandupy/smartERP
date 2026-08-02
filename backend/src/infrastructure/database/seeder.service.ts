@@ -15,10 +15,48 @@ export class SeederService implements OnApplicationBootstrap {
     private readonly configService: ConfigService,
   ) {}
 
+  /**
+   * Seeds on boot in development, never in production.
+   *
+   * Automatic seeding writes a Super Admin with credentials taken from the
+   * environment and rewrites the permission and menu catalogues. That is
+   * convenient locally and unacceptable in production, where the same code path
+   * would silently create a privileged account on every deploy. Production
+   * seeds explicitly, through `pnpm seed`.
+   */
   async onApplicationBootstrap() {
+    if (this.isProduction()) {
+      this.logger.log(
+        'Bootstrap seeding is disabled in production. Run `pnpm seed` explicitly if reference data is required.',
+      );
+      return;
+    }
+
+    // Opt-out rather than opt-in: a developer who has not set the variable
+    // still gets a usable database, which is the existing behaviour.
+    if (this.configService.get<string>('SEED_ON_BOOTSTRAP') === 'false') {
+      this.logger.log('Bootstrap seeding disabled by SEED_ON_BOOTSTRAP=false.');
+      return;
+    }
+
+    await this.run();
+  }
+
+  /**
+   * Runs every seeder.
+   *
+   * Idempotent — each step upserts or checks for existence first — so it is
+   * safe to invoke repeatedly and safe to invoke manually on a database that
+   * has already been seeded.
+   */
+  async run() {
     await this.seedSuperAdmin();
     await this.seedAuthorizationData();
     await this.seedWorkspaceData();
+  }
+
+  private isProduction(): boolean {
+    return this.configService.get<string>('NODE_ENV') === 'production';
   }
 
   private async seedSuperAdmin() {
