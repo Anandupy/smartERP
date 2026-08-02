@@ -34,7 +34,7 @@ export class SeederService implements OnApplicationBootstrap {
 
     // Opt-out rather than opt-in: a developer who has not set the variable
     // still gets a usable database, which is the existing behaviour.
-    if (this.configService.get<string>('SEED_ON_BOOTSTRAP') === 'false') {
+    if (this.isDisabled()) {
       this.logger.log('Bootstrap seeding disabled by SEED_ON_BOOTSTRAP=false.');
       return;
     }
@@ -57,6 +57,20 @@ export class SeederService implements OnApplicationBootstrap {
 
   private isProduction(): boolean {
     return this.configService.get<string>('NODE_ENV') === 'production';
+  }
+
+  /**
+   * Whether `SEED_ON_BOOTSTRAP` explicitly disables seeding.
+   *
+   * `validateEnv` coerces the variable to a boolean and ConfigService returns
+   * the validated value, so a string comparison against `'false'` never matched
+   * and `.env.test` was silently seeding on every boot. Both forms are accepted
+   * here because the raw string is still what appears in `process.env`.
+   */
+  private isDisabled(): boolean {
+    const value = this.configService.get<boolean | string>('SEED_ON_BOOTSTRAP');
+
+    return value === false || value === 'false';
   }
 
   private async seedSuperAdmin() {
@@ -275,6 +289,28 @@ export class SeederService implements OnApplicationBootstrap {
         name: PERMISSIONS.Audit.Export,
         categoryCode: 'AUDIT',
         description: 'Export audit logs',
+      },
+
+      // System
+      //
+      // These gate System Settings and Maintenance Rules. They were enforced by
+      // those controllers but never created here, so the routes were
+      // unreachable by every role — SUPER_ADMIN included, because its bypass
+      // grants "all active permissions" and these had no rows to grant.
+      {
+        name: PERMISSIONS.System.View,
+        categoryCode: 'SYSTEM',
+        description: 'View system settings and maintenance rules',
+      },
+      {
+        name: PERMISSIONS.System.Manage,
+        categoryCode: 'SYSTEM',
+        description: 'Manage system settings',
+      },
+      {
+        name: PERMISSIONS.System.Maintenance,
+        categoryCode: 'SYSTEM',
+        description: 'Create and manage maintenance rules',
       },
 
       // Communication

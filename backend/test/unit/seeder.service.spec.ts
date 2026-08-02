@@ -8,9 +8,11 @@ describe('SeederService bootstrap gate', () => {
   let service: SeederService;
   let runSpy: jest.SpyInstance;
 
-  const env: Record<string, string | undefined> = {};
+  const env: Record<string, string | boolean | undefined> = {};
 
-  const build = async (values: Record<string, string | undefined>) => {
+  const build = async (
+    values: Record<string, string | boolean | undefined>,
+  ) => {
     Object.keys(env).forEach((k) => delete env[k]);
     Object.assign(env, values);
 
@@ -64,5 +66,24 @@ describe('SeederService bootstrap gate', () => {
     await service.onApplicationBootstrap();
 
     expect(runSpy).not.toHaveBeenCalled();
+  });
+
+  it('honours a boolean false, which is what ConfigService actually returns', async () => {
+    // validateEnv coerces the variable, so the value reaching the seeder is a
+    // boolean. Comparing only against the string silently re-enabled seeding
+    // in every environment that had switched it off.
+    await build({ NODE_ENV: 'test', SEED_ON_BOOTSTRAP: false });
+
+    await service.onApplicationBootstrap();
+
+    expect(runSpy).not.toHaveBeenCalled();
+  });
+
+  it('still seeds when the flag is explicitly true', async () => {
+    await build({ NODE_ENV: 'development', SEED_ON_BOOTSTRAP: true });
+
+    await service.onApplicationBootstrap();
+
+    expect(runSpy).toHaveBeenCalledTimes(1);
   });
 });
