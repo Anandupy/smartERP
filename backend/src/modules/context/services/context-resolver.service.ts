@@ -235,25 +235,27 @@ export class ContextResolverService {
               discovery,
               requestId,
             );
-          } else {
-            throw new BadRequestException(
-              `No active branch available for organization '${org.name}'.`,
-            );
           }
+          // An organization with no branch leaves the scope unset rather than
+          // failing, for the same reason as the academic year below: throwing
+          // made a newly created organization unusable, including for the
+          // request that would have created its first branch.
         }
 
-        const branch = await this.validatorService.validateBranch(
-          targetBranchId,
-          org.id,
-          userId,
-          role,
-          userBranchId,
-        );
+        const branch = targetBranchId
+          ? await this.validatorService.validateBranch(
+              targetBranchId,
+              org.id,
+              userId,
+              role,
+              userBranchId,
+            )
+          : null;
 
         // Step 3: Resolve Academic Year from header or fallback
         let targetAyId = rawAyHeader;
 
-        if (!targetAyId) {
+        if (!targetAyId && branch) {
           const discovery = await this.discoveryService.discoverContexts(
             userId,
             role,
@@ -269,17 +271,22 @@ export class ContextResolverService {
             targetAyId = activeOrSelectedAy.id;
           } else if (discovery.availableAcademicYears.length > 0) {
             targetAyId = discovery.availableAcademicYears[0].id;
-          } else {
-            throw new BadRequestException(
-              `No active academic year found for branch '${branch.name}'.`,
-            );
           }
+          // A branch with no academic year leaves the scope unset rather than
+          // failing. Throwing here made a newly created branch unusable: every
+          // request against it failed, including the one that would have
+          // created its first academic year. Routes that genuinely need the
+          // year declare @RequireAcademicYear() and AcademicYearGuard rejects
+          // them; the rest are unaffected.
         }
 
-        const ay = await this.validatorService.validateAcademicYear(
-          targetAyId,
-          branch.id,
-        );
+        const ay =
+          targetAyId && branch
+            ? await this.validatorService.validateAcademicYear(
+                targetAyId,
+                branch.id,
+              )
+            : null;
 
         // Discovery for hydrated response
         const discovery = await this.discoveryService.discoverContexts(
@@ -288,40 +295,44 @@ export class ContextResolverService {
           userOrgId,
           userBranchId,
           org.id,
-          branch.id,
+          branch?.id,
         );
 
         const executionContext: ExecutionContextPayload = {
           organizationId: org.id,
-          branchId: branch.id,
-          academicYearId: ay.id,
+          branchId: branch?.id ?? null,
+          academicYearId: ay?.id ?? null,
           programId: null,
           departmentId: null,
           campusId: null,
-          branch: {
-            id: branch.id,
-            organizationId: branch.organizationId,
-            name: branch.name,
-            code: branch.code,
-            institutionType: branch.institutionType,
-            isActive: branch.isActive,
-            isDeleted: branch.isDeleted,
-          },
-          academicYear: {
-            id: ay.id,
-            branchId: ay.branchId,
-            name: ay.name,
-            startDate: ay.startDate,
-            endDate: ay.endDate,
-            isActive: ay.isActive,
-            isSelected: ay.isSelected,
-            isLocked: ay.isLocked,
-          },
+          branch: branch
+            ? {
+                id: branch.id,
+                organizationId: branch.organizationId,
+                name: branch.name,
+                code: branch.code,
+                institutionType: branch.institutionType,
+                isActive: branch.isActive,
+                isDeleted: branch.isDeleted,
+              }
+            : null,
+          academicYear: ay
+            ? {
+                id: ay.id,
+                branchId: ay.branchId,
+                name: ay.name,
+                startDate: ay.startDate,
+                endDate: ay.endDate,
+                isActive: ay.isActive,
+                isSelected: ay.isSelected,
+                isLocked: ay.isLocked,
+              }
+            : null,
         };
 
         const duration = Date.now() - startTime;
         this.logger.log(
-          `Context resolved [HEADER]: user=${userId}, role=${role}, org=${org.id}, branch=${branch.id}, ay=${ay.id} (${duration}ms)`,
+          `Context resolved [HEADER]: user=${userId}, role=${role}, org=${org.id}, branch=${branch?.id ?? 'none'}, ay=${ay?.id ?? 'none'} (${duration}ms)`,
         );
 
         return {
@@ -370,12 +381,8 @@ export class ContextResolverService {
         selectedOrgId,
       );
 
-      if (branchDiscovery.availableBranches.length === 0) {
-        throw new BadRequestException(
-          `No active branch available for organization '${selectedOrgId}'.`,
-        );
-      }
-
+      // An organization with no branch resolves to an organization-only scope
+      // rather than failing; BranchGuard rejects the routes that require one.
       let selectedBranchId: string | null = null;
       if (branchDiscovery.availableBranches.length === 1) {
         selectedBranchId = branchDiscovery.availableBranches[0].id;
@@ -390,14 +397,16 @@ export class ContextResolverService {
       }
 
       // Academic Year resolution for selectedBranchId
-      const ayDiscovery = await this.discoveryService.discoverContexts(
-        userId,
-        role,
-        userOrgId,
-        userBranchId,
-        selectedOrgId,
-        selectedBranchId,
-      );
+      const ayDiscovery = selectedBranchId
+        ? await this.discoveryService.discoverContexts(
+            userId,
+            role,
+            userOrgId,
+            userBranchId,
+            selectedOrgId,
+            selectedBranchId,
+          )
+        : branchDiscovery;
 
       const activeOrSelectedAy = ayDiscovery.availableAcademicYears.find(
         (ay) => ay.isSelected || ay.isActive,
@@ -410,49 +419,67 @@ export class ContextResolverService {
         selectedAyId = ayDiscovery.availableAcademicYears[0].id;
       } else if (ayDiscovery.availableAcademicYears.length > 1) {
         selectedAyId = ayDiscovery.availableAcademicYears[0].id;
-      } else {
-        throw new BadRequestException(
-          `No academic year configured for branch '${selectedBranchId}'.`,
-        );
       }
+      // As on the header path, a branch with no academic year leaves the scope
+      // unset instead of failing the whole request.
 
-      // Full validation pass
-      const full = await this.validatorService.validateFullContext(
+      const organization = await this.validatorService.validateOrganization(
         selectedOrgId,
-        selectedBranchId,
-        selectedAyId,
         userId,
         role,
         userOrgId,
-        userBranchId,
       );
+
+      const branch = selectedBranchId
+        ? await this.validatorService.validateBranch(
+            selectedBranchId,
+            organization.id,
+            userId,
+            role,
+            userBranchId,
+          )
+        : null;
+
+      const academicYear =
+        selectedAyId && branch
+          ? await this.validatorService.validateAcademicYear(
+              selectedAyId,
+              branch.id,
+            )
+          : null;
+
+      const full = { organization, branch, academicYear };
 
       const executionContext: ExecutionContextPayload = {
         organizationId: full.organization.id,
-        branchId: full.branch.id,
-        academicYearId: full.academicYear.id,
+        branchId: full.branch?.id ?? null,
+        academicYearId: full.academicYear?.id ?? null,
         programId: null,
         departmentId: null,
         campusId: null,
-        branch: {
-          id: full.branch.id,
-          organizationId: full.branch.organizationId,
-          name: full.branch.name,
-          code: full.branch.code,
-          institutionType: full.branch.institutionType,
-          isActive: full.branch.isActive,
-          isDeleted: full.branch.isDeleted,
-        },
-        academicYear: {
-          id: full.academicYear.id,
-          branchId: full.academicYear.branchId,
-          name: full.academicYear.name,
-          startDate: full.academicYear.startDate,
-          endDate: full.academicYear.endDate,
-          isActive: full.academicYear.isActive,
-          isSelected: full.academicYear.isSelected,
-          isLocked: full.academicYear.isLocked,
-        },
+        branch: full.branch
+          ? {
+              id: full.branch.id,
+              organizationId: full.branch.organizationId,
+              name: full.branch.name,
+              code: full.branch.code,
+              institutionType: full.branch.institutionType,
+              isActive: full.branch.isActive,
+              isDeleted: full.branch.isDeleted,
+            }
+          : null,
+        academicYear: full.academicYear
+          ? {
+              id: full.academicYear.id,
+              branchId: full.academicYear.branchId,
+              name: full.academicYear.name,
+              startDate: full.academicYear.startDate,
+              endDate: full.academicYear.endDate,
+              isActive: full.academicYear.isActive,
+              isSelected: full.academicYear.isSelected,
+              isLocked: full.academicYear.isLocked,
+            }
+          : null,
       };
 
       const duration = Date.now() - startTime;
@@ -463,7 +490,7 @@ export class ContextResolverService {
           : 'AUTO';
 
       this.logger.log(
-        `Context resolved [${source}]: user=${userId}, role=${role}, org=${full.organization.id}, branch=${full.branch.id}, ay=${full.academicYear.id} (${duration}ms)`,
+        `Context resolved [${source}]: user=${userId}, role=${role}, org=${full.organization.id}, branch=${full.branch?.id ?? 'none'}, ay=${full.academicYear?.id ?? 'none'} (${duration}ms)`,
       );
 
       return {

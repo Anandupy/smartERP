@@ -97,17 +97,46 @@ describe('ContextResolverService', () => {
   });
 
   describe('Priority 2: Automatic Resolution', () => {
+    it('resolves with a null academic year when the branch has none', async () => {
+      // A newly created branch has no academic year yet. Failing resolution
+      // here made the branch unusable: every request against it errored,
+      // including the one that would have created its first academic year.
+      discoveryService.discoverContexts.mockResolvedValue({
+        availableOrganizations: [mockOrg],
+        availableBranches: [mockBranch],
+        availableAcademicYears: [],
+      });
+      validatorService.validateOrganization.mockResolvedValue(mockOrg);
+      validatorService.validateBranch.mockResolvedValue(mockBranch);
+
+      const res = await resolver.resolveContext({
+        user: {
+          id: 'u2',
+          role: RoleType.BRANCH_ADMIN,
+          organizationId: 'org-1',
+          branchId: 'branch-1',
+        },
+        headers: {},
+      });
+
+      expect(res.context.organizationId).toBe('org-1');
+      expect(res.context.branchId).toBe('branch-1');
+      expect(res.context.academicYearId).toBeNull();
+      expect(res.context.academicYear).toBeNull();
+      expect(validatorService.validateAcademicYear).not.toHaveBeenCalled();
+    });
+
     it('should auto-resolve single context user (e.g. Branch Admin)', async () => {
       discoveryService.discoverContexts.mockResolvedValue({
         availableOrganizations: [mockOrg],
         availableBranches: [mockBranch],
         availableAcademicYears: [mockAy],
       });
-      validatorService.validateFullContext.mockResolvedValue({
-        organization: mockOrg,
-        branch: mockBranch,
-        academicYear: mockAy,
-      });
+      // The auto path validates each level individually so that a branch with
+      // no academic year resolves with a null year instead of failing.
+      validatorService.validateOrganization.mockResolvedValue(mockOrg);
+      validatorService.validateBranch.mockResolvedValue(mockBranch);
+      validatorService.validateAcademicYear.mockResolvedValue(mockAy);
 
       const res = await resolver.resolveContext({
         user: {
@@ -128,7 +157,10 @@ describe('ContextResolverService', () => {
   describe('Priority 3: Selection Required (409 Conflict)', () => {
     it('should throw 409 Conflict CONTEXT_SELECTION_REQUIRED when ambiguity exists for Super Admin', async () => {
       discoveryService.discoverContexts.mockResolvedValue({
-        availableOrganizations: [mockOrg, { id: 'org-2', name: 'Org 2', code: 'O2' }],
+        availableOrganizations: [
+          mockOrg,
+          { id: 'org-2', name: 'Org 2', code: 'O2' },
+        ],
         availableBranches: [],
         availableAcademicYears: [],
       });
