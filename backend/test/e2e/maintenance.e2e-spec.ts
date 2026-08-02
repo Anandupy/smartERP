@@ -179,6 +179,7 @@ describe('Maintenance System (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/maintenance-rules')
         .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-organization-id', orgId1)
         .send({
           scopeType: 'GLOBAL',
           isActive: true,
@@ -204,7 +205,8 @@ describe('Maintenance System (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get('/maintenance-rules')
-        .set('Authorization', `Bearer ${superAdminToken}`);
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-organization-id', orgId1);
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBeGreaterThanOrEqual(1);
@@ -242,9 +244,12 @@ describe('Maintenance System (e2e)', () => {
 
       expect(res.status).toBe(503);
       expect(res.body.success).toBe(false);
-      expect(res.body.code).toBe('MAINTENANCE_ACTIVE');
-      expect(res.body.data.maintenanceEnabled).toBe(true);
-      expect(res.body.data.title).toBe('Upgrade Underway');
+      // The unified response contract carries the code inside `error`.
+      expect(res.body.error.code).toBe('MAINTENANCE_ACTIVE');
+      // Failure payloads carry their structured detail under error.details;
+      // `data` is null on every error in the unified response contract.
+      expect(res.body.error.details.maintenanceEnabled).toBe(true);
+      expect(res.body.error.details.title).toBe('Upgrade Underway');
     });
 
     it('should allow read and block write on Read-Only GLOBAL maintenance', async () => {
@@ -282,7 +287,8 @@ describe('Maintenance System (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get('/mock-feature/read')
-        .set('Authorization', `Bearer ${superAdminToken}`);
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-organization-id', orgId1);
 
       expect(res.status).toBe(200);
     });
@@ -327,6 +333,7 @@ describe('Maintenance System (e2e)', () => {
       const allowedRes = await request(app.getHttpServer())
         .get('/mock-feature/read')
         .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-organization-id', orgId2)
         .set('x-branch-id', branchId2);
       expect(allowedRes.status).toBe(200);
     });
@@ -353,6 +360,7 @@ describe('Maintenance System (e2e)', () => {
       const allowedRes = await request(app.getHttpServer())
         .get('/mock-feature/read')
         .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-organization-id', orgId2)
         .set('x-branch-id', branchId2);
       expect(allowedRes.status).toBe(200);
     });
@@ -432,8 +440,9 @@ describe('Maintenance System (e2e)', () => {
         },
       });
 
-      const res = await request(app.getHttpServer())
-        .get('/maintenance-rules/active/status');
+      const res = await request(app.getHttpServer()).get(
+        '/maintenance-rules/active/status',
+      );
 
       expect(res.status).toBe(200);
       expect(res.body.data.maintenanceEnabled).toBe(true);

@@ -5,6 +5,7 @@ import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
+import { contextHeaders, ContextHeaders } from '../helpers/context.helper';
 
 describe('AcademicYearController (e2e)', () => {
   jest.setTimeout(30000);
@@ -12,6 +13,9 @@ describe('AcademicYearController (e2e)', () => {
   let prisma: PrismaService;
   let passwordService: PasswordService;
   let branchId: string;
+  // Requests must name a tenant: specs share one database and each creates
+  // organizations, so an unscoped request is ambiguous and answers 409.
+  let ctx: ContextHeaders;
   let accessToken: string;
 
   beforeAll(async () => {
@@ -73,6 +77,7 @@ describe('AcademicYearController (e2e)', () => {
       },
     });
     branchId = branch.id;
+    ctx = contextHeaders(org.id, branch.id);
   });
 
   afterAll(async () => {
@@ -86,6 +91,7 @@ describe('AcademicYearController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/academic-years')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId)
         .send({
           name: '2025-26',
@@ -103,6 +109,7 @@ describe('AcademicYearController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .get(`/academic-years?branchId=${branchId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId);
 
       expect(response.status).toBe(200);
@@ -113,6 +120,7 @@ describe('AcademicYearController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .get(`/academic-years/current?branchId=${branchId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId);
 
       expect(response.status).toBe(200);
@@ -123,12 +131,14 @@ describe('AcademicYearController (e2e)', () => {
       await request(app.getHttpServer())
         .patch(`/academic-years/${yearId}/lock`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId)
         .send();
 
       const response = await request(app.getHttpServer())
         .patch(`/academic-years/${yearId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId)
         .send({ name: 'Updated Name' });
 
@@ -140,6 +150,7 @@ describe('AcademicYearController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/academic-years')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId)
         .send({
           name: '2025-26 Overlap',

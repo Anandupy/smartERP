@@ -5,10 +5,17 @@ import request from 'supertest';
 import { AppModule } from '@/app.module';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
+import {
+  createIsolatedContext,
+  ContextHeaders,
+} from '../helpers/context.helper';
 
 describe('AuthController (e2e)', () => {
   jest.setTimeout(60000);
   let app: INestApplication;
+  // Requests must name a tenant: specs share one database and each creates
+  // organizations, so an unscoped request is ambiguous and answers 409.
+  let ctx: ContextHeaders;
   let prisma: PrismaService;
   let passwordService: PasswordService;
 
@@ -21,6 +28,8 @@ describe('AuthController (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     prisma = app.get(PrismaService);
     passwordService = app.get(PasswordService);
+    ctx = await createIsolatedContext(prisma as never, 'auth');
+
     await app.init();
   });
 
@@ -95,7 +104,8 @@ describe('AuthController (e2e)', () => {
       // Check sessions
       const sessions = await request(app.getHttpServer())
         .get('/auth/sessions')
-        .set('Authorization', `Bearer ${accessToken}`);
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx);
 
       expect(sessions.status).toBe(200);
       expect(sessions.body.data).toHaveLength(2);
@@ -154,7 +164,8 @@ describe('AuthController (e2e)', () => {
     it('should revoke all sessions', async () => {
       const response = await request(app.getHttpServer())
         .delete('/auth/sessions')
-        .set('Authorization', `Bearer ${accessToken}`);
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx);
 
       expect(response.status).toBe(200);
 

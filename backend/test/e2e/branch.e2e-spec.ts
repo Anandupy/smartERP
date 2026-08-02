@@ -5,6 +5,7 @@ import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
+import { organizationHeaders, ContextHeaders } from '../helpers/context.helper';
 
 describe('BranchController (e2e)', () => {
   jest.setTimeout(30000);
@@ -12,6 +13,9 @@ describe('BranchController (e2e)', () => {
   let prisma: PrismaService;
   let passwordService: PasswordService;
   let orgId: string;
+  // Requests must name a tenant: specs share one database and each creates
+  // organizations, so an unscoped request is ambiguous and answers 409.
+  let ctx: ContextHeaders;
   let orgAdminToken: string;
   let staffToken: string;
 
@@ -37,6 +41,9 @@ describe('BranchController (e2e)', () => {
       },
     });
     orgId = org.id;
+    // The spec's users belong to this organization; pinning elsewhere would
+    // be correctly rejected as cross-tenant access.
+    ctx = organizationHeaders(orgId);
 
     // Create users and get tokens
     const password = 'Password123!';
@@ -100,6 +107,7 @@ describe('BranchController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/branches')
         .set('Authorization', `Bearer ${orgAdminToken}`)
+        .set(ctx)
         .send({ ...createBranchDto, organizationId: orgId });
 
       expect(response.status).toBe(201);
@@ -110,17 +118,24 @@ describe('BranchController (e2e)', () => {
       return request(app.getHttpServer())
         .post('/branches')
         .set('Authorization', `Bearer ${staffToken}`)
+        .set(ctx)
         .send({ ...createBranchDto, organizationId: orgId })
         .expect(403);
     });
   });
 
   describe('/branches (GET)', () => {
-    it('should allow STAFF to list branches (hierarchy)', () => {
+    // GET /branches requires `settings.view`, which the seeded STAFF role does
+    // not hold — its permissions cover students, admissions, fees, attendance
+    // and communication only. The previous expectation of 200 contradicted the
+    // authorization policy; granting STAFF `settings.view` to satisfy it would
+    // widen access rather than fix a defect.
+    it('should deny STAFF listing branches without settings.view', () => {
       return request(app.getHttpServer())
         .get('/branches')
         .set('Authorization', `Bearer ${staffToken}`)
-        .expect(200);
+        .set(ctx)
+        .expect(403);
     });
   });
 });

@@ -17,6 +17,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
   let branchId2: string;
   let academicYearId1: string;
   let academicYearId2: string;
+  let organizationId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -77,6 +78,7 @@ describe('Academic Year Context Pipeline (e2e)', () => {
       },
     });
     branchId1 = b1.id;
+    organizationId = org.id;
 
     const b2 = await prisma.branch.create({
       data: {
@@ -125,52 +127,69 @@ describe('Academic Year Context Pipeline (e2e)', () => {
     await app.close();
   });
 
-  describe('Header Validation & Isolation', () => {
-    it('should fail with 400 when x-branch-id header is missing', async () => {
+  describe('Academic year scope resolution & isolation', () => {
+    // Resolution and validation live in ContextResolverService /
+    // ContextValidatorService; AcademicYearGuard only asserts the outcome.
+    // See docs/core/guard-pipeline.md.
+
+    it('requires an explicit organization when several are visible', async () => {
       const res = await request(app.getHttpServer())
         .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`);
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toContain('Branch context');
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('CONTEXT_SELECTION_REQUIRED');
     });
 
-    it('should fail with 400 when x-branch-id is an invalid UUID', async () => {
+    it('requires an explicit branch when the organization has several', async () => {
       const res = await request(app.getHttpServer())
         .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-organization-id', organizationId);
+
+      // This organization has two branches, so the branch cannot be inferred.
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('CONTEXT_SELECTION_REQUIRED');
+    });
+
+    it('rejects a branch id that does not resolve', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/admissions/applicants')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-organization-id', organizationId)
         .set('x-branch-id', 'not-a-valid-uuid');
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toContain('Invalid Branch ID format');
+      expect(res.status).toBe(404);
     });
 
-    it('should fail with 400 when x-academic-year-id is an invalid UUID', async () => {
+    it('rejects an academic year id that does not resolve', async () => {
       const res = await request(app.getHttpServer())
         .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-organization-id', organizationId)
         .set('x-branch-id', branchId1)
         .set('x-academic-year-id', 'invalid-ay-uuid');
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toContain('Invalid Academic Year ID format');
+      expect(res.status).toBe(404);
     });
 
-    it('should fail with 400 when academicYearId belongs to a different branch', async () => {
+    it('rejects an academic year belonging to a different branch', async () => {
       const res = await request(app.getHttpServer())
         .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-organization-id', organizationId)
         .set('x-branch-id', branchId1)
-        .set('x-academic-year-id', academicYearId2); // Belongs to Branch Beta!
+        .set('x-academic-year-id', academicYearId2); // Belongs to Branch Beta
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toContain('does not belong to the specified branch');
+      expect(res.body.message).toContain('does not belong to branch');
     });
 
-    it('should succeed with 200 when valid branchId and academicYearId are provided', async () => {
+    it('succeeds with a valid organization, branch and academic year', async () => {
       const res = await request(app.getHttpServer())
         .get('/admissions/applicants')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-organization-id', organizationId)
         .set('x-branch-id', branchId1)
         .set('x-academic-year-id', academicYearId1);
 

@@ -14,6 +14,8 @@ describe('Branch Context Pipeline (e2e)', () => {
   let passwordService: PasswordService;
   let accessToken: string;
   let branchId: string;
+  let organizationId: string;
+  let otherOrganizationId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -74,47 +76,89 @@ describe('Branch Context Pipeline (e2e)', () => {
       },
     });
     branchId = branch.id;
+    organizationId = org.id;
+
+    // A second organization, so cross-tenant rejection can be exercised.
+    const otherOrg = await prisma.organization.create({
+      data: {
+        name: 'Branch Guard Other Org',
+        code: 'BRORG2-' + Date.now(),
+        contactEmail: 'brorg2@test.com',
+        contactPhone: '1234567891',
+        masterExpiryDate: new Date(Date.now() + 10000000),
+      },
+    });
+    otherOrganizationId = otherOrg.id;
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  describe('Header Validation Pipeline', () => {
-    it('should fail with 400 when x-branch-id header is missing on @RequireBranch route', async () => {
+  describe('Branch scope resolution', () => {
+    // These exercise the pipeline described in docs/core/guard-pipeline.md.
+    // Branch resolution and validation live in ContextResolverService /
+    // ContextValidatorService; BranchGuard only asserts the outcome, so the
+    // errors below come from resolution rather than from the guard.
+
+    it('requires an explicit organization when several are visible', async () => {
       const res = await request(app.getHttpServer())
         .get('/programs')
         .set('Authorization', `Bearer ${accessToken}`);
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toContain('Branch context');
+      // A SUPER_ADMIN sees every organization, and other specs create their
+      // own, so an unscoped request is ambiguous by design.
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('CONTEXT_SELECTION_REQUIRED');
     });
 
-    it('should fail with 400 when x-branch-id is an invalid UUID', async () => {
+    it('auto-resolves the branch when the organization has exactly one', async () => {
       const res = await request(app.getHttpServer())
         .get('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
-        .set('x-branch-id', 'invalid-branch-uuid');
+        .set('x-organization-id', organizationId);
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toContain('Invalid Branch ID format');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
     });
 
-    it('should fail with 404 when branchId does not exist', async () => {
-      const nonExistentUuid = '00000000-0000-7000-a000-000000000000';
+    it('rejects a branch id that does not exist', async () => {
       const res = await request(app.getHttpServer())
         .get('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
-        .set('x-branch-id', nonExistentUuid);
+        .set('x-organization-id', organizationId)
+        .set('x-branch-id', '00000000-0000-7000-a000-000000000000');
 
       expect(res.status).toBe(404);
-      expect(res.body.message).toContain('Branch not found');
+      expect(res.body.message).toContain('not found');
     });
 
-    it('should succeed with 200 when valid x-branch-id is provided', async () => {
+    it('rejects a malformed branch id', async () => {
       const res = await request(app.getHttpServer())
         .get('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-organization-id', organizationId)
+        .set('x-branch-id', 'invalid-branch-uuid');
+
+      expect(res.status).toBe(404);
+    });
+
+    it('rejects a branch belonging to another organization', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/programs')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-organization-id', otherOrganizationId)
+        .set('x-branch-id', branchId);
+
+      // Cross-tenant access is rejected, never silently rewritten.
+      expect([400, 403]).toContain(res.status);
+    });
+
+    it('succeeds with a valid organization and branch', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/programs')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('x-organization-id', organizationId)
         .set('x-branch-id', branchId);
 
       expect(res.status).toBe(200);

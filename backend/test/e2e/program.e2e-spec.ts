@@ -6,6 +6,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
 import { UserRole } from '@/common/enums/role.enum';
 import { ProgramLevel } from '@/generated/client';
+import { contextHeaders, ContextHeaders } from '../helpers/context.helper';
 
 describe('ProgramController (e2e)', () => {
   jest.setTimeout(30000);
@@ -14,6 +15,9 @@ describe('ProgramController (e2e)', () => {
   let passwordService: PasswordService;
   let accessToken: string;
   let branchId: string;
+  // Requests must name a tenant: specs share one database and each creates
+  // organizations, so an unscoped request is ambiguous and answers 409.
+  let ctx: ContextHeaders;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -53,6 +57,7 @@ describe('ProgramController (e2e)', () => {
       },
     });
     branchId = branch.id;
+    ctx = contextHeaders(org.id, branch.id);
 
     const password = 'Password123!';
     const hash = await passwordService.hash(password);
@@ -85,6 +90,7 @@ describe('ProgramController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId)
         .send({
           branchId,
@@ -101,6 +107,7 @@ describe('ProgramController (e2e)', () => {
       await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId)
         .send({
           branchId,
@@ -111,6 +118,7 @@ describe('ProgramController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/programs')
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId)
         .send({
           branchId,
@@ -144,6 +152,7 @@ describe('ProgramController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .get(`/programs/tree?branchId=${branchId}`)
         .set('Authorization', `Bearer ${accessToken}`)
+        .set(ctx)
         .set('x-branch-id', branchId);
 
       expect(response.status).toBe(200);

@@ -5,6 +5,10 @@ import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
+import {
+  createIsolatedContext,
+  ContextHeaders,
+} from '../helpers/context.helper';
 
 describe('OrganizationController (e2e)', () => {
   jest.setTimeout(30000);
@@ -13,6 +17,9 @@ describe('OrganizationController (e2e)', () => {
   let passwordService: PasswordService;
   let superAdminToken: string;
   let orgAdminToken: string;
+  // Requests must name a tenant: specs share one database and each creates
+  // organizations, so an unscoped request is ambiguous and answers 409.
+  let ctx: ContextHeaders;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,6 +31,8 @@ describe('OrganizationController (e2e)', () => {
     prisma = app.get(PrismaService);
     passwordService = app.get(PasswordService);
     await app.init();
+
+    ctx = await createIsolatedContext(prisma as never, 'org');
 
     const password = 'Password123!';
     const hash = await passwordService.hash(password);
@@ -78,6 +87,7 @@ describe('OrganizationController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/organizations')
         .set('Authorization', `Bearer ${superAdminToken}`)
+        .set(ctx)
         .send(createDto);
 
       expect(response.status).toBe(201);
@@ -88,6 +98,7 @@ describe('OrganizationController (e2e)', () => {
       return request(app.getHttpServer())
         .post('/organizations')
         .set('Authorization', `Bearer ${orgAdminToken}`)
+        .set(ctx)
         .send(createDto)
         .expect(403);
     });
@@ -98,6 +109,7 @@ describe('OrganizationController (e2e)', () => {
       return request(app.getHttpServer())
         .get('/organizations')
         .set('Authorization', `Bearer ${orgAdminToken}`)
+        .set(ctx)
         .expect(200);
     });
   });

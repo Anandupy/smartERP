@@ -5,6 +5,10 @@ import { AppModule } from '@/app.module';
 import { UserRole } from '@/common/enums/role.enum';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
+import {
+  createIsolatedContext,
+  ContextHeaders,
+} from '../helpers/context.helper';
 
 describe('SystemSettingsController (e2e)', () => {
   jest.setTimeout(30000);
@@ -13,6 +17,9 @@ describe('SystemSettingsController (e2e)', () => {
   let passwordService: PasswordService;
   let superAdminToken: string;
   let orgAdminToken: string;
+  // Requests must name a tenant: other specs create organizations in the same
+  // database, so an unscoped request is ambiguous and answers 409.
+  let ctx: ContextHeaders;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,6 +31,8 @@ describe('SystemSettingsController (e2e)', () => {
     prisma = app.get(PrismaService);
     passwordService = app.get(PasswordService);
     await app.init();
+
+    ctx = await createIsolatedContext(prisma as never, 'sysset');
 
     const password = 'Password123!';
     const hash = await passwordService.hash(password);
@@ -74,13 +83,15 @@ describe('SystemSettingsController (e2e)', () => {
       return request(app.getHttpServer())
         .get('/system-settings')
         .set('Authorization', `Bearer ${orgAdminToken}`)
+        .set(ctx)
         .expect(403);
     });
 
     it('should return system settings for SUPER_ADMIN', async () => {
       const response = await request(app.getHttpServer())
         .get('/system-settings')
-        .set('Authorization', `Bearer ${superAdminToken}`);
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set(ctx);
 
       expect([200, 404]).toContain(response.status);
     });
@@ -101,6 +112,7 @@ describe('SystemSettingsController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/system-settings/init')
         .set('Authorization', `Bearer ${superAdminToken}`)
+        .set(ctx)
         .send(initDto);
 
       expect([201, 400]).toContain(response.status); // 400 if already initialized
