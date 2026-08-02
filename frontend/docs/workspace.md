@@ -33,14 +33,24 @@ dynamic menu and module filtering all agree on one answer.
 ```
 login  →  /workspace  →  GET /auth/me  →  resolveWorkspaceAccess()
                                              ├── ready       → /app
-                                             ├── selecting   → selection screen
+                                             ├── selecting   → selection screen  → Continue → /app
                                              └── unavailable → empty state
 ```
 
 `useLogin` does **not** decide this. It calls `resolvePostAuthRoute()`, which at
 sign-in returns `/workspace` because the scope is still `idle`. The workspace
-route resolves it and, when there is nothing to choose, forwards to `/app`
-immediately — so most users never see the screen at all.
+route resolves it, and the app is entered the moment the scope becomes `ready` —
+immediately for a backend-scoped role, and on **Continue** for everyone who is
+entitled to choose.
+
+There is exactly one navigation owner per step, and no step decides twice:
+
+| Step                       | Decided by                              |
+| -------------------------- | --------------------------------------- |
+| where sign-in leads        | `resolvePostAuthRoute()`                |
+| whether the scope is ready | `resolveWorkspaceAccess()`              |
+| when to leave the screen   | `useWorkspaceRedirect` (on `ready`)     |
+| guarding `(app)`           | `RequireWorkspace` (back to the screen) |
 
 ## Resolution policy
 
@@ -54,10 +64,44 @@ rules exist. In order:
    (`SUPER_ADMIN`, `ORG_ADMIN`) are scoped by the backend: their `context` is
    taken as-is and they go straight to the app. A teacher does not pick which
    campus they teach at.
-3. **Only one possible answer.** A privileged user with exactly one
-   organization, branch and year is not asked a question they cannot answer
-   differently. Single-tenant installs therefore never see a selection step.
-4. **Otherwise** — a real choice exists, so `selecting`.
+3. **Nothing worth asking.** Only when `canSkipSelection()` says so — see
+   [the setting](#the-always-show-setting) below. Under the shipped policy it
+   never does.
+4. **Otherwise** — `selecting`.
+
+### The always-show setting
+
+`workspace-settings.ts` holds the one flag that governs rule 3:
+
+```ts
+alwaysShowSelection: true; // shipped default
+```
+
+**On (today).** Everyone entitled to choose sees the screen, including a
+single-tenant user whose organization, campus and year are all pre-answered for
+them. They read the scope they are about to work in and press **Continue**. The
+login experience is then identical for every such user, and the scope every
+subsequent request carries is something they were shown rather than something
+that happened to them.
+
+**Off.** Rule 3 restores the pass-through: one organization, one campus and one
+year resolve to `ready` and the screen is never rendered.
+
+The flag governs _only_ the case with a single possible answer. It can never
+choose on behalf of a user who has alternatives, and it does not reach
+backend-scoped roles at all — rule 2 settles those first, so turning it on does
+not start asking teachers which campus they teach at.
+
+It is read through a get/set seam (`getWorkspaceSelectionPolicy` /
+`setWorkspaceSelectionPolicy`) rather than a constant, so when workspace settings
+become server-owned the bootstrap sets it once from the backend response and no
+call site moves. The resolver itself stays pure — it takes the policy as an
+argument; the **store** is the impure edge that reads the seam, exactly as it
+already does for `WorkspaceStorage`.
+
+Because publishing availability no longer resolves anything by itself, `confirm()`
+is now the only path to `ready` for a choosing user — and therefore the only
+thing that persists a selection. An offer is not a choice.
 
 ### Seeding
 
@@ -85,12 +129,13 @@ renders its options instead of an empty list.
 
 ## State
 
-| Where               | What                                                   | Lifetime    |
-| ------------------- | ------------------------------------------------------ | ----------- |
-| TanStack Query      | the `/auth/me` payload                                 | cache       |
-| `useWorkspaceStore` | normalized entities + the three selected ids + status  | session     |
-| `WorkspaceStorage`  | the three ids only                                     | Web Storage |
-| `SessionContext`    | a mirror of the active ids, for its existing consumers | session     |
+| Where                | What                                                   | Lifetime    |
+| -------------------- | ------------------------------------------------------ | ----------- |
+| TanStack Query       | the `/auth/me` payload                                 | cache       |
+| `useWorkspaceStore`  | normalized entities + the three selected ids + status  | session     |
+| `WorkspaceStorage`   | the three ids only                                     | Web Storage |
+| `workspace-settings` | `alwaysShowSelection`                                  | process     |
+| `SessionContext`     | a mirror of the active ids, for its existing consumers | session     |
 
 The store is deliberately **module-level rather than React state**, because two
 different consumers need the same value: components (via `useWorkspace`) and the
@@ -297,14 +342,14 @@ the campus grid has room.
 
 ## Tests
 
-| File                                             | Covers                                                         |
-| ------------------------------------------------ | -------------------------------------------------------------- |
-| `tests/unit/workspace-policy.test.ts`            | filtering, cascading, every resolution branch, post-auth route |
-| `tests/unit/workspace-store.test.ts`             | seeding, cascade, confirm/persist, clear                       |
-| `tests/unit/identity-mapper.test.ts`             | normalization, tolerance, permission and name fallbacks        |
-| `tests/unit/workspace-selection-schema.test.ts`  | validation order and membership re-checking                    |
-| `tests/integration/workspace-selection.test.tsx` | loading, cascade, guard, skip, unavailable, retry              |
-| `tests/integration/feedback.test.tsx`            | the shared state platform, including `ApiErrorState` kinds     |
+| File                                             | Covers                                                                           |
+| ------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `tests/unit/workspace-policy.test.ts`            | filtering, cascading, every resolution branch, both settings, post-auth route    |
+| `tests/unit/workspace-store.test.ts`             | seeding, cascade, confirm/persist, clear, both settings                          |
+| `tests/unit/identity-mapper.test.ts`             | normalization, tolerance, permission and name fallbacks                          |
+| `tests/unit/workspace-selection-schema.test.ts`  | validation order and membership re-checking                                      |
+| `tests/integration/workspace-selection.test.tsx` | loading, cascade, guard, single-workspace confirmation, skip, unavailable, retry |
+| `tests/integration/feedback.test.tsx`            | the shared state platform, including `ApiErrorState` kinds                       |
 
 `GET /auth/me` is mocked at the network boundary in
 `tests/mocks/workspace-handlers.ts`; identities are built with

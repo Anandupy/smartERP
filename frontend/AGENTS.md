@@ -379,9 +379,15 @@ useWorkspace()` from `@/core/workspace`. Never re-fetch it, never prop-drill it.
   feature owns `GET /auth/me`, its mapper and the selection screen; the policy,
   store, storage seam, headers and guards live in core.
 - **One policy function.** `resolveWorkspaceAccess` returns `ready` /
-  `selecting` / `unavailable`. Selection is required only for
-  `ROLES_REQUIRING_SELECTION` (`SUPER_ADMIN`, `ORG_ADMIN`) **and** only when a
-  real choice exists — one organization, branch and year skips the screen.
+  `selecting` / `unavailable`. Selection is required for
+  `ROLES_REQUIRING_SELECTION` (`SUPER_ADMIN`, `ORG_ADMIN`); every other role is
+  scoped by the backend and never sees the screen.
+- **Whether a resolvable scope may skip the screen is a setting, not a rule.**
+  `canSkipSelection` is the only place it is decided, reading
+  `alwaysShowSelection` from the `workspace-settings` seam (shipped `true`, so a
+  single-workspace user still confirms with **Continue**). The seam exists so a
+  future backend setting needs no refactor — the resolver stays pure and takes
+  the policy as an argument.
 - **`context` from `/auth/me` is a default, not a command.** Seeding order is
   remembered selection → backend default → nothing, always clamped to what is
   currently offered.
