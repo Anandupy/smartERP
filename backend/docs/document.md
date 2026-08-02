@@ -38,7 +38,7 @@ The project follows a modular architecture designed for scalability and maintain
 - **Framework**: NestJS (v11)
 - **Language**: TypeScript
 - **Database**: PostgreSQL (via Prisma ORM)
-- **Logging**: Winston
+- **Logging**: Pino
 - **Security**: Helmet, Compression, Passport (JWT)
 
 ## Module Organization

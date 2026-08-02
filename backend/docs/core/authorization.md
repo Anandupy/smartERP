@@ -10,26 +10,45 @@ The backend request processing pipeline evaluates global guards in strict sequen
 
 ```mermaid
 flowchart TD
-    Client[Client HTTP Request] --> JwtGuard[1. JwtAuthGuard]
-    JwtGuard --> RolesGuard[2. RolesGuard]
-    RolesGuard --> PermGuard["3. PermissionGuard (Enforces @RequirePermission)"]
-    PermGuard --> BranchGuard[4. BranchGuard]
-    BranchGuard --> MaintGuard[5. MaintenanceGuard]
-    MaintGuard --> AcadGuard[6. AcademicYearGuard]
-    AcadGuard --> Controller[7. Controller Method Execution]
+    Client[Client HTTP Request] --> Throttle[0. PublicRouteThrottlerGuard]
+    Throttle --> JwtGuard[1. JwtAuthGuard]
+    JwtGuard --> SetupGuard[2. WorkspaceSetupGuard]
+    SetupGuard --> ExecCtx[3. ExecutionContextGuard]
+    ExecCtx --> RolesGuard[4. RolesGuard]
+    RolesGuard --> PermGuard["5. PermissionGuard (Enforces @RequirePermission)"]
+    PermGuard --> MaintGuard[6. MaintenanceGuard]
+    MaintGuard --> BranchGuard[7. BranchGuard]
+    BranchGuard --> AcadGuard[8. AcademicYearGuard]
+    AcadGuard --> Controller[9. Controller Method Execution]
 
     PermGuard -- Missing Permission --> Forbidden[403 Forbidden Exception]
     Forbidden --> EventBus[Publish PermissionDeniedEvent]
     EventBus --> AuditLog[(Audit Infrastructure Logging)]
 ```
 
-### Pipeline Guard Order:
-1. `JwtAuthGuard`: Authenticates bearer JWT token and populates `req.user`.
-2. `RolesGuard`: Validates user role and populates `req.context` (`userId`, `role`, `organizationId`, branch safety checks).
-3. `PermissionGuard` **[Phase 3 Default Enforcement]**: Evaluates route permission metadata via `AuthorizationService.canUserAccess()`.
-4. `BranchGuard`: Validates target branch context and multi-tenant isolation.
-5. `MaintenanceGuard`: Enforces active system maintenance rules.
-6. `AcademicYearGuard`: Validates target academic year context.
+### Pipeline Guard Order
+
+The order is the contract; see [Guard Pipeline](./guard-pipeline.md) for the
+reasoning and [Execution Context](./execution-context.md) for who may write the
+context.
+
+| #   | Guard                       | Responsibility                                                                     |
+| :-- | :-------------------------- | :--------------------------------------------------------------------------------- |
+| 0   | `PublicRouteThrottlerGuard` | Rate limits public routes. Inert on authenticated ones.                            |
+| 1   | `JwtAuthGuard`              | Authenticates the bearer token, populates `req.user`.                              |
+| 2   | `WorkspaceSetupGuard`       | Blocks the ordinary API until bootstrap completes.                                 |
+| 3   | `ExecutionContextGuard`     | **Sole writer** of identity and tenant scope.                                      |
+| 4   | `RolesGuard`                | Validates the role hierarchy. Read-only.                                           |
+| 5   | `PermissionGuard`           | Evaluates route permissions via `AuthorizationService.canUserAccess()`. Read-only. |
+| 6   | `MaintenanceGuard`          | Enforces active maintenance rules.                                                 |
+| 7   | `BranchGuard`               | Asserts a branch is in scope. No database access.                                  |
+| 8   | `AcademicYearGuard`         | Asserts an academic year is in scope. No database access.                          |
+
+> [!IMPORTANT]
+> `PermissionGuard` runs **after** `ExecutionContextGuard`. It previously ran
+> before it and evaluated permissions against an unpopulated context, falling
+> back to `request.user` — so the identity that authorized a request was not
+> necessarily the identity recorded in the audit log.
 
 ---
 
@@ -38,6 +57,7 @@ flowchart TD
 Use the `@RequirePermission()` decorator from `@/common/decorators/permission.decorator` to protect controllers or route handlers.
 
 ### 1. Single Permission Requirement
+
 ```typescript
 import { Controller, Get } from '@nestjs/common';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
@@ -54,7 +74,9 @@ export class ApplicantController {
 ```
 
 ### 2. Multiple Permissions (ALL Mode - Default)
+
 Requires the user to possess **all** listed permissions:
+
 ```typescript
 @Post('export')
 @RequirePermission([PERMISSIONS.Admissions.View, PERMISSIONS.Admissions.Export], { mode: 'ALL' })
@@ -64,7 +86,9 @@ async exportApplicants() {
 ```
 
 ### 3. Multiple Permissions (ANY Mode)
+
 Requires the user to possess **at least one** of the listed permissions:
+
 ```typescript
 @Get('dashboard')
 @RequirePermission([PERMISSIONS.Admissions.View, PERMISSIONS.Student.View], { mode: 'ANY' })
@@ -74,22 +98,23 @@ async getDashboard() {
 ```
 
 ### 4. Swagger OpenAPI Integration
+
 Every endpoint decorated with `@RequirePermission()` automatically injects an OpenAPI extension `x-required-permissions` into the generated Swagger spec without manual documentation duplication.
 
 ---
 
 ## Protected Module Reference Matrix
 
-| Module | Controller | Protected Endpoints | Required Permission |
-| :--- | :--- | :--- | :--- |
-| **Organizations** | `OrganizationController` | `GET /v1/organizations`<br>`POST/PATCH/DELETE /v1/organizations/*` | `settings.view`<br>`settings.manage` |
-| **Branches** | `BranchController` | `GET /v1/branches`<br>`POST/PATCH/DELETE /v1/branches/*` | `settings.view`<br>`settings.manage` |
-| **Academic Years** | `AcademicYearController` | `GET /v1/academic-years`<br>`POST/PATCH/DELETE /v1/academic-years/*` | `settings.view`<br>`settings.manage` |
-| **Programs** | `ProgramController` | `GET /v1/programs`<br>`POST/PATCH/DELETE /v1/programs/*` | `settings.view`<br>`settings.manage` |
-| **Academic Units** | `AcademicUnitController` | `GET /v1/academic-units`<br>`POST/PATCH/DELETE /v1/academic-units/*` | `settings.view`<br>`settings.manage` |
-| **Admissions** | `ApplicantController` | `GET /v1/admissions/applicants`<br>`POST /v1/admissions/applicants`<br>`PATCH /v1/admissions/applicants/:id`<br>`DELETE /v1/admissions/applicants/:id` | `admissions.view`<br>`admissions.create`<br>`admissions.update`<br>`admissions.delete` |
-| **System Settings** | `SystemSettingsController` | `GET /v1/system-settings`<br>`POST/PATCH /v1/system-settings/*` | `system.view`<br>`system.manage` |
-| **Maintenance** | `MaintenanceController` | `GET /v1/maintenance-rules`<br>`POST/PATCH/DELETE /v1/maintenance-rules/*` | `system.view`<br>`system.maintenance` |
+| Module              | Controller                 | Protected Endpoints                                                                                                                                    | Required Permission                                                                    |
+| :------------------ | :------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| **Organizations**   | `OrganizationController`   | `GET /v1/organizations`<br>`POST/PATCH/DELETE /v1/organizations/*`                                                                                     | `settings.view`<br>`settings.manage`                                                   |
+| **Branches**        | `BranchController`         | `GET /v1/branches`<br>`POST/PATCH/DELETE /v1/branches/*`                                                                                               | `settings.view`<br>`settings.manage`                                                   |
+| **Academic Years**  | `AcademicYearController`   | `GET /v1/academic-years`<br>`POST/PATCH/DELETE /v1/academic-years/*`                                                                                   | `settings.view`<br>`settings.manage`                                                   |
+| **Programs**        | `ProgramController`        | `GET /v1/programs`<br>`POST/PATCH/DELETE /v1/programs/*`                                                                                               | `settings.view`<br>`settings.manage`                                                   |
+| **Academic Units**  | `AcademicUnitController`   | `GET /v1/academic-units`<br>`POST/PATCH/DELETE /v1/academic-units/*`                                                                                   | `settings.view`<br>`settings.manage`                                                   |
+| **Admissions**      | `ApplicantController`      | `GET /v1/admissions/applicants`<br>`POST /v1/admissions/applicants`<br>`PATCH /v1/admissions/applicants/:id`<br>`DELETE /v1/admissions/applicants/:id` | `admissions.view`<br>`admissions.create`<br>`admissions.update`<br>`admissions.delete` |
+| **System Settings** | `SystemSettingsController` | `GET /v1/system-settings`<br>`POST/PATCH /v1/system-settings/*`                                                                                        | `system.view`<br>`system.manage`                                                       |
+| **Maintenance**     | `MaintenanceController`    | `GET /v1/maintenance-rules`<br>`POST/PATCH/DELETE /v1/maintenance-rules/*`                                                                             | `system.view`<br>`system.maintenance`                                                  |
 
 ---
 
@@ -111,6 +136,7 @@ When introducing a new ERP module (Hostel, Transport, LMS, CRM, Procurement, Fin
 ## Security Audit & Logging
 
 When permission evaluation fails:
+
 1. `PermissionGuard` logs `WARN` with missing permissions and user context.
 2. `AuthorizationService` publishes `PermissionDeniedEvent` to `EventBus`.
 3. `AuditListener` captures event and persists an `AuditLog` entry:
