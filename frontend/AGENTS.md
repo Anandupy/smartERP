@@ -59,7 +59,8 @@ app  →  features  →  components / shared  →  core  →  config / constants
                        ↘ hooks / lib / utils / services / schemas / store ↗
 ```
 
-- **core** = cross-cutting platform (api, auth, query, startup, theme) with zero business logic.
+- **core** = cross-cutting platform (api, auth, query, startup, theme, workspace)
+  with zero business logic.
 - **features** = the only place domain logic lives; fully isolated.
 - **shared / components** = generic, presentational; no business logic.
 
@@ -76,7 +77,7 @@ module docs for the area you touch
   (docs/api-layer.md, docs/response-handling.md, docs/core-platform.md,
    docs/providers.md, docs/layouts.md, docs/state-management.md,
    docs/forms.md, docs/error-handling.md, docs/authentication.md,
-   docs/theme-integration.md)
+   docs/workspace.md, docs/theme-integration.md)
       ↓
 docs/contributing.md  +  src/features/_template  (feature conventions)
       ↓
@@ -101,20 +102,20 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 
 ## 6. Folder Responsibilities
 
-| Path                                      | Responsibility                                                 |
-| ----------------------------------------- | -------------------------------------------------------------- |
-| `src/app`                                 | Routing, layouts, route-level error/loading/404 (thin).        |
-| `src/features/*`                          | Business modules; the only place with domain logic.            |
-| `src/components/{ui,form,layouts}`        | Design-system primitives, form infra, layout shells.           |
-| `src/shared`                              | Cross-feature presentational building blocks + error boundary. |
-| `src/core/{api,auth,query,startup,theme}` | Platform infrastructure; no business logic.                    |
-| `src/providers`                           | Client provider composition root.                              |
-| `src/services`                            | Transport service factories features build on.                 |
-| `src/store`                               | Platform-only Zustand stores (UI + preferences).               |
-| `src/hooks` `src/lib` `src/utils`         | Generic reusable helpers.                                      |
-| `src/schemas`                             | Shared Zod schemas.                                            |
-| `src/config` `src/constants` `src/types`  | Env/app config, constants, shared contracts.                   |
-| `src/styles` `src/assets`                 | Design-token CSS, curated icons/static accessors.              |
+| Path                                                | Responsibility                                                 |
+| --------------------------------------------------- | -------------------------------------------------------------- |
+| `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).        |
+| `src/features/*`                                    | Business modules; the only place with domain logic.            |
+| `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.           |
+| `src/shared`                                        | Cross-feature presentational building blocks + error boundary. |
+| `src/core/{api,auth,query,startup,theme,workspace}` | Platform infrastructure; no business logic.                    |
+| `src/providers`                                     | Client provider composition root.                              |
+| `src/services`                                      | Transport service factories features build on.                 |
+| `src/store`                                         | Platform-only Zustand stores (UI + preferences).               |
+| `src/hooks` `src/lib` `src/utils`                   | Generic reusable helpers.                                      |
+| `src/schemas`                                       | Shared Zod schemas.                                            |
+| `src/config` `src/constants` `src/types`            | Env/app config, constants, shared contracts.                   |
+| `src/styles` `src/assets`                           | Design-token CSS, curated icons/static accessors.              |
 
 ## 7. Dependency Rules
 
@@ -209,7 +210,13 @@ Before committing, confirm:
   it runs `forbidNonWhitelisted`, so an extra property is a 400. Translation
   belongs in `features/auth/mappers`.
 - Don't put startup/navigation decisions in page components — they belong in
-  `core/startup` ([§26](#26-application-startup-flow)).
+  `core/startup` ([§26](#26-application-startup-flow)) or, after sign-in, in
+  `core/workspace` ([§27](#27-workspace-scope)).
+- Don't read the active organization/branch/academic year from anywhere but
+  `useWorkspace()`, and don't re-implement its filtering — `narrowSelection`,
+  `branchesFor` and `academicYearsFor` are the only implementations.
+- Don't build a bespoke loading/empty/error panel. `shared/components/feedback`
+  owns them, and `ApiErrorState` is the only place `ApiError.kind` becomes UI.
 - Don't leave TODOs that break compilation, or skip verification gates.
 
 ## 15. Common Mistakes
@@ -296,7 +303,8 @@ in `src/app/layout.tsx`. Order matters:
 
 ```
 ThemeProvider → QueryProvider → SessionProvider → AuthProvider →
-PermissionProvider → TooltipProvider   (+ theme-aware Toaster)
+PermissionProvider → WorkspaceProvider → TooltipProvider
+                                         (+ theme-aware Toaster)
 ```
 
 `QueryProvider` owns the toast dependency so `core/query` stays UI-free. Detail:
@@ -334,7 +342,8 @@ pass all four gates.
 Update this file (and the relevant `docs/*.md`) whenever any of these change:
 
 - Folder structure, path aliases, or dependency rules.
-- Core platform seams (API client/envelope, headers, auth, query, theme).
+- Core platform seams (API client/envelope, headers, auth, query, theme,
+  workspace scope).
 - Provider composition or its order.
 - Testing structure, tooling, or verification gates.
 - Coding/commit/documentation standards, or the feature-module convention.
@@ -358,3 +367,28 @@ Never hard-code navigation in a page component.
 
 Detail: [`docs/authentication.md`](./docs/authentication.md) and
 [`docs/core-platform.md`](./docs/core-platform.md).
+
+## 27. Workspace Scope
+
+Every ERP screen operates inside one organization, one branch and one academic
+year. That scope is platform, not feature state.
+
+- **Consume it one way:** `const { organization, branch, academicYear } =
+useWorkspace()` from `@/core/workspace`. Never re-fetch it, never prop-drill it.
+- **`core/workspace` decides, `features/workspace` fetches and renders.** The
+  feature owns `GET /auth/me`, its mapper and the selection screen; the policy,
+  store, storage seam, headers and guards live in core.
+- **One policy function.** `resolveWorkspaceAccess` returns `ready` /
+  `selecting` / `unavailable`. Selection is required only for
+  `ROLES_REQUIRING_SELECTION` (`SUPER_ADMIN`, `ORG_ADMIN`) **and** only when a
+  real choice exists — one organization, branch and year skips the screen.
+- **`context` from `/auth/me` is a default, not a command.** Seeding order is
+  remembered selection → backend default → nothing, always clamped to what is
+  currently offered.
+- **Scope headers (`X-Tenant-Id`, `X-Branch-Id`, `X-Academic-Year`) are sent
+  only when the scope is `ready`**, so a half-made selection never reaches the
+  wire.
+- Sign-out must clear the scope — it is persisted and would otherwise carry to
+  the next user on that machine.
+
+Detail: [`docs/workspace.md`](./docs/workspace.md).

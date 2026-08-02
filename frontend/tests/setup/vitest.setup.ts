@@ -28,6 +28,17 @@ if (!document.elementFromPoint) {
   document.elementFromPoint = () => null;
 }
 
+/**
+ * jsdom implements no Pointer Capture API. Radix's Select calls it while
+ * deciding whether a pointer-down became a drag, so without these the trigger
+ * throws before the listbox ever opens.
+ */
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+  Element.prototype.setPointerCapture = () => {};
+  Element.prototype.releasePointerCapture = () => {};
+}
+
 // Start the MSW server before the suite, reset between tests, close at the end.
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 

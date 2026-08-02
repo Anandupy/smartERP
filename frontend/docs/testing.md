@@ -44,6 +44,17 @@ tests/
 `errorEnvelope(overrides)` so tests and mocks build responses matching the real
 wire format. Import via `@tests/fixtures/api`.
 
+`tests/fixtures/workspace.ts` builds `/auth/me` identities, shaped so the
+interesting cases are one call apart: `identityDto()` has a real choice at every
+level, `singleChoiceIdentity()` has none, and `scopedRoleIdentity()` is a role
+the backend scopes itself. The default handler lives in
+`tests/mocks/workspace-handlers.ts`.
+
+Module-level platform state does not reset itself between tests in a file. Specs
+touching the workspace scope swap in `createMemoryWorkspaceStorage()` and call
+`useWorkspaceStore.getState().clear()` in `beforeEach`, the same way auth specs
+swap in `createMemoryTokenStorage()`.
+
 ## Rendering helper
 
 Use `render` from `@tests/setup/render` — it mirrors `AppProviders`: a
@@ -51,6 +62,11 @@ test-tuned `QueryClient` (retries off), then `SessionProvider` → `AuthProvider
 → `PermissionProvider` → `TooltipProvider`, in the real order. The theme
 provider and toaster are omitted as irrelevant in jsdom.
 `createTestQueryClient` is exported for custom setups.
+
+`WorkspaceProvider` is deliberately **not** in the helper: `useWorkspace()`
+reads a module-level store rather than a context, so components under test need
+no wrapper for it — and the provider's real job (registering request headers) is
+not something every render should do.
 
 Web Storage is cleared after every test, so a spec that signs in cannot leak a
 session into the next one.

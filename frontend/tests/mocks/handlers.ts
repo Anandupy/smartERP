@@ -4,6 +4,7 @@ import { apiConfig } from "@/config";
 
 import { successEnvelope } from "@tests/fixtures/api";
 import { authHandlers } from "./auth-handlers";
+import { workspaceHandlers } from "./workspace-handlers";
 
 /**
  * Default MSW request handlers. Feature tests extend these via
@@ -14,6 +15,7 @@ const base = apiConfig.baseURL.replace(/\/$/, "");
 
 export const handlers = [
   ...authHandlers,
+  ...workspaceHandlers,
   http.get(`${base}/health`, () =>
     HttpResponse.json(successEnvelope({ status: "ok" })),
   ),
