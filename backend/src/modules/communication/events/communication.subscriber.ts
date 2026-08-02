@@ -4,7 +4,6 @@ import {
   CommunicationChannel,
   DeliveryStatus,
   NotificationCategory,
-  ProviderType,
 } from '@/generated/client';
 import { TemplateService } from '../templates/template.service';
 import { NotificationPreferenceService } from '../preferences/notification-preference.service';
@@ -122,7 +121,6 @@ export class CommunicationSubscriber implements OnModuleInit {
       const emailProvider = this.providerFactory.getEmailProvider(
         config.defaultEmailProvider,
       );
-      const startTime = Date.now();
 
       const result = await emailProvider.sendEmail({
         to: email,
@@ -223,7 +221,7 @@ export class CommunicationSubscriber implements OnModuleInit {
     event: EmailVerificationRequestedEvent,
   ) {
     try {
-      const { email, rawOtp, userId } = event.payload;
+      const { email, rawOtp } = event.payload;
 
       const config = await this.configService.getConfig();
       if (!config.emailEnabled) return;
@@ -270,7 +268,7 @@ export class CommunicationSubscriber implements OnModuleInit {
 
   private async handleOtpSent(event: OtpSentEvent | OtpResendRequestedEvent) {
     try {
-      const { identifier, rawOtp, userId, purpose, email } = event.payload;
+      const { identifier, rawOtp, purpose, email } = event.payload;
       const targetEmail =
         email || (identifier.includes('@') ? identifier : null);
 

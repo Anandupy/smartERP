@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CommunicationChannel, ProviderType } from '@/generated/client';
+import { ProviderType } from '@/generated/client';
 import { EmailProvider } from '../interfaces/email-provider.interface';
 import { SMSProvider } from '../interfaces/sms-provider.interface';
 import { WhatsAppProvider } from '../interfaces/whatsapp-provider.interface';
@@ -28,15 +28,15 @@ export class ProviderFactory {
     }
   }
 
-  getSmsProvider(providerType?: ProviderType): SMSProvider {
+  getSmsProvider(_providerType?: ProviderType): SMSProvider {
     return this.stubSmsProvider;
   }
 
-  getWhatsappProvider(providerType?: ProviderType): WhatsAppProvider {
+  getWhatsappProvider(_providerType?: ProviderType): WhatsAppProvider {
     return this.stubWhatsappProvider;
   }
 
-  getPushProvider(providerType?: ProviderType): PushProvider {
+  getPushProvider(_providerType?: ProviderType): PushProvider {
     return this.stubPushProvider;
   }
 }

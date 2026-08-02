@@ -500,7 +500,7 @@ export class MaintenanceService {
     context: MaintenanceCheckContext,
     path: string,
     featureName?: string,
-  ): Promise<any | null> {
+  ): Promise<any> {
     const activeRules = await this.getActiveRules();
     const now = new Date();
     const rules = activeRules.filter((r) => this.isRuleCurrentlyActive(r, now));

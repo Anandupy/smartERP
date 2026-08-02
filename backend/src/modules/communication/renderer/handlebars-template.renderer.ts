@@ -53,7 +53,7 @@ export class HandlebarsTemplateRenderer implements TemplateRenderer {
 
     const vars = new Set<string>();
     for (const match of matches) {
-      const varName = match.replace(/[\{\}\s]/g, '');
+      const varName = match.replace(/[{}\s]/g, '');
       if (varName) vars.add(varName);
     }
     return Array.from(vars);

@@ -28,6 +28,31 @@ export default tseslint.config(
     rules: {
       'no-console': 'error',
       '@typescript-eslint/no-explicit-any': 'off',
+      // Prisma Client must always be imported through the generated client alias.
+      // Importing '@prisma/client' directly resolves to a *different* module
+      // instance, which silently breaks `instanceof Prisma.*Error` checks.
+      // See docs/prisma-guide.md section 8.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@prisma/client',
+              message:
+                "Import Prisma types and error classes from '@/generated/client' instead.",
+            },
+          ],
+        },
+      ],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       '@typescript-eslint/no-unsafe-assignment': 'warn',

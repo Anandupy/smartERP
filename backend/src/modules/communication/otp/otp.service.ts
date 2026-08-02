@@ -8,7 +8,7 @@ import {
 import * as crypto from 'crypto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
-import { OtpPurpose, OtpToken } from '@/generated/client';
+import { OtpPurpose } from '@/generated/client';
 import { GenerateOtpDto } from './dto/generate-otp.dto';
 import { VerifyCommunicationOtpDto } from './dto/verify-communication-otp.dto';
 

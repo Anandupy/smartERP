@@ -105,7 +105,7 @@ export class NumberingService {
             currentValue: 0,
           },
         });
-      } catch (err) {
+      } catch {
         // Handle concurrent create race condition
         counter = await client.numberSequenceCounter.findFirst({
           where: {
@@ -157,6 +157,6 @@ export class NumberingService {
     formatted = formatted.replace(/{sequence}/g, sequenceStr);
 
     // Clean up empty double separators (e.g. if prefix is empty)
-    return formatted.replace(/-+/g, '-').replace(/^\-|\-$/g, '');
+    return formatted.replace(/-+/g, '-').replace(/^-|-$/g, '');
   }
 }

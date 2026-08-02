@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsUUID, IsOptional, IsInt, Min } from 'class-validator';
 
 export class MoveMenuDto {

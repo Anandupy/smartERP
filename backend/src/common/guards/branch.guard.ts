@@ -82,7 +82,9 @@ export class BranchGuard implements CanActivate {
     }
 
     // Tenant / Organization Boundary Enforcement
-    const userRole = request.context?.role || request.user?.role;
+    const userRole = (request.context?.role || request.user?.role) as
+      | UserRole
+      | undefined;
     const userOrgId =
       request.context?.organizationId || request.user?.organizationId;
 

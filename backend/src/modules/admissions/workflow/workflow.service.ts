@@ -149,7 +149,7 @@ export class WorkflowService {
     });
   }
 
-  private async triggerStudentConversionHook(applicantId: string, tx: any) {
+  private async triggerStudentConversionHook(applicantId: string, _tx: any) {
     // Placeholder hook log - this will be extended in future phases to generate permanent student records
     // eslint-disable-next-line no-console
     console.log(
