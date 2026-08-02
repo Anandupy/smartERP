@@ -11,7 +11,19 @@ import { LoggerService } from '@/common/logger/logger.service';
 import { AuthenticatedRequest } from '@/common/logger/request-context.middleware';
 import { PrismaErrorTranslator } from './prisma-error-translator';
 import { MaintenanceException } from '@/common/filters/maintenance.exception';
+import { ResponseEnvelope } from '@/common/http/response-envelope';
 
+/** Envelope keys that must not be duplicated into `error.details`. */
+const ENVELOPE_KEYS = new Set(['message', 'statusCode', 'error']);
+
+/** A deliberate machine-readable code, as opposed to Nest's reason phrases. */
+const MACHINE_CODE = /^[A-Z][A-Z0-9_]*$/;
+
+/**
+ * Renders every failure in the shared response envelope.
+ *
+ * @see docs/core/response-contract.md
+ */
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   constructor(private readonly logger: LoggerService) {}
@@ -28,6 +40,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'An unexpected error occurred. Please contact administrator.';
     let code = 'INTERNAL_SERVER_ERROR';
+    let details: Record<string, unknown> | null = null;
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       const translated = PrismaErrorTranslator.translate(exception);
@@ -55,6 +68,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         } else {
           message = exception.message || 'Validation or HTTP error';
         }
+
+        // A deliberate machine code (SETUP_REQUIRED,
+        // CONTEXT_SELECTION_REQUIRED) is more useful than the exception's class
+        // name. Nest fills `error` with a human reason phrase — "Not Found",
+        // "Bad Request" — for its built-in exceptions, so only SCREAMING_SNAKE
+        // values are treated as intentional. This keeps the codes emitted for
+        // standard exceptions exactly as they were.
+        if (
+          typeof resObj.error === 'string' &&
+          MACHINE_CODE.test(resObj.error)
+        ) {
+          code = resObj.error;
+        }
+
+        details = this.extractDetails(resObj);
       }
     } else if (exception instanceof Error) {
       // General application errors (do not leak database internals or stack traces)
@@ -80,38 +108,50 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = exception.getStatus();
       code = 'MAINTENANCE_ACTIVE';
       message = exception.message;
-      const maintenanceData = exception.maintenanceData;
+      details = exception.maintenanceData;
 
       this.logger.warn(
-        `Maintenance block [${method} ${url}]: Scope ${maintenanceData.scopeType} (${maintenanceData.scopeId || 'Global'}) is active`,
+        `Maintenance block [${method} ${url}]: Scope ${exception.maintenanceData.scopeType} (${exception.maintenanceData.scopeId || 'Global'}) is active`,
         'GlobalExceptionFilter',
       );
-
-      response.status(status).json({
-        success: false,
-        code,
-        message,
-        requestId,
-        timestamp: new Date().toISOString(),
-        data: maintenanceData,
-      });
-      return;
+    } else {
+      // Log the error using Pino LoggerService (with stack trace and details, invisible to the client)
+      this.logger.error(
+        `Exception [${method} ${url}]: ${message} (Code: ${code})`,
+        exception instanceof Error ? exception.stack : undefined,
+        'GlobalExceptionFilter',
+      );
     }
 
-    // Log the error using Pino LoggerService (with stack trace and details, invisible to the client)
-    this.logger.error(
-      `Exception [${method} ${url}]: ${message} (Code: ${code})`,
-      exception instanceof Error ? exception.stack : undefined,
-      'GlobalExceptionFilter',
-    );
-
     // Strict client-facing JSON structure (No internal database details or stack trace)
-    response.status(status).json({
+    const body: ResponseEnvelope<null> = {
       success: false,
-      code,
       message,
+      data: null,
+      meta: {},
+      error: { code, details },
       requestId,
       timestamp: new Date().toISOString(),
-    });
+    };
+
+    response.status(status).json(body);
+  }
+
+  /**
+   * Keeps the actionable part of a structured exception payload.
+   *
+   * Exceptions like `CONTEXT_SELECTION_REQUIRED` and `SETUP_REQUIRED` carry the
+   * information the client needs to recover — the branches it may choose from,
+   * the resources it must still create. Reducing them to a message, as this
+   * filter previously did, made those responses undiagnosable.
+   */
+  private extractDetails(
+    payload: Record<string, unknown>,
+  ): Record<string, unknown> | null {
+    const entries = Object.entries(payload).filter(
+      ([key]) => !ENVELOPE_KEYS.has(key),
+    );
+
+    return entries.length > 0 ? Object.fromEntries(entries) : null;
   }
 }

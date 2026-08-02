@@ -6,29 +6,35 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { AuthenticatedRequest } from '@/common/logger/request-context.middleware';
+import { ResponseEnvelope } from '@/common/http/response-envelope';
 
-export interface Response<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  meta: Record<string, any>;
-  error: null;
-}
-
+/**
+ * Wraps every successful response in the shared envelope.
+ *
+ * Controllers return `{ data, message, meta }` (any subset); anything else is
+ * treated as the payload itself. `requestId` and `timestamp` are added here so
+ * that a success and a failure can be correlated to server logs the same way —
+ * previously only errors carried them.
+ *
+ * @see docs/core/response-contract.md
+ */
 @Injectable()
 export class GlobalResponseInterceptor<T> implements NestInterceptor<
   T,
-  Response<T>
+  ResponseEnvelope<T>
 > {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Observable<Response<T>> {
+  ): Observable<ResponseEnvelope<T>> {
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+
     return next.handle().pipe(
       map((data) => {
         let message = 'Success';
         let responseData = data;
-        let meta = {};
+        let meta: Record<string, unknown> = {};
 
         if (data && typeof data === 'object') {
           if (data.message) {
@@ -57,6 +63,8 @@ export class GlobalResponseInterceptor<T> implements NestInterceptor<
           data: responseData ?? null,
           meta,
           error: null,
+          requestId: request?.requestId ?? 'unknown',
+          timestamp: new Date().toISOString(),
         };
       }),
     );

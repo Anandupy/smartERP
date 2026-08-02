@@ -10,6 +10,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalResponseInterceptor } from '@/interceptors/global-response.interceptor';
 import { GlobalExceptionFilter } from '@/filters/global-exception.filter';
 import { RequestLoggingInterceptor } from '@/common/logger/request-logging.interceptor';
+import { applyResponseEnvelope } from '@/common/http/swagger-envelope';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -61,11 +62,21 @@ async function bootstrap() {
   // Swagger setup
   const swaggerConfig = new DocumentBuilder()
     .setTitle('ERP API')
-    .setDescription('The ERP system API description')
+    .setDescription(
+      'The ERP system API.\n\n' +
+        'Every response uses the shared envelope: `success`, `message`, `data`, ' +
+        '`meta`, `error`, `requestId`, `timestamp`. `data` is populated on ' +
+        'success and `error` on failure. See docs/core/response-contract.md.',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  // Every response passes through GlobalResponseInterceptor or
+  // GlobalExceptionFilter, so the generated schemas describe the payload rather
+  // than the response. Rewrite them to match what clients actually receive.
+  const document = applyResponseEnvelope(
+    SwaggerModule.createDocument(app, swaggerConfig),
+  );
   SwaggerModule.setup('docs', app, document);
 
   // Expose /api-json endpoint directly for Postman automation
