@@ -12,12 +12,15 @@ import {
 } from '@/common/events';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
+import { RequestContextService } from '@/common/logger/request-context.service';
+import { RoleType } from '@/generated/client';
 
 @Injectable()
 export class BranchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBus,
+    private readonly requestContext: RequestContextService,
   ) {}
 
   async createBranch(dto: CreateBranchDto, userId?: string) {
@@ -77,9 +80,24 @@ export class BranchService {
     return branch;
   }
 
+  /**
+   * Lists branches visible in the caller's scope.
+   *
+   * Scoped by the resolved organization for every role except SUPER_ADMIN.
+   * This previously returned every branch in the system: `GET /branches`
+   * requires only `settings.view`, which ORG_ADMIN holds, so an administrator
+   * of one organization could enumerate every other tenant's branches.
+   */
   async getAllBranches() {
+    const context = this.requestContext.getContext();
+    const isSuperAdmin = context?.role === RoleType.SUPER_ADMIN;
+    const organizationId = context?.organizationId ?? null;
+
     return this.prisma.branch.findMany({
-      where: { isDeleted: false },
+      where: {
+        isDeleted: false,
+        ...(isSuperAdmin || !organizationId ? {} : { organizationId }),
+      },
       include: { organization: true },
     });
   }
