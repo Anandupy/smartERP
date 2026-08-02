@@ -69,6 +69,10 @@ export {
 // owned by authentication now that workspace selection opens on it too.)
 export { AuthFooter, type AuthFooterProps } from "./components/auth-footer";
 export {
+  SignOutButton,
+  type SignOutButtonProps,
+} from "./components/sign-out-button";
+export {
   AuthStatusScreen,
   type AuthStatusScreenProps,
   type AuthStatusTone,
