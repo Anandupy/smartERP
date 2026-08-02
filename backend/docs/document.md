@@ -114,6 +114,7 @@ a missing or placeholder `JWT_SECRET` prevents the process from booting.
 - [Workspace Bootstrap](./core/workspace-bootstrap.md)
 - [Public Endpoint Protection](./core/public-endpoint-protection.md)
 - [Response Contract](./core/response-contract.md)
+- [Health Checks & Process Lifecycle](./core/health-and-lifecycle.md)
 - [Logging System](./core/logging.md)
 - [Event-Driven Architecture](./core/events.md)
 - [Audit Architecture](./core/audit.md)

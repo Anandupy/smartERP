@@ -4,9 +4,7 @@ import {
   Scope,
 } from '@nestjs/common';
 import pino from 'pino';
-import pinoPretty from 'pino-pretty';
-import * as fs from 'fs';
-import * as path from 'path';
+import { getRootLogger } from './pino-root-logger';
 
 export interface LogPayload {
   [key: string]: any;
@@ -29,87 +27,17 @@ export interface RequestLogData {
   [key: string]: any;
 }
 
+/**
+ * Per-consumer logging facade.
+ *
+ * Transient so that each injecting class can label its output via
+ * `setContext`. The pino instance and its file streams are process-wide — see
+ * `pino-root-logger.ts` for why that separation matters.
+ */
 @Injectable({ scope: Scope.TRANSIENT })
 export class LoggerService implements NestLoggerService {
-  private logger: pino.Logger;
+  private readonly logger: pino.Logger = getRootLogger();
   private context: string = 'App';
-
-  constructor() {
-    const isDev = process.env.NODE_ENV !== 'production';
-    const logsDir = path.join(process.cwd(), 'logs');
-
-    // Ensure logs directory exists
-    if (!fs.existsSync(logsDir)) {
-      fs.mkdirSync(logsDir, { recursive: true });
-    }
-
-    const streams: pino.StreamEntry[] = [];
-
-    // Common pretty options for Dev (both console and file)
-    const prettyOptions = {
-      colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname', // Hide internal noise
-      messageFormat: (log: Record<string, unknown>, messageKey: string) => {
-        const message = log[messageKey];
-        const context = log.context;
-        if (context) {
-          return `[\x1b[33m${context as string}\x1b[0m] ${message as string}`;
-        }
-        return message as string;
-      },
-    };
-
-    // Console Stream
-    if (isDev) {
-      streams.push({
-        level: 'info',
-        stream: pinoPretty(prettyOptions),
-      });
-    } else {
-      streams.push({ level: 'info', stream: process.stdout });
-    }
-
-    // File Streams - Use pretty printing in dev for readability, JSON in prod
-    const fileStream = isDev
-      ? pinoPretty({
-          ...prettyOptions,
-          colorize: false, // No colors in files
-        })
-      : undefined;
-
-    streams.push({
-      level: 'info',
-      stream:
-        fileStream ||
-        fs.createWriteStream(path.join(logsDir, 'app.log'), {
-          flags: 'a',
-        }),
-    });
-
-    if (fileStream) {
-      // In dev, we also want the pretty output saved to app.log
-      (fileStream as any).pipe(
-        fs.createWriteStream(path.join(logsDir, 'app.log'), { flags: 'a' }),
-      );
-    }
-
-    // Error-specific file stream
-    streams.push({
-      level: 'error',
-      stream: fs.createWriteStream(path.join(logsDir, 'error.log'), {
-        flags: 'a',
-      }),
-    });
-
-    this.logger = pino(
-      {
-        level: process.env.LOG_LEVEL || 'info',
-        base: undefined, // Remove pid and hostname from the base object
-      },
-      pino.multistream(streams),
-    );
-  }
 
   setContext(context: string) {
     this.context = context;

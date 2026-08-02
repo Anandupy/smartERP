@@ -36,6 +36,7 @@ import { ExecutionContextGuard } from '@/modules/context/guards/execution-contex
 import { WorkspaceSetupGuard } from '@/common/guards/workspace-setup.guard';
 import { WorkspaceSetupModule } from '@/modules/workspace/setup/workspace-setup.module';
 import { ThrottlingModule } from '@/common/throttling/throttling.module';
+import { HealthModule } from '@/modules/health/health.module';
 import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-throttler.guard';
 
 @Module({
@@ -49,6 +50,7 @@ import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-thro
     }),
     LoggerModule,
     ThrottlingModule,
+    HealthModule,
     PrismaModule,
     EventsModule,
     AuditModule,

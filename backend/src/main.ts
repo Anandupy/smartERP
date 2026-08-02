@@ -85,6 +85,12 @@ async function bootstrap() {
     res.json(document);
   });
 
+  // Terminate cleanly: stop accepting connections, let in-flight requests
+  // finish, then run OnApplicationShutdown across the module graph — which is
+  // what disconnects Prisma and flushes the log streams. Without this, SIGTERM
+  // from an orchestrator kills the process mid-request and drops buffered logs.
+  app.enableShutdownHooks();
+
   await app.listen(port);
 
   // Clean Startup Banner using stdout instead of console to avoid ESLint error
