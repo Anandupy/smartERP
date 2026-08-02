@@ -58,7 +58,7 @@ export class NavigationAdminMenuController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new navigation menu item' })
+  @ApiOperation({ summary: 'Create a new navigation menu' })
   @ApiResponse({ status: 201, description: 'Menu item created successfully' })
   async createMenu(
     @Body() dto: CreateMenuDto,
@@ -68,7 +68,7 @@ export class NavigationAdminMenuController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a navigation menu item' })
+  @ApiOperation({ summary: 'Update a navigation menu' })
   @ApiResponse({ status: 200, description: 'Menu item updated successfully' })
   async updateMenu(
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
@@ -80,7 +80,8 @@ export class NavigationAdminMenuController {
 
   @Patch(':id/move')
   @ApiOperation({
-    summary: 'Move menu item (change parent/module) with hierarchy validation',
+    summary:
+      'Move navigation menu (change parent/module) with hierarchy validation',
   })
   @ApiResponse({ status: 200, description: 'Menu item moved successfully' })
   async moveMenu(
@@ -116,7 +117,7 @@ export class NavigationAdminMenuController {
   }
 
   @Post(':id/duplicate')
-  @ApiOperation({ summary: 'Duplicate a navigation menu item' })
+  @ApiOperation({ summary: 'Duplicate a navigation menu' })
   @ApiResponse({
     status: 201,
     description: 'Menu item duplicated successfully',
@@ -129,7 +130,7 @@ export class NavigationAdminMenuController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a navigation menu item' })
+  @ApiOperation({ summary: 'Delete a navigation menu' })
   @ApiResponse({ status: 200, description: 'Menu item deleted successfully' })
   async deleteMenu(
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
