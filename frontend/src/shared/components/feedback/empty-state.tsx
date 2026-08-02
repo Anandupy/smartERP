@@ -1,42 +1,42 @@
-import { Inbox, type LucideIcon } from "lucide-react";
+import { Inbox, type LucideIcon } from "@/assets/icons";
 
-import { cn } from "@/lib/utils";
+import { StatusState } from "./status-state";
 
 export interface EmptyStateProps {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   icon?: LucideIcon;
   action?: React.ReactNode;
+  /** Optional secondary affordance beside the primary action. */
+  secondaryAction?: React.ReactNode;
   className?: string;
 }
 
-/** Neutral placeholder for "no data" situations. Presentational only. */
+/**
+ * Neutral placeholder for "no data" situations. Presentational only.
+ *
+ * An empty result is a state, not an event, so it carries no live-region role —
+ * announcing "no students" the moment a filter clears would interrupt without
+ * informing.
+ */
 export function EmptyState({
   title,
   description,
-  icon: Icon = Inbox,
+  icon = Inbox,
   action,
+  secondaryAction,
   className,
 }: EmptyStateProps) {
   return (
-    <div
-      className={cn(
-        "border-border flex min-h-48 w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-6 text-center sm:p-10",
-        className,
-      )}
-    >
-      <span className="bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-full">
-        <Icon className="size-6" />
-      </span>
-      <div className="space-y-1">
-        <h3 className="text-foreground text-base font-medium">{title}</h3>
-        {description ? (
-          <p className="text-muted-foreground mx-auto max-w-sm text-sm">
-            {description}
-          </p>
-        ) : null}
-      </div>
-      {action ? <div className="mt-2">{action}</div> : null}
-    </div>
+    <StatusState
+      icon={icon}
+      tone="neutral"
+      variant="dashed"
+      title={title}
+      description={description}
+      action={action}
+      secondaryAction={secondaryAction}
+      className={className}
+    />
   );
 }
