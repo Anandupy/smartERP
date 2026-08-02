@@ -50,12 +50,11 @@ export class AuditEventMapper {
         null,
       requestId:
         context?.requestId || (event as any).payload?.requestId || null,
-      traceId: context?.traceId || (event as any).payload?.traceId || null,
+      // No distributed tracing is in place; requestId is the correlation
+      // identifier and is recorded as such.
+      traceId: (event as any).payload?.traceId || null,
       correlationId:
-        context?.correlationId ||
-        (event as any).payload?.correlationId ||
-        context?.requestId ||
-        null,
+        (event as any).payload?.correlationId || context?.requestId || null,
       ipAddress: context?.ipAddress || null,
       userAgent: context?.userAgent || null,
       httpMethod:
@@ -68,7 +67,10 @@ export class AuditEventMapper {
         event.metadata?.route ||
         (event as any).payload?.route ||
         null,
-      executionTime: context?.executionTime || null,
+      // Only known once the response is written; audit events are emitted
+      // mid-request, so this stays null. Request duration is captured by
+      // RequestLoggingInterceptor against the same requestId.
+      executionTime: null,
       severity: event.metadata?.severity || 'INFO',
       status: event.metadata?.status || 'SUCCESS',
       metadata: {

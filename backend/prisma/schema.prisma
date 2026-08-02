@@ -720,6 +720,9 @@ model User {
   failedLoginAttempts  Int      @default(0)
   lockUntil            DateTime?
   isTwoFactorEnabled   Boolean  @default(false)
+  /// NOT encrypted. Never written — two-factor authentication is
+  /// unimplemented. A TOTP secret must be recoverable, so it cannot be hashed:
+  /// encrypt it with ENCRYPTION_KEY before the first write.
   twoFactorSecret      String?
   lastLoginAt          DateTime?
   createdBy            String?
@@ -1124,7 +1127,12 @@ model ProviderConfig {
   isPrimary       Boolean      @default(false)
   isActive        Boolean      @default(true)
 
-  credentials     Json         // Encrypted / masked provider configuration (host, port, auth, apiKey, senderId, etc.)
+  /// Provider configuration (host, port, auth, apiKey, senderId, ...).
+  ///
+  /// NOT encrypted. No code reads or writes this column yet; the provider
+  /// integration is unimplemented. Before the first write, encrypt at rest with
+  /// ENCRYPTION_KEY — see docs/core/configuration.md.
+  credentials     Json
   settings        Json?        // Additional provider-specific settings
 
   createdBy       String?

@@ -33,6 +33,8 @@ export interface RequestContextAcademicYear {
  */
 export interface ExecutionScope {
   userId: string | null;
+  /** Recorded on every audit row so an actor stays identifiable after deletion. */
+  userEmail: string | null;
   role: string | null;
   organizationId: string | null;
   branchId: string | null;
@@ -49,6 +51,14 @@ export interface RequestEnvelope {
   clientApp: string;
   clientVersion: string;
   platform: string;
+  /**
+   * Transport facts. The audit log records these for every entry; without them
+   * a security investigation cannot place an action on a network or a device.
+   */
+  ipAddress: string | null;
+  userAgent: string | null;
+  httpMethod: string;
+  route: string;
 }
 
 /**
@@ -83,6 +93,7 @@ export type RequestContext = Readonly<MutableRequestContext>;
 export interface AuthenticatedUser {
   id?: string;
   sub?: string;
+  email?: string;
   role?: string;
   organizationId?: string;
   branchId?: string;
@@ -131,7 +142,14 @@ export class RequestContextMiddleware implements NestMiddleware {
       clientApp,
       clientVersion,
       platform,
+      // `req.ip` reflects X-Forwarded-For only when TRUST_PROXY is enabled;
+      // see docs/core/public-endpoint-protection.md.
+      ipAddress: req.ip ?? req.socket?.remoteAddress ?? null,
+      userAgent: (req.headers['user-agent'] as string) || null,
+      httpMethod: req.method,
+      route: req.originalUrl || req.url,
       userId: null,
+      userEmail: null,
       role: null,
       organizationId: null,
       branchId: null,

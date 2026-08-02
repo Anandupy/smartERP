@@ -56,6 +56,7 @@ export class ExecutionContextGuard implements CanActivate {
     // resolution is still attributable in audit logs and error reporting.
     RequestContextService.applyExecutionScope(request.context, {
       userId,
+      userEmail: user?.email ?? null,
       role: role ?? null,
       organizationId: null,
       branchId: null,
@@ -89,6 +90,7 @@ export class ExecutionContextGuard implements CanActivate {
 
     RequestContextService.applyExecutionScope(request.context, {
       userId,
+      userEmail: user?.email ?? null,
       role: role ?? null,
       organizationId: scope.organizationId,
       branchId: scope.branchId,

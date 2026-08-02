@@ -42,6 +42,7 @@ export class RequestContextService {
     const writable = context as MutableRequestContext;
 
     writable.userId = scope.userId;
+    writable.userEmail = scope.userEmail;
     writable.role = scope.role;
     writable.organizationId = scope.organizationId;
     writable.branchId = scope.branchId;

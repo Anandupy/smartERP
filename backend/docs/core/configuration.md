@@ -159,14 +159,33 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 
 ## 5. `ENCRYPTION_KEY` — reserved, not yet consumed
 
-> [!WARNING]
-> `ProviderConfig.credentials` is currently stored **unencrypted**, despite the
-> schema comment describing it as "Encrypted / masked". `ENCRYPTION_KEY` is
-> declared and format-checked here so a malformed key is caught before the
-> feature starts depending on it, but **nothing reads it yet**.
+**No sensitive value is currently stored in the database.** An audit of every
+persisted field found nothing that needs encrypting today:
+
+| Field                          | State                                                                                     |
+| :----------------------------- | :---------------------------------------------------------------------------------------- |
+| `RefreshToken.tokenHash`       | SHA-256, raw value never stored                                                           |
+| `PasswordResetToken.tokenHash` | SHA-256                                                                                   |
+| `OtpToken.otpHash`             | SHA-256                                                                                   |
+| `User.passwordHash`            | bcrypt                                                                                    |
+| `ProviderConfig.credentials`   | **Never written** — no code reads or writes it; the provider integration is unimplemented |
+| `User.twoFactorSecret`         | **Never written** — two-factor authentication is unimplemented                            |
+
+`ENCRYPTION_KEY` is therefore declared and format-checked, but deliberately
+unused: there is nothing to encrypt, and an encryption service with no consumer
+would be dead code.
+
+> [!IMPORTANT]
+> Two columns will need encryption **before their first write**, and both are
+> marked in the schema:
 >
-> Do not treat provider credentials as encrypted at rest until this warning is
-> removed.
+> - `ProviderConfig.credentials` — SMTP passwords, API keys, provider secrets.
+> - `User.twoFactorSecret` — a TOTP secret must be recoverable to verify a code,
+>   so it cannot be hashed the way the token columns are.
+>
+> Use AES-256-GCM with `ENCRYPTION_KEY`, encrypt on write and decrypt on read so
+> the API contract does not change, and never encrypt a column that is queried
+> or indexed.
 
 ---
 
