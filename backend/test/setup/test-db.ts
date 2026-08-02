@@ -11,7 +11,10 @@ export async function validateAndSeedDb() {
   try {
     await prisma.maintenanceRule.deleteMany({});
   } catch (err) {
-    console.log('[Test DB] MaintenanceRule cleanup skipped:', err.message);
+    console.log(
+      '[Test DB] MaintenanceRule cleanup skipped:',
+      err instanceof Error ? err.message : String(err),
+    );
   }
 
   // Seeding happens inside a transaction or safely.
@@ -22,7 +25,7 @@ export async function validateAndSeedDb() {
   } catch (error) {
     console.log(
       '[Test DB] Seeding skipped or handled differently:',
-      error.message,
+      error instanceof Error ? error.message : String(error),
     );
   }
 }

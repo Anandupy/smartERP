@@ -86,7 +86,10 @@ export async function seedRealisticData(prisma: PrismaClient) {
         });
       }
     } catch (err) {
-      console.log(`[Test Seed] Template ${t.code} seeding skipped:`, err.message);
+      console.log(
+        `[Test Seed] Template ${t.code} seeding skipped:`,
+        err instanceof Error ? err.message : String(err),
+      );
     }
   }
 
@@ -320,7 +323,7 @@ export async function seedRealisticData(prisma: PrismaClient) {
     });
 
   } catch (error) {
-    if (error.code === 'P2002') {
+    if ((error as { code?: string })?.code === 'P2002') {
       console.log(
         '[Test Seed] Seed data already exists (Unique constraint). Skipping seed.',
       );
