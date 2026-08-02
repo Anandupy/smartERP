@@ -46,6 +46,116 @@ export class ContextResolverService {
   }
 
   /**
+   * Best-effort resolution for a workspace that is still being bootstrapped.
+   *
+   * During setup the tenant hierarchy is partially built: the organization may
+   * exist while no branch does, and so on. `resolveContext` treats every one of
+   * those states as an error, which is correct once the workspace is live but
+   * would make the setup flow itself unreachable.
+   *
+   * This resolves each level only as far as the data allows and leaves the rest
+   * null. It never throws for absent records, and it never widens access —
+   * discovery is still scoped to what the user may see.
+   */
+  async resolveBootstrapContext(
+    input: ResolveContextInput,
+  ): Promise<ExecutionContextPayload> {
+    const { user } = input;
+    const {
+      id: userId,
+      role,
+      organizationId: userOrgId,
+      branchId: userBranchId,
+    } = user;
+
+    const empty: ExecutionContextPayload = {
+      organizationId: null,
+      branchId: null,
+      academicYearId: null,
+      programId: null,
+      departmentId: null,
+      campusId: null,
+      branch: null,
+      academicYear: null,
+    };
+
+    const orgDiscovery = await this.discoveryService.discoverContexts(
+      userId,
+      role,
+      userOrgId,
+      userBranchId,
+    );
+
+    // More than one candidate is not a bootstrap state; leave the scope unset
+    // rather than guessing on the user's behalf.
+    if (orgDiscovery.availableOrganizations.length !== 1) {
+      return empty;
+    }
+
+    const organizationId = orgDiscovery.availableOrganizations[0].id;
+
+    const branchDiscovery = await this.discoveryService.discoverContexts(
+      userId,
+      role,
+      userOrgId,
+      userBranchId,
+      organizationId,
+    );
+
+    if (branchDiscovery.availableBranches.length !== 1) {
+      return { ...empty, organizationId };
+    }
+
+    const branch = branchDiscovery.availableBranches[0];
+
+    const ayDiscovery = await this.discoveryService.discoverContexts(
+      userId,
+      role,
+      userOrgId,
+      userBranchId,
+      organizationId,
+      branch.id,
+    );
+
+    const academicYear =
+      ayDiscovery.availableAcademicYears.find(
+        (ay) => ay.isSelected || ay.isActive,
+      ) ?? ayDiscovery.availableAcademicYears[0];
+
+    this.logger.log(
+      `Bootstrap context resolved: user=${userId}, org=${organizationId}, branch=${branch.id}, ay=${academicYear?.id ?? 'none'}`,
+    );
+
+    return {
+      ...empty,
+      organizationId,
+      branchId: branch.id,
+      branch: {
+        id: branch.id,
+        organizationId: branch.organizationId,
+        name: branch.name,
+        code: branch.code,
+        institutionType: branch.institutionType,
+        isActive: branch.isActive,
+        isDeleted: false,
+      },
+      academicYearId: academicYear?.id ?? null,
+      academicYear: academicYear
+        ? {
+            id: academicYear.id,
+            branchId: academicYear.branchId,
+            name: academicYear.name,
+            startDate: academicYear.startDate,
+            endDate: academicYear.endDate,
+            isActive: academicYear.isActive,
+            isSelected: academicYear.isSelected,
+            isLocked: academicYear.isLocked,
+          }
+        : null,
+    };
+  }
+
+  /**
    * Deterministic 3-Priority Execution Context Resolution Algorithm
    */
   async resolveContext(

@@ -41,7 +41,7 @@ export class GlobalResponseInterceptor<T> implements NestInterceptor<
             responseData = data.data;
           } else {
             // Keep the object as data if no explicit 'data' property, but without message/meta
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
             const { message: _m, meta: _meta, ...rest } = data;
             if (Object.keys(rest).length > 0) {
               responseData = rest;

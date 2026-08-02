@@ -7,6 +7,7 @@ import {
 } from '@/common/logger/request-context.middleware';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { ContextResolverService } from '../services/context-resolver.service';
+import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup.service';
 import { RoleType } from '@/generated/client';
 
 /**
@@ -22,6 +23,7 @@ export class ExecutionContextGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly contextResolver: ContextResolverService,
+    private readonly setupService: WorkspaceSetupService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -62,7 +64,7 @@ export class ExecutionContextGuard implements CanActivate {
       academicYear: null,
     });
 
-    const result = await this.contextResolver.resolveContext({
+    const input = {
       user: {
         id: userId,
         role,
@@ -75,16 +77,24 @@ export class ExecutionContextGuard implements CanActivate {
         academicYearId: this.header(request, 'x-academic-year-id'),
       },
       requestId: request.requestId || request.context?.requestId,
-    });
+    };
+
+    // Until the workspace is bootstrapped the tenant hierarchy is incomplete by
+    // definition, and the strict resolver would reject every request. Resolve
+    // best-effort instead so the setup routes can operate on whatever already
+    // exists — a branch created in the previous step, for example.
+    const scope = (await this.setupService.isInitialized())
+      ? (await this.contextResolver.resolveContext(input)).context
+      : await this.contextResolver.resolveBootstrapContext(input);
 
     RequestContextService.applyExecutionScope(request.context, {
       userId,
       role: role ?? null,
-      organizationId: result.context.organizationId,
-      branchId: result.context.branchId,
-      academicYearId: result.context.academicYearId,
-      branch: result.context.branch ?? null,
-      academicYear: result.context.academicYear ?? null,
+      organizationId: scope.organizationId,
+      branchId: scope.branchId,
+      academicYearId: scope.academicYearId,
+      branch: scope.branch ?? null,
+      academicYear: scope.academicYear ?? null,
     });
 
     return true;

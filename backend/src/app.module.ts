@@ -33,6 +33,8 @@ import { PermissionGuard } from '@/common/guards/permission.guard';
 import { WorkspaceModule } from '@/modules/workspace/workspace.module';
 import { ContextModule } from '@/modules/context/context.module';
 import { ExecutionContextGuard } from '@/modules/context/guards/execution-context.guard';
+import { WorkspaceSetupGuard } from '@/common/guards/workspace-setup.guard';
+import { WorkspaceSetupModule } from '@/modules/workspace/setup/workspace-setup.module';
 
 @Module({
   imports: [
@@ -53,6 +55,7 @@ import { ExecutionContextGuard } from '@/modules/context/guards/execution-contex
     AuthorizationModule,
     ContextModule,
     WorkspaceModule,
+    WorkspaceSetupModule,
     SystemSettingsModule,
     OrganizationModule,
     BranchModule,
@@ -74,12 +77,19 @@ import { ExecutionContextGuard } from '@/modules/context/guards/execution-contex
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    // 2. Execution context — the only writer of identity and tenant scope.
+    // 2. Bootstrap gate — blocks the ordinary API until setup completes, so a
+    //    fresh install fails with an actionable SETUP_REQUIRED instead of a
+    //    misleading context-resolution error.
+    {
+      provide: APP_GUARD,
+      useClass: WorkspaceSetupGuard,
+    },
+    // 3. Execution context — the only writer of identity and tenant scope.
     {
       provide: APP_GUARD,
       useClass: ExecutionContextGuard,
     },
-    // 3. Authorization — decides against the resolved scope.
+    // 4. Authorization — decides against the resolved scope.
     {
       provide: APP_GUARD,
       useClass: RolesGuard,

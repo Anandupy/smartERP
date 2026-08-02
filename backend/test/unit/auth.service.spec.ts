@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup.service';
 import { AuthService } from '@/modules/auth/auth.service';
 import { UserService } from '@/modules/user/user.service';
 import { JwtService } from '@nestjs/jwt';
@@ -46,7 +47,9 @@ describe('AuthService', () => {
   };
 
   const mockAuthorizationService = {
-    getUserEffectivePermissions: jest.fn().mockResolvedValue({ effectivePermissions: [] }),
+    getUserEffectivePermissions: jest
+      .fn()
+      .mockResolvedValue({ effectivePermissions: [] }),
   };
 
   const mockContextDiscoveryService = {
@@ -70,7 +73,14 @@ describe('AuthService', () => {
         { provide: MaintenanceService, useValue: mockMaintenanceService },
         { provide: OtpService, useValue: {} },
         { provide: AuthorizationService, useValue: mockAuthorizationService },
-        { provide: ContextDiscoveryService, useValue: mockContextDiscoveryService },
+        {
+          provide: ContextDiscoveryService,
+          useValue: mockContextDiscoveryService,
+        },
+        {
+          provide: WorkspaceSetupService,
+          useValue: { getStatus: jest.fn(), isInitialized: jest.fn() },
+        },
       ],
     }).compile();
 

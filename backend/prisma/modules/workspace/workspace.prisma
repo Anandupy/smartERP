@@ -84,3 +84,22 @@ model WorkspaceConfiguration {
   @@index([scopeType, scopeId])
   @@map("workspace_configurations")
 }
+
+/// Singleton record marking the workspace bootstrap as complete.
+///
+/// Setup *progress* is derived from the presence of an active Organization,
+/// Branch and Academic Year — deriving it cannot drift from reality. Only the
+/// terminal transition is persisted, so that completing setup is an explicit,
+/// attributable act and cannot silently reverse if the last branch is later
+/// deactivated.
+model WorkspaceState {
+  id              String    @id @default(uuid(7))
+  /// Fixed discriminator. Guarantees at most one row.
+  scope           String    @unique @default("GLOBAL")
+  initializedAt   DateTime?
+  initializedById String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("workspace_state")
+}

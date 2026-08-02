@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup.service';
 import { AuthService } from '@/modules/auth/auth.service';
 import { UserService } from '@/modules/user/user.service';
 import { JwtService } from '@nestjs/jwt';
@@ -66,8 +67,18 @@ describe('AuthService Recovery & Verification', () => {
         { provide: EventBus, useValue: eventBus },
         { provide: MaintenanceService, useValue: {} },
         { provide: OtpService, useValue: otpService },
-        { provide: AuthorizationService, useValue: { getUserEffectivePermissions: jest.fn() } },
-        { provide: ContextDiscoveryService, useValue: { discoverContexts: jest.fn() } },
+        {
+          provide: AuthorizationService,
+          useValue: { getUserEffectivePermissions: jest.fn() },
+        },
+        {
+          provide: ContextDiscoveryService,
+          useValue: { discoverContexts: jest.fn() },
+        },
+        {
+          provide: WorkspaceSetupService,
+          useValue: { getStatus: jest.fn(), isInitialized: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -84,7 +95,11 @@ describe('AuthService Recovery & Verification', () => {
     });
 
     it('should generate, hash, store token and emit event if user is found', async () => {
-      const user = { id: 'user-123', email: 'user@test.com', fullName: 'John Doe' };
+      const user = {
+        id: 'user-123',
+        email: 'user@test.com',
+        fullName: 'John Doe',
+      };
       userService.findByIdentifier.mockResolvedValue(user);
       prisma.passwordResetToken.create.mockResolvedValue({});
 
@@ -106,12 +121,19 @@ describe('AuthService Recovery & Verification', () => {
     it('should throw BadRequestException if token not found or consumed or expired', async () => {
       prisma.passwordResetToken.findUnique.mockResolvedValue(null);
       await expect(
-        service.resetPassword({ token: 'invalid', password: 'newPassword123!' }),
+        service.resetPassword({
+          token: 'invalid',
+          password: 'newPassword123!',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should reset password, consume token, and revoke user sessions', async () => {
-      const user = { id: 'user-123', email: 'user@test.com', fullName: 'John Doe' };
+      const user = {
+        id: 'user-123',
+        email: 'user@test.com',
+        fullName: 'John Doe',
+      };
       const tokenRecord = {
         id: 'token-id',
         userId: 'user-123',
@@ -121,7 +143,10 @@ describe('AuthService Recovery & Verification', () => {
       };
       prisma.passwordResetToken.findUnique.mockResolvedValue(tokenRecord);
 
-      const res = await service.resetPassword({ token: 'valid-token', password: 'newPassword123!' });
+      const res = await service.resetPassword({
+        token: 'valid-token',
+        password: 'newPassword123!',
+      });
       expect(res.message).toBe('Password reset successfully');
       expect(passwordService.hash).toHaveBeenCalledWith('newPassword123!');
       expect(prisma.user.update).toHaveBeenCalledWith(

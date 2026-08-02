@@ -7,6 +7,7 @@ This document outlines the architectural structure and directory organization of
 The project follows a modular architecture designed for scalability and maintainability.
 
 ### Root Directory
+
 - `src/`: Contains the source code of the application.
 - `prisma/`: Prisma schema and migration files.
 - `test/`: E2E and unit test files.
@@ -15,6 +16,7 @@ The project follows a modular architecture designed for scalability and maintain
 - `dist/`: Compiled output (ignored by Git).
 
 ### Source Directory (`src/`)
+
 - `main.ts`: The entry point of the application.
 - `app.module.ts`: The root module that imports all other modules.
 - `common/`: Shared utilities, constants, and decorators.
@@ -32,6 +34,7 @@ The project follows a modular architecture designed for scalability and maintain
 - `middleware/`: Custom middleware (e.g., request context).
 
 ## Core Technologies
+
 - **Framework**: NestJS (v11)
 - **Language**: TypeScript
 - **Database**: PostgreSQL (via Prisma ORM)
@@ -39,7 +42,9 @@ The project follows a modular architecture designed for scalability and maintain
 - **Security**: Helmet, Compression, Passport (JWT)
 
 ## Module Organization
+
 Each feature in the `modules/` directory should follow this structure:
+
 ```text
 modules/feature-name/
 ├── controllers/
@@ -50,6 +55,7 @@ modules/feature-name/
 ```
 
 ## Naming Conventions
+
 - Files: `kebab-case.type.ts` (e.g., `user.controller.ts`)
 - Classes: `PascalCase` (e.g., `UserController`)
 - Variables/Functions: `camelCase`
@@ -68,16 +74,17 @@ export class CreateBranchDto {
   @ApiProperty({ description: 'Organization UUID' })
   @IsString()
   @IsNotEmpty()
-  organizationId!: string;      // assigned by ValidationPipe / class-transformer
+  organizationId!: string; // assigned by ValidationPipe / class-transformer
 
   @ApiPropertyOptional({ description: 'Logo URL' })
   @IsString()
   @IsOptional()
-  logoUrl?: string;             // optional: no assertion needed
+  logoUrl?: string; // optional: no assertion needed
 }
 ```
 
 This applies to:
+
 - **DTO properties** that are required — populated by `class-transformer` when
   `ValidationPipe` runs, never by a constructor.
 - **Nest property injection** — e.g. `@Inject(EventBus) protected readonly eventBus!: EventBus;`
@@ -94,21 +101,26 @@ enforced by ESLint — see [Prisma Guide §8](./prisma-guide.md#8-client-import-
 for the runtime defect that made the rule necessary.
 
 ## Configuration
+
 Environment variables are validated at startup and documented in
 [Configuration Contract](./core/configuration.md). Secrets have no fallbacks:
 a missing or placeholder `JWT_SECRET` prevents the process from booting.
 
 ## Core Architecture Documentation
+
 - [Configuration Contract](./core/configuration.md)
 - [Execution Context Lifecycle](./core/execution-context.md)
 - [Guard Pipeline](./core/guard-pipeline.md)
+- [Workspace Bootstrap](./core/workspace-bootstrap.md)
 - [Logging System](./core/logging.md)
 - [Event-Driven Architecture](./core/events.md)
 - [Audit Architecture](./core/audit.md)
 - [Testing Architecture](./testing/testing-architecture.md)
 
 ## Module Documentation
+
 Detailed specifications for each module can be found in the `docs/modules/` directory:
+
 - [System Settings](./modules/system-settings.md)
 - [Organization Management](./modules/organization-settings.md)
 - [Branch Management](./modules/branch-settings.md)
@@ -117,6 +129,7 @@ Detailed specifications for each module can be found in the `docs/modules/` dire
 - [Academic Year](./modules/academic-year.md)
 
 ## Domain Terminology
+
 - **Branch**: Legal entity representing a campus or administrative unit.
 - **Program**: Internal course structure (e.g., Grade 10, B.Tech).
 - **Academic Unit**: Operational hierarchy (Planned: Departments, Wings, Sections).

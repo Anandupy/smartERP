@@ -15,6 +15,7 @@ import { UpdateBranchDto } from './dto/update-branch.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Branches')
@@ -24,6 +25,7 @@ export class BranchController {
   constructor(private readonly branchService: BranchService) {}
 
   @Post()
+  @AllowDuringSetup()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create a new branch (Super/Org Admin only)' })

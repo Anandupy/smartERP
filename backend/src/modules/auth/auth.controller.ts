@@ -21,6 +21,7 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { Public } from '@/common/decorators/public.decorator';
+import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -28,8 +29,13 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Get('me')
+  @AllowDuringSetup()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current authenticated user profile & context' })
+  @ApiOperation({
+    summary: 'Get current authenticated user profile & context',
+    description:
+      'Also reports workspace bootstrap state via `setup`. When `setup.setupRequired` is true the client must run the setup flow; tenant context headers are not required until it completes.',
+  })
   async getMe(@Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
     const data = await this.authService.getMe(userId, req.context);

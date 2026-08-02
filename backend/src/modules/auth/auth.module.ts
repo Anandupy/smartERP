@@ -12,6 +12,7 @@ import { CommunicationModule } from '@/modules/communication/communication.modul
 
 import { AuthorizationModule } from '@/modules/authorization/authorization.module';
 import { ContextModule } from '@/modules/context/context.module';
+import { WorkspaceSetupModule } from '@/modules/workspace/setup/workspace-setup.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ContextModule } from '@/modules/context/context.module';
     UserModule,
     AuthorizationModule,
     ContextModule,
+    WorkspaceSetupModule,
     PassportModule,
     SecurityModule,
     CommunicationModule,

@@ -22,6 +22,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Academic Years')
@@ -37,6 +38,7 @@ export class AcademicYearController {
   constructor(private readonly academicYearService: AcademicYearService) {}
 
   @Post()
+  @AllowDuringSetup()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create academic year' })

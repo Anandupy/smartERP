@@ -15,6 +15,7 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 
 @ApiTags('Organizations')
@@ -24,6 +25,7 @@ export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Post()
+  @AllowDuringSetup()
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create a new organization (Super Admin only)' })

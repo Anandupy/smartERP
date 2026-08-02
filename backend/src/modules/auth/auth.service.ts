@@ -30,6 +30,7 @@ import { OtpPurpose } from '@/generated/client';
 
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { ContextDiscoveryService } from '@/modules/context/services/context-discovery.service';
+import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup.service';
 
 @Injectable()
 export class AuthService {
@@ -44,6 +45,7 @@ export class AuthService {
     private readonly otpService: OtpService,
     private readonly authorizationService: AuthorizationService,
     private readonly contextDiscoveryService: ContextDiscoveryService,
+    private readonly workspaceSetupService: WorkspaceSetupService,
   ) {}
 
   async getMe(userId: string, currentContext?: any) {
@@ -60,14 +62,20 @@ export class AuthService {
         user.role,
       );
 
-    const discovery = await this.contextDiscoveryService.discoverContexts(
-      userId,
-      user.role,
-      user.organizationId,
-      user.branchId,
-      currentContext?.organizationId,
-      currentContext?.branchId,
-    );
+    const [discovery, setup] = await Promise.all([
+      this.contextDiscoveryService.discoverContexts(
+        userId,
+        user.role,
+        user.organizationId,
+        user.branchId,
+        currentContext?.organizationId,
+        currentContext?.branchId,
+      ),
+      // /auth/me is the client's first authenticated call, so it is where the
+      // bootstrap state belongs: a fresh installation learns it must run setup
+      // before it discovers that every other endpoint is blocked.
+      this.workspaceSetupService.getStatus(),
+    ]);
 
     const context = {
       organizationId:
@@ -81,6 +89,7 @@ export class AuthService {
       role: user.role,
       permissions: effectivePermissions,
       context,
+      setup,
       availableOrganizations: discovery.availableOrganizations,
       availableBranches: discovery.availableBranches,
       availableAcademicYears: discovery.availableAcademicYears,

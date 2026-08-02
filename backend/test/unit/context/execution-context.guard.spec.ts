@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContextGuard } from '@/modules/context/guards/execution-context.guard';
 import { ContextResolverService } from '@/modules/context/services/context-resolver.service';
+import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup.service';
 import { Reflector } from '@nestjs/core';
 import { RoleType } from '@/generated/client';
 import { buildRequestContext } from '../../factories/request-context.factory';
@@ -9,6 +10,7 @@ describe('ExecutionContextGuard', () => {
   let guard: ExecutionContextGuard;
   let reflector: any;
   let resolver: any;
+  let setupService: any;
 
   const buildRequest = (overrides: Record<string, unknown> = {}) => ({
     user: {
@@ -38,6 +40,11 @@ describe('ExecutionContextGuard', () => {
     };
     resolver = {
       resolveContext: jest.fn(),
+      resolveBootstrapContext: jest.fn(),
+    };
+    // Default to an initialized workspace: the strict resolution path.
+    setupService = {
+      isInitialized: jest.fn().mockResolvedValue(true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -45,6 +52,7 @@ describe('ExecutionContextGuard', () => {
         ExecutionContextGuard,
         { provide: Reflector, useValue: reflector },
         { provide: ContextResolverService, useValue: resolver },
+        { provide: WorkspaceSetupService, useValue: setupService },
       ],
     }).compile();
 

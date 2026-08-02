@@ -47,4 +47,3 @@ export class MaintenanceGuard implements CanActivate {
     return true;
   }
 }
-
