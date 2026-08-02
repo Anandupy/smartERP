@@ -55,7 +55,51 @@ modules/feature-name/
 - Variables/Functions: `camelCase`
 - Folders: `kebab-case`
 
+## TypeScript Conventions
+
+### Definite assignment on framework-populated properties
+
+`strictPropertyInitialization` is enabled. Properties that the constructor does
+not assign — because a framework assigns them — must carry the definite
+assignment assertion `!`:
+
+```typescript
+export class CreateBranchDto {
+  @ApiProperty({ description: 'Organization UUID' })
+  @IsString()
+  @IsNotEmpty()
+  organizationId!: string;      // assigned by ValidationPipe / class-transformer
+
+  @ApiPropertyOptional({ description: 'Logo URL' })
+  @IsString()
+  @IsOptional()
+  logoUrl?: string;             // optional: no assertion needed
+}
+```
+
+This applies to:
+- **DTO properties** that are required — populated by `class-transformer` when
+  `ValidationPipe` runs, never by a constructor.
+- **Nest property injection** — e.g. `@Inject(EventBus) protected readonly eventBus!: EventBus;`
+  in `BaseMasterService`.
+
+`!` is erased at compile time and has no runtime effect; Swagger and
+`class-validator` metadata are unaffected. Optional properties (`?:`) never take
+an assertion.
+
+### Prisma imports
+
+Always import from `@/generated/client`, never from `@prisma/client`. This is
+enforced by ESLint — see [Prisma Guide §8](./prisma-guide.md#8-client-import-rule-mandatory)
+for the runtime defect that made the rule necessary.
+
+## Configuration
+Environment variables are validated at startup and documented in
+[Configuration Contract](./core/configuration.md). Secrets have no fallbacks:
+a missing or placeholder `JWT_SECRET` prevents the process from booting.
+
 ## Core Architecture Documentation
+- [Configuration Contract](./core/configuration.md)
 - [Logging System](./core/logging.md)
 - [Event-Driven Architecture](./core/events.md)
 - [Audit Architecture](./core/audit.md)

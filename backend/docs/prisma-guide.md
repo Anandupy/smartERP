@@ -189,3 +189,75 @@ The project includes `scripts/safe-prisma.ts`. Attempts to run destructive comma
    # 4. Execute unit & integration tests
    npm run test:unit
    ```
+
+---
+
+## 8. Client Import Rule (Mandatory)
+
+> [!IMPORTANT]
+> Prisma **must** be imported from `@/generated/client`. Importing `@prisma/client`
+> directly is forbidden and is blocked by ESLint (`no-restricted-imports`).
+
+### Why this matters
+
+`@prisma/client` and `@/generated/client` resolve to **two different module
+instances** at runtime:
+
+```text
+@prisma/client       ->  node_modules/@prisma/client  ->  .prisma/client/default
+@/generated/client   ->  prisma/generated
+```
+
+Each exposes its own copy of the `Prisma` namespace, which means its own copy of
+the error classes:
+
+```typescript
+require('@prisma/client').Prisma.PrismaClientKnownRequestError
+  === require('./prisma/generated').Prisma.PrismaClientKnownRequestError
+// false
+```
+
+`PrismaService` extends `PrismaClient` from `@/generated/client`, so every error
+Prisma throws is an instance of the **generated** class. Any `instanceof` check
+written against the `@prisma/client` copy is silently always `false`.
+
+### The failure this caused
+
+`GlobalExceptionFilter` imported `Prisma` from `@prisma/client`, so its
+`exception instanceof Prisma.PrismaClientKnownRequestError` branch never
+matched. `PrismaErrorTranslator` — and all of its field-specific messages —
+never ran in production. Every unique-constraint, foreign-key and
+record-not-found error fell through to the generic handler and was returned as:
+
+```json
+{ "success": false, "code": "DATABASE_CONSTRAINT_ERROR", "message": "Unable to process request due to database validation failure." }
+```
+
+with HTTP **500**, instead of the intended **409 / 400 / 404** with a message
+naming the offending field.
+
+### Why tests did not catch it
+
+`package.json` and the Jest configs map both specifiers onto the same path:
+
+```json
+"moduleNameMapper": {
+  "@/generated/client": "<rootDir>/prisma/generated",
+  "@prisma/client": "<rootDir>/prisma/generated"
+}
+```
+
+Under Jest the two collapse into one module, so `instanceof` succeeded and the
+filter's unit tests passed against a defect that only existed at runtime. The
+mapping is kept (third-party code may still import the bare specifier), which is
+exactly why the ESLint rule — not the test suite — is the guard.
+
+### Correct usage
+
+```typescript
+// ✅ Types, enums and error classes
+import { Prisma, RoleType, OrganizationStatus } from '@/generated/client';
+
+// ❌ Blocked by ESLint
+import { Prisma } from '@prisma/client';
+```
