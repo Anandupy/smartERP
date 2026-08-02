@@ -13,17 +13,17 @@ export class CreateSystemDto {
   @ApiProperty({ description: 'Product Name', example: 'CampusFlow ERP' })
   @IsString()
   @IsNotEmpty()
-  productName: string;
+  productName!: string;
 
   @ApiProperty({ description: 'Product Code', example: 'CF-ERP' })
   @IsString()
   @IsNotEmpty()
-  productCode: string;
+  productCode!: string;
 
   @ApiProperty({ description: 'System Version', example: '1.0.0' })
   @IsString()
   @IsNotEmpty()
-  version: string;
+  version!: string;
 
   @ApiProperty({
     description: 'Deployment Environment',
@@ -32,12 +32,12 @@ export class CreateSystemDto {
   })
   @IsEnum(Environment)
   @IsNotEmpty()
-  environment: Environment;
+  environment!: Environment;
 
   @ApiProperty({ description: 'Maintenance Mode Flag', default: false })
   @IsBoolean()
   @IsNotEmpty()
-  maintenanceMode: boolean;
+  maintenanceMode!: boolean;
 
   @ApiPropertyOptional({ description: 'Maintenance Message Notice' })
   @IsString()
@@ -50,10 +50,10 @@ export class CreateSystemDto {
   })
   @IsEmail()
   @IsNotEmpty()
-  supportEmail: string;
+  supportEmail!: string;
 
   @ApiProperty({ description: 'Support Contact Phone', example: '1800123456' })
   @IsString()
   @IsNotEmpty()
-  supportPhone: string;
+  supportPhone!: string;
 }

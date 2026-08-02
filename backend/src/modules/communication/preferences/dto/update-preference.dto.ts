@@ -9,7 +9,7 @@ export class UpdateNotificationPreferenceDto {
   })
   @IsEnum(NotificationCategory)
   @IsNotEmpty()
-  category: NotificationCategory;
+  category!: NotificationCategory;
 
   @ApiPropertyOptional({ default: true })
   @IsBoolean()

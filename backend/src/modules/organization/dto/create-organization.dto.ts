@@ -15,7 +15,7 @@ export class CreateOrganizationDto {
   })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'Unique organization code',
@@ -27,7 +27,7 @@ export class CreateOrganizationDto {
     message:
       'Code must be lowercase and contain only alphanumeric characters and hyphens',
   })
-  code: string;
+  code!: string;
 
   @ApiPropertyOptional({ description: 'Organization Logo URL' })
   @IsString()
@@ -40,12 +40,12 @@ export class CreateOrganizationDto {
   })
   @IsEmail()
   @IsNotEmpty()
-  contactEmail: string;
+  contactEmail!: string;
 
   @ApiProperty({ description: 'Primary Contact Phone', example: '9876543210' })
   @IsString()
   @IsNotEmpty()
-  contactPhone: string;
+  contactPhone!: string;
 
   @ApiProperty({
     description: 'Master License Expiry Date (ISO format)',
@@ -53,7 +53,7 @@ export class CreateOrganizationDto {
   })
   @IsDateString()
   @IsNotEmpty()
-  masterExpiryDate: string;
+  masterExpiryDate!: string;
 
   @ApiPropertyOptional({
     description: 'Address Line 1',

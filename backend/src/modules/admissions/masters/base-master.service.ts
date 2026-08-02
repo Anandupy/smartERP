@@ -15,7 +15,7 @@ import {
 @Injectable()
 export class BaseMasterService {
   @Inject(EventBus)
-  protected readonly eventBus: EventBus;
+  protected readonly eventBus!: EventBus;
 
   constructor(
     protected readonly prisma: PrismaService,

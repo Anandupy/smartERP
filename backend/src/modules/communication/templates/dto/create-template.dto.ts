@@ -21,7 +21,7 @@ export class CreateTemplateDto {
   })
   @IsString()
   @IsNotEmpty()
-  code: string;
+  code!: string;
 
   @ApiProperty({
     description: 'Display name of template',
@@ -29,7 +29,7 @@ export class CreateTemplateDto {
   })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ description: 'Description of template' })
   @IsString()
@@ -41,14 +41,14 @@ export class CreateTemplateDto {
     example: CommunicationChannel.EMAIL,
   })
   @IsEnum(CommunicationChannel)
-  channel: CommunicationChannel;
+  channel!: CommunicationChannel;
 
   @ApiProperty({
     enum: NotificationCategory,
     example: NotificationCategory.AUTHENTICATION,
   })
   @IsEnum(NotificationCategory)
-  category: NotificationCategory;
+  category!: NotificationCategory;
 
   @ApiPropertyOptional({
     description: 'Subject line (for Email / Push)',

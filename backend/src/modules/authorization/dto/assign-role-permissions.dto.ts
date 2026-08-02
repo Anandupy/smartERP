@@ -8,5 +8,5 @@ export class AssignRolePermissionsDto {
   })
   @IsArray()
   @IsUUID('7', { each: true })
-  permissionIds: string[];
+  permissionIds!: string[];
 }

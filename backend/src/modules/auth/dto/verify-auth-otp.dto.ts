@@ -10,7 +10,7 @@ export class VerifyAuthOtpDto {
   })
   @IsString()
   @IsNotEmpty()
-  identifier: string;
+  identifier!: string;
 
   @ApiProperty({
     description: 'The purpose of the OTP',
@@ -19,7 +19,7 @@ export class VerifyAuthOtpDto {
   })
   @IsEnum(OtpPurpose)
   @IsNotEmpty()
-  purpose: OtpPurpose;
+  purpose!: OtpPurpose;
 
   @ApiProperty({
     description: 'The OTP code to verify',
@@ -28,5 +28,5 @@ export class VerifyAuthOtpDto {
   @IsString()
   @IsNotEmpty()
   @Length(6, 6, { message: 'OTP must be exactly 6 digits' })
-  otp: string;
+  otp!: string;
 }

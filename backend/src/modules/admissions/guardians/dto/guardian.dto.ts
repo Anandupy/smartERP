@@ -14,7 +14,7 @@ export class CreateGuardianDto {
   @ApiProperty({ description: 'First name' })
   @IsString()
   @IsNotEmpty()
-  firstName: string;
+  firstName!: string;
 
   @ApiPropertyOptional({ description: 'Middle name' })
   @IsString()
@@ -24,13 +24,13 @@ export class CreateGuardianDto {
   @ApiProperty({ description: 'Last name' })
   @IsString()
   @IsNotEmpty()
-  lastName: string;
+  lastName!: string;
 
   @ApiProperty({ description: 'Primary mobile number' })
   @IsString()
   @IsNotEmpty()
   @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid primary mobile format' })
-  mobilePrimary: string;
+  mobilePrimary!: string;
 
   @ApiPropertyOptional({ description: 'Secondary mobile number' })
   @IsString()
@@ -176,12 +176,12 @@ export class MapGuardianDto {
   @ApiProperty({ description: 'Guardian UUID' })
   @IsString()
   @IsNotEmpty()
-  guardianId: string;
+  guardianId!: string;
 
   @ApiProperty({ description: 'Relation type UUID' })
   @IsString()
   @IsNotEmpty()
-  relationTypeId: string;
+  relationTypeId!: string;
 
   @ApiPropertyOptional({
     description: 'Is the primary guardian',

@@ -17,7 +17,7 @@ export class CreateBranchDto {
   @ApiProperty({ description: 'Organization UUID' })
   @IsString()
   @IsNotEmpty()
-  organizationId: string;
+  organizationId!: string;
 
   @ApiProperty({
     description: 'Branch Name',
@@ -25,7 +25,7 @@ export class CreateBranchDto {
   })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'Unique branch code',
@@ -37,7 +37,7 @@ export class CreateBranchDto {
     message:
       'Code must be lowercase and contain only alphanumeric characters and hyphens',
   })
-  code: string;
+  code!: string;
 
   @ApiPropertyOptional({ description: 'Registration Number' })
   @IsString()
@@ -51,7 +51,7 @@ export class CreateBranchDto {
   })
   @IsEnum(InstitutionType)
   @IsNotEmpty()
-  institutionType: InstitutionType;
+  institutionType!: InstitutionType;
 
   @ApiPropertyOptional({
     description: 'Affiliation Type',
@@ -78,17 +78,17 @@ export class CreateBranchDto {
   })
   @IsEmail()
   @IsNotEmpty()
-  contactEmail: string;
+  contactEmail!: string;
 
   @ApiProperty({ description: 'Branch Contact Phone', example: '9876543210' })
   @IsString()
   @IsNotEmpty()
-  contactPhone: string;
+  contactPhone!: string;
 
   @ApiProperty({ description: 'Address Line 1', example: '123 Education Lane' })
   @IsString()
   @IsNotEmpty()
-  addressLine1: string;
+  addressLine1!: string;
 
   @ApiPropertyOptional({ description: 'Address Line 2' })
   @IsString()
@@ -98,22 +98,22 @@ export class CreateBranchDto {
   @ApiProperty({ description: 'City', example: 'Mumbai' })
   @IsString()
   @IsNotEmpty()
-  city: string;
+  city!: string;
 
   @ApiProperty({ description: 'State', example: 'Maharashtra' })
   @IsString()
   @IsNotEmpty()
-  state: string;
+  state!: string;
 
   @ApiProperty({ description: 'Country', example: 'India' })
   @IsString()
   @IsNotEmpty()
-  country: string;
+  country!: string;
 
   @ApiProperty({ description: 'Pincode', example: '400001' })
   @IsString()
   @IsNotEmpty()
-  pincode: string;
+  pincode!: string;
 
   @ApiPropertyOptional({
     description: 'Structure Mode',

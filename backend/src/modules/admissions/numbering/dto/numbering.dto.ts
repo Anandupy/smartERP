@@ -20,7 +20,7 @@ export class CreateNumberSequenceConfigDto {
   })
   @IsString()
   @IsNotEmpty()
-  purpose: string;
+  purpose!: string;
 
   @ApiPropertyOptional({ description: 'Prefix to prepend' })
   @IsString()
@@ -62,7 +62,7 @@ export class CreateNumberSequenceConfigDto {
   })
   @IsString()
   @IsNotEmpty()
-  format: string;
+  format!: string;
 
   @ApiPropertyOptional({
     description: 'Reset strategy for the counter',

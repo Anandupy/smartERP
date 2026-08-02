@@ -16,7 +16,7 @@ export class CreateApplicantDto {
   @ApiProperty({ description: 'First name of the applicant' })
   @IsString()
   @IsNotEmpty()
-  firstName: string;
+  firstName!: string;
 
   @ApiPropertyOptional({ description: 'Middle name of the applicant' })
   @IsString()
@@ -26,16 +26,16 @@ export class CreateApplicantDto {
   @ApiProperty({ description: 'Last name of the applicant' })
   @IsString()
   @IsNotEmpty()
-  lastName: string;
+  lastName!: string;
 
   @ApiProperty({ description: 'Date of birth of the applicant (ISO format)' })
   @IsDateString()
-  dob: string;
+  dob!: string;
 
   @ApiProperty({ description: 'Gender UUID' })
   @IsString()
   @IsNotEmpty()
-  genderId: string;
+  genderId!: string;
 
   @ApiPropertyOptional({ description: 'Birth place of the applicant' })
   @IsString()
@@ -110,7 +110,7 @@ export class CreateApplicantDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^[+0-9\s-]{7,15}$/, { message: 'Invalid primary mobile format' })
-  primaryMobile: string;
+  primaryMobile!: string;
 
   @ApiPropertyOptional({ description: 'Alternate mobile number' })
   @IsString()
@@ -127,7 +127,7 @@ export class CreateApplicantDto {
   @ApiProperty({ description: 'Current address line 1' })
   @IsString()
   @IsNotEmpty()
-  currentAddressLine1: string;
+  currentAddressLine1!: string;
 
   @ApiPropertyOptional({ description: 'Current address line 2' })
   @IsString()
@@ -137,7 +137,7 @@ export class CreateApplicantDto {
   @ApiProperty({ description: 'City' })
   @IsString()
   @IsNotEmpty()
-  city: string;
+  city!: string;
 
   @ApiPropertyOptional({ description: 'District' })
   @IsString()
@@ -147,18 +147,18 @@ export class CreateApplicantDto {
   @ApiProperty({ description: 'State' })
   @IsString()
   @IsNotEmpty()
-  state: string;
+  state!: string;
 
   @ApiProperty({ description: 'Country' })
   @IsString()
   @IsNotEmpty()
-  country: string;
+  country!: string;
 
   @ApiProperty({ description: 'Pincode' })
   @IsString()
   @IsNotEmpty()
   @Matches(/^[a-zA-Z0-9\s-]{3,10}$/, { message: 'Invalid pincode format' })
-  pincode: string;
+  pincode!: string;
 
   // Previous Education Details
   @ApiPropertyOptional({ description: 'Previous school name' })
@@ -493,21 +493,21 @@ export class CheckDuplicatesDto {
   @ApiProperty({ description: 'Primary contact mobile number' })
   @IsString()
   @IsNotEmpty()
-  primaryMobile: string;
+  primaryMobile!: string;
 
   @ApiProperty({ description: 'First name' })
   @IsString()
   @IsNotEmpty()
-  firstName: string;
+  firstName!: string;
 
   @ApiProperty({ description: 'Last name' })
   @IsString()
   @IsNotEmpty()
-  lastName: string;
+  lastName!: string;
 
   @ApiProperty({ description: 'Date of birth (ISO format)' })
   @IsDateString()
-  dob: string;
+  dob!: string;
 }
 
 export class QueryApplicantDto {

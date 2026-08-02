@@ -15,7 +15,7 @@ export class CreateUserDto {
   @ApiProperty({ description: 'Full name of the user', example: 'John Doe' })
   @IsString()
   @IsNotEmpty()
-  fullName: string;
+  fullName!: string;
 
   @ApiProperty({
     description: 'Unique username (letters, numbers, underscores)',
@@ -27,7 +27,7 @@ export class CreateUserDto {
     message:
       'Username can only contain letters, numbers, and underscores (no spaces)',
   })
-  username: string;
+  username!: string;
 
   @ApiProperty({
     description: 'User email address',
@@ -35,7 +35,7 @@ export class CreateUserDto {
   })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'User phone number',
@@ -44,7 +44,7 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @IsPhoneNumber()
-  phone: string;
+  phone!: string;
 
   @ApiProperty({
     description: 'Account password (minimum 8 characters)',
@@ -53,7 +53,7 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
-  password: string;
+  password!: string;
 
   @ApiProperty({
     description: 'Role assigned to the user',
@@ -62,7 +62,7 @@ export class CreateUserDto {
   })
   @IsEnum(RoleType)
   @IsNotEmpty()
-  role: RoleType;
+  role!: RoleType;
 
   @ApiPropertyOptional({ description: 'Organization UUID' })
   @IsString()

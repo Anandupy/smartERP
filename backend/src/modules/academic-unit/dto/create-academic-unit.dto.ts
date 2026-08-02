@@ -14,17 +14,17 @@ export class CreateAcademicUnitDto {
   @ApiProperty({ description: 'Branch ID' })
   @IsString()
   @IsNotEmpty()
-  branchId: string;
+  branchId!: string;
 
   @ApiProperty({ description: 'Program ID' })
   @IsString()
   @IsNotEmpty()
-  programId: string;
+  programId!: string;
 
   @ApiProperty({ description: 'Academic Year ID' })
   @IsString()
   @IsNotEmpty()
-  academicYearId: string;
+  academicYearId!: string;
 
   @ApiPropertyOptional({ description: 'Parent Academic Unit ID' })
   @IsOptional()
@@ -34,7 +34,7 @@ export class CreateAcademicUnitDto {
   @ApiProperty({ description: 'Name of the academic unit' })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ description: 'Code for the academic unit' })
   @IsOptional()
@@ -47,7 +47,7 @@ export class CreateAcademicUnitDto {
   })
   @IsEnum(AcademicUnitType)
   @IsNotEmpty()
-  unitType: AcademicUnitType;
+  unitType!: AcademicUnitType;
 
   @ApiPropertyOptional({ description: 'Display order for UI' })
   @IsOptional()

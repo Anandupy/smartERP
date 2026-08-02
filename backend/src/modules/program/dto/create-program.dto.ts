@@ -12,7 +12,7 @@ export class CreateProgramDto {
   @ApiProperty({ description: 'Target Branch UUID' })
   @IsUUID()
   @IsNotEmpty()
-  branchId: string;
+  branchId!: string;
 
   @ApiProperty({
     description: 'Program Name',
@@ -20,7 +20,7 @@ export class CreateProgramDto {
   })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({
     description: 'Program Level',

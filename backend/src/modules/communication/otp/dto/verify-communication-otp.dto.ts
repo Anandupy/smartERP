@@ -9,11 +9,11 @@ export class VerifyCommunicationOtpDto {
   })
   @IsString()
   @IsNotEmpty()
-  identifier: string;
+  identifier!: string;
 
   @ApiProperty({ enum: OtpPurpose, example: OtpPurpose.PASSWORD_RESET })
   @IsEnum(OtpPurpose)
-  purpose: OtpPurpose;
+  purpose!: OtpPurpose;
 
   @ApiProperty({
     description: 'Raw OTP value provided by client',
@@ -21,5 +21,5 @@ export class VerifyCommunicationOtpDto {
   })
   @IsString()
   @IsNotEmpty()
-  otp: string;
+  otp!: string;
 }

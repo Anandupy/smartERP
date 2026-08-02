@@ -12,12 +12,12 @@ export class CreateMasterDto {
   @ApiProperty({ description: 'Unique code for the master entity' })
   @IsString()
   @IsNotEmpty()
-  code: string;
+  code!: string;
 
   @ApiProperty({ description: 'Name of the master entity' })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ description: 'Description of the master entity' })
   @IsString()

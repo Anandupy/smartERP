@@ -8,7 +8,7 @@ export class SetUserPermissionOverrideDto {
     example: '019183ab-1234-7111-a111-111111111111',
   })
   @IsUUID('7')
-  permissionId: string;
+  permissionId!: string;
 
   @ApiProperty({
     description: 'Override type: GRANT or DENY',
@@ -16,7 +16,7 @@ export class SetUserPermissionOverrideDto {
     example: OverrideType.GRANT,
   })
   @IsEnum(OverrideType)
-  type: OverrideType;
+  type!: OverrideType;
 
   @ApiPropertyOptional({
     description: 'Reason for override assignment',

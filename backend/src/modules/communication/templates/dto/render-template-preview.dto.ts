@@ -5,7 +5,7 @@ export class RenderTemplatePreviewDto {
   @ApiProperty({ description: 'Variables payload to render into the template' })
   @IsObject()
   @IsNotEmpty()
-  variables: Record<string, any>;
+  variables!: Record<string, any>;
 
   @ApiPropertyOptional({ description: 'Specific template ID to render' })
   @IsString()

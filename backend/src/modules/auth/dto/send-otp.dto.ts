@@ -10,7 +10,7 @@ export class SendOtpDto {
   })
   @IsString()
   @IsNotEmpty()
-  identifier: string;
+  identifier!: string;
 
   @ApiProperty({
     description: 'The purpose of the OTP',
@@ -19,5 +19,5 @@ export class SendOtpDto {
   })
   @IsEnum(OtpPurpose)
   @IsNotEmpty()
-  purpose: OtpPurpose;
+  purpose!: OtpPurpose;
 }

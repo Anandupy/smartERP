@@ -7,20 +7,20 @@ import {
 
 export class ContextSelectionRequiredDto {
   @ApiProperty({ example: 409 })
-  statusCode: number;
+  statusCode!: number;
 
   @ApiProperty({ example: 'CONTEXT_SELECTION_REQUIRED' })
-  error: string;
+  error!: string;
 
   @ApiProperty({ example: 'Execution context must be selected.' })
-  message: string;
+  message!: string;
 
   @ApiProperty({ type: [Object] })
-  availableOrganizations: AvailableOrganizationItem[];
+  availableOrganizations!: AvailableOrganizationItem[];
 
   @ApiProperty({ type: [Object] })
-  availableBranches: AvailableBranchItem[];
+  availableBranches!: AvailableBranchItem[];
 
   @ApiProperty({ type: [Object] })
-  availableAcademicYears: AvailableAcademicYearItem[];
+  availableAcademicYears!: AvailableAcademicYearItem[];
 }

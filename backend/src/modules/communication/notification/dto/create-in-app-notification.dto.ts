@@ -13,17 +13,17 @@ export class CreateInAppNotificationDto {
   @ApiProperty({ description: 'Target user ID' })
   @IsString()
   @IsNotEmpty()
-  userId: string;
+  userId!: string;
 
   @ApiProperty({ description: 'Notification title' })
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @ApiProperty({ description: 'Notification content body' })
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 
   @ApiPropertyOptional({
     enum: NotificationCategory,

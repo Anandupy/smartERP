@@ -16,7 +16,7 @@ export enum WorkflowState {
 export class TransitionDto {
   @ApiProperty({ description: 'Target workflow state', enum: WorkflowState })
   @IsEnum(WorkflowState)
-  newStatus: WorkflowState;
+  newStatus!: WorkflowState;
 
   @ApiPropertyOptional({ description: 'Transition audit remarks' })
   @IsString()

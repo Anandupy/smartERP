@@ -22,7 +22,7 @@ export class CreateMaintenanceRuleDto {
     example: 'GLOBAL',
   })
   @IsEnum(MaintenanceScopeType)
-  scopeType: MaintenanceScopeType;
+  scopeType!: MaintenanceScopeType;
 
   @ApiPropertyOptional({
     description:

@@ -17,11 +17,11 @@ export class GenerateOtpDto {
   })
   @IsString()
   @IsNotEmpty()
-  identifier: string;
+  identifier!: string;
 
   @ApiProperty({ enum: OtpPurpose, example: OtpPurpose.PASSWORD_RESET })
   @IsEnum(OtpPurpose)
-  purpose: OtpPurpose;
+  purpose!: OtpPurpose;
 
   @ApiPropertyOptional({ description: 'OTP length', default: 6 })
   @IsInt()

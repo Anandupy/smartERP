@@ -8,7 +8,7 @@ export class VerifyEmailDto {
   })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'The OTP code sent to the email',
@@ -17,5 +17,5 @@ export class VerifyEmailDto {
   @IsString()
   @IsNotEmpty()
   @Length(6, 6, { message: 'OTP must be exactly 6 digits' })
-  otp: string;
+  otp!: string;
 }
