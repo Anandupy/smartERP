@@ -38,6 +38,15 @@ export interface AuthContextValue extends AuthState {
    * ready; the platform only guarantees the signature.
    */
   setSession: (user: AuthUser, tokens: TokenPair) => void;
+  /**
+   * Replace the user without touching tokens.
+   *
+   * Identity arrives in two stages: the access token's claims establish a
+   * session immediately, then `GET /auth/me` fills in the real name and
+   * permissions. The second stage must not re-write credentials it was never
+   * given, which is why it is a separate call rather than another `setSession`.
+   */
+  setUser: (user: AuthUser) => void;
   /** Clear the session (logout). */
   clearSession: () => void;
 }

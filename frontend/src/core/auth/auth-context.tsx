@@ -30,6 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(nextUser);
   }, []);
 
+  const replaceUser = useCallback((nextUser: AuthUser) => {
+    setUser(nextUser);
+  }, []);
+
   const clearSession = useCallback(() => {
     getTokenStorage().clear();
     setUser(null);
@@ -41,9 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       status: user ? "authenticated" : "unauthenticated",
       isAuthenticated: user !== null,
       setSession,
+      setUser: replaceUser,
       clearSession,
     }),
-    [user, setSession, clearSession],
+    [user, setSession, replaceUser, clearSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
