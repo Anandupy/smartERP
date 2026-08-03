@@ -28,8 +28,38 @@ export const ROUTES = Object.freeze({
   workspace: {
     root: "/workspace",
   },
+  /**
+   * The authenticated application. Every path below renders inside the
+   * dashboard shell and is scoped by the active workspace.
+   */
   app: {
     root: "/app",
+    /**
+     * Global configuration. `settings.maintenance` is the *system settings*
+     * screen (maintenance mode + support channels); the separate
+     * `app.maintenance` tree below owns maintenance **rules**.
+     */
+    settings: {
+      root: "/app/settings",
+      general: "/app/settings/general",
+      branding: "/app/settings/branding",
+      maintenance: "/app/settings/maintenance",
+      systemInformation: "/app/settings/system-information",
+      history: "/app/settings/history",
+    },
+    /**
+     * Maintenance **rules**. A rule has no read-only screen of its own: the
+     * editor is the detail view, so opening one always lands somewhere it can
+     * be changed.
+     */
+    maintenance: {
+      root: "/app/maintenance",
+      create: "/app/maintenance/new",
+      edit: (id: string) => `/app/maintenance/${id}/edit`,
+    },
+    audit: {
+      root: "/app/audit",
+    },
   },
 });
 

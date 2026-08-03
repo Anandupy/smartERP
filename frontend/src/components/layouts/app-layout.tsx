@@ -1,45 +1,66 @@
-import { Container } from "@/shared/components/layout";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { Container } from "@/shared/components/layout";
+
+import { AppShellProvider } from "./app-shell-provider";
 
 export interface AppLayoutProps {
   children: React.ReactNode;
-  /** Sidebar navigation slot — populated by the navigation feature. */
+  /**
+   * Sidebar navigation slot — a `<Sidebar>` supplied by the navigation
+   * feature. Rendered outside the content column so it can collapse to a rail
+   * on desktop and become a drawer below `tablet`.
+   */
   sidebar?: React.ReactNode;
-  /** Top bar slot — search, user menu, etc. */
+  /** Top bar slot — breadcrumbs, search, workspace switcher, user menu. */
   header?: React.ReactNode;
+  /** Footer slot pinned below the content. */
+  footer?: React.ReactNode;
+  /** Widens or narrows the content column. Defaults to the standard cap. */
+  size?: React.ComponentProps<typeof Container>["size"];
   className?: string;
 }
 
 /**
- * Authenticated application shell: fixed sidebar on large screens, stacked on
- * mobile, with a sticky header and a scrollable, responsive content region.
- * Slots are injected by features; this component owns structure, not content.
+ * Authenticated application shell: sidebar, sticky header, scrollable content.
+ *
+ * Structure only — every piece of navigation is injected, which is what lets
+ * one shell serve all 100+ ERP screens without knowing about any of them. The
+ * responsive behaviour lives in the `Sidebar` primitive: a collapsible rail
+ * from `tablet` up, an overlay drawer below it, so there is no fixed layout
+ * width anywhere between 320 and 1920px.
+ *
+ * Stays a Server Component; the interactive seam is `AppShellProvider`.
  */
 export function AppLayout({
   children,
   sidebar,
   header,
+  footer,
+  size = "xl",
   className,
 }: AppLayoutProps) {
   return (
-    <div className="flex min-h-dvh flex-col lg:flex-row">
-      {sidebar ? (
-        <aside className="border-border shrink-0 border-b lg:h-dvh lg:w-64 lg:border-r lg:border-b-0">
-          {sidebar}
-        </aside>
-      ) : null}
+    <AppShellProvider>
+      {sidebar}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <SidebarInset className="min-w-0">
         {header ? (
-          <header className="border-border bg-background/80 sticky top-0 z-20 border-b backdrop-blur">
+          <header className="border-border bg-background/85 sticky top-0 z-20 border-b backdrop-blur">
             {header}
           </header>
         ) : null}
 
         <main className={cn("flex-1", className)}>
-          <Container className="py-4 sm:py-6 lg:py-8">{children}</Container>
+          <Container size={size} className="py-4 sm:py-6 lg:py-8">
+            {children}
+          </Container>
         </main>
-      </div>
-    </div>
+
+        {footer ? (
+          <footer className="border-border border-t">{footer}</footer>
+        ) : null}
+      </SidebarInset>
+    </AppShellProvider>
   );
 }

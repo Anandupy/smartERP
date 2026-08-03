@@ -1,6 +1,14 @@
 import { AppLayout } from "@/components/layouts";
 import { ProtectedRoute } from "@/core/auth";
 import { RequireWorkspace } from "@/core/workspace";
+import { SignOutButton } from "@/features/auth";
+import {
+  AppFooter,
+  AppHeader,
+  AppSidebar,
+  CommandPalette,
+  WorkspaceSwitcher,
+} from "@/features/navigation";
 
 /**
  * Layout for the authenticated application route group.
@@ -11,7 +19,10 @@ import { RequireWorkspace } from "@/core/workspace";
  * academic year, so rendering one before that scope exists would issue requests
  * with no scope headers on them.
  *
- * Sidebar and header slots are injected by the navigation feature later.
+ * This is also where the two features that make up the shell are joined:
+ * navigation supplies the chrome, authentication supplies the way out, and
+ * neither imports the other — the sign-out control is passed through as a slot,
+ * the same arrangement the workspace selection screen uses.
  */
 export default function AppGroupLayout({
   children,
@@ -21,7 +32,20 @@ export default function AppGroupLayout({
   return (
     <ProtectedRoute>
       <RequireWorkspace>
-        <AppLayout>{children}</AppLayout>
+        <AppLayout
+          sidebar={<AppSidebar workspaceSwitcher={<WorkspaceSwitcher />} />}
+          header={
+            <AppHeader
+              signOut={
+                <SignOutButton className="w-full justify-start" size="sm" />
+              }
+            />
+          }
+          footer={<AppFooter />}
+        >
+          {children}
+        </AppLayout>
+        <CommandPalette />
       </RequireWorkspace>
     </ProtectedRoute>
   );
