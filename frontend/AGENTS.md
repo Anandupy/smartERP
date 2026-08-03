@@ -104,21 +104,21 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 
 ## 6. Folder Responsibilities
 
-| Path                                                | Responsibility                                                                                                                                          |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).                                                                                                 |
-| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `system-settings`, `maintenance`, `audit`. |
-| `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.                                                                                                    |
-| `src/shared/components/{data,data-display,overlay}` | Table system, tiles/badges/cards, dialogs and drawers.                                                                                                  |
-| `src/shared`                                        | Cross-feature presentational building blocks + error boundary.                                                                                          |
-| `src/core/{api,auth,query,startup,theme,workspace}` | Platform infrastructure; no business logic.                                                                                                             |
-| `src/providers`                                     | Client provider composition root.                                                                                                                       |
-| `src/services`                                      | Transport service factories features build on.                                                                                                          |
-| `src/store`                                         | Platform-only Zustand stores (UI + preferences).                                                                                                        |
-| `src/hooks` `src/lib` `src/utils`                   | Generic reusable helpers.                                                                                                                               |
-| `src/schemas`                                       | Shared Zod schemas.                                                                                                                                     |
-| `src/config` `src/constants` `src/types`            | Env/app config, constants, shared contracts.                                                                                                            |
-| `src/styles` `src/assets`                           | Design-token CSS, curated icons/static accessors.                                                                                                       |
+| Path                                                | Responsibility                                                                                                                                                          |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).                                                                                                                 |
+| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `organization`, `system-settings`, `maintenance`, `audit`. |
+| `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.                                                                                                                    |
+| `src/shared/components/{data,data-display,overlay}` | Table system, tiles/badges/cards, dialogs and drawers.                                                                                                                  |
+| `src/shared`                                        | Cross-feature presentational building blocks + error boundary.                                                                                                          |
+| `src/core/{api,auth,query,startup,theme,workspace}` | Platform infrastructure; no business logic.                                                                                                                             |
+| `src/providers`                                     | Client provider composition root.                                                                                                                                       |
+| `src/services`                                      | Transport service factories features build on.                                                                                                                          |
+| `src/store`                                         | Platform-only Zustand stores (UI + preferences).                                                                                                                        |
+| `src/hooks` `src/lib` `src/utils`                   | Generic reusable helpers.                                                                                                                                               |
+| `src/schemas`                                       | Shared Zod schemas.                                                                                                                                                     |
+| `src/config` `src/constants` `src/types`            | Env/app config, constants, shared contracts.                                                                                                                            |
+| `src/styles` `src/assets`                           | Design-token CSS, curated icons/static accessors.                                                                                                                       |
 
 ## 7. Dependency Rules
 
@@ -436,5 +436,6 @@ inferred.
   importing each other.
 
 Detail: [`docs/administration-modules.md`](./docs/administration-modules.md),
+[`docs/organization-module.md`](./docs/organization-module.md),
 [`docs/dashboard-shell.md`](./docs/dashboard-shell.md), and the running gap
 inventory in [`docs/backend-gaps.md`](./docs/backend-gaps.md).

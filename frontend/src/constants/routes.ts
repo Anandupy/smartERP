@@ -60,6 +60,23 @@ export const ROUTES = Object.freeze({
     audit: {
       root: "/app/audit",
     },
+    /**
+     * Organizations — the platform's tenants.
+     *
+     * `root` is the management overview and `directory` the full list, the
+     * same split System Settings uses. Each record has a read-only detail
+     * screen, an editor, and a lifecycle screen, because the operational state
+     * of a tenant is a different decision from its details and should not sit
+     * on the same page as a name field.
+     */
+    organizations: {
+      root: "/app/organizations",
+      directory: "/app/organizations/directory",
+      create: "/app/organizations/new",
+      detail: (id: string) => `/app/organizations/${id}`,
+      edit: (id: string) => `/app/organizations/${id}/edit`,
+      lifecycle: (id: string) => `/app/organizations/${id}/lifecycle`,
+    },
   },
 });
 

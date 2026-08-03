@@ -22,11 +22,12 @@ without restructuring.
 13. [Workspace Scope Platform](./workspace.md)
 14. [Dashboard Shell](./dashboard-shell.md)
 15. [Administration Modules](./administration-modules.md)
-16. [Backend Contract Gaps](./backend-gaps.md)
-17. [Testing Strategy](./testing.md)
-18. [Coding Standards](./coding-standards.md)
-19. [Contribution Guide](./contributing.md)
-20. [Future Theme Integration](./theme-integration.md)
+16. [Organization Module](./organization-module.md)
+17. [Backend Contract Gaps](./backend-gaps.md)
+18. [Testing Strategy](./testing.md)
+19. [Coding Standards](./coding-standards.md)
+20. [Contribution Guide](./contributing.md)
+21. [Future Theme Integration](./theme-integration.md)
 
 ## Tech Stack
 

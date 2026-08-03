@@ -36,6 +36,13 @@ export const NAV_SECTIONS: readonly NavSection[] = Object.freeze([
         description: "Workspace overview",
       },
       {
+        id: "organizations",
+        label: "Organizations",
+        href: ROUTES.app.organizations.root,
+        icon: Building2,
+        description: "Tenants and subscriptions",
+      },
+      {
         id: "system-settings",
         label: "System Settings",
         href: ROUTES.app.settings.root,
@@ -84,13 +91,6 @@ export const NAV_SECTIONS: readonly NavSection[] = Object.freeze([
         comingSoon: true,
       },
       {
-        id: "organization",
-        label: "Organization",
-        href: ROUTES.app.root,
-        icon: Building2,
-        comingSoon: true,
-      },
-      {
         id: "finance",
         label: "Finance",
         href: ROUTES.app.root,
@@ -129,6 +129,9 @@ export const BREADCRUMB_LABELS: Readonly<Record<string, string>> =
     [ROUTES.app.maintenance.root]: "Maintenance",
     [ROUTES.app.maintenance.create]: "New rule",
     [ROUTES.app.audit.root]: "Audit Logs",
+    [ROUTES.app.organizations.root]: "Organizations",
+    [ROUTES.app.organizations.directory]: "Directory",
+    [ROUTES.app.organizations.create]: "New organization",
   });
 
 /** Placeholder copy for the header affordances that are not wired yet. */
