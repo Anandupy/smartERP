@@ -14,6 +14,7 @@ export {
   ArrowUpDown,
   Ban,
   Bell,
+  BellRing,
   Blocks,
   Building2,
   CalendarClock,

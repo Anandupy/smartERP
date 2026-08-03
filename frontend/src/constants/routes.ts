@@ -77,6 +77,32 @@ export const ROUTES = Object.freeze({
       edit: (id: string) => `/app/organizations/${id}/edit`,
       lifecycle: (id: string) => `/app/organizations/${id}/lifecycle`,
     },
+    /**
+     * Branches — the campuses inside an organization.
+     *
+     * Mirrors the organization tree: an overview at the root, a directory, and
+     * per-record detail, editor and lifecycle screens. Settings are nested
+     * under a branch rather than sitting beside it, because every one of them
+     * is scoped to a single campus.
+     */
+    branches: {
+      root: "/app/branches",
+      directory: "/app/branches/directory",
+      create: "/app/branches/new",
+      detail: (id: string) => `/app/branches/${id}`,
+      edit: (id: string) => `/app/branches/${id}/edit`,
+      lifecycle: (id: string) => `/app/branches/${id}/lifecycle`,
+      settings: {
+        root: (id: string) => `/app/branches/${id}/settings`,
+        general: (id: string) => `/app/branches/${id}/settings/general`,
+        academic: (id: string) => `/app/branches/${id}/settings/academic`,
+        communication: (id: string) =>
+          `/app/branches/${id}/settings/communication`,
+        integrations: (id: string) =>
+          `/app/branches/${id}/settings/integrations`,
+        history: (id: string) => `/app/branches/${id}/settings/history`,
+      },
+    },
   },
 });
 

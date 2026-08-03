@@ -5,6 +5,7 @@ import {
   GraduationCap,
   Landmark,
   LayoutDashboard,
+  School,
   ScrollText,
   Settings,
   Users,
@@ -41,6 +42,13 @@ export const NAV_SECTIONS: readonly NavSection[] = Object.freeze([
         href: ROUTES.app.organizations.root,
         icon: Building2,
         description: "Tenants and subscriptions",
+      },
+      {
+        id: "branches",
+        label: "Branches",
+        href: ROUTES.app.branches.root,
+        icon: School,
+        description: "Campuses and settings",
       },
       {
         id: "system-settings",
@@ -132,6 +140,9 @@ export const BREADCRUMB_LABELS: Readonly<Record<string, string>> =
     [ROUTES.app.organizations.root]: "Organizations",
     [ROUTES.app.organizations.directory]: "Directory",
     [ROUTES.app.organizations.create]: "New organization",
+    [ROUTES.app.branches.root]: "Branches",
+    [ROUTES.app.branches.directory]: "Directory",
+    [ROUTES.app.branches.create]: "New branch",
   });
 
 /** Placeholder copy for the header affordances that are not wired yet. */
