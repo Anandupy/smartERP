@@ -32,22 +32,35 @@ export const routerMock = {
 };
 
 let searchParams = new URLSearchParams();
+let pathname = "/";
 
 /** Set the query string the mocked `useSearchParams` returns. */
 export function setSearchParams(init: Record<string, string> = {}): void {
   searchParams = new URLSearchParams(init);
 }
 
+/**
+ * Set the path the mocked `usePathname` returns.
+ *
+ * Navigation chrome derives its own state from the URL — which sidebar entry is
+ * current, what the breadcrumb trail is — so testing it at all requires being
+ * able to say where the user is.
+ */
+export function setPathname(next: string): void {
+  pathname = next;
+}
+
 export function resetRouterMock(): void {
   for (const spy of Object.values(routerMock)) spy.mockReset();
   searchParams = new URLSearchParams();
+  pathname = "/";
 }
 
 /** Module factory for `vi.mock("next/navigation", …)`. */
 export function createNextNavigationMock() {
   return {
     useRouter: () => routerMock,
-    usePathname: () => "/",
+    usePathname: () => pathname,
     useSearchParams: () => searchParams,
     useParams: () => ({}),
     redirect: vi.fn(),

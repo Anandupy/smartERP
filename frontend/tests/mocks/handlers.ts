@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { apiConfig } from "@/config";
 
 import { successEnvelope } from "@tests/fixtures/api";
+import { adminHandlers } from "./admin-handlers";
 import { authHandlers } from "./auth-handlers";
 import { workspaceHandlers } from "./workspace-handlers";
 
@@ -16,6 +17,7 @@ const base = apiConfig.baseURL.replace(/\/$/, "");
 export const handlers = [
   ...authHandlers,
   ...workspaceHandlers,
+  ...adminHandlers,
   http.get(`${base}/health`, () =>
     HttpResponse.json(successEnvelope({ status: "ok" })),
   ),

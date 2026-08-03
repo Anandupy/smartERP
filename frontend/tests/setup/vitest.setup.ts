@@ -29,6 +29,31 @@ if (!document.elementFromPoint) {
 }
 
 /**
+ * jsdom implements no `matchMedia`, which every responsive hook in the platform
+ * is built on (`useMediaQuery` → `useBreakpoint` / `useIsMobile`), and which the
+ * sidebar primitive uses to choose between a desktop rail and a mobile drawer.
+ *
+ * The stub reports **no match**, so component tests render the desktop layout.
+ * That is the deliberate default: it is the layout with the most structure to
+ * assert against, and a test that needs the mobile branch can override
+ * `window.matchMedia` for its own case rather than every other test having to
+ * opt out of one.
+ */
+if (!window.matchMedia) {
+  window.matchMedia = (query: string): MediaQueryList =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
+}
+
+/**
  * jsdom implements no Pointer Capture API. Radix's Select calls it while
  * deciding whether a pointer-down became a drag, so without these the trigger
  * throws before the listbox ever opens.

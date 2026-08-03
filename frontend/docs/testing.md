@@ -84,14 +84,21 @@ exact failure bodies. Override per test with `server.use(...)`.
 `tests/setup/vitest.setup.ts` stubs the layout APIs jsdom omits but headless UI
 libraries call from layout effects and timers:
 
-| Stub                               | Needed by                                |
-| ---------------------------------- | ---------------------------------------- |
-| `ResizeObserver`                   | Radix checkbox, tooltip, popover, select |
-| `Element.prototype.scrollIntoView` | Radix focus management                   |
-| `document.elementFromPoint`        | `input-otp` caret tracking               |
+| Stub                               | Needed by                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `ResizeObserver`                   | Radix checkbox, tooltip, popover, select                                                   |
+| `Element.prototype.scrollIntoView` | Radix focus management                                                                     |
+| `document.elementFromPoint`        | `input-otp` caret tracking                                                                 |
+| `window.matchMedia`                | `useMediaQuery` → `useBreakpoint` / `useIsMobile`, and the sidebar's rail-vs-drawer choice |
+| Pointer Capture API                | Radix Select's drag detection                                                              |
 
 Nothing asserts on measured geometry; the stubs only keep the primitives
 mountable.
+
+`matchMedia` reports **no match**, so component tests render the desktop layout
+— the one with the most structure to assert against. A spec that needs the
+mobile branch overrides `window.matchMedia` for its own case, rather than every
+other spec having to opt out of one.
 
 ## Routing
 
@@ -111,6 +118,9 @@ vi.mock("next/navigation", async () => {
 Assert against `routerMock.push` / `routerMock.replace`, and call
 `resetRouterMock()` in `beforeEach`. Screens that read the query string — the
 reset-password link, for one — get it from `setSearchParams({ token: "…" })`.
+Navigation chrome derives its own state from the URL (which sidebar entry is
+current, what the breadcrumb trail is), so those specs set it with
+`setPathname("/app/settings/general")`.
 
 ## Timers
 
@@ -139,3 +149,15 @@ also pays its module-loading cost.
   mock above is the documented exception.
 - Keep unit tests fast; use integration tests for provider/transport wiring and
   Playwright for full user flows.
+- **Unit tests import the module under test, not the feature barrel.** A test
+  for a mapper or a payload reader has no business loading its module's tables
+  and drawers: doing so multiplied per-worker import cost enough to starve the
+  worker pool. Application code still imports through the barrel (AGENTS.md §7).
+- **Assert on what reaches the wire**, not just on what renders. The
+  administration specs check that a partial edit still sends a complete body,
+  that the maintenance list sends _no_ query parameters, and that the audit list
+  sends the documented ones — the properties a screenshot cannot show and a
+  refactor can silently break.
+- **Fixtures carry only documented fields.** `tests/fixtures/{system-settings,
+maintenance,audit}.ts` deliberately omit anything the backend has not
+  promised, so a test cannot pass against an invented property.
