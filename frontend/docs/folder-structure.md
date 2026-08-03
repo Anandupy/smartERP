@@ -19,10 +19,11 @@ frontend/
 │   │   └── not-found.tsx   # 404
 │   ├── features/           # isolated business modules (see _template)
 │   ├── components/
-│   │   ├── ui/             # shadcn/ui primitives (button, input, label, form)
+│   │   ├── ui/             # shadcn/ui primitives (button, input, table, sidebar, …)
 │   │   ├── form/           # RHF + Zod form infrastructure
-│   │   └── layouts/        # Auth/App/Public/Workspace shells
-│   ├── shared/             # cross-feature UI: feedback, layout, motion, error boundary
+│   │   └── layouts/        # Auth/App/Public shells + the app-shell client seam
+│   ├── shared/             # cross-feature UI: data, data-display, feedback,
+│   │                       #   layout, motion, overlay, error boundary
 │   ├── core/               # platform: api, auth, query, startup, theme, workspace
 │   ├── providers/          # provider composition root
 │   ├── hooks/              # generic React hooks

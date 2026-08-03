@@ -24,6 +24,22 @@ export function formatDate(
   return new Intl.DateTimeFormat(locale, options).format(date);
 }
 
+/**
+ * Date and time together — the default for audit trails and activity feeds,
+ * where the time of day is the point and a bare date is not enough to order two
+ * entries.
+ */
+export function formatDateTime(
+  value: Date | string | number,
+  options: Intl.DateTimeFormatOptions = {
+    dateStyle: "medium",
+    timeStyle: "short",
+  },
+  locale: string = appConfig.defaultLocale,
+): string {
+  return formatDate(value, options, locale);
+}
+
 export function truncate(value: string, max: number): string {
   return value.length > max
     ? `${value.slice(0, Math.max(0, max - 1))}…`

@@ -2,7 +2,12 @@ import { cn } from "@/lib/utils";
 
 export interface PageHeaderProps {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
+  /**
+   * Status chips rendered beside the title — a `Backend Pending` marker, an
+   * environment badge. Inline with the heading so they read as part of it.
+   */
+  badge?: React.ReactNode;
   /** Right-aligned actions (buttons, menus). Wraps below title on mobile. */
   actions?: React.ReactNode;
   className?: string;
@@ -12,6 +17,7 @@ export interface PageHeaderProps {
 export function PageHeader({
   title,
   description,
+  badge,
   actions,
   className,
 }: PageHeaderProps) {
@@ -22,10 +28,13 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="space-y-1">
-        <h1 className="text-foreground text-xl font-semibold tracking-tight sm:text-2xl">
-          {title}
-        </h1>
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-foreground text-xl font-semibold tracking-tight sm:text-2xl">
+            {title}
+          </h1>
+          {badge}
+        </div>
         {description ? (
           <p className="text-muted-foreground text-sm">{description}</p>
         ) : null}
