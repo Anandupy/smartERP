@@ -15,6 +15,14 @@ export interface AuditFilters {
   search: string;
   module: string;
   action: string;
+  /**
+   * Narrows to one record's trail — a documented filter parameter.
+   *
+   * It has no control of its own because it is never a user's choice: a screen
+   * that shows one entity's history pins it, and every other screen leaves it
+   * empty. `""` means unset.
+   */
+  aggregateId: string;
   datePreset: DatePreset;
   sortBy: AuditSortField;
   sortOrder: "asc" | "desc";
@@ -26,6 +34,7 @@ export const auditFilterDefaults: AuditFilters = {
   search: "",
   module: ANY,
   action: ANY,
+  aggregateId: "",
   datePreset: "ALL",
   sortBy: "timestamp",
   sortOrder: "desc",
@@ -61,6 +70,7 @@ export function toAuditQuery(filters: AuditFilters): AuditLogQuery {
     search: filters.search.trim() || undefined,
     module: filters.module === ANY ? undefined : filters.module,
     action: filters.action === ANY ? undefined : filters.action,
+    aggregateId: filters.aggregateId.trim() || undefined,
     startDate,
   };
 }
