@@ -7,7 +7,7 @@
           "name": "Authentication",
           "item": [
             {
-              "id": "65b1bd3b-8ca1-44ee-ab08-c782a6acd53e",
+              "id": "b13c0710-c4d8-47ad-b636-a6a9998d4a64",
               "name": "Get Active Sessions for Current User",
               "request": {
                 "name": "Get active sessions for current user",
@@ -37,7 +37,7 @@
               },
               "response": [
                 {
-                  "id": "b8dc9c55-97a8-49cc-8e69-a705fb89fed5",
+                  "id": "17e276e3-e891-4479-9e57-aee2b008b820",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -83,7 +83,7 @@
               }
             },
             {
-              "id": "4f844cfb-d25c-4278-9269-a6aadd3975ef",
+              "id": "cf68ffc7-0d95-4a59-b77a-ac78ca37355d",
               "name": "Get Current Authenticated User Profile & Context",
               "request": {
                 "name": "Get current authenticated user profile & context",
@@ -116,7 +116,7 @@
               },
               "response": [
                 {
-                  "id": "1aad8cde-0087-4224-a135-87293942494a",
+                  "id": "3a8396d9-aa62-4fe5-82a7-0ad9ccc6fa66",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -162,7 +162,7 @@
               }
             },
             {
-              "id": "8af2af18-8cdd-49ee-84a5-cba565cf8bdd",
+              "id": "9e32b62d-f30e-491f-9888-97d6a6a3d8b0",
               "name": "Get Direct Permission Overrides for a User",
               "request": {
                 "name": "Get direct permission overrides for a user",
@@ -202,7 +202,7 @@
               },
               "response": [
                 {
-                  "id": "fadede94-9fc1-488e-b218-040194606203",
+                  "id": "c2117d24-fabd-4acd-ad48-9dafe0d099b3",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -258,7 +258,7 @@
               }
             },
             {
-              "id": "f822bbd0-0e37-4ce1-bca6-74db29ef6ca0",
+              "id": "c0b0c630-dc7c-4b89-b61e-dee11b4f48bc",
               "name": "Get Effective Resolved Permissions for the Active Logged-in User",
               "request": {
                 "name": "Get effective resolved permissions for the active logged-in user",
@@ -289,7 +289,7 @@
               },
               "response": [
                 {
-                  "id": "dc13f4ce-7f0d-4adb-9ca8-29042018441e",
+                  "id": "40b6cc0f-0cc8-405b-80a9-8b4c7a9744e4",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -336,7 +336,7 @@
               }
             },
             {
-              "id": "c1fdb60c-4803-45a1-917e-d50b31c7de04",
+              "id": "0b49656b-d2af-461f-abd7-f4c7cdaa1a7a",
               "name": "Get Permission by ID",
               "request": {
                 "name": "Get permission details by ID",
@@ -375,7 +375,7 @@
               },
               "response": [
                 {
-                  "id": "3958ca22-067c-4a26-929a-9685e204b6aa",
+                  "id": "c46237b3-ee6f-4332-be1b-65115f8c4a9e",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -430,7 +430,7 @@
               }
             },
             {
-              "id": "7ddef78c-6364-4794-b8b6-f149054761fd",
+              "id": "2d91c410-eca2-426a-b39d-c544b5ce3005",
               "name": "Get Permissions Assigned to a Specific Role",
               "request": {
                 "name": "Get permissions assigned to a specific role",
@@ -470,7 +470,7 @@
               },
               "response": [
                 {
-                  "id": "d7ef2876-490c-443f-a1a5-87223c42e9e7",
+                  "id": "e2f3fdac-07c9-4127-95e7-e32edfe23071",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -488,7 +488,7 @@
                         {
                           "disabled": false,
                           "type": "any",
-                          "value": "SUPER_ADMIN",
+                          "value": "STAFF",
                           "key": "role",
                           "description": "(Required) "
                         }
@@ -526,7 +526,7 @@
               }
             },
             {
-              "id": "3d222da3-ec9b-415c-8174-238d1fb6d26e",
+              "id": "679abe79-24e6-4a26-a0b9-69def04ad3ae",
               "name": "List All Active Permission Categories",
               "request": {
                 "name": "List all active permission categories",
@@ -556,7 +556,7 @@
               },
               "response": [
                 {
-                  "id": "02050b05-adf5-4026-9a55-2d632254a945",
+                  "id": "63d3f20c-57f6-4977-9f32-177d135f8dd5",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -602,7 +602,7 @@
               }
             },
             {
-              "id": "38ba0fb8-e47f-411b-b03a-1dea195ace5e",
+              "id": "f1a6b6d0-180b-4369-a033-2679d9dc4dd6",
               "name": "List System Permissions with Category Details",
               "request": {
                 "name": "List system permissions with category details",
@@ -639,7 +639,7 @@
               },
               "response": [
                 {
-                  "id": "efd7641d-72c8-4a70-9e3a-01510b91d5c2",
+                  "id": "b231c2df-ec79-41b0-8c30-161180f57554",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -690,7 +690,7 @@
               }
             },
             {
-              "id": "615fe700-e9dd-4c34-8de3-cc8c22591b62",
+              "id": "4c805d14-1c2e-46e5-b63d-36d3d7c8c4c3",
               "name": "Remove a Direct User Permission Override",
               "request": {
                 "name": "Remove a direct user permission override",
@@ -738,7 +738,7 @@
               },
               "response": [
                 {
-                  "id": "4ae14ac4-6a51-4c75-b1f3-72adac49ea4c",
+                  "id": "088231ad-bd14-456c-a61d-61398de1be08",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -802,7 +802,7 @@
               }
             },
             {
-              "id": "0d02976f-4f7d-4466-acb0-248a6f532ea6",
+              "id": "cc06b11f-f61d-4f7f-9c58-270f94f8ca1b",
               "name": "Revoke a Specific Session",
               "request": {
                 "name": "Revoke a specific session",
@@ -841,7 +841,7 @@
               },
               "response": [
                 {
-                  "id": "7c71f763-4957-4f09-9945-2f3a16f1c601",
+                  "id": "3d9dfd47-912c-49ae-95cc-c27add7d3866",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -896,7 +896,7 @@
               }
             },
             {
-              "id": "a66f8520-4b63-4d6f-8913-b5d022d14c57",
+              "id": "ad504655-2f8a-496b-9fd8-8650bd6b7d7f",
               "name": "Revoke All Sessions",
               "request": {
                 "name": "Revoke all sessions",
@@ -926,7 +926,7 @@
               },
               "response": [
                 {
-                  "id": "2cff22ae-1af9-470a-bfb1-74bf0c53972d",
+                  "id": "952b3027-e1d2-41e4-a166-835d72ad488a",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -972,7 +972,7 @@
               }
             },
             {
-              "id": "eabd6a41-9c45-409b-88c9-eb39c470ae01",
+              "id": "9b22c7da-244b-45f1-befa-092e5d06fd51",
               "name": "Assign or Synchronize Permissions for a Role",
               "request": {
                 "name": "Assign or synchronize permissions for a role",
@@ -1027,7 +1027,7 @@
               },
               "response": [
                 {
-                  "id": "4ccd6caa-f656-4e43-97ef-8382625bfbb3",
+                  "id": "8c2a613a-84bc-451b-b20e-9c7737be67a5",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1045,7 +1045,7 @@
                         {
                           "disabled": false,
                           "type": "any",
-                          "value": "SUPER_ADMIN",
+                          "value": "STAFF",
                           "key": "role",
                           "description": "(Required) "
                         }
@@ -1091,7 +1091,7 @@
               }
             },
             {
-              "id": "4ea86735-f0cb-42af-8ccf-b62d868af5ab",
+              "id": "0dc82c57-2e37-4857-b82d-e37473468e4f",
               "name": "Generate and Send OTP for Specific Purpose",
               "request": {
                 "name": "Generate and send OTP for specific purpose",
@@ -1128,7 +1128,7 @@
               },
               "response": [
                 {
-                  "id": "11ad1732-c9ad-4561-a047-4f4be39f5345",
+                  "id": "f45d4f17-dc6f-4c3b-a064-d7c766b76f86",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1172,7 +1172,7 @@
               }
             },
             {
-              "id": "cf33ab6c-bb14-450e-a980-8d36ee66e0a1",
+              "id": "a8127cf3-e2bb-4a0e-9d3a-61621e926087",
               "name": "Login with Email/Username/Phone",
               "request": {
                 "name": "Login with email/username/phone",
@@ -1209,7 +1209,7 @@
               },
               "response": [
                 {
-                  "id": "393d11fb-9ef7-4127-b562-1b08d51a4a55",
+                  "id": "3d6f48c9-9ca3-4b78-bb9e-57ecdac667d3",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1253,7 +1253,7 @@
               }
             },
             {
-              "id": "574078eb-199e-414f-9fa0-4d35b143f2f6",
+              "id": "869d6306-a17a-40cb-9412-be7864b81f95",
               "name": "Logout and Revoke Refresh Token",
               "request": {
                 "name": "Logout and revoke refresh token",
@@ -1290,7 +1290,7 @@
               },
               "response": [
                 {
-                  "id": "75754e07-d5e0-4f7f-bd5c-99dbec9b386e",
+                  "id": "1617bd51-26a1-4c0e-8d4c-8bbcfbd0feb4",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1341,7 +1341,7 @@
               }
             },
             {
-              "id": "37259f6f-01de-42a8-9b28-decac1fbe208",
+              "id": "a2d47947-21f2-48f3-aa9c-1e7530444055",
               "name": "Refresh Access Token",
               "request": {
                 "name": "Refresh access token",
@@ -1363,7 +1363,7 @@
               },
               "response": [
                 {
-                  "id": "1afa07f4-f3ea-403c-9ce9-0ff04699dbec",
+                  "id": "327871ed-3481-4b61-8f8a-26a7e191c001",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1399,7 +1399,7 @@
               }
             },
             {
-              "id": "e5edcd09-e2f2-4a21-add0-2d36afcb9462",
+              "id": "e35e92df-8510-4921-91a3-f9d74b7e435b",
               "name": "Request Password Reset Link/OTP",
               "request": {
                 "name": "Request password reset link/OTP",
@@ -1436,7 +1436,7 @@
               },
               "response": [
                 {
-                  "id": "a366ff40-f3b9-4ee9-ac2e-5db1e286d0b2",
+                  "id": "620a1dda-d03e-42fa-993a-a6bbd869167f",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1480,7 +1480,7 @@
               }
             },
             {
-              "id": "ac5d69b8-4417-4729-86b9-761f3a2741d7",
+              "id": "1da29ecd-c994-48f4-97f2-8477fea6c6da",
               "name": "Resend Email Verification OTP",
               "request": {
                 "name": "Resend email verification OTP",
@@ -1517,7 +1517,7 @@
               },
               "response": [
                 {
-                  "id": "7e25c53e-2051-41d1-812f-5df918de7cbe",
+                  "id": "12220212-3deb-48cd-8c03-81a2e90860b0",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1561,7 +1561,7 @@
               }
             },
             {
-              "id": "f2d936b3-f2ab-441f-b250-2cb789b628e5",
+              "id": "659639e8-c843-4f90-89db-7053301e8324",
               "name": "Resend OTP",
               "request": {
                 "name": "Resend OTP",
@@ -1598,7 +1598,7 @@
               },
               "response": [
                 {
-                  "id": "8d71b183-522e-45c5-ba51-133fa83fbcf3",
+                  "id": "19bc6a52-2ddc-48a2-a2ef-af5f51d4fff3",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1642,7 +1642,7 @@
               }
             },
             {
-              "id": "8106cfb2-7244-4e73-8587-a9fd9c673efb",
+              "id": "e0a47aa1-491f-4ba8-b1a0-b2ca5daefe41",
               "name": "Reset Password Using Secure Token",
               "request": {
                 "name": "Reset password using secure token",
@@ -1679,7 +1679,7 @@
               },
               "response": [
                 {
-                  "id": "ac144610-2a92-4ab8-ba2e-e1f7eff0b917",
+                  "id": "a8b06193-dc60-499e-af4d-cb142db65afc",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1723,7 +1723,7 @@
               }
             },
             {
-              "id": "be39ce79-be9f-455b-9998-39efffdd9011",
+              "id": "bc777a63-2992-4c02-8a4e-2caa89cc9961",
               "name": "Set Direct Permission Override for a User (GRANT or DENY)",
               "request": {
                 "name": "Set direct permission override for a user (GRANT or DENY)",
@@ -1778,7 +1778,7 @@
               },
               "response": [
                 {
-                  "id": "5ccf05d2-7d6f-44d6-ab19-ecd12ab9ab80",
+                  "id": "d9b18420-1471-45fc-b895-11e9bd7f6edd",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1842,7 +1842,7 @@
               }
             },
             {
-              "id": "51f4fe7a-c00b-4f50-a3bb-c70bfbf08c4a",
+              "id": "2159874a-d40f-430e-ad6c-f824d1bad993",
               "name": "Verify Email Address Using OTP",
               "request": {
                 "name": "Verify email address using OTP",
@@ -1879,7 +1879,7 @@
               },
               "response": [
                 {
-                  "id": "bab78aec-99fa-4ecd-bd71-419d9390fc20",
+                  "id": "ffa74aee-572a-46a1-925c-99d8fff49733",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -1923,7 +1923,7 @@
               }
             },
             {
-              "id": "71a83887-99e5-4a5f-a616-9680551dec10",
+              "id": "8a87b918-33ad-4f08-970e-ac02802afcb3",
               "name": "Verify OTP Code",
               "request": {
                 "name": "Verify OTP code",
@@ -1960,7 +1960,7 @@
               },
               "response": [
                 {
-                  "id": "4030e55f-0d08-4f49-bbdf-7891e147fd84",
+                  "id": "8819c959-a9ce-4e02-b170-41903e175eaf",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2009,7 +2009,7 @@
           "name": "User",
           "item": [
             {
-              "id": "3280f6f3-848a-4a26-a111-01c41698cec0",
+              "id": "f4b13532-e9cf-4981-9b38-c4c94f834f53",
               "name": "Create User (Admin Only)",
               "request": {
                 "name": "Create user (Admin only)",
@@ -2053,7 +2053,7 @@
               },
               "response": [
                 {
-                  "id": "be1d8b88-e057-43a0-838d-d9deeebab96e",
+                  "id": "5519ab72-5f76-4330-bbc5-edee1950b5c8",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2106,7 +2106,7 @@
               }
             },
             {
-              "id": "3301f415-4bca-4552-9d94-0d461181822a",
+              "id": "cd0f286f-d1a6-4bed-adde-7fe0f57ec2a3",
               "name": "Get User by ID",
               "request": {
                 "name": "Get user by ID",
@@ -2144,7 +2144,7 @@
               },
               "response": [
                 {
-                  "id": "cae6c32e-f8cf-4e23-ae66-15fe12a21df6",
+                  "id": "fc24bf1d-32a4-4c3e-9048-4567a7abf1d3",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2198,7 +2198,7 @@
               }
             },
             {
-              "id": "7963860b-2914-4739-b5f2-613131b0b140",
+              "id": "b1fbdebd-7996-4357-a3fd-033c776bf8ce",
               "name": "Update User",
               "request": {
                 "name": "Update user",
@@ -2251,7 +2251,7 @@
               },
               "response": [
                 {
-                  "id": "30ce838f-9d16-4e40-ba4c-a88f17e20366",
+                  "id": "9530b7ea-8b72-4588-8e48-a39f414f037b",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2323,7 +2323,7 @@
           "name": "Branch",
           "item": [
             {
-              "id": "671d1863-84f2-43ff-86fa-9b8382c15849",
+              "id": "bd16c285-f1d8-4688-9152-98271a98d958",
               "name": "Create Branch (Super/Org Admin Only)",
               "request": {
                 "name": "Create a new branch (Super/Org Admin only)",
@@ -2367,7 +2367,7 @@
               },
               "response": [
                 {
-                  "id": "28228e27-bc96-4f48-af02-b35082ad1584",
+                  "id": "3d0e6728-847d-4e3e-8be0-3d3c178c9cc8",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2420,7 +2420,7 @@
               }
             },
             {
-              "id": "ad70aa80-6d80-4593-9684-2848142dfeb8",
+              "id": "07284d34-3bc5-4947-b0f3-a5e904f0a176",
               "name": "Get Branch by ID",
               "request": {
                 "name": "Get branch by ID",
@@ -2458,7 +2458,7 @@
               },
               "response": [
                 {
-                  "id": "c210ff81-98a3-44c2-b8ac-17f7cf953d63",
+                  "id": "ac16e6df-5be2-4d6e-855f-e8fb7075d0b8",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2512,7 +2512,7 @@
               }
             },
             {
-              "id": "5adb7a50-69d8-49fa-8ce8-7b2151f425d9",
+              "id": "afcf0725-a427-4521-9f9f-3d4e99d33c5a",
               "name": "Get Branches by Organization",
               "request": {
                 "name": "Get branches by organization",
@@ -2551,7 +2551,7 @@
               },
               "response": [
                 {
-                  "id": "a156ad69-9515-4244-bab8-9d506345b97d",
+                  "id": "845fa72b-c653-4442-94e7-2257bcafe22c",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2606,7 +2606,7 @@
               }
             },
             {
-              "id": "53b6550f-9fbd-4511-a41c-f5a9c68af08f",
+              "id": "fb287c28-da35-41dc-9ffc-f26f151fb676",
               "name": "List Branches",
               "request": {
                 "name": "Get all branches",
@@ -2635,7 +2635,7 @@
               },
               "response": [
                 {
-                  "id": "fb456f1e-ae5b-4132-979d-3fe1b2256dc2",
+                  "id": "274f8521-3767-4950-b4a7-883098fc7df8",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2680,7 +2680,7 @@
               }
             },
             {
-              "id": "9de58199-01eb-472f-8705-b2c8793e1878",
+              "id": "3e1edf12-6e44-4702-94ee-6020e9f60ec3",
               "name": "Update Branch",
               "request": {
                 "name": "Update branch",
@@ -2733,7 +2733,7 @@
               },
               "response": [
                 {
-                  "id": "cb074590-1f61-466f-ba06-dfcb9d92aa5b",
+                  "id": "5780cf43-3ff4-4e19-ad03-86194e61afd9",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2795,7 +2795,7 @@
               }
             },
             {
-              "id": "07ff8c43-db37-44ef-91ca-fb69ebc80c2a",
+              "id": "281a7c4d-a2ee-4af2-a836-85b4fc362514",
               "name": "Delete Branch (Super Admin Only)",
               "request": {
                 "name": "Soft delete branch (Super Admin only)",
@@ -2833,7 +2833,7 @@
               },
               "response": [
                 {
-                  "id": "ff06ccdd-723d-4935-8cee-5fca5f14787f",
+                  "id": "a63d285f-6bfc-463b-be71-14965ea35264",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2887,7 +2887,7 @@
               }
             },
             {
-              "id": "2f7dbd84-8df8-4623-a0e1-416d6e2b54e1",
+              "id": "83cb9e19-ad06-461f-811c-aa61782509f9",
               "name": "Toggle Branch Active Status",
               "request": {
                 "name": "Toggle branch active status",
@@ -2926,7 +2926,7 @@
               },
               "response": [
                 {
-                  "id": "65075ca9-7971-413c-ae41-2f4b0a5b81e0",
+                  "id": "c2e964fd-aa9e-47fb-bcb3-61f31db0c727",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -2986,7 +2986,7 @@
           "name": "Organization",
           "item": [
             {
-              "id": "80accadb-d551-4f03-981d-5b83c8c61fa4",
+              "id": "c6af11f6-737c-48ff-8af8-bf87d02e5267",
               "name": "Create Organization (Super Admin Only)",
               "request": {
                 "name": "Create a new organization (Super Admin only)",
@@ -3030,7 +3030,7 @@
               },
               "response": [
                 {
-                  "id": "a8d37b0a-c368-4a72-9141-9f878d00dd5e",
+                  "id": "b5e8e3ea-221e-48a6-838a-37991bb699a7",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3083,7 +3083,7 @@
               }
             },
             {
-              "id": "465a9b26-b2ef-4c92-9206-6f09940923ff",
+              "id": "25bd3846-5be3-459e-8503-4e6452269365",
               "name": "Get Organization by ID",
               "request": {
                 "name": "Get organization by ID",
@@ -3121,7 +3121,7 @@
               },
               "response": [
                 {
-                  "id": "2fa99c8e-c8d4-43a6-8868-ab037dd03ef7",
+                  "id": "5c054aee-c90e-467c-856e-f1860f7dfe16",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3175,7 +3175,7 @@
               }
             },
             {
-              "id": "ca9714b8-7365-4869-ba9d-d9cbf1955fb1",
+              "id": "c1f2f4da-4756-4951-aa23-e8c141b4f04b",
               "name": "List Organizations",
               "request": {
                 "name": "Get all organizations",
@@ -3204,7 +3204,7 @@
               },
               "response": [
                 {
-                  "id": "26eedcdf-df83-44f2-8467-aceb8c4cc733",
+                  "id": "1ee752b3-ac08-436e-919d-3ceaf789b566",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3249,7 +3249,7 @@
               }
             },
             {
-              "id": "2cda98d6-cd3e-41c1-937e-8d1568dcd5e0",
+              "id": "e2b4e82c-2971-4b93-bad5-ecb0b36c37ad",
               "name": "Update Organization",
               "request": {
                 "name": "Update organization",
@@ -3302,7 +3302,7 @@
               },
               "response": [
                 {
-                  "id": "82471d80-9240-4732-96d1-5251a093c749",
+                  "id": "16e7e70d-e8f9-4497-8eae-d2eaef23d2c6",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3364,7 +3364,7 @@
               }
             },
             {
-              "id": "c6a08e68-3ab0-4ae8-8445-86f035a0e15b",
+              "id": "0f82c974-bfd3-4104-a885-aedba31cc25e",
               "name": "Delete Organization (Super Admin Only)",
               "request": {
                 "name": "Soft delete organization (Super Admin only)",
@@ -3402,7 +3402,7 @@
               },
               "response": [
                 {
-                  "id": "b57a6a89-38d5-4dd3-9f69-4d2d7472ac15",
+                  "id": "90b32c9d-a46b-4846-81b4-81077931499b",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3461,7 +3461,7 @@
           "name": "System Settings",
           "item": [
             {
-              "id": "1660b17b-bc13-402f-a565-ae8aefc9c49c",
+              "id": "0852173c-bed6-46b2-b246-077e457935cb",
               "name": "Get Global System Configuration",
               "request": {
                 "name": "Get global system configuration",
@@ -3490,7 +3490,7 @@
               },
               "response": [
                 {
-                  "id": "fc2a6688-3eb9-4704-8a40-b05845d77199",
+                  "id": "ef55e205-7e33-473d-9c1f-39d239033d95",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3535,7 +3535,7 @@
               }
             },
             {
-              "id": "ec8c428e-d668-4cb8-b9c2-6b373f3f8579",
+              "id": "cc9a001c-38af-4b6d-a92a-19043f1a60e1",
               "name": "Update System Configuration",
               "request": {
                 "name": "Update system configuration",
@@ -3579,7 +3579,7 @@
               },
               "response": [
                 {
-                  "id": "55ea979e-b44e-469e-91f2-2d769a052392",
+                  "id": "8dbce7d2-0a9f-477e-8b01-4f5dfe9e0adc",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3632,7 +3632,7 @@
               }
             },
             {
-              "id": "30ae7812-9751-4774-b3eb-1723fac986b6",
+              "id": "c812c742-1d7d-4593-ab17-091a20df35af",
               "name": "Initialize System Settings (allowed Only Once)",
               "request": {
                 "name": "Initialize system settings (allowed only once)",
@@ -3677,7 +3677,7 @@
               },
               "response": [
                 {
-                  "id": "4e025715-a0b2-4ed1-97d2-174b9d0ff898",
+                  "id": "9a2e9930-e9d9-47aa-9250-dc6b57c5cb0c",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3741,7 +3741,7 @@
           "name": "Academic Unit",
           "item": [
             {
-              "id": "7e996c1e-9eda-4964-871a-369a91fc6735",
+              "id": "a8d31901-9be9-4fe2-a551-e6ae589e954c",
               "name": "Create an Academic Unit",
               "request": {
                 "name": "Create an academic unit",
@@ -3797,7 +3797,7 @@
               },
               "response": [
                 {
-                  "id": "ced363a1-4ea8-4282-897c-1d092fea0646",
+                  "id": "21855d1f-1907-49f0-91d2-0bdece54635a",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3835,7 +3835,7 @@
                     "method": "POST",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"branchId\": \"string\",\n  \"programId\": \"string\",\n  \"academicYearId\": \"string\",\n  \"name\": \"string\",\n  \"unitType\": \"DEPARTMENT\",\n  \"parentId\": \"string\",\n  \"code\": \"string\",\n  \"displayOrder\": 5369.466998833008,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                      "raw": "{\n  \"branchId\": \"string\",\n  \"programId\": \"string\",\n  \"academicYearId\": \"string\",\n  \"name\": \"string\",\n  \"unitType\": \"BATCH\",\n  \"parentId\": \"string\",\n  \"code\": \"string\",\n  \"displayOrder\": 5265.964303574308,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -3862,7 +3862,7 @@
               }
             },
             {
-              "id": "4c947e3a-8498-488e-ba78-58ca65758b6e",
+              "id": "dff534d8-38ce-4c07-84e2-0828f17d20ae",
               "name": "Get Academic Unit by ID",
               "request": {
                 "name": "Get academic unit by ID",
@@ -3914,7 +3914,7 @@
               },
               "response": [
                 {
-                  "id": "60b107ae-ec7c-420f-8aef-9a1666a84c65",
+                  "id": "4a23809d-b93f-48c8-a429-7369ca0f8ed3",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -3980,7 +3980,7 @@
               }
             },
             {
-              "id": "2456dab3-7dbe-4db9-85d0-259f4b0c7841",
+              "id": "31d2faba-e470-4f54-b7c3-437f0378e7f0",
               "name": "List Academic Units",
               "request": {
                 "name": "Get all academic units",
@@ -4036,7 +4036,7 @@
               },
               "response": [
                 {
-                  "id": "8996ffb9-b5cd-46cf-89db-16b3a94c9621",
+                  "id": "69aa5de8-6e82-4fc3-9dc9-f067bf948773",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -4102,7 +4102,7 @@
               }
             },
             {
-              "id": "f019d34c-c635-4f09-986e-c8d84bb8f228",
+              "id": "5533ae51-55fd-49ff-9512-3d11bea2ea70",
               "name": "Get Hierarchical Academic Unit Tree",
               "request": {
                 "name": "Get hierarchical academic unit tree",
@@ -4159,7 +4159,7 @@
               },
               "response": [
                 {
-                  "id": "628ae4ed-5f7f-49b7-8d6b-eb74e288f34e",
+                  "id": "acf22fdc-ad6b-464a-9ab0-be5eebe519da",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -4226,7 +4226,7 @@
               }
             },
             {
-              "id": "8abbcee4-596e-4783-9406-24a31aec1994",
+              "id": "275bb6bc-f9ff-4090-8275-04801d6ae3d5",
               "name": "Update Academic Unit Details",
               "request": {
                 "name": "Update academic unit details",
@@ -4291,7 +4291,7 @@
               },
               "response": [
                 {
-                  "id": "6b91bd72-20fc-4846-9f3c-e91f48fbeb5b",
+                  "id": "20c7d0f6-7618-48da-af3d-e58781c1ed9d",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -4338,7 +4338,7 @@
                     "method": "PATCH",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"branchId\": \"string\",\n  \"programId\": \"string\",\n  \"academicYearId\": \"string\",\n  \"parentId\": \"string\",\n  \"name\": \"string\",\n  \"code\": \"string\",\n  \"unitType\": \"STREAM\",\n  \"displayOrder\": 9122.44655402012,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                      "raw": "{\n  \"branchId\": \"string\",\n  \"programId\": \"string\",\n  \"academicYearId\": \"string\",\n  \"parentId\": \"string\",\n  \"name\": \"string\",\n  \"code\": \"string\",\n  \"unitType\": \"SEMESTER\",\n  \"displayOrder\": 8564.542600340104,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -4365,7 +4365,7 @@
               }
             },
             {
-              "id": "50cc0c34-1221-472b-937f-ad1c90341196",
+              "id": "4a6dacb6-ac0f-4039-b681-70fb3dcf5d1e",
               "name": "Delete Academic Unit",
               "request": {
                 "name": "Soft delete academic unit",
@@ -4417,7 +4417,7 @@
               },
               "response": [
                 {
-                  "id": "d8e4f9e9-99d2-4119-91db-157add2370e9",
+                  "id": "d0d9e8d2-423d-4636-a0db-8944eefb16ad",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -4483,7 +4483,7 @@
               }
             },
             {
-              "id": "fa3499fd-6526-4984-a659-e4ee7e386e6b",
+              "id": "de486ff5-5c2f-409e-bd75-eedfe143fbbe",
               "name": "Move Academic Unit in Hierarchy",
               "request": {
                 "name": "Move academic unit in hierarchy",
@@ -4549,7 +4549,7 @@
               },
               "response": [
                 {
-                  "id": "fbd92cd3-2f70-493a-b951-7acec079f792",
+                  "id": "e9644d5d-1762-43ef-a2c7-7525b4c4963d",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -4624,7 +4624,7 @@
               }
             },
             {
-              "id": "e0ca530d-a5d1-495e-8dd6-5f1b20c0eab1",
+              "id": "d549cf67-2ce4-4a41-b7cd-febade758f88",
               "name": "Toggle Academic Unit Active Status",
               "request": {
                 "name": "Toggle academic unit active status",
@@ -4677,7 +4677,7 @@
               },
               "response": [
                 {
-                  "id": "1f00b6e5-9aa9-451d-93c9-f1b826c7c01c",
+                  "id": "4177639e-bbb5-432a-8282-ccac6ff0d6bd",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -4749,7 +4749,7 @@
           "name": "Academic Year",
           "item": [
             {
-              "id": "9a8d51d8-d87e-4e33-a047-74fc68422a84",
+              "id": "108881a7-affa-4ff8-b633-ddfdb9fdb35e",
               "name": "Create Academic Year",
               "request": {
                 "name": "Create academic year",
@@ -4799,7 +4799,7 @@
               },
               "response": [
                 {
-                  "id": "970c55c8-12f6-4922-bafe-dbb68dce52d9",
+                  "id": "d2447338-5347-491f-8dfe-776e9c1dfcd1",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -4858,7 +4858,7 @@
               }
             },
             {
-              "id": "6bb4f51b-d8b6-445e-a50a-fc4f92a79d09",
+              "id": "46751775-1f4f-415a-ad40-2276a202ef14",
               "name": "Get Current (selected) Academic Year",
               "request": {
                 "name": "Get current (selected) academic year",
@@ -4903,7 +4903,7 @@
               },
               "response": [
                 {
-                  "id": "7ca7dd7f-01de-43a6-be4f-1d19dcc93e35",
+                  "id": "a0aa7d9d-909a-471d-82c5-8199f088a75a",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -4960,7 +4960,7 @@
               }
             },
             {
-              "id": "8aa198b6-6646-41bf-bd06-7012d53c3fc2",
+              "id": "9e215b06-92ad-40e4-94ed-10417adc28ad",
               "name": "List Academic Years for a Branch",
               "request": {
                 "name": "Get all academic years for a branch",
@@ -5004,7 +5004,7 @@
               },
               "response": [
                 {
-                  "id": "b29dc36b-4489-4fef-bebe-3406977dcb97",
+                  "id": "1a831e79-270b-43a0-b86f-14dfc04312a8",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5060,7 +5060,7 @@
               }
             },
             {
-              "id": "81ce3512-9492-4e74-b885-ccabcc1d6e85",
+              "id": "7c2a8c84-004e-4638-bdda-304b9d2e0fb7",
               "name": "Update Academic Year",
               "request": {
                 "name": "Update academic year",
@@ -5119,7 +5119,7 @@
               },
               "response": [
                 {
-                  "id": "3144c194-c076-4fad-995e-49d9c3899951",
+                  "id": "fae9655c-3e36-4d25-8505-e33e7ed39397",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5187,7 +5187,7 @@
               }
             },
             {
-              "id": "6c5c6e93-6079-41cd-8e75-739154ba2a32",
+              "id": "03b8e015-b05b-4293-acfa-68767f01dee8",
               "name": "Delete Academic Year",
               "request": {
                 "name": "Soft delete academic year",
@@ -5233,7 +5233,7 @@
               },
               "response": [
                 {
-                  "id": "58d5e160-e3c2-44ad-9457-455e83562bd4",
+                  "id": "b2719ca6-23fe-4a90-a952-aba37bab7338",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5293,7 +5293,7 @@
               }
             },
             {
-              "id": "1caedfd6-d928-4c52-b4bc-2c3f5f94d11c",
+              "id": "5beca29c-bbaa-4fac-9b4c-9769fbedea55",
               "name": "Activate Academic Year",
               "request": {
                 "name": "Activate academic year",
@@ -5340,7 +5340,7 @@
               },
               "response": [
                 {
-                  "id": "5b2c56de-939a-4550-bd6d-2d824481bffd",
+                  "id": "e105cfdf-3665-4996-afe9-887db3428a7a",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5401,7 +5401,7 @@
               }
             },
             {
-              "id": "364a04d5-439b-4c34-abfe-9bbee4425773",
+              "id": "674db937-dd11-49ed-b438-68d83fee81d1",
               "name": "Lock Academic Year",
               "request": {
                 "name": "Lock academic year",
@@ -5448,7 +5448,7 @@
               },
               "response": [
                 {
-                  "id": "4f163d93-13b2-448e-a990-f0ebec45732a",
+                  "id": "6741ba4b-920d-40a3-a445-aba849f7ecaa",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5509,7 +5509,7 @@
               }
             },
             {
-              "id": "50a1d191-4820-4c14-910a-b4b18236540e",
+              "id": "78e82b4a-8a07-4232-9987-0f6a40cf6e65",
               "name": "Select Academic Year",
               "request": {
                 "name": "Select academic year (set as current)",
@@ -5556,7 +5556,7 @@
               },
               "response": [
                 {
-                  "id": "c054faa6-985c-44aa-8acc-a4d8344a8bf8",
+                  "id": "f5b8ba40-720b-4fc4-a20e-7956764b7ef5",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5622,7 +5622,7 @@
           "name": "Program",
           "item": [
             {
-              "id": "6bf632f6-76c7-4d12-843d-305281457961",
+              "id": "8b3b1c0e-5876-44d7-9a78-c52a6f7e6ef9",
               "name": "Create Program",
               "request": {
                 "name": "Create a new program",
@@ -5672,7 +5672,7 @@
               },
               "response": [
                 {
-                  "id": "bb620b5f-9a65-4308-9ee5-f6d434c371ed",
+                  "id": "b3ff936a-6b76-4339-9f8a-0fc6b4e64360",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5731,7 +5731,7 @@
               }
             },
             {
-              "id": "67ac033b-cf12-400c-bf3c-ba405623d38f",
+              "id": "dbab18f3-4d04-418d-b7fb-47865aee0810",
               "name": "Get Program by ID",
               "request": {
                 "name": "Get program by ID",
@@ -5777,7 +5777,7 @@
               },
               "response": [
                 {
-                  "id": "e5271629-56a8-4c10-aa9b-6c6f731c0129",
+                  "id": "b3d02927-bd87-411b-a922-f4d5a5127115",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5837,7 +5837,7 @@
               }
             },
             {
-              "id": "e67ceb17-761d-453e-b7b3-461348d958a9",
+              "id": "3c030105-91f1-4466-8b2a-2b0353bbf1c5",
               "name": "List Programs",
               "request": {
                 "name": "Get all programs for a branch",
@@ -5881,7 +5881,7 @@
               },
               "response": [
                 {
-                  "id": "a214774b-79a7-4758-b3ee-58ee3282bc7e",
+                  "id": "df403fc2-59a7-40cc-b9e7-0ed45bd68e60",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -5937,7 +5937,7 @@
               }
             },
             {
-              "id": "3cae2259-9694-43c5-b273-11c2553e2a95",
+              "id": "465bad86-5f5e-410b-93b5-409cceaef9e2",
               "name": "Get Hierarchical Program Tree for a Branch",
               "request": {
                 "name": "Get hierarchical program tree for a branch",
@@ -5982,7 +5982,7 @@
               },
               "response": [
                 {
-                  "id": "b90d0253-16b9-4904-958d-142951c9c632",
+                  "id": "4243cc40-55af-4527-851d-0f8bfdada8a6",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -6039,7 +6039,7 @@
               }
             },
             {
-              "id": "fe64d3ad-0188-4f9d-b303-33f34bc0b9c4",
+              "id": "dc2a48c9-d6a8-476a-965b-ec3c33e5ef0b",
               "name": "Update Program",
               "request": {
                 "name": "Update program",
@@ -6098,7 +6098,7 @@
               },
               "response": [
                 {
-                  "id": "9bf295eb-0591-4a3d-bdd7-d691682c712e",
+                  "id": "dcdfcc23-9a30-405e-8f2f-312ba269788a",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -6166,7 +6166,7 @@
               }
             },
             {
-              "id": "f324dcad-60f9-4e0f-bfdb-a5f93b92fc2a",
+              "id": "d361cd06-844e-435f-8efa-0b765f5cd9da",
               "name": "Delete Program",
               "request": {
                 "name": "Soft delete program",
@@ -6212,7 +6212,7 @@
               },
               "response": [
                 {
-                  "id": "fe16d722-3b10-4ca3-afe4-5ce661c98275",
+                  "id": "15892ef9-7d33-436c-81ba-6860a7cfd981",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -6272,7 +6272,7 @@
               }
             },
             {
-              "id": "1f39958f-2207-4214-8bf9-7884db939aa5",
+              "id": "c71d6033-8d0d-41c0-b68c-fc8c041d0564",
               "name": "Toggle Program Status",
               "request": {
                 "name": "Toggle program status",
@@ -6319,7 +6319,7 @@
               },
               "response": [
                 {
-                  "id": "a636671b-90b2-4b27-b51f-181c9bd541d5",
+                  "id": "8f917fff-7fbe-4523-8525-876ae19bac7e",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -6390,7 +6390,7 @@
           "name": "Applicant",
           "item": [
             {
-              "id": "d14e8e37-03f0-4798-9c85-fd58ca75c568",
+              "id": "3f459f9a-f272-4404-8be3-0968c0032106",
               "name": "Register Applicant",
               "request": {
                 "name": "Register a new applicant",
@@ -6447,7 +6447,7 @@
               },
               "response": [
                 {
-                  "id": "d1240bcc-7bca-4f9d-9c11-a33412916f46",
+                  "id": "efe0d7ea-029e-441d-98bb-91aeed2bbe4b",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -6486,7 +6486,7 @@
                     "method": "POST",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"firstName\": \"string\",\n  \"lastName\": \"string\",\n  \"dob\": \"string\",\n  \"genderId\": \"string\",\n  \"primaryMobile\": \"string\",\n  \"currentAddressLine1\": \"string\",\n  \"city\": \"string\",\n  \"state\": \"string\",\n  \"country\": \"string\",\n  \"pincode\": \"string\",\n  \"middleName\": \"string\",\n  \"birthPlace\": \"string\",\n  \"photoFileId\": \"string\",\n  \"religionId\": \"string\",\n  \"casteId\": \"string\",\n  \"categoryId\": \"string\",\n  \"motherTongueId\": \"string\",\n  \"bloodGroupId\": \"string\",\n  \"disabilityStatus\": false,\n  \"disabilityTypeId\": \"string\",\n  \"disabilityNotes\": \"string\",\n  \"aadhaarNo\": \"string\",\n  \"penNo\": \"string\",\n  \"apaarId\": \"string\",\n  \"alternateMobile\": \"string\",\n  \"primaryEmail\": \"string\",\n  \"currentAddressLine2\": \"string\",\n  \"district\": \"string\",\n  \"previousSchoolName\": \"string\",\n  \"previousBoard\": \"string\",\n  \"previousClass\": \"string\",\n  \"previousPercentage\": 3402.0410067699336,\n  \"tcNumber\": \"string\",\n  \"admissionSourceId\": \"string\",\n  \"quotaId\": \"string\",\n  \"internalRemarks\": \"string\",\n  \"counsellorRemarks\": \"string\",\n  \"assignedCounsellorId\": \"string\",\n  \"transportRequired\": false,\n  \"hostelRequired\": false,\n  \"customFieldData\": {},\n  \"checklistStatus\": {},\n  \"tags\": {},\n  \"formTemplateVersion\": \"string\"\n}",
+                      "raw": "{\n  \"firstName\": \"string\",\n  \"lastName\": \"string\",\n  \"dob\": \"string\",\n  \"genderId\": \"string\",\n  \"primaryMobile\": \"string\",\n  \"currentAddressLine1\": \"string\",\n  \"city\": \"string\",\n  \"state\": \"string\",\n  \"country\": \"string\",\n  \"pincode\": \"string\",\n  \"middleName\": \"string\",\n  \"birthPlace\": \"string\",\n  \"photoFileId\": \"string\",\n  \"religionId\": \"string\",\n  \"casteId\": \"string\",\n  \"categoryId\": \"string\",\n  \"motherTongueId\": \"string\",\n  \"bloodGroupId\": \"string\",\n  \"disabilityStatus\": false,\n  \"disabilityTypeId\": \"string\",\n  \"disabilityNotes\": \"string\",\n  \"aadhaarNo\": \"string\",\n  \"penNo\": \"string\",\n  \"apaarId\": \"string\",\n  \"alternateMobile\": \"string\",\n  \"primaryEmail\": \"string\",\n  \"currentAddressLine2\": \"string\",\n  \"district\": \"string\",\n  \"previousSchoolName\": \"string\",\n  \"previousBoard\": \"string\",\n  \"previousClass\": \"string\",\n  \"previousPercentage\": 4733.717307032084,\n  \"tcNumber\": \"string\",\n  \"admissionSourceId\": \"string\",\n  \"quotaId\": \"string\",\n  \"internalRemarks\": \"string\",\n  \"counsellorRemarks\": \"string\",\n  \"assignedCounsellorId\": \"string\",\n  \"transportRequired\": false,\n  \"hostelRequired\": false,\n  \"customFieldData\": {},\n  \"checklistStatus\": {},\n  \"tags\": {},\n  \"formTemplateVersion\": \"string\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -6513,7 +6513,7 @@
               }
             },
             {
-              "id": "27f11245-0c85-4987-8789-5088ba02cc1f",
+              "id": "da7b75b8-c0c9-4c96-b107-8317e2378106",
               "name": "Get Applicant by ID",
               "request": {
                 "name": "Get applicant details by ID",
@@ -6566,7 +6566,7 @@
               },
               "response": [
                 {
-                  "id": "1944ba2a-6f1b-4aa6-ad71-24c87eb4f664",
+                  "id": "5cde3155-e77d-4a47-b77a-973900acfab0",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -6633,7 +6633,7 @@
               }
             },
             {
-              "id": "943b87f5-6240-412f-a82d-059ca7791736",
+              "id": "1ecbea89-f91d-43f3-a3a9-25fa326d1c38",
               "name": "List Applicants",
               "request": {
                 "name": "Get all applicants for branch and academic year (filtered/paged)",
@@ -6714,7 +6714,7 @@
               },
               "response": [
                 {
-                  "id": "3a16300e-8897-4485-91f2-e1aa0acead79",
+                  "id": "8c180eac-4f41-433e-818a-a1397ab58e08",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -6797,7 +6797,7 @@
               }
             },
             {
-              "id": "825bdb34-e9f5-43d4-a33d-70bdace7b29f",
+              "id": "1c73cf7f-db32-46eb-b809-4f5acae52ce6",
               "name": "Update Applicant Details",
               "request": {
                 "name": "Update applicant details",
@@ -6863,7 +6863,7 @@
               },
               "response": [
                 {
-                  "id": "0837b7ed-a871-437e-89bf-df88ea2b034f",
+                  "id": "6a3ec64e-ce85-40a0-97f3-c8259bc85db0",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -6911,7 +6911,7 @@
                     "method": "PATCH",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"firstName\": \"string\",\n  \"middleName\": \"string\",\n  \"lastName\": \"string\",\n  \"dob\": \"string\",\n  \"genderId\": \"string\",\n  \"birthPlace\": \"string\",\n  \"photoFileId\": \"string\",\n  \"religionId\": \"string\",\n  \"casteId\": \"string\",\n  \"categoryId\": \"string\",\n  \"motherTongueId\": \"string\",\n  \"bloodGroupId\": \"string\",\n  \"disabilityStatus\": false,\n  \"disabilityTypeId\": \"string\",\n  \"disabilityNotes\": \"string\",\n  \"aadhaarNo\": \"string\",\n  \"penNo\": \"string\",\n  \"apaarId\": \"string\",\n  \"primaryMobile\": \"string\",\n  \"alternateMobile\": \"string\",\n  \"primaryEmail\": \"string\",\n  \"currentAddressLine1\": \"string\",\n  \"currentAddressLine2\": \"string\",\n  \"city\": \"string\",\n  \"district\": \"string\",\n  \"state\": \"string\",\n  \"country\": \"string\",\n  \"pincode\": \"string\",\n  \"previousSchoolName\": \"string\",\n  \"previousBoard\": \"string\",\n  \"previousClass\": \"string\",\n  \"previousPercentage\": 3257.254063677253,\n  \"tcNumber\": \"string\",\n  \"admissionSourceId\": \"string\",\n  \"quotaId\": \"string\",\n  \"internalRemarks\": \"string\",\n  \"counsellorRemarks\": \"string\",\n  \"assignedCounsellorId\": \"string\",\n  \"transportRequired\": false,\n  \"hostelRequired\": true,\n  \"customFieldData\": {},\n  \"checklistStatus\": {},\n  \"tags\": {},\n  \"formTemplateVersion\": \"string\"\n}",
+                      "raw": "{\n  \"firstName\": \"string\",\n  \"middleName\": \"string\",\n  \"lastName\": \"string\",\n  \"dob\": \"string\",\n  \"genderId\": \"string\",\n  \"birthPlace\": \"string\",\n  \"photoFileId\": \"string\",\n  \"religionId\": \"string\",\n  \"casteId\": \"string\",\n  \"categoryId\": \"string\",\n  \"motherTongueId\": \"string\",\n  \"bloodGroupId\": \"string\",\n  \"disabilityStatus\": true,\n  \"disabilityTypeId\": \"string\",\n  \"disabilityNotes\": \"string\",\n  \"aadhaarNo\": \"string\",\n  \"penNo\": \"string\",\n  \"apaarId\": \"string\",\n  \"primaryMobile\": \"string\",\n  \"alternateMobile\": \"string\",\n  \"primaryEmail\": \"string\",\n  \"currentAddressLine1\": \"string\",\n  \"currentAddressLine2\": \"string\",\n  \"city\": \"string\",\n  \"district\": \"string\",\n  \"state\": \"string\",\n  \"country\": \"string\",\n  \"pincode\": \"string\",\n  \"previousSchoolName\": \"string\",\n  \"previousBoard\": \"string\",\n  \"previousClass\": \"string\",\n  \"previousPercentage\": 6435.500598795763,\n  \"tcNumber\": \"string\",\n  \"admissionSourceId\": \"string\",\n  \"quotaId\": \"string\",\n  \"internalRemarks\": \"string\",\n  \"counsellorRemarks\": \"string\",\n  \"assignedCounsellorId\": \"string\",\n  \"transportRequired\": true,\n  \"hostelRequired\": false,\n  \"customFieldData\": {},\n  \"checklistStatus\": {},\n  \"tags\": {},\n  \"formTemplateVersion\": \"string\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -6938,7 +6938,7 @@
               }
             },
             {
-              "id": "67428f32-48e7-45f3-abe8-899fb2cb17e9",
+              "id": "e6d44b03-4bde-4b7a-ba23-67f6d12ec0f8",
               "name": "Delete Applicant",
               "request": {
                 "name": "Soft delete applicant",
@@ -6991,7 +6991,7 @@
               },
               "response": [
                 {
-                  "id": "ccbb0987-8ddc-4453-97c5-5424e5d9afaf",
+                  "id": "2722c158-a8ec-48d7-b34e-7cb7e0937b6c",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -7058,7 +7058,7 @@
               }
             },
             {
-              "id": "164f02d4-a1a1-4c57-94c0-038976e3eb5e",
+              "id": "44530391-231f-454f-b436-15148c441e32",
               "name": "Check for Potential Duplicate Applicant Records",
               "request": {
                 "name": "Check for potential duplicate applicant records",
@@ -7116,7 +7116,7 @@
               },
               "response": [
                 {
-                  "id": "57873ca6-2693-4d6e-98ae-ec27163bde7d",
+                  "id": "1b4ed54a-d3ef-4560-b3bb-727f4d664829",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -7188,7 +7188,7 @@
           "name": "Guardian",
           "item": [
             {
-              "id": "a595e064-2aaf-439b-b74d-40391544b487",
+              "id": "b8ea61df-4d82-461f-821f-86aae6fca713",
               "name": "Create Guardian",
               "request": {
                 "name": "Create a new guardian",
@@ -7239,7 +7239,7 @@
               },
               "response": [
                 {
-                  "id": "3e104472-fd9a-41ec-a709-7b1bcb53bd0c",
+                  "id": "47d9708d-96dd-4570-a9ac-56ea97c450c6",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -7272,7 +7272,7 @@
                     "method": "POST",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"firstName\": \"string\",\n  \"lastName\": \"string\",\n  \"mobilePrimary\": \"string\",\n  \"middleName\": \"string\",\n  \"mobileSecondary\": \"string\",\n  \"email\": \"string\",\n  \"occupation\": \"string\",\n  \"income\": 6821.131649317697,\n  \"aadhaarNo\": \"string\",\n  \"addressLine1\": \"string\",\n  \"addressLine2\": \"string\",\n  \"city\": \"string\",\n  \"state\": \"string\",\n  \"country\": \"string\",\n  \"pincode\": \"string\"\n}",
+                      "raw": "{\n  \"firstName\": \"string\",\n  \"lastName\": \"string\",\n  \"mobilePrimary\": \"string\",\n  \"middleName\": \"string\",\n  \"mobileSecondary\": \"string\",\n  \"email\": \"string\",\n  \"occupation\": \"string\",\n  \"income\": 2393.9417251365635,\n  \"aadhaarNo\": \"string\",\n  \"addressLine1\": \"string\",\n  \"addressLine2\": \"string\",\n  \"city\": \"string\",\n  \"state\": \"string\",\n  \"country\": \"string\",\n  \"pincode\": \"string\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -7299,7 +7299,7 @@
               }
             },
             {
-              "id": "6d4ad85d-09ee-4c04-bc88-42e75ed89967",
+              "id": "b97e36fe-8165-45ae-934d-0d633d066d2b",
               "name": "Get Guardian by ID",
               "request": {
                 "name": "Get guardian by ID",
@@ -7346,7 +7346,7 @@
               },
               "response": [
                 {
-                  "id": "98a3fffa-60f5-4ec5-9e56-04b3af818713",
+                  "id": "acd01588-7a25-4d94-a39d-fbc34d5ec930",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -7407,7 +7407,7 @@
               }
             },
             {
-              "id": "4e838784-11dd-46f2-8f78-60671a002d0b",
+              "id": "25a81965-90dd-4a82-b06d-2ec91eb2dd30",
               "name": "List Guardians Mapped to an Applicant",
               "request": {
                 "name": "Get all guardians mapped to an applicant",
@@ -7455,7 +7455,7 @@
               },
               "response": [
                 {
-                  "id": "eabf6321-179c-4f7b-aeda-9a59cd4f5387",
+                  "id": "3c9006b1-b6a0-425c-8196-6c3c9834ca71",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -7517,7 +7517,7 @@
               }
             },
             {
-              "id": "e0950369-a443-42a3-a2a1-e3298e9340bc",
+              "id": "bfbe9450-63f8-4ab7-bb94-1f0b6621c52e",
               "name": "Update Guardian Details",
               "request": {
                 "name": "Update guardian details",
@@ -7577,7 +7577,7 @@
               },
               "response": [
                 {
-                  "id": "96d27f48-f9af-4fcb-bf6b-5245d46898ee",
+                  "id": "308ce1ea-8cff-4d1a-be34-a4319c6df0d1",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -7619,7 +7619,7 @@
                     "method": "PATCH",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"firstName\": \"string\",\n  \"middleName\": \"string\",\n  \"lastName\": \"string\",\n  \"mobilePrimary\": \"string\",\n  \"mobileSecondary\": \"string\",\n  \"email\": \"string\",\n  \"occupation\": \"string\",\n  \"income\": 9338.268676758771,\n  \"aadhaarNo\": \"string\",\n  \"addressLine1\": \"string\",\n  \"addressLine2\": \"string\",\n  \"city\": \"string\",\n  \"state\": \"string\",\n  \"country\": \"string\",\n  \"pincode\": \"string\"\n}",
+                      "raw": "{\n  \"firstName\": \"string\",\n  \"middleName\": \"string\",\n  \"lastName\": \"string\",\n  \"mobilePrimary\": \"string\",\n  \"mobileSecondary\": \"string\",\n  \"email\": \"string\",\n  \"occupation\": \"string\",\n  \"income\": 8623.873517770744,\n  \"aadhaarNo\": \"string\",\n  \"addressLine1\": \"string\",\n  \"addressLine2\": \"string\",\n  \"city\": \"string\",\n  \"state\": \"string\",\n  \"country\": \"string\",\n  \"pincode\": \"string\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -7646,7 +7646,7 @@
               }
             },
             {
-              "id": "75c02807-a3e1-4c59-92f4-17ece548a856",
+              "id": "410afa1c-896e-4037-8e8d-8746310c606e",
               "name": "Remove a Guardian Mapping From an Applicant",
               "request": {
                 "name": "Remove a guardian mapping from an applicant",
@@ -7703,7 +7703,7 @@
               },
               "response": [
                 {
-                  "id": "b9593cba-6d66-4409-9837-975f8960fdcb",
+                  "id": "0f2ba505-ef05-4310-876e-e74a6cc7dbbe",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -7774,7 +7774,7 @@
               }
             },
             {
-              "id": "889a8ff4-0b8e-42a5-af3f-d7eb0dc4d5ae",
+              "id": "da4ec0ea-854f-417b-83ac-22b6e11516a9",
               "name": "Map a Guardian to an Applicant",
               "request": {
                 "name": "Map a guardian to an applicant",
@@ -7836,7 +7836,7 @@
               },
               "response": [
                 {
-                  "id": "4dc293d2-2495-4670-82f9-cf695e642279",
+                  "id": "47e1a92e-3ea4-422a-8a27-d5b1c832a72d",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -7907,7 +7907,7 @@
               }
             },
             {
-              "id": "aa27aa03-cdc1-480a-adc2-4da7567d736f",
+              "id": "5934110d-d632-4617-bb36-9db49218b967",
               "name": "Search Guardians for Sibling Reuse by Mobile/Aadhaar/Name",
               "request": {
                 "name": "Search guardians for sibling reuse (search by primary mobile, aadhaar, or name)",
@@ -7953,7 +7953,7 @@
               },
               "response": [
                 {
-                  "id": "f4072745-d460-4bd4-ab26-47aafa1b9f02",
+                  "id": "1d24cceb-49a9-424b-9659-8d6ff0f70072",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -8016,7 +8016,7 @@
           "name": "Enrollment",
           "item": [
             {
-              "id": "eca194ce-b988-41be-9c4c-cff7cdaf6345",
+              "id": "56d58ab4-eabf-42d7-954e-49dab884f6b7",
               "name": "Get Enrollment for an Applicant",
               "request": {
                 "name": "Get enrollment details for an applicant",
@@ -8070,7 +8070,7 @@
               },
               "response": [
                 {
-                  "id": "a0a6b96d-c492-4d68-a8d5-616bbc1ef3a0",
+                  "id": "5996fe2b-6004-4a91-84a4-170123bfe45f",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -8138,7 +8138,7 @@
               }
             },
             {
-              "id": "fd0114a3-57f6-422c-9fd0-ec056e4b4e82",
+              "id": "d97efad6-3b60-45e2-83e2-fef147ae3a88",
               "name": "Enroll an Approved Applicant Into a Program and Class Academic Unit",
               "request": {
                 "name": "Enroll an approved applicant into a program and class academic unit",
@@ -8205,7 +8205,7 @@
               },
               "response": [
                 {
-                  "id": "f9ae5622-e0b0-4ca5-9917-57494fbf08cc",
+                  "id": "c320f261-70d8-476f-b11c-97371f1c5835",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -8286,7 +8286,7 @@
           "name": "Workflow",
           "item": [
             {
-              "id": "265ae024-b0cc-472f-b163-6988c50fd608",
+              "id": "1686e220-30d3-4a19-a5e1-1c55cf501bb1",
               "name": "Get Workflow Transition History for an Applicant",
               "request": {
                 "name": "Get workflow transition history for an applicant",
@@ -8341,7 +8341,7 @@
               },
               "response": [
                 {
-                  "id": "2c25a945-4686-4373-83cf-14cb03853537",
+                  "id": "c7e78cfd-3a41-4c9c-899f-9edb5e9b556f",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -8410,7 +8410,7 @@
               }
             },
             {
-              "id": "dff8094e-193e-4a41-ae21-54986976c6ba",
+              "id": "c49745b9-e8ef-445c-b15a-c5874300a55b",
               "name": "Transition an Applicant State (submit, Review, Approve, Reject, Cancel)",
               "request": {
                 "name": "Transition an applicant state (submit, review, approve, reject, cancel)",
@@ -8478,7 +8478,7 @@
               },
               "response": [
                 {
-                  "id": "a4e873be-6755-40bd-93e6-da517000fe26",
+                  "id": "55890f9c-0cc2-4fae-9ffe-1701b4478758",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -8528,7 +8528,7 @@
                     "method": "POST",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"newStatus\": \"SUBMITTED\",\n  \"remarks\": \"string\",\n  \"actionType\": \"string\"\n}",
+                      "raw": "{\n  \"newStatus\": \"APPROVED\",\n  \"remarks\": \"string\",\n  \"actionType\": \"string\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -8560,7 +8560,7 @@
           "name": "Numbering",
           "item": [
             {
-              "id": "d1c95dbd-c449-4a59-ab04-98fa08403b2e",
+              "id": "8d17f5e4-31d3-40aa-a72e-3a985872e03b",
               "name": "Create Numbering Sequence Config",
               "request": {
                 "name": "Create a new numbering sequence config",
@@ -8612,7 +8612,7 @@
               },
               "response": [
                 {
-                  "id": "66e237ec-6627-4d32-b0c2-4ba844b6b43a",
+                  "id": "a3d6db58-4857-4d7d-bafa-2b1eb1c6faef",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -8673,7 +8673,7 @@
               }
             },
             {
-              "id": "5d4a0034-9c69-4fd5-bd3a-7bf48d0764da",
+              "id": "858696a2-b1bf-404e-8411-96c03cde37bb",
               "name": "List Number Configs for Branch",
               "request": {
                 "name": "Get all number configs for branch",
@@ -8712,7 +8712,7 @@
               },
               "response": [
                 {
-                  "id": "3a8eb170-473c-4521-9a2c-d31b28392b10",
+                  "id": "bec8c505-70bc-443d-8c72-512035bc8737",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -8773,7 +8773,7 @@
               "name": "Admission Source",
               "item": [
                 {
-                  "id": "3673d359-bc33-4e65-9d00-7d295fc5448a",
+                  "id": "0be88fae-bc48-400f-9e90-9c2e70763592",
                   "name": "Create an Admission Source",
                   "request": {
                     "name": "Create an admission source",
@@ -8825,7 +8825,7 @@
                   },
                   "response": [
                     {
-                      "id": "0ebc2dec-aa85-456c-bc6e-7aed8ca162fb",
+                      "id": "ba9fd9d2-e20d-4244-9a6e-8ef5ffdd4373",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -8886,7 +8886,7 @@
                   }
                 },
                 {
-                  "id": "39c9175c-b47b-460a-a2f7-8ab55f08cd01",
+                  "id": "5c7c3d53-9b49-4799-a222-b0079d8d192d",
                   "name": "Get Admission Source by ID",
                   "request": {
                     "name": "Get admission source by ID",
@@ -8934,7 +8934,7 @@
                   },
                   "response": [
                     {
-                      "id": "62201845-6d4b-48e4-99b1-50e68848edc5",
+                      "id": "3f03e1c1-c3cc-4a8b-8bf3-f603933bb4bc",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -8996,7 +8996,7 @@
                   }
                 },
                 {
-                  "id": "22739a39-d88d-47ab-a394-0d87a33b2f0d",
+                  "id": "5b4c860a-1b73-4bbb-9712-480d785d6a7f",
                   "name": "List Admission Sources",
                   "request": {
                     "name": "Get all admission sources",
@@ -9015,7 +9015,7 @@
                         {
                           "disabled": false,
                           "key": "includeInactive",
-                          "value": "true",
+                          "value": "false",
                           "description": "(Required) "
                         }
                       ],
@@ -9042,7 +9042,7 @@
                   },
                   "response": [
                     {
-                      "id": "35e2e4d1-470e-40a4-bb56-0772d45298b8",
+                      "id": "a6899077-af38-4556-b92c-03b67dc9ceec",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -9100,7 +9100,7 @@
                   }
                 },
                 {
-                  "id": "4a738847-dcef-4a55-839b-a4136cd1f95e",
+                  "id": "d001afd8-3953-423f-aa3c-cc6af807df12",
                   "name": "Update Admission Source",
                   "request": {
                     "name": "Update admission source",
@@ -9161,7 +9161,7 @@
                   },
                   "response": [
                     {
-                      "id": "87d5adf9-47f3-4365-9da3-24b728372f03",
+                      "id": "39e4ad7f-db0c-419a-a59c-84bd36ea4682",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -9204,7 +9204,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -9231,7 +9231,7 @@
                   }
                 },
                 {
-                  "id": "5b184912-ab62-431e-a58f-abc21676c71c",
+                  "id": "956248bd-f149-4b26-83af-1b50391a5427",
                   "name": "Delete Admission Source",
                   "request": {
                     "name": "Soft delete admission source",
@@ -9279,7 +9279,7 @@
                   },
                   "response": [
                     {
-                      "id": "b56dcf7d-c81f-485f-b430-b453633d3c04",
+                      "id": "24964caf-5c3e-4395-a7f6-aaf26de04fae",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -9346,7 +9346,7 @@
               "name": "Blood Group",
               "item": [
                 {
-                  "id": "57e2b598-a420-40c3-868d-54a02faea962",
+                  "id": "f6fc60ed-57db-4cdd-9e7c-6dd4b5acc5e6",
                   "name": "Create Blood Group",
                   "request": {
                     "name": "Create a blood group",
@@ -9398,7 +9398,7 @@
                   },
                   "response": [
                     {
-                      "id": "dc05977c-0f65-4d1a-8744-e72fe0f6ef52",
+                      "id": "817c1132-2b45-4196-a539-04b446e53857",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -9459,7 +9459,7 @@
                   }
                 },
                 {
-                  "id": "d2691817-7486-48a6-91cf-7050aa9db429",
+                  "id": "5849cc8c-6967-4e67-a12c-b24c749b8295",
                   "name": "Get Blood Group by ID",
                   "request": {
                     "name": "Get blood group by ID",
@@ -9507,7 +9507,7 @@
                   },
                   "response": [
                     {
-                      "id": "c23f16a6-a3a6-409a-9279-da99452bebd9",
+                      "id": "4addf950-05cc-40df-83da-a3cafac7e8f7",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -9569,7 +9569,7 @@
                   }
                 },
                 {
-                  "id": "83434d86-6be7-4ea6-bcca-5cf0b7476254",
+                  "id": "69f17b74-48b5-460a-8b0f-c3912c5a8ba6",
                   "name": "List Blood Groups",
                   "request": {
                     "name": "Get all blood groups",
@@ -9615,7 +9615,7 @@
                   },
                   "response": [
                     {
-                      "id": "000ed89e-585a-4221-bf7a-7472b078a561",
+                      "id": "1bfb3985-ad75-42cf-80da-39b1a57f1cbd",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -9673,7 +9673,7 @@
                   }
                 },
                 {
-                  "id": "99546141-cf2b-45ac-b2c6-0f8999e347b6",
+                  "id": "c6fb791e-5b67-4468-866b-941a821f1f30",
                   "name": "Update Blood Group",
                   "request": {
                     "name": "Update blood group",
@@ -9734,7 +9734,7 @@
                   },
                   "response": [
                     {
-                      "id": "397adcbe-1bf0-4d2d-afcb-2c70ae31d6d9",
+                      "id": "bf61b28d-09a0-454d-9289-39c1064f244a",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -9777,7 +9777,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -9804,7 +9804,7 @@
                   }
                 },
                 {
-                  "id": "7b729d50-3e3b-4925-bdfe-e8376facf2e4",
+                  "id": "73dfb6ee-a0fe-4cb9-be27-165cbc548e19",
                   "name": "Delete Blood Group",
                   "request": {
                     "name": "Soft delete blood group",
@@ -9852,7 +9852,7 @@
                   },
                   "response": [
                     {
-                      "id": "d195d401-7241-4e6d-928c-88e697921044",
+                      "id": "2e237d25-c799-4892-8ee4-5afd55f3ce84",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -9919,7 +9919,7 @@
               "name": "Caste",
               "item": [
                 {
-                  "id": "2e6e0644-790d-4c03-9d58-fd19e4c67c16",
+                  "id": "3772fdd4-5888-4fc5-949b-97b7c4df3182",
                   "name": "Create Caste",
                   "request": {
                     "name": "Create a caste",
@@ -9971,7 +9971,7 @@
                   },
                   "response": [
                     {
-                      "id": "657209b7-2db7-478d-ac34-8e894a9ca1ec",
+                      "id": "1f83b6eb-13cc-4e95-8d5a-c80255c2eb3f",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10032,7 +10032,7 @@
                   }
                 },
                 {
-                  "id": "44767e1c-51c8-459a-8b2b-f0797059a67d",
+                  "id": "ca9122a9-d942-4faa-9750-f51127d5062f",
                   "name": "Get Caste by ID",
                   "request": {
                     "name": "Get caste by ID",
@@ -10080,7 +10080,7 @@
                   },
                   "response": [
                     {
-                      "id": "300f222e-8bdb-4a2e-9004-dca522fc06f2",
+                      "id": "f3ebae68-605d-45bc-8424-4cd39cdcf5d8",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10142,7 +10142,7 @@
                   }
                 },
                 {
-                  "id": "8d3bf9fd-5cf1-4210-a3cf-317685416ea6",
+                  "id": "b6dac4af-c229-432a-8ef0-02c3fdb56290",
                   "name": "List Castes",
                   "request": {
                     "name": "Get all castes",
@@ -10188,7 +10188,7 @@
                   },
                   "response": [
                     {
-                      "id": "2e5a0fc0-0ceb-44b2-9910-cc52d0e347a8",
+                      "id": "bf6a3883-6723-4ffd-8674-48d65989ead5",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10246,7 +10246,7 @@
                   }
                 },
                 {
-                  "id": "ef72ec25-708f-4997-9729-3e177a207912",
+                  "id": "01b3bbc9-bcbe-453a-a7e2-4786f4699b2e",
                   "name": "Update Caste",
                   "request": {
                     "name": "Update caste",
@@ -10307,7 +10307,7 @@
                   },
                   "response": [
                     {
-                      "id": "951fed4c-0463-41d7-83e1-f609403237dc",
+                      "id": "8a4c4bee-6da0-4bb2-bcd9-c7fdb2c0a540",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10350,7 +10350,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -10377,7 +10377,7 @@
                   }
                 },
                 {
-                  "id": "3f4f880c-e193-427b-8710-9d0e328bd296",
+                  "id": "8892e996-1cfa-4d0f-ad25-96ec2db6661c",
                   "name": "Delete Caste",
                   "request": {
                     "name": "Soft delete caste",
@@ -10425,7 +10425,7 @@
                   },
                   "response": [
                     {
-                      "id": "3b34ecfb-3f6c-4f16-b0b1-52fbc0401b1d",
+                      "id": "091d64bf-141e-442e-aecc-8b2315f046a0",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10492,7 +10492,7 @@
               "name": "Category",
               "item": [
                 {
-                  "id": "75fc75a9-945c-4ce0-b96b-854b03c98508",
+                  "id": "3ebab266-6b06-4415-9f4d-4d4b0f4de7dd",
                   "name": "Create Category",
                   "request": {
                     "name": "Create a category",
@@ -10544,7 +10544,7 @@
                   },
                   "response": [
                     {
-                      "id": "973377b2-9dc1-4539-8473-63a50053d305",
+                      "id": "c7a2150a-7b5b-4756-be37-4921e56e3da4",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10605,7 +10605,7 @@
                   }
                 },
                 {
-                  "id": "98d68963-ca7b-4b25-822c-c7faea1cff37",
+                  "id": "9447a9f2-9cb4-4e44-9d92-b8401f452693",
                   "name": "Get Category by ID",
                   "request": {
                     "name": "Get category by ID",
@@ -10653,7 +10653,7 @@
                   },
                   "response": [
                     {
-                      "id": "f62862d7-1e58-422c-8ad1-f6a97d7413cc",
+                      "id": "40c3330e-9e6f-4a52-a427-898a16387873",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10715,7 +10715,7 @@
                   }
                 },
                 {
-                  "id": "c534d83a-c16e-42f0-86e4-9a340a727934",
+                  "id": "4f4e9905-2d4c-4d05-b23c-9ff4d4262f79",
                   "name": "List Categories",
                   "request": {
                     "name": "Get all categories",
@@ -10761,7 +10761,7 @@
                   },
                   "response": [
                     {
-                      "id": "e2b904ca-e307-4568-94ab-fb591f534ac3",
+                      "id": "3a3db32d-fa2b-40b8-a42b-d1ec07333964",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10819,7 +10819,7 @@
                   }
                 },
                 {
-                  "id": "855f36b8-2640-41a8-b170-a3e03beb78f3",
+                  "id": "a51d3601-3307-4839-9f44-0ce15670abb8",
                   "name": "Update Category",
                   "request": {
                     "name": "Update category",
@@ -10880,7 +10880,7 @@
                   },
                   "response": [
                     {
-                      "id": "badba77e-cfb3-45f7-8746-2dc3dcc682a5",
+                      "id": "208bba9e-f6b2-416c-8cbc-3f0c53cdb040",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -10923,7 +10923,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -10950,7 +10950,7 @@
                   }
                 },
                 {
-                  "id": "15561f3d-294d-4e5f-a72e-370d2347dedf",
+                  "id": "2bf3d1a3-9267-4393-8a15-8c346aab60a8",
                   "name": "Delete Category",
                   "request": {
                     "name": "Soft delete category",
@@ -10998,7 +10998,7 @@
                   },
                   "response": [
                     {
-                      "id": "938e20d1-d6d5-4a5f-89c9-e5ab7ff3310c",
+                      "id": "28659db2-e51e-4d56-9276-eacc2f2682cd",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11065,7 +11065,7 @@
               "name": "Disability",
               "item": [
                 {
-                  "id": "7da9cb5a-2b68-4585-8110-30a3c13966bf",
+                  "id": "7834b2f9-8bb6-40de-8d30-4128bfc27bdd",
                   "name": "Create Disability Type",
                   "request": {
                     "name": "Create a disability type",
@@ -11117,7 +11117,7 @@
                   },
                   "response": [
                     {
-                      "id": "3f924992-f2df-49c9-ac94-3cb22b6e946c",
+                      "id": "a738de96-f16c-494d-b908-3f2cb4d511b3",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11178,7 +11178,7 @@
                   }
                 },
                 {
-                  "id": "762641bf-a70f-433b-818a-fddf32587071",
+                  "id": "e7ffb5e4-eb28-45f2-a1fe-597b27145743",
                   "name": "Get Disability Type by ID",
                   "request": {
                     "name": "Get disability type by ID",
@@ -11226,7 +11226,7 @@
                   },
                   "response": [
                     {
-                      "id": "53bd1173-5983-4d7d-a920-5e56806ea0c7",
+                      "id": "4d1b37d4-9276-406e-adf8-5f3ba0021ac7",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11288,7 +11288,7 @@
                   }
                 },
                 {
-                  "id": "c1d17b60-3765-4827-8d22-1013a0cd5fdf",
+                  "id": "125c6088-afaf-47ab-aa99-455b1bf5fa80",
                   "name": "List Disability Types",
                   "request": {
                     "name": "Get all disability types",
@@ -11334,7 +11334,7 @@
                   },
                   "response": [
                     {
-                      "id": "3adf3364-ecc6-4a9a-a7c4-7a40099d5891",
+                      "id": "d1e09e5a-2a28-4d0d-95f6-1d140ca5f791",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11392,7 +11392,7 @@
                   }
                 },
                 {
-                  "id": "7940e81b-31c6-49e7-8a2c-49b6f00c90a3",
+                  "id": "5ebca709-2c02-478b-be34-bba95fe85701",
                   "name": "Update Disability Type",
                   "request": {
                     "name": "Update disability type",
@@ -11453,7 +11453,7 @@
                   },
                   "response": [
                     {
-                      "id": "b8d183f6-923a-4f6f-9c97-d075f71d9ba6",
+                      "id": "9ccbf1f9-ce6b-463b-8a86-36355553a5ca",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11496,7 +11496,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -11523,7 +11523,7 @@
                   }
                 },
                 {
-                  "id": "c41eaf7a-4fab-40ac-b60f-6b9ad0dd5e5f",
+                  "id": "6951e721-c961-4ee8-af63-943fab207845",
                   "name": "Delete Disability Type",
                   "request": {
                     "name": "Soft delete disability type",
@@ -11571,7 +11571,7 @@
                   },
                   "response": [
                     {
-                      "id": "d87b52b7-1bd4-40af-a100-8c6a9792a4e6",
+                      "id": "79ad4eb2-3931-4821-96eb-9cb812e424f7",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11638,7 +11638,7 @@
               "name": "Gender",
               "item": [
                 {
-                  "id": "0c5b9240-a835-426e-bbf3-56b42fd6ea4d",
+                  "id": "f8dea2aa-d3b6-46e8-ba00-7197feab01c0",
                   "name": "Create Gender",
                   "request": {
                     "name": "Create a gender",
@@ -11690,7 +11690,7 @@
                   },
                   "response": [
                     {
-                      "id": "126761ed-7c5c-46fe-b467-850a6e54e93f",
+                      "id": "ec086661-dbe8-4c1d-b85e-47934082705c",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11751,7 +11751,7 @@
                   }
                 },
                 {
-                  "id": "79da6092-454c-451e-bc7b-ef92555dbcbe",
+                  "id": "ac784cab-7f71-45fb-86c2-0bbd19775444",
                   "name": "Get Gender by ID",
                   "request": {
                     "name": "Get gender by ID",
@@ -11799,7 +11799,7 @@
                   },
                   "response": [
                     {
-                      "id": "53e9e0e6-583d-4857-95f4-c0f5ab61176a",
+                      "id": "c5a2db03-ca39-4b1f-b080-38ef09858574",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11861,7 +11861,7 @@
                   }
                 },
                 {
-                  "id": "92552f17-3848-4ee4-8c91-ba64c8df8610",
+                  "id": "6c7cff82-0b9a-47b7-8ecb-6cd5b6478f7d",
                   "name": "List Genders",
                   "request": {
                     "name": "Get all genders",
@@ -11907,7 +11907,7 @@
                   },
                   "response": [
                     {
-                      "id": "10d8d301-6498-4462-b15c-a0f79247bd83",
+                      "id": "663f5ecb-5b51-48ba-8581-2ac08b55601d",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -11965,7 +11965,7 @@
                   }
                 },
                 {
-                  "id": "6990531b-44ce-4913-8990-4e3fc1538bc6",
+                  "id": "beff5c32-de09-49ec-8f4c-3f25a56bf884",
                   "name": "Update Gender",
                   "request": {
                     "name": "Update gender",
@@ -12026,7 +12026,7 @@
                   },
                   "response": [
                     {
-                      "id": "562bf940-9a09-4820-9222-c58ad0fcd7e5",
+                      "id": "e681294a-381a-4802-8558-b31e287f8667",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -12069,7 +12069,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -12096,7 +12096,7 @@
                   }
                 },
                 {
-                  "id": "7edbcaec-af1a-4edc-b7d1-6bb0e54d65fe",
+                  "id": "a1ae4ce5-f42c-4c3f-9123-4906ba2b5f61",
                   "name": "Delete Gender",
                   "request": {
                     "name": "Soft delete gender",
@@ -12144,7 +12144,7 @@
                   },
                   "response": [
                     {
-                      "id": "e1e9f262-fdb7-4a64-bbc3-a219e5c67a08",
+                      "id": "e038b74e-f105-43b8-a420-3602c7aa72f4",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -12211,7 +12211,7 @@
               "name": "Language",
               "item": [
                 {
-                  "id": "acc1f3f9-aa6b-423c-9c0e-35f19886078e",
+                  "id": "c4c8f48e-9f06-49e9-8349-71f87d31bf67",
                   "name": "Create Language",
                   "request": {
                     "name": "Create a language",
@@ -12263,7 +12263,7 @@
                   },
                   "response": [
                     {
-                      "id": "8d77aa79-d058-4f98-ab72-eb51479ec619",
+                      "id": "44bafc7e-c9a3-43c9-883b-bbd6c3c516d2",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -12324,7 +12324,7 @@
                   }
                 },
                 {
-                  "id": "a4c9c924-7ba4-4f08-964e-87267632dfb3",
+                  "id": "e5b5bc4d-4cdb-4eae-bdf4-71deeb6186c5",
                   "name": "Get Language by ID",
                   "request": {
                     "name": "Get language by ID",
@@ -12372,7 +12372,7 @@
                   },
                   "response": [
                     {
-                      "id": "b98b6797-430d-47cd-9eeb-4060bb4ce95d",
+                      "id": "f3f8757c-de42-4c07-b78f-0a03274095c8",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -12434,7 +12434,7 @@
                   }
                 },
                 {
-                  "id": "54505432-f22c-4e09-b9e6-01cbaf7c943d",
+                  "id": "8261759f-ddda-4621-b457-de7dacf39e1e",
                   "name": "List Languages",
                   "request": {
                     "name": "Get all languages",
@@ -12480,7 +12480,7 @@
                   },
                   "response": [
                     {
-                      "id": "2c7c75a0-f0c7-4fe6-9057-403a35e21cea",
+                      "id": "bddabd04-9cee-47b8-982d-fc70a058e816",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -12538,7 +12538,7 @@
                   }
                 },
                 {
-                  "id": "4d78c16a-2227-4cfa-b98f-cd9f4455392a",
+                  "id": "d50b3af8-5422-49d5-8b6f-f09e0a2ff145",
                   "name": "Update Language",
                   "request": {
                     "name": "Update language",
@@ -12599,7 +12599,7 @@
                   },
                   "response": [
                     {
-                      "id": "f12abc92-a23f-45a2-b53e-91f8c19e32c4",
+                      "id": "ce4835f9-9ba3-4972-abe9-6f9fce2660c7",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -12642,7 +12642,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -12669,7 +12669,7 @@
                   }
                 },
                 {
-                  "id": "89f750fc-9dde-4f8e-8f6d-2fe426fbbb9f",
+                  "id": "95b4dfc2-71ae-4df3-b7f7-b532d3b5ff0c",
                   "name": "Delete Language",
                   "request": {
                     "name": "Soft delete language",
@@ -12717,7 +12717,7 @@
                   },
                   "response": [
                     {
-                      "id": "ec3de3b7-b046-41ec-9050-37e079395372",
+                      "id": "d6d833bf-578f-4a13-9688-4a4645fddcd9",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -12784,7 +12784,7 @@
               "name": "Quota",
               "item": [
                 {
-                  "id": "7317682f-acd1-45f6-99f6-cf366f04120d",
+                  "id": "e18c11e5-9ad4-4d34-ad6f-4e3ffb35ebed",
                   "name": "Create Quota",
                   "request": {
                     "name": "Create a quota",
@@ -12836,7 +12836,7 @@
                   },
                   "response": [
                     {
-                      "id": "76ae2bb5-1d0f-4cc7-a493-1fbe4b8e3cb4",
+                      "id": "e9068246-5d2c-42d2-9a4a-4a74c2ef30bf",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -12897,7 +12897,7 @@
                   }
                 },
                 {
-                  "id": "290605c4-3311-454a-b2e6-78186a04917f",
+                  "id": "0e1e3b7e-c512-4b95-be06-e6eef8ed954d",
                   "name": "Get Quota by ID",
                   "request": {
                     "name": "Get quota by ID",
@@ -12945,7 +12945,7 @@
                   },
                   "response": [
                     {
-                      "id": "00c76f5e-1c5b-4241-ae66-24add9a0fef6",
+                      "id": "35a30d1b-a202-4ffa-9290-15a146da71ca",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13007,7 +13007,7 @@
                   }
                 },
                 {
-                  "id": "be3d3fb9-3d27-4d43-ad91-e283ed3c2185",
+                  "id": "7b340bec-01bd-4992-9ba2-8ef0611c811f",
                   "name": "List Quotas",
                   "request": {
                     "name": "Get all quotas",
@@ -13053,7 +13053,7 @@
                   },
                   "response": [
                     {
-                      "id": "f9749527-05d7-4e9c-a08a-b0f9096d3188",
+                      "id": "70a8a898-0adb-46e8-be3b-872239d4443a",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13111,7 +13111,7 @@
                   }
                 },
                 {
-                  "id": "7403dc96-add1-456c-b85a-0ac3593cf181",
+                  "id": "dc3a9155-9460-46c9-a03b-2416faf3af46",
                   "name": "Update Quota",
                   "request": {
                     "name": "Update quota",
@@ -13172,7 +13172,7 @@
                   },
                   "response": [
                     {
-                      "id": "75c4faf1-4134-452e-9970-213719ca0d66",
+                      "id": "812a6751-8759-4562-9979-3c79391cc4e0",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13215,7 +13215,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -13242,7 +13242,7 @@
                   }
                 },
                 {
-                  "id": "6a26fd6d-1b6d-4746-8f34-609f469bd332",
+                  "id": "4e4f8596-34ca-4dfe-8100-0cd4ba7d9a8d",
                   "name": "Delete Quota",
                   "request": {
                     "name": "Soft delete quota",
@@ -13290,7 +13290,7 @@
                   },
                   "response": [
                     {
-                      "id": "266d2b9f-1cf6-4364-9a32-bc661af91605",
+                      "id": "61612b3a-c0e0-471c-91e2-a90dbb8a27bb",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13357,7 +13357,7 @@
               "name": "Relation Type",
               "item": [
                 {
-                  "id": "a616815e-806b-4340-9995-b88d6eed22e9",
+                  "id": "b10ef2e7-3e3e-42e4-98c3-0ad3311041dd",
                   "name": "Create Relation Type",
                   "request": {
                     "name": "Create a relation type",
@@ -13409,7 +13409,7 @@
                   },
                   "response": [
                     {
-                      "id": "1dcb752a-0e5c-4a76-80b3-66bccf505a8d",
+                      "id": "8f192a9b-ad3b-4860-803d-1bfd65d407ff",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13470,7 +13470,7 @@
                   }
                 },
                 {
-                  "id": "d6b38f28-1c6b-4a08-a764-2d6c615f650a",
+                  "id": "f0af0e93-c020-45b6-bd7f-cf55226346d7",
                   "name": "Get Relation Type by ID",
                   "request": {
                     "name": "Get relation type by ID",
@@ -13518,7 +13518,7 @@
                   },
                   "response": [
                     {
-                      "id": "245fd934-61f7-45dc-9161-337cb710cb3a",
+                      "id": "04e504df-2c34-4a12-8752-e6bbd02679e3",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13580,7 +13580,7 @@
                   }
                 },
                 {
-                  "id": "336eb3f9-9479-4abf-80b2-c0bf49101bcd",
+                  "id": "ff03f7bb-5e37-46f0-8439-7a6076f80b9e",
                   "name": "List Relation Types",
                   "request": {
                     "name": "Get all relation types",
@@ -13626,7 +13626,7 @@
                   },
                   "response": [
                     {
-                      "id": "28dc4370-19b6-4a8c-a9c6-fdf533ec41f1",
+                      "id": "9115fc65-8976-4126-8f60-c9842b5eae2c",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13684,7 +13684,7 @@
                   }
                 },
                 {
-                  "id": "75d719f4-c6bf-435d-8131-896374e22ef7",
+                  "id": "b69dc3b3-a674-4ebe-9669-4f2939bfa1fc",
                   "name": "Update Relation Type",
                   "request": {
                     "name": "Update relation type",
@@ -13745,7 +13745,7 @@
                   },
                   "response": [
                     {
-                      "id": "1006deff-54b0-4b94-bfd8-19b8bc489297",
+                      "id": "8d6579ea-c756-42c3-8fdf-7d984da2e861",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13788,7 +13788,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -13815,7 +13815,7 @@
                   }
                 },
                 {
-                  "id": "4a82eace-843e-4bb0-b14e-c239674de736",
+                  "id": "3b09beec-4739-4e77-bae5-a67158e5eb72",
                   "name": "Delete Relation Type",
                   "request": {
                     "name": "Soft delete relation type",
@@ -13863,7 +13863,7 @@
                   },
                   "response": [
                     {
-                      "id": "aea5de13-2c9a-46e5-9a98-f831a6e63623",
+                      "id": "e132c23d-06fb-43c5-b9ee-9cdfcc1f08df",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -13930,7 +13930,7 @@
               "name": "Religion",
               "item": [
                 {
-                  "id": "fe2906dd-bf72-4a8e-9247-adc4af10caf7",
+                  "id": "abea8c3a-b30c-4228-8ae2-670515a45b64",
                   "name": "Create Religion",
                   "request": {
                     "name": "Create a religion",
@@ -13982,7 +13982,7 @@
                   },
                   "response": [
                     {
-                      "id": "1f407d13-206d-43ae-90a4-e7ab2f6747f0",
+                      "id": "c76bed88-8ef1-405c-9b4a-25a1fe119758",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -14043,7 +14043,7 @@
                   }
                 },
                 {
-                  "id": "394d2981-3a70-4878-b7d4-960e4cc6a085",
+                  "id": "b508b019-2fd3-4b16-a30a-21ebfdd34798",
                   "name": "Get Religion by ID",
                   "request": {
                     "name": "Get religion by ID",
@@ -14091,7 +14091,7 @@
                   },
                   "response": [
                     {
-                      "id": "e599a761-a86b-4452-9929-0d5cbb07ad55",
+                      "id": "ac291406-f501-4d6f-aead-875e4eff4260",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -14153,7 +14153,7 @@
                   }
                 },
                 {
-                  "id": "6f4656c7-6d07-4db8-ba49-2087f192e6d7",
+                  "id": "5cb5dfd8-8e6d-4310-a08c-11e9163a0661",
                   "name": "List Religions",
                   "request": {
                     "name": "Get all religions",
@@ -14199,7 +14199,7 @@
                   },
                   "response": [
                     {
-                      "id": "41b2963a-4c1b-4e0d-89dc-2103482e135f",
+                      "id": "132a93b0-6371-498e-ae2d-65b2c95dde69",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -14257,7 +14257,7 @@
                   }
                 },
                 {
-                  "id": "87d3f704-9e95-4e88-a0a7-c8ed049edb5b",
+                  "id": "a312ed6a-b267-4de9-a560-342b28650b8a",
                   "name": "Update Religion",
                   "request": {
                     "name": "Update religion",
@@ -14318,7 +14318,7 @@
                   },
                   "response": [
                     {
-                      "id": "7f394776-3166-4533-9778-05922bbb5a0d",
+                      "id": "7b5748dc-23f0-4139-a7f0-37a1e65ae7b9",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -14361,7 +14361,7 @@
                         "method": "PATCH",
                         "body": {
                           "mode": "raw",
-                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 482.0324139949661,\n  \"isActive\": true,\n  \"metadata\": {}\n}",
+                          "raw": "{\n  \"code\": \"string\",\n  \"name\": \"string\",\n  \"description\": \"string\",\n  \"displayOrder\": 5204.528703739422,\n  \"isActive\": false,\n  \"metadata\": {}\n}",
                           "options": {
                             "raw": {
                               "language": "json"
@@ -14388,7 +14388,7 @@
                   }
                 },
                 {
-                  "id": "048a7c73-29e6-49ca-ad0f-44e2b244d2e6",
+                  "id": "96d00a56-3f03-4861-95e6-144077494496",
                   "name": "Delete Religion",
                   "request": {
                     "name": "Soft delete religion",
@@ -14436,7 +14436,7 @@
                   },
                   "response": [
                     {
-                      "id": "5e9bfc42-4c73-4c8f-a014-a1b92c659b7d",
+                      "id": "f36ca660-f840-45a1-a6e8-18817f2d69ef",
                       "originalRequest": {
                         "url": {
                           "path": [
@@ -14510,7 +14510,7 @@
           "name": "Navigation",
           "item": [
             {
-              "id": "364bf697-3e33-47c1-8c87-eb99e1e7e7d3",
+              "id": "211fa629-4827-4f52-84ce-f0208d8433a7",
               "name": "Create Navigation Menu",
               "request": {
                 "name": "Create a new navigation menu",
@@ -14556,7 +14556,7 @@
               },
               "response": [
                 {
-                  "id": "ddb8416d-d68f-438f-af99-60a6bdbec44e",
+                  "id": "24525840-4016-4731-9d27-53194303fd9b",
                   "name": "Menu item created successfully",
                   "originalRequest": {
                     "url": {
@@ -14612,7 +14612,7 @@
               }
             },
             {
-              "id": "2ce9025c-3f25-4b1c-aeeb-34d1453568fb",
+              "id": "000c774a-8fe8-4178-aea5-fab9d250405f",
               "name": "Create Navigation Module",
               "request": {
                 "name": "Create a new navigation module",
@@ -14658,7 +14658,7 @@
               },
               "response": [
                 {
-                  "id": "ab302d34-a334-4385-8bd2-c270379355a2",
+                  "id": "e7270b97-7723-4098-bd3d-97edba030fe4",
                   "name": "Module created successfully",
                   "originalRequest": {
                     "url": {
@@ -14714,7 +14714,7 @@
               }
             },
             {
-              "id": "04be39d8-2213-4e98-ab1a-4b8591feed8e",
+              "id": "b77f832f-6335-4a8f-b797-fc561bc5be43",
               "name": "Get Navigation Menu by ID",
               "request": {
                 "name": "Get navigation menu by ID",
@@ -14754,7 +14754,7 @@
               },
               "response": [
                 {
-                  "id": "ff7251a7-1b6c-4e37-a6e4-55e3b988948e",
+                  "id": "7aaf5f70-aa6c-4cb6-96ac-f7f7e44f38a5",
                   "name": "Menu retrieved successfully",
                   "originalRequest": {
                     "url": {
@@ -14811,7 +14811,7 @@
               }
             },
             {
-              "id": "c1c27aae-d192-4ec3-9251-82668ac0a026",
+              "id": "631a525b-c0c0-4b26-8511-0eb7e2b64e42",
               "name": "Get Navigation Module by ID",
               "request": {
                 "name": "Get navigation module by ID",
@@ -14851,7 +14851,7 @@
               },
               "response": [
                 {
-                  "id": "6ba3571e-436f-4b8c-b1e6-955ace50841a",
+                  "id": "de2f9db8-08b4-41fe-9170-7912730a2453",
                   "name": "Module retrieved successfully",
                   "originalRequest": {
                     "url": {
@@ -14908,7 +14908,7 @@
               }
             },
             {
-              "id": "8cad1410-d104-4f5b-b674-f4d5dc273e64",
+              "id": "8428cdd8-356b-4f22-a6c6-a7ac5de996d3",
               "name": "List All Navigation Menus",
               "request": {
                 "name": "List all navigation menus",
@@ -14945,7 +14945,7 @@
               },
               "response": [
                 {
-                  "id": "9e7be813-a259-4f92-8c88-22b4705fc6f6",
+                  "id": "122fde00-44ca-4d78-8b03-a2a5c9b035f2",
                   "name": "Menus retrieved successfully",
                   "originalRequest": {
                     "url": {
@@ -14998,7 +14998,7 @@
               }
             },
             {
-              "id": "6a0a7dae-2e06-414b-a91e-1744f961db54",
+              "id": "1f1de0c2-d968-4216-b60a-ebf299dc6baf",
               "name": "List All Navigation Modules",
               "request": {
                 "name": "List all navigation modules",
@@ -15029,7 +15029,7 @@
               },
               "response": [
                 {
-                  "id": "037397d4-3dcc-4b14-8fe6-8e739a4790db",
+                  "id": "675494ac-3db1-4579-aba7-6304dba0eb34",
                   "name": "Modules retrieved successfully",
                   "originalRequest": {
                     "url": {
@@ -15077,7 +15077,7 @@
               }
             },
             {
-              "id": "42ff9243-77f0-4ea3-a647-d7bf82daa0df",
+              "id": "1575a064-46f3-45b4-8875-358613b2e71d",
               "name": "Update a Navigation Menu",
               "request": {
                 "name": "Update a navigation menu",
@@ -15132,7 +15132,7 @@
               },
               "response": [
                 {
-                  "id": "1e0793af-a65b-4d61-84a9-8a4f5d0b398d",
+                  "id": "2e34eb64-b356-409c-b1f7-c99e70cb237b",
                   "name": "Menu item updated successfully",
                   "originalRequest": {
                     "url": {
@@ -15197,7 +15197,7 @@
               }
             },
             {
-              "id": "5b8c0d4d-9b74-476a-a11f-b5c153dbfb48",
+              "id": "17d66953-b081-444c-9943-c1d71ce5a90a",
               "name": "Update a Navigation Module",
               "request": {
                 "name": "Update a navigation module",
@@ -15252,7 +15252,7 @@
               },
               "response": [
                 {
-                  "id": "6b8ac7dd-9da3-4897-b730-ab0e01009b71",
+                  "id": "700fe390-5a1e-45fe-9936-e96d8dd447a2",
                   "name": "Module updated successfully",
                   "originalRequest": {
                     "url": {
@@ -15317,7 +15317,7 @@
               }
             },
             {
-              "id": "2d96bfcb-5a15-4f56-a6ca-df41e4ee4c44",
+              "id": "f6a0379a-cfdd-4d7d-a541-435750987575",
               "name": "Update Menu Status",
               "request": {
                 "name": "Update menu status",
@@ -15373,7 +15373,7 @@
               },
               "response": [
                 {
-                  "id": "40c17ece-ba46-485b-add5-ede8b6c6cd20",
+                  "id": "12984dba-18ec-45a9-8a4f-b3d7e3a339a5",
                   "name": "Menu status updated successfully",
                   "originalRequest": {
                     "url": {
@@ -15439,7 +15439,7 @@
               }
             },
             {
-              "id": "c5a484e7-7464-4933-9231-f789025c46f6",
+              "id": "c0b727bd-3896-4d92-bd09-a8ab2d2548a3",
               "name": "Delete a Navigation Menu",
               "request": {
                 "name": "Delete a navigation menu",
@@ -15479,7 +15479,7 @@
               },
               "response": [
                 {
-                  "id": "026da39e-c7a5-460b-a2db-2bfd6e92171b",
+                  "id": "b5b254da-615b-46d4-b6a6-c2ae0c7c6483",
                   "name": "Menu item deleted successfully",
                   "originalRequest": {
                     "url": {
@@ -15536,7 +15536,7 @@
               }
             },
             {
-              "id": "2ad4cd4c-2da7-41f6-a721-f7069a9eb5f0",
+              "id": "36efd7ea-c289-4512-a670-2efbbe96c4e7",
               "name": "Delete a Navigation Module",
               "request": {
                 "name": "Delete a navigation module",
@@ -15576,7 +15576,7 @@
               },
               "response": [
                 {
-                  "id": "bc7ca95b-943a-441a-8145-b7bc3968845a",
+                  "id": "bc85eaa1-2f14-4cef-ac95-ee3ccd64ceb8",
                   "name": "Module deleted successfully",
                   "originalRequest": {
                     "url": {
@@ -15633,7 +15633,7 @@
               }
             },
             {
-              "id": "9e83b647-94a6-49c4-9b35-5b7b5002ca1b",
+              "id": "1ab7b74d-901c-4c46-a08a-9946ea899acc",
               "name": "Bulk Reorder Navigation Menu Display Ranks",
               "request": {
                 "name": "Bulk reorder navigation menu display ranks",
@@ -15680,7 +15680,7 @@
               },
               "response": [
                 {
-                  "id": "f7404bcd-d572-44b9-acfa-9162cabb2f02",
+                  "id": "d7026b61-b439-4fa7-be21-e293299cf8ce",
                   "name": "Menus reordered successfully",
                   "originalRequest": {
                     "url": {
@@ -15737,7 +15737,7 @@
               }
             },
             {
-              "id": "634d1524-dad8-4540-a04a-924aa7f4000f",
+              "id": "872578c8-5123-4a44-8fee-90a0da6a2e36",
               "name": "Duplicate a Navigation Menu",
               "request": {
                 "name": "Duplicate a navigation menu",
@@ -15778,7 +15778,7 @@
               },
               "response": [
                 {
-                  "id": "bc3f4868-d731-4918-bf15-810e63c949e3",
+                  "id": "9b52c746-4df7-46f5-8e54-40283680aa47",
                   "name": "Menu item duplicated successfully",
                   "originalRequest": {
                     "url": {
@@ -15836,7 +15836,7 @@
               }
             },
             {
-              "id": "06e1befb-9775-410e-af5c-830c94468630",
+              "id": "c58a747f-9f5d-4590-842e-2b0dd92a8ffa",
               "name": "Move Navigation Menu (change Parent/Module) with Hierarchy Validation",
               "request": {
                 "name": "Move navigation menu (change parent/module) with hierarchy validation",
@@ -15892,7 +15892,7 @@
               },
               "response": [
                 {
-                  "id": "806e585d-9ffa-4a0a-ba54-50ed57b39714",
+                  "id": "6ed35ef7-c7db-4619-9d1e-3595407de1e2",
                   "name": "Menu item moved successfully",
                   "originalRequest": {
                     "url": {
@@ -15958,7 +15958,7 @@
               }
             },
             {
-              "id": "0d902b86-65f6-464d-8333-31c43a19776b",
+              "id": "49d0d1b7-f163-43a3-9cd8-0b0f6cd51358",
               "name": "Toggle Navigation Module Active Status",
               "request": {
                 "name": "Toggle navigation module active status",
@@ -16014,7 +16014,7 @@
               },
               "response": [
                 {
-                  "id": "69fc188e-4f60-486b-8d01-f509625aa4dc",
+                  "id": "a00b735c-8056-4582-bd1d-7cd917ad7edc",
                   "name": "Module status updated successfully",
                   "originalRequest": {
                     "url": {
@@ -16090,7 +16090,7 @@
           "name": "Audit Log",
           "item": [
             {
-              "id": "a79d295c-9e1e-4053-bf5d-a0af4e6e645d",
+              "id": "7c53c31d-dbd7-42ae-b8f5-92602202cf63",
               "name": "Get Details of a Specific Audit Log by ID",
               "request": {
                 "name": "Get details of a specific audit log by ID",
@@ -16128,7 +16128,7 @@
               },
               "response": [
                 {
-                  "id": "d2102cb8-5e77-42d8-b919-98148932170e",
+                  "id": "08338679-3bf6-4f88-98b7-619401910248",
                   "name": "Audit log detailed information including metadata and changes",
                   "originalRequest": {
                     "url": {
@@ -16177,7 +16177,7 @@
                   "_postman_previewlanguage": "text"
                 },
                 {
-                  "id": "02109eb8-a8cc-4656-aa1c-c99d95fe0193",
+                  "id": "f5099108-8c75-4b98-9d2b-20c488e95039",
                   "name": "Forbidden access to this resource",
                   "originalRequest": {
                     "url": {
@@ -16226,7 +16226,7 @@
                   "_postman_previewlanguage": "text"
                 },
                 {
-                  "id": "aae1e3d5-f70f-45be-a90f-cfb11eb2e26d",
+                  "id": "5f672062-e7a4-4077-8c42-e921fad7fc39",
                   "name": "Audit log not found",
                   "originalRequest": {
                     "url": {
@@ -16281,7 +16281,7 @@
               }
             },
             {
-              "id": "41714b12-e4b8-4534-beb0-6037d68ea043",
+              "id": "24e434b4-3f68-4b56-b9b4-2224295661d1",
               "name": "Retrieve Paginated, Filtered Audit Logs",
               "request": {
                 "name": "Retrieve paginated, filtered audit logs",
@@ -16436,13 +16436,13 @@
                     {
                       "disabled": false,
                       "key": "minExecutionTime",
-                      "value": "9338.866630383713",
+                      "value": "1281.8249467205956",
                       "description": "Filter by minimum execution time in ms"
                     },
                     {
                       "disabled": false,
                       "key": "maxExecutionTime",
-                      "value": "9338.866630383713",
+                      "value": "1281.8249467205956",
                       "description": "Filter by maximum execution time in ms"
                     },
                     {
@@ -16467,7 +16467,7 @@
               },
               "response": [
                 {
-                  "id": "653d24dc-b48f-426c-9890-8d238f793f76",
+                  "id": "5a6757a8-4ee6-47f8-b727-552aedced490",
                   "name": "List of audit logs and pagination meta information",
                   "originalRequest": {
                     "url": {
@@ -16573,11 +16573,11 @@
                         },
                         {
                           "key": "minExecutionTime",
-                          "value": "9338.866630383713"
+                          "value": "1281.8249467205956"
                         },
                         {
                           "key": "maxExecutionTime",
-                          "value": "9338.866630383713"
+                          "value": "1281.8249467205956"
                         },
                         {
                           "key": "includeDetails",
@@ -16623,7 +16623,7 @@
           "name": "Summary",
           "item": [
             {
-              "id": "9f17f4e6-7877-4af6-9506-0ceb9543798c",
+              "id": "9ad42637-adc9-4654-adcb-b17ccc9e4216",
               "name": "Get Summary Statistics of Audit Logs",
               "request": {
                 "name": "Get summary statistics of audit logs",
@@ -16779,13 +16779,13 @@
                     {
                       "disabled": false,
                       "key": "minExecutionTime",
-                      "value": "9338.866630383713",
+                      "value": "1281.8249467205956",
                       "description": "Filter by minimum execution time in ms"
                     },
                     {
                       "disabled": false,
                       "key": "maxExecutionTime",
-                      "value": "9338.866630383713",
+                      "value": "1281.8249467205956",
                       "description": "Filter by maximum execution time in ms"
                     },
                     {
@@ -16810,7 +16810,7 @@
               },
               "response": [
                 {
-                  "id": "5caf7f3a-6fb2-4a87-9940-71606c02320b",
+                  "id": "0cc11081-cf57-4b72-bdb6-5efc0015ef47",
                   "name": "Summary statistics grouped by module, action, severity, and status",
                   "originalRequest": {
                     "url": {
@@ -16917,11 +16917,11 @@
                         },
                         {
                           "key": "minExecutionTime",
-                          "value": "9338.866630383713"
+                          "value": "1281.8249467205956"
                         },
                         {
                           "key": "maxExecutionTime",
-                          "value": "9338.866630383713"
+                          "value": "1281.8249467205956"
                         },
                         {
                           "key": "includeDetails",
@@ -16967,7 +16967,7 @@
           "name": "Timeline",
           "item": [
             {
-              "id": "fbb6d978-fc8f-4450-8cbd-6942f7b3baf5",
+              "id": "c6617726-feb2-4b53-8a0e-2b7d93102b2c",
               "name": "Get Chronological Activity Timeline and Daily Trends",
               "request": {
                 "name": "Get chronological activity timeline and daily trends",
@@ -17123,13 +17123,13 @@
                     {
                       "disabled": false,
                       "key": "minExecutionTime",
-                      "value": "9338.866630383713",
+                      "value": "1281.8249467205956",
                       "description": "Filter by minimum execution time in ms"
                     },
                     {
                       "disabled": false,
                       "key": "maxExecutionTime",
-                      "value": "9338.866630383713",
+                      "value": "1281.8249467205956",
                       "description": "Filter by maximum execution time in ms"
                     },
                     {
@@ -17154,7 +17154,7 @@
               },
               "response": [
                 {
-                  "id": "daf20d31-8158-4e7a-8eee-4e403636ba1a",
+                  "id": "091e44c4-7847-4243-bf4c-17d3bb8ac3f1",
                   "name": "Timeline events and daily log activity counts",
                   "originalRequest": {
                     "url": {
@@ -17261,11 +17261,11 @@
                         },
                         {
                           "key": "minExecutionTime",
-                          "value": "9338.866630383713"
+                          "value": "1281.8249467205956"
                         },
                         {
                           "key": "maxExecutionTime",
-                          "value": "9338.866630383713"
+                          "value": "1281.8249467205956"
                         },
                         {
                           "key": "includeDetails",
@@ -17316,7 +17316,7 @@
           "name": "Delivery Log",
           "item": [
             {
-              "id": "8458d1a9-4d15-45a6-b4ae-8fc2a158b492",
+              "id": "074eabf5-3925-428e-bc02-b0d8f8a4ed9d",
               "name": "Get Operational Delivery Metrics & Statistics",
               "request": {
                 "name": "Get operational delivery metrics & statistics",
@@ -17360,7 +17360,7 @@
               },
               "response": [
                 {
-                  "id": "c2ec8d2b-6502-4e26-b429-245a5b9e30f3",
+                  "id": "0c6cc3f5-7d89-4043-beaa-feabb682ed05",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -17416,7 +17416,7 @@
               }
             },
             {
-              "id": "3ca06bd5-a99a-46e3-a334-f4ab81ebfd2a",
+              "id": "65b4a361-7c3b-4f52-b532-6f66cc20b342",
               "name": "Query Paginated Communication Delivery Logs",
               "request": {
                 "name": "Query paginated communication delivery logs",
@@ -17444,12 +17444,12 @@
                     {
                       "disabled": false,
                       "key": "channel",
-                      "value": "EMAIL"
+                      "value": "SMS"
                     },
                     {
                       "disabled": false,
                       "key": "status",
-                      "value": "FAILED"
+                      "value": "SENT"
                     },
                     {
                       "disabled": false,
@@ -17502,7 +17502,7 @@
               },
               "response": [
                 {
-                  "id": "7a412617-96a5-4534-9305-27892dd27fb8",
+                  "id": "07ce8ee9-269e-4153-940d-1dba0f229017",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -17524,11 +17524,11 @@
                         },
                         {
                           "key": "channel",
-                          "value": "EMAIL"
+                          "value": "SMS"
                         },
                         {
                           "key": "status",
-                          "value": "FAILED"
+                          "value": "SENT"
                         },
                         {
                           "key": "provider",
@@ -17594,7 +17594,7 @@
           "name": "Notification",
           "item": [
             {
-              "id": "8d5e9d27-5dc0-4002-bbd8-010009844ecf",
+              "id": "cd1dc915-2516-48f5-a1d3-0f2ff0f39a68",
               "name": "Create an In-app Notification (Admin/Service Use)",
               "request": {
                 "name": "Create an in-app notification (Admin/Service use)",
@@ -17639,7 +17639,7 @@
               },
               "response": [
                 {
-                  "id": "8c2bda66-0ce1-4b52-ac0d-09a7319804df",
+                  "id": "375e6cdd-f594-4305-a1c6-b3cec21979d0",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -17666,7 +17666,7 @@
                     "method": "POST",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"userId\": \"string\",\n  \"title\": \"string\",\n  \"content\": \"string\",\n  \"category\": \"SYSTEM\",\n  \"priority\": \"NORMAL\",\n  \"actionUrl\": \"string\",\n  \"metadata\": {},\n  \"isPinned\": false,\n  \"organizationId\": \"string\",\n  \"branchId\": \"string\"\n}",
+                      "raw": "{\n  \"userId\": \"string\",\n  \"title\": \"string\",\n  \"content\": \"string\",\n  \"category\": \"SYSTEM\",\n  \"priority\": \"NORMAL\",\n  \"actionUrl\": \"string\",\n  \"metadata\": {},\n  \"isPinned\": true,\n  \"organizationId\": \"string\",\n  \"branchId\": \"string\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -17693,7 +17693,7 @@
               }
             },
             {
-              "id": "5b8dc0fc-c5aa-4c1a-9b27-e90cd7b14300",
+              "id": "886a0782-9202-4ca3-b790-c4428684045f",
               "name": "Get Current User Notifications",
               "request": {
                 "name": "Get current user notifications",
@@ -17726,12 +17726,12 @@
                     {
                       "disabled": false,
                       "key": "category",
-                      "value": "ACADEMIC"
+                      "value": "AUTHENTICATION"
                     },
                     {
                       "disabled": false,
                       "key": "priority",
-                      "value": "URGENT"
+                      "value": "NORMAL"
                     },
                     {
                       "disabled": false,
@@ -17761,7 +17761,7 @@
               },
               "response": [
                 {
-                  "id": "29f64975-1812-4f0c-b4a2-e30c26782685",
+                  "id": "e4991f5d-c9ec-4f16-8ab5-ef4389fd07cd",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -17787,11 +17787,11 @@
                         },
                         {
                           "key": "category",
-                          "value": "ACADEMIC"
+                          "value": "AUTHENTICATION"
                         },
                         {
                           "key": "priority",
-                          "value": "URGENT"
+                          "value": "NORMAL"
                         },
                         {
                           "key": "isPinned",
@@ -17836,7 +17836,7 @@
               }
             },
             {
-              "id": "65ee3b1b-2bed-4e03-b0c8-564f6d4b3239",
+              "id": "e8c23968-2c0b-4e10-89c7-0e43ef643a8b",
               "name": "Archive a Notification",
               "request": {
                 "name": "Archive a notification",
@@ -17876,7 +17876,7 @@
               },
               "response": [
                 {
-                  "id": "d8a3ec18-0d65-44db-b4e6-5bace4289ef6",
+                  "id": "47f3b3d0-9155-40a9-a85a-42e7f3c5b610",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -17932,7 +17932,7 @@
               }
             },
             {
-              "id": "25b1d16b-5e11-46ed-9df7-3b4224e3a813",
+              "id": "4b9baf01-a0d2-47e4-8b83-63cd65fda927",
               "name": "Mark All User Notifications As Read",
               "request": {
                 "name": "Mark all user notifications as read",
@@ -17963,7 +17963,7 @@
               },
               "response": [
                 {
-                  "id": "52b51d8d-ed34-4d7c-81f8-42e54aba2518",
+                  "id": "64c4b3b0-e44a-4449-8acb-cc32949f06ad",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18010,7 +18010,7 @@
               }
             },
             {
-              "id": "a043ca86-9dcc-4ee2-9b8e-7fa5ed9a737f",
+              "id": "ff10a568-1797-4e79-9f9e-f91d869e4f03",
               "name": "Mark Notification As Read",
               "request": {
                 "name": "Mark notification as read",
@@ -18050,7 +18050,7 @@
               },
               "response": [
                 {
-                  "id": "b86540d0-288a-410b-b568-62d0599f4e79",
+                  "id": "d3a71856-897a-47a3-b8e3-7fa16fb28112",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18111,7 +18111,7 @@
           "name": "Otp",
           "item": [
             {
-              "id": "6eb05a03-e6a8-400b-a4c8-8d586ede6f8e",
+              "id": "882505c8-f82e-439d-bca1-97aec68f318b",
               "name": "Generate OTP for Specified Purpose",
               "request": {
                 "name": "Generate OTP for specified purpose",
@@ -18149,7 +18149,7 @@
               },
               "response": [
                 {
-                  "id": "42921996-d7e7-4f91-a660-c501c094f958",
+                  "id": "dd32336e-e7d9-4c37-a0df-c1f29c95061f",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18194,7 +18194,7 @@
               }
             },
             {
-              "id": "9aaca8e1-ff53-4a41-a614-e6dff2ddb6cc",
+              "id": "87ca90c5-be89-43f0-a2ab-bd826b721496",
               "name": "Verify Provided OTP Token",
               "request": {
                 "name": "Verify provided OTP token",
@@ -18232,7 +18232,7 @@
               },
               "response": [
                 {
-                  "id": "e92016d8-6791-4675-bc50-be4f6975a7dc",
+                  "id": "65ba8ef1-1b6c-422f-8ca0-ba18a28d0734",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18282,7 +18282,7 @@
           "name": "Preference",
           "item": [
             {
-              "id": "7119b194-fbf2-4768-be2f-77bb890ee342",
+              "id": "cdac7fe0-afa6-4021-b1c1-09134b5df038",
               "name": "Get Current User Notification Preferences",
               "request": {
                 "name": "Get current user notification preferences",
@@ -18312,7 +18312,7 @@
               },
               "response": [
                 {
-                  "id": "6cd871c9-0ef8-465e-bb0a-beb0cef95daa",
+                  "id": "6ec37a94-4a16-48ca-b7f9-f71f337aeba4",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18358,7 +18358,7 @@
               }
             },
             {
-              "id": "6ca6e809-1e27-44ba-a34a-1bc944d0ce40",
+              "id": "80c4c13e-4d71-444d-bf26-07336647b3cd",
               "name": "Update Notification Category Preference for Current User",
               "request": {
                 "name": "Update notification category preference for current user",
@@ -18403,7 +18403,7 @@
               },
               "response": [
                 {
-                  "id": "102c8c9e-04d9-4913-af80-6a33d75465c6",
+                  "id": "3dcd85b0-a074-4470-8baf-3ce76a551a03",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18462,7 +18462,7 @@
           "name": "Setting",
           "item": [
             {
-              "id": "5f7d83cb-ba39-4ae2-8b80-a404fcf0b6d7",
+              "id": "df8661b9-5901-41ef-ad3f-d992a5abf72b",
               "name": "Get Current Communication Settings",
               "request": {
                 "name": "Get current communication settings",
@@ -18505,7 +18505,7 @@
               },
               "response": [
                 {
-                  "id": "a0bd9a6e-2735-4ecb-a387-f7c83fc3b08a",
+                  "id": "dcc21331-e592-42a7-bb7e-37eca725504d",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18560,7 +18560,7 @@
               }
             },
             {
-              "id": "46f25f52-7f81-4dda-88a4-9f18bb442560",
+              "id": "daae27d6-8600-4866-86f6-0f9d771b8333",
               "name": "Update Communication Settings",
               "request": {
                 "name": "Update communication settings",
@@ -18618,7 +18618,7 @@
               },
               "response": [
                 {
-                  "id": "845cf519-fbec-4b2a-9dfa-f195753d764c",
+                  "id": "d4ea0af4-2d61-4d2d-81b7-31b1cdf92bdf",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18654,7 +18654,7 @@
                     "method": "PATCH",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"emailEnabled\": false,\n  \"smsEnabled\": false,\n  \"whatsappEnabled\": true,\n  \"pushEnabled\": true,\n  \"otpEnabled\": false,\n  \"trackingEnabled\": true,\n  \"analyticsEnabled\": true,\n  \"retryEnabled\": true,\n  \"defaultEmailProvider\": \"RESEND\",\n  \"defaultSmsProvider\": \"AWS_SES\",\n  \"defaultWhatsappProvider\": \"MAILGUN\",\n  \"defaultPushProvider\": \"FIREBASE_FCM\"\n}",
+                      "raw": "{\n  \"emailEnabled\": true,\n  \"smsEnabled\": false,\n  \"whatsappEnabled\": false,\n  \"pushEnabled\": true,\n  \"otpEnabled\": false,\n  \"trackingEnabled\": false,\n  \"analyticsEnabled\": false,\n  \"retryEnabled\": true,\n  \"defaultEmailProvider\": \"CUSTOM\",\n  \"defaultSmsProvider\": \"TWILIO\",\n  \"defaultWhatsappProvider\": \"RESEND\",\n  \"defaultPushProvider\": \"POSTMARK\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -18686,7 +18686,7 @@
           "name": "Template",
           "item": [
             {
-              "id": "6877c56b-626d-41b7-a817-5aaccdd3dc6a",
+              "id": "a0dc3e19-4cb8-4e4f-8927-b8c88a14861c",
               "name": "Create Communication Template",
               "request": {
                 "name": "Create a new communication template",
@@ -18731,7 +18731,7 @@
               },
               "response": [
                 {
-                  "id": "e6b4dbf8-58ff-43e6-a0a2-2e9726d898f5",
+                  "id": "06ea83de-485a-4846-bbdc-36679fcbc2c0",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18785,7 +18785,7 @@
               }
             },
             {
-              "id": "03abb0aa-9918-402a-b588-067a08a17d18",
+              "id": "a857ac8f-52b0-4f95-9b23-e09914c583a8",
               "name": "Get Template by ID",
               "request": {
                 "name": "Get template by ID",
@@ -18824,7 +18824,7 @@
               },
               "response": [
                 {
-                  "id": "576b9663-a89a-48ae-b7d1-a4bca6c5af42",
+                  "id": "7f187fd0-06a1-4871-a643-72daeead80ee",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18879,7 +18879,7 @@
               }
             },
             {
-              "id": "a3f0882d-cc3f-4913-a265-c4f3cbfb5f18",
+              "id": "736f742c-75b8-4cc3-b7b8-70628dc81f39",
               "name": "List Communication Templates",
               "request": {
                 "name": "List communication templates",
@@ -18928,7 +18928,7 @@
               },
               "response": [
                 {
-                  "id": "d67a6b6e-cf9e-48c2-bc3a-90860ef9f273",
+                  "id": "42caba72-1799-483a-9498-d899b738acc4",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -18987,7 +18987,7 @@
               }
             },
             {
-              "id": "f26299b7-5cee-4ccc-80d0-56c639395822",
+              "id": "4fb68cff-44ad-4e0b-b209-4482d08c5f92",
               "name": "Update a Communication Template",
               "request": {
                 "name": "Update a communication template",
@@ -19041,7 +19041,7 @@
               },
               "response": [
                 {
-                  "id": "7a82bddf-4b52-485b-ae1a-4d8acf81ded4",
+                  "id": "f1c1ac2f-6d88-42d3-81d6-3adc17ffeb5b",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -19104,7 +19104,7 @@
               }
             },
             {
-              "id": "afe6b82b-6e58-45c0-80e4-a8c2a7c32922",
+              "id": "ea556f91-0591-478e-9b67-484e84117e3b",
               "name": "Render a Template Preview with Variables",
               "request": {
                 "name": "Render a template preview with variables",
@@ -19157,7 +19157,7 @@
               },
               "response": [
                 {
-                  "id": "0e26e514-663c-4823-8d97-d8ab42683af3",
+                  "id": "ed2f01df-f2fc-48a8-a3ca-340a258c7a99",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -19227,7 +19227,7 @@
           "name": "Health",
           "item": [
             {
-              "id": "fa8f250a-19fb-48d4-aac1-1d253b6912dc",
+              "id": "08686971-df04-4430-b510-0d772c07940a",
               "name": "Full Health Report",
               "request": {
                 "name": "Full health report",
@@ -19256,7 +19256,7 @@
               },
               "response": [
                 {
-                  "id": "c521df7c-5a7d-4b49-8610-18b597d6efbc",
+                  "id": "9116f43e-496f-4c7b-8114-ee317e3b255d",
                   "name": "All checks passed\n\nThe Health Check is successful",
                   "originalRequest": {
                     "url": {
@@ -19286,12 +19286,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {\n    \"status\": \"ok\",\n    \"info\": {\n      \"database\": {\n        \"status\": \"up\"\n      }\n    },\n    \"error\": {},\n    \"details\": {\n      \"database\": {\n        \"status\": \"up\"\n      }\n    }\n  },\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": \"string\",\n      \"key_1\": true\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"1959-12-01T10:32:38.965Z\"\n}",
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {\n    \"status\": \"ok\",\n    \"info\": {\n      \"database\": {\n        \"status\": \"up\"\n      }\n    },\n    \"error\": {},\n    \"details\": {\n      \"database\": {\n        \"status\": \"up\"\n      }\n    }\n  },\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": \"string\",\n      \"key_1\": \"string\"\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"2020-06-14T01:28:01.156Z\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "3917f571-f72e-4a43-a46b-c34d26a42ee5",
+                  "id": "37901a8f-e428-403e-b6a3-7f4bdf37e588",
                   "name": "At least one check failed\n\nThe Health Check is not successful",
                   "originalRequest": {
                     "url": {
@@ -19321,7 +19321,7 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {},\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": \"string\",\n      \"key_1\": 9860\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"1951-06-20T03:51:30.747Z\"\n}",
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {},\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": true\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"2011-07-08T08:05:28.060Z\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 }
@@ -19342,7 +19342,7 @@
           "name": "Live",
           "item": [
             {
-              "id": "28ec1a51-a74d-4fff-9bf1-9b17b2ddfc91",
+              "id": "6080350c-a42a-45ae-bda2-d3202d61aa14",
               "name": "Liveness Probe",
               "request": {
                 "name": "Liveness probe",
@@ -19365,7 +19365,7 @@
               },
               "response": [
                 {
-                  "id": "007c589c-f5e7-4c05-8b9c-94464c18c443",
+                  "id": "35f7b5cd-0f60-4309-a3f0-e848d6d0d441",
                   "name": "Process is alive",
                   "originalRequest": {
                     "url": {
@@ -19410,7 +19410,7 @@
           "name": "Active",
           "item": [
             {
-              "id": "371f8074-21e5-45c1-a5d8-7c3f40f92fec",
+              "id": "dbb2b014-0161-4eef-862b-c9feb1e3c45b",
               "name": "Check Current Resolved Active Maintenance Status Matching Request Context",
               "request": {
                 "name": "Check current resolved active maintenance status matching request context",
@@ -19433,7 +19433,7 @@
               },
               "response": [
                 {
-                  "id": "3f1f2c26-7c5c-4b82-b4f3-3cfc4b1dd66c",
+                  "id": "1923f7b9-a4d6-44d6-80ca-dd0c76b41c5d",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -19475,7 +19475,7 @@
           "name": "Maintenance Rule",
           "item": [
             {
-              "id": "91b98d20-57b1-4d53-88d2-e7d6fb93295d",
+              "id": "30f35114-4a80-4a34-85f5-22084005861b",
               "name": "Create Maintenance Rule (SUPER_ADMIN Only)",
               "request": {
                 "name": "Create a new maintenance rule (SUPER_ADMIN only)",
@@ -19519,7 +19519,7 @@
               },
               "response": [
                 {
-                  "id": "8203e164-cb38-4a66-8957-0fd72dc5c460",
+                  "id": "323a35e4-0e0c-4956-bd43-cdb0cd50da53",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -19545,7 +19545,7 @@
                     "method": "POST",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"scopeType\": \"GLOBAL\",\n  \"scopeId\": \"admissions\",\n  \"isActive\": true,\n  \"allowLogin\": false,\n  \"allowReadApis\": true,\n  \"allowWriteApis\": false,\n  \"customStatus\": 503,\n  \"customPage\": \"string\",\n  \"bypassRoles\": [\n    \"DEVOPS\",\n    \"SYSTEM_ADMIN\"\n  ],\n  \"title\": \"Scheduled System Upgrade\",\n  \"shortMessage\": \"System is temporarily offline for upgrades.\",\n  \"description\": \"string\",\n  \"reason\": \"Database performance indexing.\",\n  \"estimatedCompletion\": \"string\",\n  \"maintenanceWindow\": \"Sunday 02:00 AM - 04:00 AM IST\",\n  \"supportContact\": \"devops-team@campusflow.io\",\n  \"bannerColor\": \"#d32f2f\",\n  \"severity\": \"INFO\",\n  \"maintenanceIcon\": \"string\",\n  \"announcementLink\": \"string\",\n  \"externalStatusPageUrl\": \"string\",\n  \"startAt\": \"string\",\n  \"endAt\": \"string\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"isRecurring\": false,\n  \"recurrenceDayOfWeek\": 3.208721355236161,\n  \"recurrenceStartTime\": \"02:00\",\n  \"recurrenceEndTime\": \"04:00\"\n}",
+                      "raw": "{\n  \"scopeType\": \"GLOBAL\",\n  \"scopeId\": \"admissions\",\n  \"isActive\": true,\n  \"allowLogin\": false,\n  \"allowReadApis\": true,\n  \"allowWriteApis\": false,\n  \"customStatus\": 503,\n  \"customPage\": \"string\",\n  \"bypassRoles\": [\n    \"DEVOPS\",\n    \"SYSTEM_ADMIN\"\n  ],\n  \"title\": \"Scheduled System Upgrade\",\n  \"shortMessage\": \"System is temporarily offline for upgrades.\",\n  \"description\": \"string\",\n  \"reason\": \"Database performance indexing.\",\n  \"estimatedCompletion\": \"string\",\n  \"maintenanceWindow\": \"Sunday 02:00 AM - 04:00 AM IST\",\n  \"supportContact\": \"devops-team@campusflow.io\",\n  \"bannerColor\": \"#d32f2f\",\n  \"severity\": \"INFO\",\n  \"maintenanceIcon\": \"string\",\n  \"announcementLink\": \"string\",\n  \"externalStatusPageUrl\": \"string\",\n  \"startAt\": \"string\",\n  \"endAt\": \"string\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"isRecurring\": false,\n  \"recurrenceDayOfWeek\": 4.124711263253536,\n  \"recurrenceStartTime\": \"02:00\",\n  \"recurrenceEndTime\": \"04:00\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -19572,7 +19572,7 @@
               }
             },
             {
-              "id": "9fb0b7d3-f168-452e-9964-c07e7331a74f",
+              "id": "d487135a-a4af-4fd3-b493-f77fed4e9584",
               "name": "Get Details of a Maintenance Rule by ID (SUPER_ADMIN Only)",
               "request": {
                 "name": "Get details of a maintenance rule by ID (SUPER_ADMIN only)",
@@ -19610,7 +19610,7 @@
               },
               "response": [
                 {
-                  "id": "5ec3052a-658a-4a35-a8cb-d549e08dbd0c",
+                  "id": "bb1e602d-da8e-4b37-97d8-847be49d0438",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -19664,7 +19664,7 @@
               }
             },
             {
-              "id": "39586ccb-a2dc-4d99-a297-c1e557289cd7",
+              "id": "db1bbc67-9ed1-4d2e-aa73-8a01f87a446f",
               "name": "List All Maintenance Rules (SUPER_ADMIN Only)",
               "request": {
                 "name": "List all maintenance rules (SUPER_ADMIN only)",
@@ -19693,7 +19693,7 @@
               },
               "response": [
                 {
-                  "id": "b47164d7-2a78-419f-b9f3-5e73c2f1115c",
+                  "id": "14b91370-c7c6-49c9-aa9e-3ad678e03a57",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -19738,7 +19738,7 @@
               }
             },
             {
-              "id": "7806d96c-c52c-42cc-b83a-b871a8ab09c0",
+              "id": "4d47816c-4ffa-4734-870a-c47f11008d3d",
               "name": "Update a Maintenance Rule (SUPER_ADMIN Only)",
               "request": {
                 "name": "Update a maintenance rule (SUPER_ADMIN only)",
@@ -19791,7 +19791,7 @@
               },
               "response": [
                 {
-                  "id": "8e4950ba-7329-426f-90f2-e9fed4042281",
+                  "id": "06866184-6524-4d89-8029-7c765f02f861",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -19826,7 +19826,7 @@
                     "method": "PATCH",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"scopeType\": \"GLOBAL\",\n  \"scopeId\": \"admissions\",\n  \"isActive\": true,\n  \"allowLogin\": false,\n  \"allowReadApis\": true,\n  \"allowWriteApis\": false,\n  \"customStatus\": 503,\n  \"customPage\": \"string\",\n  \"bypassRoles\": [\n    \"DEVOPS\",\n    \"SYSTEM_ADMIN\"\n  ],\n  \"title\": \"Scheduled System Upgrade\",\n  \"shortMessage\": \"System is temporarily offline for upgrades.\",\n  \"description\": \"string\",\n  \"reason\": \"Database performance indexing.\",\n  \"estimatedCompletion\": \"string\",\n  \"maintenanceWindow\": \"Sunday 02:00 AM - 04:00 AM IST\",\n  \"supportContact\": \"devops-team@campusflow.io\",\n  \"bannerColor\": \"#d32f2f\",\n  \"severity\": \"INFO\",\n  \"maintenanceIcon\": \"string\",\n  \"announcementLink\": \"string\",\n  \"externalStatusPageUrl\": \"string\",\n  \"startAt\": \"string\",\n  \"endAt\": \"string\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"isRecurring\": false,\n  \"recurrenceDayOfWeek\": 0.5596152274422388,\n  \"recurrenceStartTime\": \"02:00\",\n  \"recurrenceEndTime\": \"04:00\"\n}",
+                      "raw": "{\n  \"scopeType\": \"GLOBAL\",\n  \"scopeId\": \"admissions\",\n  \"isActive\": true,\n  \"allowLogin\": false,\n  \"allowReadApis\": true,\n  \"allowWriteApis\": false,\n  \"customStatus\": 503,\n  \"customPage\": \"string\",\n  \"bypassRoles\": [\n    \"DEVOPS\",\n    \"SYSTEM_ADMIN\"\n  ],\n  \"title\": \"Scheduled System Upgrade\",\n  \"shortMessage\": \"System is temporarily offline for upgrades.\",\n  \"description\": \"string\",\n  \"reason\": \"Database performance indexing.\",\n  \"estimatedCompletion\": \"string\",\n  \"maintenanceWindow\": \"Sunday 02:00 AM - 04:00 AM IST\",\n  \"supportContact\": \"devops-team@campusflow.io\",\n  \"bannerColor\": \"#d32f2f\",\n  \"severity\": \"INFO\",\n  \"maintenanceIcon\": \"string\",\n  \"announcementLink\": \"string\",\n  \"externalStatusPageUrl\": \"string\",\n  \"startAt\": \"string\",\n  \"endAt\": \"string\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"isRecurring\": false,\n  \"recurrenceDayOfWeek\": 1.0040963959122897,\n  \"recurrenceStartTime\": \"02:00\",\n  \"recurrenceEndTime\": \"04:00\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -19853,7 +19853,7 @@
               }
             },
             {
-              "id": "07949399-2737-4388-87ff-0fe0eb0a25d5",
+              "id": "d6869ea6-3ab4-4505-bfa5-5f5773f4fc8d",
               "name": "Delete a Maintenance Rule (SUPER_ADMIN Only)",
               "request": {
                 "name": "Delete a maintenance rule (SUPER_ADMIN only)",
@@ -19891,7 +19891,7 @@
               },
               "response": [
                 {
-                  "id": "59755192-49f1-4078-9b0f-766e14517601",
+                  "id": "41e4ce18-fee3-453e-85f0-cf14388489cc",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -19955,7 +19955,7 @@
           "name": "Ready",
           "item": [
             {
-              "id": "e7cf1fa4-d5f1-4dca-a5a2-5fdf162ff292",
+              "id": "134a0c40-7419-48bf-bae0-1dd8935667c7",
               "name": "Readiness Probe",
               "request": {
                 "name": "Readiness probe",
@@ -19984,7 +19984,7 @@
               },
               "response": [
                 {
-                  "id": "7bf5a087-ea13-4753-a8ae-f0f2f6d00e8c",
+                  "id": "893ec991-b246-4bb5-a0ff-63511b330086",
                   "name": "Instance is ready\n\nThe Health Check is successful",
                   "originalRequest": {
                     "url": {
@@ -20014,12 +20014,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {\n    \"status\": \"ok\",\n    \"info\": {\n      \"database\": {\n        \"status\": \"up\"\n      }\n    },\n    \"error\": {},\n    \"details\": {\n      \"database\": {\n        \"status\": \"up\"\n      }\n    }\n  },\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": \"string\",\n      \"key_1\": true\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"1959-12-01T10:32:38.965Z\"\n}",
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {\n    \"status\": \"ok\",\n    \"info\": {\n      \"database\": {\n        \"status\": \"up\"\n      }\n    },\n    \"error\": {},\n    \"details\": {\n      \"database\": {\n        \"status\": \"up\"\n      }\n    }\n  },\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": \"string\",\n      \"key_1\": \"string\"\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"2020-06-14T01:28:01.156Z\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "d4e45c02-cba6-4088-b36e-3240bb6f2807",
+                  "id": "a78db147-17be-4237-84f9-b13f5962510d",
                   "name": "A dependency is unavailable\n\nThe Health Check is not successful",
                   "originalRequest": {
                     "url": {
@@ -20049,7 +20049,7 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {},\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": \"string\",\n      \"key_1\": 9860\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"1951-06-20T03:51:30.747Z\"\n}",
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {},\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": true\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"2011-07-08T08:05:28.060Z\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 }
@@ -20070,7 +20070,7 @@
           "name": "Configuration",
           "item": [
             {
-              "id": "eec5ab20-ef45-4ff9-9586-4a3ffcb03312",
+              "id": "99863548-97fe-48bc-a1ea-34c38c662606",
               "name": "Upsert a Workspace Configuration Layer (Super Admin Only)",
               "request": {
                 "name": "Upsert a workspace configuration layer (Super Admin only)",
@@ -20115,7 +20115,7 @@
               },
               "response": [
                 {
-                  "id": "57609ee9-fb23-46d7-8522-849bc17830d5",
+                  "id": "aba8d9ac-ac8f-461a-9630-cd1958bfefd3",
                   "name": "Workspace configuration layer upserted successfully",
                   "originalRequest": {
                     "url": {
@@ -20175,7 +20175,7 @@
           "name": "Navigation",
           "item": [
             {
-              "id": "adb75820-b139-4d88-aab5-2169ab50c57b",
+              "id": "c14146cb-d180-4f12-ba06-4c78546895c4",
               "name": "Get User Navigation Tree",
               "request": {
                 "name": "Get user navigation tree",
@@ -20208,7 +20208,7 @@
               },
               "response": [
                 {
-                  "id": "8074ff9a-269a-4e9f-a43a-d6e72a211ef3",
+                  "id": "7357d4e6-48cd-43d1-85f1-9792e5ce2703",
                   "name": "User navigation tree resolved successfully",
                   "originalRequest": {
                     "url": {
@@ -20260,7 +20260,7 @@
           "name": "Setup",
           "item": [
             {
-              "id": "c77b9250-8d02-4fef-928a-73adfdd4ca6e",
+              "id": "3ee6b905-36da-4fd8-bb31-a8f9fcedc1ab",
               "name": "Read the Workspace Bootstrap Status",
               "request": {
                 "name": "Read the workspace bootstrap status",
@@ -20300,7 +20300,7 @@
               },
               "response": [
                 {
-                  "id": "cc686054-a258-4098-a6ab-65c79295c736",
+                  "id": "7bae8a7b-4374-4dbf-9c29-95cad0acddd4",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -20340,7 +20340,7 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {\n    \"setupRequired\": true,\n    \"setupStage\": \"ORGANIZATION\",\n    \"missingResources\": [\n      [],\n      []\n    ],\n    \"allowedActions\": [\n      {\n        \"action\": \"CREATE_ORGANIZATION\",\n        \"method\": \"POST\",\n        \"path\": \"/v1/organizations\",\n        \"description\": \"Create the first organization.\"\n      },\n      {\n        \"action\": \"CREATE_ORGANIZATION\",\n        \"method\": \"POST\",\n        \"path\": \"/v1/organizations\",\n        \"description\": \"Create the first organization.\"\n      }\n    ],\n    \"initializedAt\": null\n  },\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": \"string\",\n      \"key_1\": false\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"1963-03-04T16:51:04.744Z\"\n}",
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {\n    \"setupRequired\": true,\n    \"setupStage\": \"ORGANIZATION\",\n    \"missingResources\": [\n      [],\n      []\n    ],\n    \"allowedActions\": [\n      {\n        \"action\": \"CREATE_ORGANIZATION\",\n        \"method\": \"POST\",\n        \"path\": \"/v1/organizations\",\n        \"description\": \"Create the first organization.\"\n      },\n      {\n        \"action\": \"CREATE_ORGANIZATION\",\n        \"method\": \"POST\",\n        \"path\": \"/v1/organizations\",\n        \"description\": \"Create the first organization.\"\n      }\n    ],\n    \"initializedAt\": null\n  },\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": 5322.28113695397,\n      \"key_1\": 863,\n      \"key_2\": 1314.7617718420545\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"2015-01-19T11:55:13.038Z\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 }
@@ -20351,7 +20351,7 @@
               }
             },
             {
-              "id": "52f00f69-f960-4f29-8e2a-a9055d3cd171",
+              "id": "001a3d2d-e747-404e-ba96-74a350a5381d",
               "name": "Mark the Workspace Initialized",
               "request": {
                 "name": "Mark the workspace initialized",
@@ -20391,7 +20391,7 @@
               },
               "response": [
                 {
-                  "id": "2799be81-4b1d-4eb0-8465-0400d9979e15",
+                  "id": "5cbecc4b-5432-4891-9779-f9fdb45abfd4",
                   "originalRequest": {
                     "url": {
                       "path": [
@@ -20431,12 +20431,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {\n    \"setupRequired\": true,\n    \"setupStage\": \"ORGANIZATION\",\n    \"missingResources\": [\n      [],\n      []\n    ],\n    \"allowedActions\": [\n      {\n        \"action\": \"CREATE_ORGANIZATION\",\n        \"method\": \"POST\",\n        \"path\": \"/v1/organizations\",\n        \"description\": \"Create the first organization.\"\n      },\n      {\n        \"action\": \"CREATE_ORGANIZATION\",\n        \"method\": \"POST\",\n        \"path\": \"/v1/organizations\",\n        \"description\": \"Create the first organization.\"\n      }\n    ],\n    \"initializedAt\": null\n  },\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": false,\n      \"key_1\": 2985,\n      \"key_2\": \"string\"\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"1963-05-17T04:47:57.633Z\"\n}",
+                  "body": "{\n  \"success\": true,\n  \"message\": \"Operation completed successfully\",\n  \"data\": {\n    \"setupRequired\": true,\n    \"setupStage\": \"ORGANIZATION\",\n    \"missingResources\": [\n      [],\n      []\n    ],\n    \"allowedActions\": [\n      {\n        \"action\": \"CREATE_ORGANIZATION\",\n        \"method\": \"POST\",\n        \"path\": \"/v1/organizations\",\n        \"description\": \"Create the first organization.\"\n      },\n      {\n        \"action\": \"CREATE_ORGANIZATION\",\n        \"method\": \"POST\",\n        \"path\": \"/v1/organizations\",\n        \"description\": \"Create the first organization.\"\n      }\n    ],\n    \"initializedAt\": null\n  },\n  \"meta\": {},\n  \"error\": {\n    \"code\": \"SETUP_REQUIRED\",\n    \"details\": {\n      \"key_0\": \"string\"\n    }\n  },\n  \"requestId\": \"019fc2a1-0d7c-76cd-86ec-cbdf1628a566\",\n  \"timestamp\": \"1970-08-05T16:04:17.122Z\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "ea2f6494-2957-430b-b015-e5b22ccac401",
+                  "id": "2d815215-e65c-44c4-9349-56a717a7c969",
                   "name": "SETUP_INCOMPLETE — a required resource is still missing.",
                   "originalRequest": {
                     "url": {
@@ -20489,7 +20489,7 @@
           "name": "Workspace",
           "item": [
             {
-              "id": "43d9c526-baf9-4d54-b9d2-12163b8766ca",
+              "id": "71c2e2fd-9f8e-4eaa-8bd3-283288fa71d2",
               "name": "Get Full Workspace Presentation Layout",
               "request": {
                 "name": "Get full workspace presentation layout",
@@ -20521,7 +20521,7 @@
               },
               "response": [
                 {
-                  "id": "e47a1daf-98a1-46f7-846b-bd8f1014ac89",
+                  "id": "19ceb2c6-d691-4570-92c9-2b5f1d20cfcb",
                   "name": "Workspace layout resolved successfully",
                   "originalRequest": {
                     "url": {
@@ -20659,7 +20659,7 @@
     }
   ],
   "info": {
-    "_postman_id": "02cf5148-4297-4cd7-995c-91c492ec08a5",
+    "_postman_id": "c6d0416a-7909-4b71-9d3c-8ee3cf95733f",
     "name": "School ERP Monolith",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "description": "Enterprise Postman Collection v2 automatically generated from OpenAPI spec. ZERO manual edits required."
