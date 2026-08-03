@@ -77,7 +77,9 @@ module docs for the area you touch
   (docs/api-layer.md, docs/response-handling.md, docs/core-platform.md,
    docs/providers.md, docs/layouts.md, docs/state-management.md,
    docs/forms.md, docs/error-handling.md, docs/authentication.md,
-   docs/workspace.md, docs/theme-integration.md)
+   docs/workspace.md, docs/dashboard-shell.md,
+   docs/administration-modules.md, docs/backend-gaps.md,
+   docs/theme-integration.md)
       ↓
 docs/contributing.md  +  src/features/_template  (feature conventions)
       ↓
@@ -102,20 +104,21 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 
 ## 6. Folder Responsibilities
 
-| Path                                                | Responsibility                                                 |
-| --------------------------------------------------- | -------------------------------------------------------------- |
-| `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).        |
-| `src/features/*`                                    | Business modules; the only place with domain logic.            |
-| `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.           |
-| `src/shared`                                        | Cross-feature presentational building blocks + error boundary. |
-| `src/core/{api,auth,query,startup,theme,workspace}` | Platform infrastructure; no business logic.                    |
-| `src/providers`                                     | Client provider composition root.                              |
-| `src/services`                                      | Transport service factories features build on.                 |
-| `src/store`                                         | Platform-only Zustand stores (UI + preferences).               |
-| `src/hooks` `src/lib` `src/utils`                   | Generic reusable helpers.                                      |
-| `src/schemas`                                       | Shared Zod schemas.                                            |
-| `src/config` `src/constants` `src/types`            | Env/app config, constants, shared contracts.                   |
-| `src/styles` `src/assets`                           | Design-token CSS, curated icons/static accessors.              |
+| Path                                                | Responsibility                                                                                                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).                                                                                                 |
+| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `system-settings`, `maintenance`, `audit`. |
+| `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.                                                                                                    |
+| `src/shared/components/{data,data-display,overlay}` | Table system, tiles/badges/cards, dialogs and drawers.                                                                                                  |
+| `src/shared`                                        | Cross-feature presentational building blocks + error boundary.                                                                                          |
+| `src/core/{api,auth,query,startup,theme,workspace}` | Platform infrastructure; no business logic.                                                                                                             |
+| `src/providers`                                     | Client provider composition root.                                                                                                                       |
+| `src/services`                                      | Transport service factories features build on.                                                                                                          |
+| `src/store`                                         | Platform-only Zustand stores (UI + preferences).                                                                                                        |
+| `src/hooks` `src/lib` `src/utils`                   | Generic reusable helpers.                                                                                                                               |
+| `src/schemas`                                       | Shared Zod schemas.                                                                                                                                     |
+| `src/config` `src/constants` `src/types`            | Env/app config, constants, shared contracts.                                                                                                            |
+| `src/styles` `src/assets`                           | Design-token CSS, curated icons/static accessors.                                                                                                       |
 
 ## 7. Dependency Rules
 
@@ -197,7 +200,7 @@ Before committing, confirm:
 - Don't import one feature from another, or reach past a barrel.
 - Don't hard-code business logic, colors, shadows, header values, or `process.env`.
 - Don't add business logic to `shared`/`components/ui`.
-- Don't implement dynamic theming, dashboards, or workspace UI (out of scope).
+- Don't implement dynamic theming or theme-customization UI (still out of scope).
 - Don't invent auth endpoints, payloads, or response shapes. The verified
   contract is in [`docs/authentication.md`](./docs/authentication.md); the
   Postman collection records no response bodies and is wrong about logout.
@@ -217,6 +220,13 @@ Before committing, confirm:
   `branchesFor` and `academicYearsFor` are the only implementations.
 - Don't build a bespoke loading/empty/error panel. `shared/components/feedback`
   owns them, and `ApiErrorState` is the only place `ApiError.kind` becomes UI.
+- Don't hand-roll a list. `shared/components/data` owns the table system
+  (`DataTable` + toolbar + pagination + sortable header) and already resolves
+  loading/error/empty/loaded; features supply column definitions only.
+- Don't invent a backend contract to fill a screen. Where the docs and Postman
+  record no endpoint, request or response, ship the UI, disable the write, and
+  mark it with `BackendPendingBadge` / `BackendPendingNote`
+  ([§28](#28-contract-driven-modules)).
 - Don't leave TODOs that break compilation, or skip verification gates.
 
 ## 15. Common Mistakes
@@ -348,6 +358,8 @@ Update this file (and the relevant `docs/*.md`) whenever any of these change:
 - Testing structure, tooling, or verification gates.
 - Coding/commit/documentation standards, or the feature-module convention.
 
+- The set of shipped feature modules, or the contract-driven rules in §28.
+
 Rule: **documentation must never drift from implementation.** If a change makes
 any statement here false, fix it in the same commit. Keep this file concise
 (~250–400 lines) — push detail into `docs/` and cross-reference it.
@@ -398,3 +410,31 @@ useWorkspace()` from `@/core/workspace`. Never re-fetch it, never prop-drill it.
   the next user on that machine.
 
 Detail: [`docs/workspace.md`](./docs/workspace.md).
+
+## 28. Contract-Driven Modules
+
+Business modules are wired **only** from `backend/docs/` and the Postman
+collection. Backend source is never read, and no request or response is
+inferred.
+
+- **Where a contract is missing, the screen still ships** — laid out, validated,
+  wired to its query hooks — with writes disabled and the gap declared through
+  `BackendPendingBadge` / `BackendPendingNote`. Grep `BACKEND_PENDING_LABEL` to
+  enumerate every one.
+- **DTOs record their source.** `types/*.dto.ts` names which document each field
+  came from, and types anything absent from the documented data structure as
+  optional rather than assuming it arrives.
+- **An undocumented response is `unknown`, never a guessed interface.** Narrow it
+  with a defensive reader that accepts the plausible shapes and reports
+  `isUnrecognized` otherwise, so a wrong guess degrades to a visible marker and
+  never to a fabricated figure (`readActiveStatus`, `readSummary`,
+  `readTimeline`).
+- **No partial write unless the backend documents one.** Both settings and
+  maintenance rebuild the complete documented body from the loaded record plus
+  the user's edits.
+- **Two features that meet do so at the route**, through slots — never by
+  importing each other.
+
+Detail: [`docs/administration-modules.md`](./docs/administration-modules.md),
+[`docs/dashboard-shell.md`](./docs/dashboard-shell.md), and the running gap
+inventory in [`docs/backend-gaps.md`](./docs/backend-gaps.md).

@@ -20,10 +20,13 @@ without restructuring.
 11. [Error Handling](./error-handling.md)
 12. [Authentication Screens & Startup Flow](./authentication.md)
 13. [Workspace Scope Platform](./workspace.md)
-14. [Testing Strategy](./testing.md)
-15. [Coding Standards](./coding-standards.md)
-16. [Contribution Guide](./contributing.md)
-17. [Future Theme Integration](./theme-integration.md)
+14. [Dashboard Shell](./dashboard-shell.md)
+15. [Administration Modules](./administration-modules.md)
+16. [Backend Contract Gaps](./backend-gaps.md)
+17. [Testing Strategy](./testing.md)
+18. [Coding Standards](./coding-standards.md)
+19. [Contribution Guide](./contributing.md)
+20. [Future Theme Integration](./theme-integration.md)
 
 ## Tech Stack
 
