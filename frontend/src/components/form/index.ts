@@ -11,6 +11,16 @@ export {
 } from "./fields/checkbox-field";
 export { OtpField, type OtpFieldProps } from "./fields/otp-field";
 export {
+  SelectField,
+  type SelectFieldOption,
+  type SelectFieldProps,
+} from "./fields/select-field";
+export {
+  TextareaField,
+  type TextareaFieldProps,
+} from "./fields/textarea-field";
+export { SwitchField, type SwitchFieldProps } from "./fields/switch-field";
+export {
   PasswordStrengthMeter,
   type PasswordStrengthMeterProps,
 } from "./password-strength-meter";
