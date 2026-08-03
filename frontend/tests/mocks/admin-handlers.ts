@@ -4,6 +4,7 @@ import { apiConfig } from "@/config";
 
 import { successEnvelope } from "@tests/fixtures/api";
 import { auditLogDto } from "@tests/fixtures/audit";
+import { branchDto, secondBranchDto } from "@tests/fixtures/branch";
 import { maintenanceRuleDto } from "@tests/fixtures/maintenance";
 import {
   organizationDto,
@@ -94,6 +95,35 @@ export const adminHandlers = [
     );
   }),
   http.delete(`${base}/organizations/:id`, () =>
+    HttpResponse.json(successEnvelope(null)),
+  ),
+
+  // Branches — the fixed `organization` segment must precede `:id`.
+  http.get(`${base}/branches/organization/:orgId`, () =>
+    HttpResponse.json(successEnvelope([branchDto(), secondBranchDto()])),
+  ),
+  http.get(`${base}/branches/:id`, ({ params }) =>
+    HttpResponse.json(successEnvelope(branchDto({ id: String(params.id) }))),
+  ),
+  http.get(`${base}/branches`, () =>
+    HttpResponse.json(successEnvelope([branchDto(), secondBranchDto()])),
+  ),
+  http.post(`${base}/branches`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(successEnvelope(branchDto(body)), { status: 201 });
+  }),
+  http.patch(`${base}/branches/:id/status`, ({ params }) =>
+    HttpResponse.json(
+      successEnvelope(branchDto({ id: String(params.id), isActive: false })),
+    ),
+  ),
+  http.patch(`${base}/branches/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      successEnvelope(branchDto({ ...body, id: String(params.id) })),
+    );
+  }),
+  http.delete(`${base}/branches/:id`, () =>
     HttpResponse.json(successEnvelope(null)),
   ),
 

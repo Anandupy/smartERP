@@ -56,12 +56,25 @@ describe("Application sidebar", () => {
     for (const label of [
       "Dashboard",
       "Organizations",
+      "Branches",
       "System Settings",
       "Maintenance",
       "Audit Logs",
     ]) {
       expect(await screen.findByRole("link", { name: label })).toBeVisible();
     }
+  });
+
+  it("keeps a nested branch route inside its section", async () => {
+    setPathname(ROUTES.app.branches.settings.general("branch-1"));
+    withSidebar(<AppSidebar />);
+
+    expect(
+      await screen.findByRole("link", { name: "Branches" }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.getByRole("link", { name: "Organizations" }),
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("no longer advertises Organizations as coming soon", async () => {
