@@ -1,8 +1,7 @@
 import type { MaintenanceRuleFormValues } from "../schemas/maintenance-rule.schema";
-import {
-  maintenanceRuleFormDefaults,
-  resolveLocalTimezone,
-} from "../schemas/maintenance-rule.schema";
+import { resolveLocalTimezone } from "@/utils";
+
+import { maintenanceRuleFormDefaults } from "../schemas/maintenance-rule.schema";
 import type {
   CreateMaintenanceRuleRequest,
   MaintenanceRuleDto,

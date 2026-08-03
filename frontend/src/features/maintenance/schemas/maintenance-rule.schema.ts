@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { resolveLocalTimezone } from "@/utils";
+
 import { MAINTENANCE_SCOPE_TYPES } from "../types/maintenance.dto";
 
 /**
@@ -162,13 +164,4 @@ export function maintenanceRuleFormDefaults(): MaintenanceRuleFormValues {
     recurrenceStartTime: "",
     recurrenceEndTime: "",
   };
-}
-
-/** The operator's IANA zone, or a blank string where the runtime has none. */
-export function resolveLocalTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
-  } catch {
-    return "";
-  }
 }
