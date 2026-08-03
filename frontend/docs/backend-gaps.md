@@ -121,7 +121,53 @@ are all on the form.
 
 ---
 
-## F. What is needed, in priority order
+## F. Branches
+
+All seven documented endpoints are wired. The seventeen request fields and
+three enums are all documented.
+
+| #   | Gap                                                                                                                                                                        | Impact                                                                                                | Current behaviour                                                                                                                                                    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | **No response body documented** for any of the seven endpoints.                                                                                                            | The read shape is the documented Data Structure plus the request fields.                              | Transcribed. `isActive` / `isDeleted` are typed optional, because it cannot be assumed they are returned.                                                            |
+| F2  | **The two branch documents disagree.** `branch.md` has no Data Structure table and lists 5 endpoints; `branch-settings.md` has the table and lists 7. Neither is complete. | A reader of either one alone gets an incomplete contract.                                             | Both are transcribed; the union is the module's contract. **`branch-settings.md` should be renamed** — it documents the entity, not settings.                        |
+| F3  | **No query parameters on any endpoint** — list, by-organization, or otherwise.                                                                                             | Server-side querying is impossible.                                                                   | Search, filter, sort and paging run in the client; the directory says so.                                                                                            |
+| F4  | **The status toggle has no request body.** No `Content-Type`, no body, while every other `PATCH` has both.                                                                 | A target state cannot be requested — the call flips whatever `isActive` is, making it non-idempotent. | Sent bodyless. Confirmed before firing with the resulting state named, never retried, never optimistic, and **withheld entirely** when the current state is unknown. |
+| F5  | **`isActive`/`isDeleted` are booleans, not a status enum.**                                                                                                                | The design's "Archived" stage has no field and no value.                                              | The lifecycle marks it pending rather than mapping it onto `isActive`.                                                                                               |
+| F6  | **No permanent deletion.** Soft delete only.                                                                                                                               | The design's "Initiate Permanent Deletion" cannot be wired.                                           | Rendered disabled and marked.                                                                                                                                        |
+| F7  | **Optionality unstated** for `registrationNumber`, `affiliationType`, `affiliationName` and `institutionType`. Only `logoUrl` is explicitly "Optional".                    | Required-ness is a judgement call.                                                                    | Read from the qualifying wording ("if provided", "can be affiliated"). `institutionType` and `structureMode` are treated as required with documented defaults.       |
+| F8  | **No `id`, `createdAt` or `updatedAt`** in either Data Structure.                                                                                                          | No created/updated captions.                                                                          | `id` is taken from the `/:id` endpoints. Timestamps are omitted; change history comes from the audit trail.                                                          |
+| F9  | **No counts.** Student, faculty and programme totals belong to other modules, with no branch-scoped endpoint documented.                                                   | The design's three headline tiles cannot be filled.                                                   | Omitted; the dashboard counts only what the branches endpoint returned.                                                                                              |
+| F10 | **No uptime, latency or node health.**                                                                                                                                     | The design's "99.8% uptime / 42ms" panel has no source.                                               | Declared as pending rather than estimated.                                                                                                                           |
+| F11 | **The parent organization is an id only.** No expansion is documented.                                                                                                     | A branch cannot show its organization's name.                                                         | The id is shown and linked, with the gap noted.                                                                                                                      |
+
+### F12 — Branch Settings does not exist
+
+The largest gap in this milestone, and worth stating separately.
+
+**No endpoint anywhere in the collection has `settings` in its path under
+`/branches`.** Every documented branch endpoint operates on the branch record.
+`backend/docs/modules/branch-settings.md`, despite the filename, documents the
+entity.
+
+Missing entirely, for all five design sections:
+
+| Missing                | Detail                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Settings entity**    | No resource, no id, no shape.                                                                                                                                                                                                                                                                                                                |
+| **Endpoints**          | No read, no write, no reset-to-defaults.                                                                                                                                                                                                                                                                                                     |
+| **Request contracts**  | No body for any section.                                                                                                                                                                                                                                                                                                                     |
+| **Response contracts** | Nothing to type against.                                                                                                                                                                                                                                                                                                                     |
+| **Validation rules**   | No lengths, formats, ranges or vocabularies.                                                                                                                                                                                                                                                                                                 |
+| **Fields**             | Working hours, holiday calendar, locale/date/currency format, grading system, passing threshold, academic cycle, attendance policy and thresholds, biometric integration, email/SMS gateway, sender identity, push notifications, SSO, IP allowlist, session timeout, encryption standard, LMS provider and sync, API credentials, webhooks. |
+
+The frontend ships all five screens as layout with the existing Backend Pending
+components and **no service layer at all** — no DTO, no schema, no mutation, no
+fake service method. History is the exception: it is the audit trail, and is
+fully wired.
+
+---
+
+## G. What is needed, in priority order
 
 1. **One example response body** for `GET /maintenance-rules/active/status`,
    `GET /audit-logs/summary` and `GET /audit-logs/timeline` (A). Highest value
@@ -136,7 +182,12 @@ are all on the form.
 6. **A way to reach inactive organizations** (E2 + E4) — either a list filter
    or a status write path. Today a deactivation is irreversible and the record
    disappears from the only list endpoint.
-7. Whether branding, localization, security policy and infrastructure metrics
+7. **A branch settings contract, or confirmation that none is planned** (F12).
+   Five screens are currently layout with nothing behind them.
+8. **Confirmation of the branch status toggle's semantics** (F4) — a body that
+   sets a target state would make it idempotent and remove the need to withhold
+   it when the current state is unknown.
+9. Whether branding, localization, security policy and infrastructure metrics
    (B4–B7) are planned, and roughly when.
 
 None of these blocks further frontend work. Each one, when answered, turns a
