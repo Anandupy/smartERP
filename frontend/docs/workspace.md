@@ -355,11 +355,17 @@ the campus grid has room.
 `tests/mocks/workspace-handlers.ts`; identities are built with
 `tests/fixtures/workspace.ts`.
 
+## What has landed since
+
+1. **Workspace switcher** — shipped in `features/navigation`, calling `select()`
+   - `confirm()` exactly as anticipated. It required **no platform change**,
+     which was the point of the seam. It appears in the sidebar footer and, from
+     `lg` up, in the header. See [Dashboard Shell](./dashboard-shell.md).
+2. **Dashboard** — `features/dashboard` replaces the `/app` placeholder, reading
+   its scope through `useWorkspace()` and nothing else.
+
 ## What lands next
 
-1. **Workspace switcher** — a header surface calling `select()` + `confirm()`.
-   `WorkspaceLayout` already has the slot; no platform change is needed.
-2. **Dashboard** — replaces the `/app` placeholder page.
-3. **Server-side scope enforcement** — `RequireWorkspace` is a client
+1. **Server-side scope enforcement** — `RequireWorkspace` is a client
    convenience; the backend is the authority via the headers above.
-4. **Impersonation** — a second seed source ahead of the remembered selection.
+2. **Impersonation** — a second seed source ahead of the remembered selection.

@@ -1,24 +1,20 @@
 import type { Metadata } from "next";
 
-import { Container } from "@/shared";
-
-import { WorkspaceLanding } from "./workspace-landing";
+import { DashboardScreen } from "@/features/dashboard";
+import { MaintenanceModeBanner } from "@/features/system-settings";
 
 export const metadata: Metadata = {
-  title: "Workspace",
+  title: "Dashboard",
 };
 
 /**
- * Landing page for the authenticated app.
+ * The authenticated landing page.
  *
- * A **placeholder**: it exists so the post-authentication flow has a
- * destination and can be walked end to end. The dashboard that replaces it is
- * the next phase — see `docs/workspace.md`.
+ * Thin by rule: it names the screen and joins the two features that meet on
+ * it. The dashboard owns the layout, System Settings owns the installation-wide
+ * maintenance notice — wiring them here is what keeps them from importing each
+ * other.
  */
-export default function AppLandingPage() {
-  return (
-    <Container size="md" className="flex flex-1 flex-col justify-center py-16">
-      <WorkspaceLanding />
-    </Container>
-  );
+export default function DashboardPage() {
+  return <DashboardScreen maintenanceBanner={<MaintenanceModeBanner />} />;
 }
