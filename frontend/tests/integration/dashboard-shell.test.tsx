@@ -55,12 +55,37 @@ describe("Application sidebar", () => {
 
     for (const label of [
       "Dashboard",
+      "Organizations",
       "System Settings",
       "Maintenance",
       "Audit Logs",
     ]) {
       expect(await screen.findByRole("link", { name: label })).toBeVisible();
     }
+  });
+
+  it("no longer advertises Organizations as coming soon", async () => {
+    // It moved out of the placeholder section when the module shipped.
+    setPathname(ROUTES.app.root);
+    withSidebar(<AppSidebar />);
+
+    const organizations = await screen.findByRole("link", {
+      name: "Organizations",
+    });
+    expect(organizations).toHaveAttribute(
+      "href",
+      ROUTES.app.organizations.root,
+    );
+    expect(screen.queryByText("Organization")).toBeNull();
+  });
+
+  it("keeps a nested organization route inside its section", async () => {
+    setPathname(ROUTES.app.organizations.directory);
+    withSidebar(<AppSidebar />);
+
+    expect(
+      await screen.findByRole("link", { name: "Organizations" }),
+    ).toHaveAttribute("aria-current", "page");
   });
 
   it("marks the current section, and only that one", async () => {

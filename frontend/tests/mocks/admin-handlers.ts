@@ -5,6 +5,10 @@ import { apiConfig } from "@/config";
 import { successEnvelope } from "@tests/fixtures/api";
 import { auditLogDto } from "@tests/fixtures/audit";
 import { maintenanceRuleDto } from "@tests/fixtures/maintenance";
+import {
+  organizationDto,
+  secondOrganizationDto,
+} from "@tests/fixtures/organization";
 import { systemSettingsDto } from "@tests/fixtures/system-settings";
 
 /**
@@ -63,6 +67,33 @@ export const adminHandlers = [
     );
   }),
   http.delete(`${base}/maintenance-rules/:id`, () =>
+    HttpResponse.json(successEnvelope(null)),
+  ),
+
+  // Organizations
+  http.get(`${base}/organizations`, () =>
+    HttpResponse.json(
+      successEnvelope([organizationDto(), secondOrganizationDto()]),
+    ),
+  ),
+  http.get(`${base}/organizations/:id`, ({ params }) =>
+    HttpResponse.json(
+      successEnvelope(organizationDto({ id: String(params.id) })),
+    ),
+  ),
+  http.post(`${base}/organizations`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(successEnvelope(organizationDto(body)), {
+      status: 201,
+    });
+  }),
+  http.patch(`${base}/organizations/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      successEnvelope(organizationDto({ ...body, id: String(params.id) })),
+    );
+  }),
+  http.delete(`${base}/organizations/:id`, () =>
     HttpResponse.json(successEnvelope(null)),
   ),
 
