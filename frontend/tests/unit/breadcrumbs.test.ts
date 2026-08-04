@@ -64,6 +64,18 @@ describe("resolveBreadcrumbs", () => {
     ).toEqual(["Dashboard", "Academic Years", "Ay 1", "Lifecycle"]);
   });
 
+  it("labels the program and academic unit trees", () => {
+    expect(
+      resolveBreadcrumbs(ROUTES.app.programs.tree).map((crumb) => crumb.label),
+    ).toEqual(["Dashboard", "Programs", "Hierarchy"]);
+
+    expect(
+      resolveBreadcrumbs(ROUTES.app.academicUnits.edit("unit-1")).map(
+        (crumb) => crumb.label,
+      ),
+    ).toEqual(["Dashboard", "Academic Units", "Unit 1", "Edit"]);
+  });
+
   it("never links the current page", () => {
     const trail = resolveBreadcrumbs(ROUTES.app.audit.root);
     expect(trail.at(-1)).not.toHaveProperty("href");

@@ -3,6 +3,11 @@ import { http, HttpResponse } from "msw";
 import { apiConfig } from "@/config";
 
 import {
+  academicUnitDto,
+  childUnitDto,
+  secondChildUnitDto,
+} from "@tests/fixtures/academic-unit";
+import {
   academicYearDto,
   lockedAcademicYearDto,
 } from "@tests/fixtures/academic-year";
@@ -14,6 +19,11 @@ import {
   organizationDto,
   secondOrganizationDto,
 } from "@tests/fixtures/organization";
+import {
+  childProgramDto,
+  programDto,
+  secondProgramDto,
+} from "@tests/fixtures/program";
 import { systemSettingsDto } from "@tests/fixtures/system-settings";
 
 /**
@@ -175,6 +185,98 @@ export const adminHandlers = [
     );
   }),
   http.delete(`${base}/academic-years/:id`, () =>
+    HttpResponse.json(successEnvelope(null)),
+  ),
+
+  // Programs — the fixed `tree` segment must precede `:id`, and `:id/status`
+  // must precede the bare `PATCH /:id`.
+  http.get(`${base}/programs/tree`, () =>
+    HttpResponse.json(
+      successEnvelope([
+        { ...programDto(), children: [childProgramDto()] },
+        secondProgramDto(),
+      ]),
+    ),
+  ),
+  http.get(`${base}/programs/:id`, ({ params }) =>
+    HttpResponse.json(successEnvelope(programDto({ id: String(params.id) }))),
+  ),
+  http.get(`${base}/programs`, () =>
+    HttpResponse.json(successEnvelope([programDto(), secondProgramDto()])),
+  ),
+  http.post(`${base}/programs`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(successEnvelope(programDto(body)), {
+      status: 201,
+    });
+  }),
+  http.patch(`${base}/programs/:id/status`, ({ params }) =>
+    HttpResponse.json(
+      successEnvelope(programDto({ id: String(params.id), isActive: false })),
+    ),
+  ),
+  http.patch(`${base}/programs/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      successEnvelope(programDto({ ...body, id: String(params.id) })),
+    );
+  }),
+  http.delete(`${base}/programs/:id`, () =>
+    HttpResponse.json(successEnvelope(null)),
+  ),
+
+  // Academic units — `tree` before `:id`, and the two action paths before the
+  // bare `PATCH /:id`.
+  http.get(`${base}/academic-units/tree`, () =>
+    HttpResponse.json(
+      successEnvelope([
+        {
+          ...academicUnitDto(),
+          children: [childUnitDto(), secondChildUnitDto()],
+        },
+      ]),
+    ),
+  ),
+  http.get(`${base}/academic-units/:id`, ({ params }) =>
+    HttpResponse.json(
+      successEnvelope(academicUnitDto({ id: String(params.id) })),
+    ),
+  ),
+  http.get(`${base}/academic-units`, () =>
+    HttpResponse.json(
+      successEnvelope([
+        academicUnitDto(),
+        childUnitDto(),
+        secondChildUnitDto(),
+      ]),
+    ),
+  ),
+  http.post(`${base}/academic-units`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(successEnvelope(academicUnitDto(body)), {
+      status: 201,
+    });
+  }),
+  http.patch(`${base}/academic-units/:id/move`, async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      successEnvelope(academicUnitDto({ ...body, id: String(params.id) })),
+    );
+  }),
+  http.patch(`${base}/academic-units/:id/status`, ({ params }) =>
+    HttpResponse.json(
+      successEnvelope(
+        academicUnitDto({ id: String(params.id), isActive: false }),
+      ),
+    ),
+  ),
+  http.patch(`${base}/academic-units/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      successEnvelope(academicUnitDto({ ...body, id: String(params.id) })),
+    );
+  }),
+  http.delete(`${base}/academic-units/:id`, () =>
     HttpResponse.json(successEnvelope(null)),
   ),
 
