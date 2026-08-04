@@ -124,6 +124,39 @@ export const ROUTES = Object.freeze({
       edit: (id: string) => `/app/academic-years/${id}/edit`,
       lifecycle: (id: string) => `/app/academic-years/${id}/lifecycle`,
     },
+    /**
+     * Programs — the academic classification inside a branch.
+     *
+     * Scoped to the **active branch**: `branchId` is a documented required
+     * parameter on both list endpoints, so these paths carry no branch segment
+     * and are read in the workspace's current scope.
+     *
+     * `tree` sits beside the directory rather than under a record, because it
+     * plots the whole branch's hierarchy on one screen.
+     */
+    programs: {
+      root: "/app/programs",
+      directory: "/app/programs/directory",
+      tree: "/app/programs/tree",
+      create: "/app/programs/new",
+      detail: (id: string) => `/app/programs/${id}`,
+      edit: (id: string) => `/app/programs/${id}/edit`,
+    },
+    /**
+     * Academic units — the operational structure inside a program.
+     *
+     * Scoped to the active branch **and** academic year: both are documented
+     * required parameters on the list and tree endpoints, which is what makes
+     * this the first module needing two levels of workspace scope at once.
+     */
+    academicUnits: {
+      root: "/app/academic-units",
+      directory: "/app/academic-units/directory",
+      tree: "/app/academic-units/tree",
+      create: "/app/academic-units/new",
+      detail: (id: string) => `/app/academic-units/${id}`,
+      edit: (id: string) => `/app/academic-units/${id}/edit`,
+    },
   },
 });
 

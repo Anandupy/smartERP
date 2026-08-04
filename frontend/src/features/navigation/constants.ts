@@ -5,6 +5,7 @@ import {
   CalendarRange,
   GraduationCap,
   Landmark,
+  Layers,
   LayoutDashboard,
   School,
   ScrollText,
@@ -57,6 +58,20 @@ export const NAV_SECTIONS: readonly NavSection[] = Object.freeze([
         href: ROUTES.app.academicYears.root,
         icon: CalendarRange,
         description: "Timeframes and calendar",
+      },
+      {
+        id: "programs",
+        label: "Programs",
+        href: ROUTES.app.programs.root,
+        icon: Blocks,
+        description: "Academic classification",
+      },
+      {
+        id: "academic-units",
+        label: "Academic Units",
+        href: ROUTES.app.academicUnits.root,
+        icon: Layers,
+        description: "Classes, divisions and batches",
       },
       {
         id: "system-settings",
@@ -155,6 +170,14 @@ export const BREADCRUMB_LABELS: Readonly<Record<string, string>> =
     [ROUTES.app.academicYears.directory]: "Directory",
     [ROUTES.app.academicYears.calendar]: "Calendar",
     [ROUTES.app.academicYears.create]: "New academic year",
+    [ROUTES.app.programs.root]: "Programs",
+    [ROUTES.app.programs.directory]: "Directory",
+    [ROUTES.app.programs.tree]: "Hierarchy",
+    [ROUTES.app.programs.create]: "New program",
+    [ROUTES.app.academicUnits.root]: "Academic Units",
+    [ROUTES.app.academicUnits.directory]: "Directory",
+    [ROUTES.app.academicUnits.tree]: "Hierarchy",
+    [ROUTES.app.academicUnits.create]: "New academic unit",
   });
 
 /** Placeholder copy for the header affordances that are not wired yet. */
