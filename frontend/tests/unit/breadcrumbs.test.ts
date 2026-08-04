@@ -47,6 +47,23 @@ describe("resolveBreadcrumbs", () => {
     ]);
   });
 
+  it("labels the academic year tree, including its record screens", () => {
+    // The calendar and directory are static segments registered by label; a
+    // record id falls through to the humanizer, which is what makes
+    // `/app/academic-years/ay-1/lifecycle` readable without registering it.
+    expect(
+      resolveBreadcrumbs(ROUTES.app.academicYears.calendar).map(
+        (crumb) => crumb.label,
+      ),
+    ).toEqual(["Dashboard", "Academic Years", "Calendar"]);
+
+    expect(
+      resolveBreadcrumbs(ROUTES.app.academicYears.lifecycle("ay-1")).map(
+        (crumb) => crumb.label,
+      ),
+    ).toEqual(["Dashboard", "Academic Years", "Ay 1", "Lifecycle"]);
+  });
+
   it("never links the current page", () => {
     const trail = resolveBreadcrumbs(ROUTES.app.audit.root);
     expect(trail.at(-1)).not.toHaveProperty("href");

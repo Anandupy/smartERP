@@ -57,6 +57,7 @@ describe("Application sidebar", () => {
       "Dashboard",
       "Organizations",
       "Branches",
+      "Academic Years",
       "System Settings",
       "Maintenance",
       "Audit Logs",

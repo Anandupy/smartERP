@@ -2,6 +2,10 @@ import { http, HttpResponse } from "msw";
 
 import { apiConfig } from "@/config";
 
+import {
+  academicYearDto,
+  lockedAcademicYearDto,
+} from "@tests/fixtures/academic-year";
 import { successEnvelope } from "@tests/fixtures/api";
 import { auditLogDto } from "@tests/fixtures/audit";
 import { branchDto, secondBranchDto } from "@tests/fixtures/branch";
@@ -124,6 +128,53 @@ export const adminHandlers = [
     );
   }),
   http.delete(`${base}/branches/:id`, () =>
+    HttpResponse.json(successEnvelope(null)),
+  ),
+
+  // Academic years — the fixed `current` segment must precede `:id`, and the
+  // three transition paths must precede the bare `PATCH /:id` update.
+  http.get(`${base}/academic-years/current`, () =>
+    HttpResponse.json(successEnvelope(academicYearDto())),
+  ),
+  http.get(`${base}/academic-years`, () =>
+    HttpResponse.json(
+      successEnvelope([academicYearDto(), lockedAcademicYearDto()]),
+    ),
+  ),
+  http.post(`${base}/academic-years`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(successEnvelope(academicYearDto(body)), {
+      status: 201,
+    });
+  }),
+  http.patch(`${base}/academic-years/:id/activate`, ({ params }) =>
+    HttpResponse.json(
+      successEnvelope(
+        academicYearDto({ id: String(params.id), isActive: true }),
+      ),
+    ),
+  ),
+  http.patch(`${base}/academic-years/:id/select`, ({ params }) =>
+    HttpResponse.json(
+      successEnvelope(
+        academicYearDto({ id: String(params.id), isSelected: true }),
+      ),
+    ),
+  ),
+  http.patch(`${base}/academic-years/:id/lock`, ({ params }) =>
+    HttpResponse.json(
+      successEnvelope(
+        academicYearDto({ id: String(params.id), isLocked: true }),
+      ),
+    ),
+  ),
+  http.patch(`${base}/academic-years/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      successEnvelope(academicYearDto({ ...body, id: String(params.id) })),
+    );
+  }),
+  http.delete(`${base}/academic-years/:id`, () =>
     HttpResponse.json(successEnvelope(null)),
   ),
 
