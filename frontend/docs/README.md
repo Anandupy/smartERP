@@ -25,11 +25,13 @@ without restructuring.
 16. [Organization Module](./organization-module.md)
 17. [Branch Module](./branch-module.md)
 18. [Academic Year Module](./academic-year-module.md)
-19. [Backend Contract Gaps](./backend-gaps.md)
-20. [Testing Strategy](./testing.md)
-21. [Coding Standards](./coding-standards.md)
-22. [Contribution Guide](./contributing.md)
-23. [Future Theme Integration](./theme-integration.md)
+19. [Program Module](./program-module.md)
+20. [Academic Unit Module](./academic-unit-module.md)
+21. [Backend Contract Gaps](./backend-gaps.md)
+22. [Testing Strategy](./testing.md)
+23. [Coding Standards](./coding-standards.md)
+24. [Contribution Guide](./contributing.md)
+25. [Future Theme Integration](./theme-integration.md)
 
 ## Tech Stack
 

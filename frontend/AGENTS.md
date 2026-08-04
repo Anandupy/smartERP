@@ -107,7 +107,7 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 | Path                                                | Responsibility                                                                                                                                                                    |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).                                                                                                                           |
-| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `organization`, `branch`, `academic-year`, `system-settings`, `maintenance`, `audit`. |
+| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `organization`, `branch`, `academic-year`, `program`, `academic-unit`, `system-settings`, `maintenance`, `audit`. |
 | `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.                                                                                                                              |
 | `src/shared/components/{data,data-display,overlay}` | Table system, tiles/badges/cards, dialogs and drawers.                                                                                                                            |
 | `src/shared`                                        | Cross-feature presentational building blocks + error boundary.                                                                                                                    |
@@ -222,7 +222,9 @@ Before committing, confirm:
   owns them, and `ApiErrorState` is the only place `ApiError.kind` becomes UI.
 - Don't hand-roll a list. `shared/components/data` owns the table system
   (`DataTable` + toolbar + pagination + sortable header) and already resolves
-  loading/error/empty/loaded; features supply column definitions only.
+  loading/error/empty/loaded; features supply column definitions only. The same
+  goes for hierarchies: `TreeView` owns the four states and the `role="tree"`
+  wiring, and `utils/tree` owns building, flattening, descendants and ancestry.
 - Don't invent a backend contract to fill a screen. Where the docs and Postman
   record no endpoint, request or response, ship the UI, disable the write, and
   mark it with `BackendPendingBadge` / `BackendPendingNote`
@@ -441,11 +443,21 @@ inferred.
   on screen (`UNSUPPORTED_ACADEMIC_YEAR_TRANSITIONS`) and warn in the
   confirmation, rather than letting an irreversible action look ordinary.
 - **Two features that meet do so at the route**, through slots — never by
-  importing each other.
+  importing each other. When the join needs a hook, the composition is a client
+  component **co-located with the route** (`app/…/program-composition.tsx`), and
+  only opaque nodes and plain data cross the boundary. Program exposes
+  `ProgramPicker`, which binds itself through `useFormContext()`, so Academic
+  Unit never learns a Program module exists.
+- **A rule the UI can make unexpressible beats a rule it validates.** Both
+  hierarchy modules narrow their parent pickers with `eligibleParents` rather
+  than checking a choice after the fact, so the documented same-scope and
+  no-cycle rules cannot be broken from the UI at all.
 
 Detail: [`docs/administration-modules.md`](./docs/administration-modules.md),
 [`docs/organization-module.md`](./docs/organization-module.md),
 [`docs/branch-module.md`](./docs/branch-module.md),
 [`docs/academic-year-module.md`](./docs/academic-year-module.md),
+[`docs/program-module.md`](./docs/program-module.md),
+[`docs/academic-unit-module.md`](./docs/academic-unit-module.md),
 [`docs/dashboard-shell.md`](./docs/dashboard-shell.md), and the running gap
 inventory in [`docs/backend-gaps.md`](./docs/backend-gaps.md).

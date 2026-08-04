@@ -232,7 +232,94 @@ endpoints are documented as **bypassing** academic-year context, and it passes
 
 ---
 
-## H. What is needed, in priority order
+## H. Programs
+
+All seven documented endpoints are wired. The six request fields are all on the
+form and all four validation rules are honoured.
+
+Compiled from `backend/docs/modules/program.md` and the Postman collection.
+Unlike Academic Year, these two sources **disagree** — see H1.
+
+| #   | Gap                                                                                                                                                                              | Impact                                                                        | Current behaviour                                                                                                                                              |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1  | **Docs/Postman mismatch — `level`.** It is in both request bodies and in **no part** of the module doc, including its uniqueness rule. The single recorded value is `"SCHOOL"`.  | Unknown whether it is persisted, returned, or constrained to a value set.      | **Sent** (Postman is the request contract); typed **optional** on read. Rendered as **free text**, not a dropdown — one sample is not an enum.                 |
+| H2  | **No response body documented** for any of the seven endpoints, and **no Data Structure table** at all. The doc is prose plus an endpoint table.                                  | The read shape is the request fields plus `isActive`, which the toggle implies. | Transcribed. `isActive` typed optional; an absent flag reads "Unknown", never "Inactive".                                                                       |
+| H3  | **`GET /programs/tree` is documented by name only** — one table row, no response body, no nesting key, no envelope.                                                              | Its shape cannot be typed.                                                     | Typed `unknown`. `readProgramTree` accepts four plausible shapes and reports `isUnrecognized` otherwise. **Nothing depends on it**: the hierarchy is built from the flat list via `parentId`. |
+| H4  | **The status toggle has no request body.** No `Content-Type`, no body, while create and update have both.                                                                        | A target state cannot be requested — the call flips `isActive`, so it is non-idempotent. | Sent bodyless. Confirmed before firing with the resulting state named, never retried, never optimistic, and **withheld** when the current state is unknown.    |
+| H5  | **No `isDeleted` field**, despite a documented soft delete.                                                                                                                     | Cannot tell whether the list excludes deleted programs.                       | No dashboard figure is reported as a total. An orphaned child names its missing parent rather than being promoted to a root.                                    |
+| H6  | **No query parameters** beyond the required `branchId`, which identifies the branch rather than narrowing the result. No `page`, `limit`, `search`, `sortBy` or filters.        | Server-side querying is impossible.                                            | Search, filter, sort and paging run **in the client**. The directory states this on the page.                                                                  |
+| H7  | **No cross-branch listing.** No endpoint returns programs for an organization or the platform.                                                                                   | There is no "all programs" view, and none can be built.                       | Every screen is branch-scoped and says so.                                                                                                                     |
+| H8  | **No value set, format or length for `level`, `medium` or `stream`.** Samples only: `"SCHOOL"`, `"English"`, `"Science (PCM)"`.                                                  | Client rules would be invented.                                                | None imposed. The directory's level filter is built from the values the branch actually returned.                                                              |
+| H9  | **No optionality statement for any field.** Nothing is marked required or optional in either source.                                                                             | Required-ness is a judgement call.                                             | Read from the concept and rule 1: `name` required; `level`, `medium`, `stream`, `parentId` optional. Server `fieldErrors` bind via `applyServerFieldErrors`.   |
+| H10 | **No error contracts.** No documented code, status or message for a uniqueness collision, a cross-branch parent, a circular parent, or a blocked delete.                         | The UI cannot map a failure to a field.                                        | Failures surface through the normalized `ApiError`. Rules 2 and 3 are made unexpressible by the controls; rules 1 and 4 are checked client-side as a courtesy. |
+| H11 | **Uniqueness cannot be fully checked client-side** (H5), and **rule 4's "active child" is unverifiable** when `isActive` is not returned (H2).                                   | Both client checks can produce a false negative.                               | Rule 1 warns in a banner and never blocks. Rule 4 counts only children whose flag is **explicitly true** — an absent flag is not evidence of an active child.  |
+| H12 | **No `program.*` audit event.** The audit event map documents `ACADEMIC` events for `academic_year.*` and `academic_unit.*` only.                                                | Program changes leave no trail.                                                | The `ACADEMIC` trail is shown, and the screens state that program changes may not appear in it.                                                                |
+| H13 | **No `createdAt`, `updatedAt` or authorship**, and no `id` in any data structure.                                                                                               | No created/updated captions.                                                   | Omitted rather than faked. `id` is taken from the `/:id` endpoints.                                                                                            |
+| H14 | **The branch is an id only.** No expansion documented.                                                                                                                          | A program cannot show its branch's name.                                       | The id is shown and linked, with the gap noted.                                                                                                                |
+| H15 | **No counts of any kind.** Enrolled students, subjects, fee structures and academic units per program have no documented endpoint.                                               | The design's per-program panels cannot be filled.                              | Omitted rather than shown empty. The academic-unit panel links to that module and explains why no per-program total is shown (see I6).                          |
+
+---
+
+## I. Academic Units
+
+All eight documented endpoints are wired. The ten request fields are all on the
+form and every documented validation rule is honoured.
+
+Compiled from `backend/docs/modules/academic-unit.md` and the Postman
+collection. The module doc is **architectural prose only** — it has no endpoint
+list and no data structure table, so the collection supplies both.
+
+| #   | Gap                                                                                                                                                                                       | Impact                                                                                     | Current behaviour                                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I1  | **No response body documented** for any of the eight endpoints, **no Data Structure table**, and **no endpoint list in the module doc** — the eight are known only from Postman.          | Both the read shape and the endpoint set rest on one source each.                          | Transcribed from the union. `isActive` and `level` typed optional; an absent flag reads "Unknown", never "Inactive".                                                     |
+| I2  | **`unitType` has no value set.** Six values appear across the doc's examples and the Postman body; the doc then says the type "serves mainly as UI tags" and warns against hardcoding it. | An enum would reject legitimate values.                                                    | **Free text.** The six are offered as a hint beneath the input, filters are built from the data, and **nothing in the module branches on the value**.                    |
+| I3  | **`GET /academic-units/tree` is documented by its Postman entry only** — no response body, no nesting key, no envelope.                                                                   | Its shape cannot be typed.                                                                 | Typed `unknown`; `readAcademicUnitTree` narrows defensively. **Nothing depends on it**: the hierarchy is built from the flat list via `parentId`.                        |
+| I4  | **`parentId` is in the update body *and* there is a dedicated `PATCH /:id/move`.** Which is authoritative for a re-parent is unstated.                                                    | Two endpoints can change one relationship, possibly with different side effects on `level`. | The edit form **saves the parent as loaded** and re-parenting is done only through Move. The form says so. Move is the endpoint that documents the `level` recalculation. |
+| I5  | **`isActive` is in the update body *and* there is a bodyless `PATCH /:id/status` toggle.** So a target state can be set through one endpoint and only flipped through the other.          | Inconsistent with the pattern in Branch and Program, where the toggle is the only path.     | The toggle is used for status changes and treated as non-idempotent (confirmed, never retried, withheld when unknown). The form's switch sends the documented field.     |
+| I6  | **No `programId` filter**, though every unit carries one and it is a required field.                                                                                                     | Narrowing by program is impossible server-side.                                            | The program filter runs **in the client**, and the directory says so explicitly.                                                                                        |
+| I7  | **No query parameters** beyond the two required scope ids, neither of which narrows the result.                                                                                          | Server-side querying is impossible.                                                        | Search, filter, sort and paging run in the client.                                                                                                                       |
+| I8  | **No `isDeleted` field**, despite documented soft deletes ("Never permanently remove nodes if they have financial or academic trails").                                                  | Cannot tell whether the list excludes deleted units.                                       | No figure is reported as a total. Orphans are listed separately rather than promoted to roots.                                                                            |
+| I9  | **`metadata` has no schema at all.** The doc names example *uses* — room capacities, minimum students, lab requirements, shift timings — and no keys.                                    | A structured editor would be an invented schema.                                            | Validated only as a JSON object; edited as raw JSON; rendered verbatim with no key interpreted.                                                                          |
+| I10 | **`level`'s presence in responses is unconfirmed.** It is documented as server-computed, and no response body promises it.                                                               | The depth may be unavailable.                                                              | Preferred when present; otherwise derived from the built hierarchy and **marked `(derived)`** on the detail screen. Never sent.                                          |
+| I11 | **`displayOrder` has no documented default or tie-break.** Sample is `1`.                                                                                                                | Ordering of units without one is undefined.                                                | Siblings order by `displayOrder`, then name. A unit with **no** order sorts **after** those that have one — treating it as `0` would jump it to the front.               |
+| I12 | **No error contracts.** No documented code, status or message for a sibling-name collision, a cross-scope parent, a circular move, or a blocked delete.                                  | The UI cannot map a failure to a field.                                                    | Failures surface through the normalized `ApiError`. The consistency and tree rules are made unexpressible by the controls; uniqueness and the delete rule warn.          |
+| I13 | **The delete rule's "active children" is unverifiable** when `isActive` is not returned (I1).                                                                                            | The client check can produce a false negative.                                             | Counts only children whose flag is **explicitly true**; the server remains the authority.                                                                                |
+| I14 | **No audit event for `move` or `status`.** The map documents `academic_unit.created`, `.updated` and `.deleted` only.                                                                    | Re-parenting and deactivation leave no trail.                                              | The trail is wired and the screens state what it does not contain.                                                                                                       |
+| I15 | **No `createdAt`, `updatedAt` or authorship.**                                                                                                                                          | No created/updated captions.                                                               | Omitted rather than faked.                                                                                                                                               |
+| I16 | **Program, branch and academic year are ids only.** No expansion documented.                                                                                                            | A unit cannot show its program's name from its own response.                               | The **route** supplies program names as plain data from the Program module; branch and year ids are shown and linked, with the gap noted.                                |
+| I17 | **No counts.** Enrolled students, timetables and subject allocation per unit have no documented endpoint.                                                                                | The design's per-unit panels cannot be filled.                                             | Omitted rather than shown empty.                                                                                                                                         |
+
+### I18 — the scope header mismatch now bites
+
+[G19](#g19--the-scope-header-names-disagree-with-the-frontend) recorded that the
+platform sends `X-Tenant-Id` and `X-Academic-Year` where the backend documents
+`X-Organization-Id` and `X-Academic-Year-Id`. For Academic Year it was
+harmless — those endpoints are documented as *bypassing* academic-year context.
+
+**Academic Units are different.** `academic-year.md` lists
+`/v1/academic-units/*` under **"Endpoints Requiring Academic Year Context"**,
+guarded by `AcademicYearGuard` via `req.context.academicYearId`, which
+`ExecutionContextGuard` resolves "from `x-academic-year-id` header **or** branch
+active/selected AY fallback". With the header named differently, the backend
+falls back to the branch's *selected* year — which may not be the year the user
+picked in the workspace switcher.
+
+This module is insulated because it passes `academicYearId` explicitly as the
+documented query parameter on both reads, and the integration tests assert
+that. But a write (`POST`, `PATCH`, `DELETE`) carries the scope **only** in
+headers, so a unit could be created against a different year than the screen
+shows.
+
+**Still not changed here**, for the reason given in G19: it is a platform seam
+([AGENTS.md §27](../AGENTS.md#27-workspace-scope)), not a feature concern. It
+has moved up the priority list below.
+
+> **Needed:** confirmation of the three wire names. One line in
+> `src/constants/headers.ts`.
+
+---
+
+## J. What is needed, in priority order
 
 1. **One example response body** for `GET /maintenance-rules/active/status`,
    `GET /audit-logs/summary` and `GET /audit-logs/timeline` (A). Highest value
@@ -257,9 +344,12 @@ endpoints are documented as **bypassing** academic-year context, and it passes
 
 Added by the Academic Year milestone, in the same order of value:
 
-10. **Confirmation of the three scope header names** (G19). Two of the three the
-    platform sends are not names the backend reads. One line to fix once
-    confirmed, and it affects every scoped request in the app.
+10. **Confirmation of the three scope header names** (G19, **I18**). Two of the
+    three the platform sends are not names the backend reads. One line to fix
+    once confirmed, and it affects every scoped request in the app. **Raised in
+    priority by the Academic Unit milestone**: `/v1/academic-units/*` is
+    documented as *requiring* academic-year context, so a write currently
+    carries its scope only in a header the backend does not read.
 11. **A `GET /academic-years/:id`** (G2). Its absence is what makes every detail
     screen branch-dependent and removes per-record refetching.
 12. **Whether the lock blocks the lifecycle endpoints** (G4), and **whether any
@@ -272,6 +362,24 @@ Added by the Academic Year milestone, in the same order of value:
     **initial flags of a non-first year** (G9). Two one-line answers.
 15. Whether an **academic calendar** — terms, holidays, exam windows — is
     planned (G14). It is the largest single absence in this module.
+
+Added by the Program and Academic Unit milestone:
+
+16. **Is `level` a real Program field, and does it have a value set?** (H1) The
+    single most concrete docs/Postman disagreement in the codebase — it is sent
+    on every write and documented nowhere.
+17. **Which endpoint owns a re-parent** (I4) and **which owns a status change**
+    (I5). Both relationships have two write paths with unstated precedence.
+18. **A `programId` filter on the academic-unit list** (I6). Every unit has one
+    and it cannot be queried on; a large branch loads its whole structure to
+    show one program's.
+19. **A value set for `unitType`, or confirmation there is none** (I2). The
+    documentation currently reads as a deliberate non-enum; a written
+    confirmation would let the field become a combobox rather than a text input.
+20. **One example response body per tree endpoint** (H3, I3). Both are currently
+    called and ignored.
+21. **`isDeleted`, or confirmation that the lists exclude deleted records**
+    (H5, I8) — the same question already open for Academic Year (G5).
 
 None of these blocks further frontend work. Each one, when answered, turns a
 `Backend Pending` marker into a wired feature without restructuring anything.
