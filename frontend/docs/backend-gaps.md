@@ -167,7 +167,72 @@ fully wired.
 
 ---
 
-## G. What is needed, in priority order
+## G. Academic Years
+
+All eight documented endpoints are wired. The four request fields and the three
+state flags are all documented; the five validation rules are all honoured.
+
+Compiled from `backend/docs/modules/academic-year.md` and the Postman
+collection. The module doc and the collection **agree everywhere** — every gap
+below is an absence in both, not a disagreement between them.
+
+| #   | Gap                                                                                                                                                                                                                     | Impact                                                                                                       | Current behaviour                                                                                                                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | **No response body documented** for any of the eight endpoints — every Postman `body` is `""`. There is also **no Data Structure table**; the three flags are described in prose under "States".                        | The read shape is the four request fields plus the three prose flags.                                        | Transcribed. All three flags typed **optional**; an absent flag renders "Not reported", never "No". `id` is the one field taken from an endpoint (`/:id`) rather than a table.        |
+| G2  | **No `GET /academic-years/:id`.** Eight endpoints are documented and a read-by-id is not among them, though five of them take an `:id`.                                                                                 | A single record cannot be fetched. Detail, edit and lifecycle screens have no read endpoint.                 | The record is resolved out of the documented branch list. So viewing one year requires an active branch, "not found" means *not in this branch's list*, and there is no per-record refetch. |
+| G3  | **No inverse for any lifecycle transition.** `activate`, `select` and `lock` are documented; **deactivate, deselect, unlock and restore are not.**                                                                      | The lifecycle is a one-way ratchet. Locking is unrecoverable, and a deletion cannot be undone.               | All four are listed by name on the lifecycle screen as `Backend Pending`, and every confirmation states that the action cannot be undone before it fires.                              |
+| G4  | **Whether rule 4 covers the lifecycle endpoints is unstated.** "Locked academic years cannot be modified or deleted" — but the three transitions are separate endpoints, and none is explicitly named as blocked.       | Unclear whether `select` on a locked year is legal.                                                          | All three are **withheld** on a locked year — the conservative reading. If they are in fact allowed, removing the guard is a one-line change in `lifecycleActions`.                   |
+| G5  | **No `isDeleted` field**, despite a documented soft delete.                                                                                                                                                             | A deleted year has no flag to read, so the frontend cannot show one, and cannot tell whether the list omits them. | The lifecycle marks Deleted as reachable but **not observable**. No dashboard figure is reported as a total, because it is unknown whether deleted years are included.                |
+| G6  | **The list endpoint documents no query parameters** beyond the required `branchId`, which identifies the branch rather than narrowing the result. No `page`, `limit`, `search`, `sortBy` or status filter.               | Server-side querying is impossible.                                                                          | Search, filter, sort and paging run **in the client** over the branch's full list. The directory states this on the page.                                                              |
+| G7  | **No cross-branch listing.** Every read is scoped to one branch, and no endpoint returns years for an organization or for the platform.                                                                                 | There is no "all academic years" view, and none can be built.                                                | Every screen is branch-scoped and says so. Without an active branch, each renders a "No active branch" state rather than an empty list.                                                |
+| G8  | **No response documented for a branch with no current year.** `GET /academic-years/current` records a 200 and an empty body; no status code is stated for the empty case.                                               | Cannot distinguish "none selected" from a failure.                                                           | A `404` is read as **none selected** and surfaced as `null`; any other failure is still an error. If the backend returns `200` with `null` instead, that already works.                |
+| G9  | **No initial flag values for a non-first year.** Auto-selection is documented only for the **first** year created for a branch; what `isActive`/`isSelected` are for a later one is unstated.                            | The state a newly created year lands in is unknown.                                                          | Nothing is assumed — the list is re-read after a create. The "Created" lifecycle stage names the auto-selection rule and states that later years are undocumented.                     |
+| G10 | **No date format declaration.** `startDate`/`endDate` are typed nowhere; the only samples are `"2025-04-01"` and `"2026-03-31"`.                                                                                        | The wire format is read from two samples.                                                                    | `YYYY-MM-DD` is sent, from native date inputs. Reads tolerate a full ISO timestamp in one function (`toDateInputValue`) — the single line that changes if it is wrong.                |
+| G11 | **No `name` format, length or uniqueness rule.** The only sample is `"2025-26"`.                                                                                                                                        | A client rule would be invented.                                                                             | None imposed beyond non-empty. Server `fieldErrors` bind to fields via `applyServerFieldErrors`.                                                                                       |
+| G12 | **No error contracts.** No documented code, status or message for an overlap rejection, a locked-record write, deleting the selected year, or a duplicate name.                                                         | The UI cannot pre-empt a specific failure or map it to a field.                                              | Failures surface through the normalized `ApiError` and `getErrorMessage`. The overlap rule is additionally checked client-side as a courtesy — see G13.                               |
+| G13 | **Overlap validation cannot be fully checked client-side**, because the list may not contain every year (G5).                                                                                                           | A client check can produce a false negative.                                                                 | `findOverlappingYear` warns in a banner and never blocks submission; the copy says the server decides.                                                                                 |
+| G14 | **No calendar events of any kind.** No terms, semesters, holidays, non-instructional days, exam windows, admission windows, events or milestones — no field, no endpoint, nothing.                                      | The design's academic calendar has no data source beyond two dates.                                          | The timeline plots the documented spans and today's position. The five missing sections are enumerated by name as `Backend Pending`, and **no empty month grid is rendered**.          |
+| G15 | **No audit events for the three transitions.** The audit event map documents `academic_year.created`, `.updated` and `.deleted` only.                                                                                   | Activating, selecting or locking a year leaves no trail.                                                     | The trail is wired and honest about what it contains. Nothing is synthesised to fill the gap.                                                                                          |
+| G16 | **No `createdAt`, `updatedAt` or authorship.** No data structure table at all.                                                                                                                                          | No created/updated captions.                                                                                 | Omitted rather than faked. Change history comes from the audit trail.                                                                                                                  |
+| G17 | **The branch is an id only.** No expansion is documented.                                                                                                                                                               | A year cannot show its branch's name.                                                                        | The id is shown and linked, with the gap noted.                                                                                                                                        |
+| G18 | **No year-scoped counts.** Enrolled students, classes, academic units and exam schedules all reference an `academicYearId`, but no endpoint returns them per year.                                                      | The design's per-year detail panels cannot be filled.                                                        | Omitted rather than shown empty.                                                                                                                                                       |
+
+### G19 — the scope header names disagree with the frontend
+
+Not a gap in the backend contract but a **mismatch between it and this
+codebase**, found while wiring this module and recorded here because it affects
+every scoped request, not just academic years.
+
+The backend documents the scope headers unanimously — `backend/docs/core/context.md`
+("Priority 1: Header Resolution"), `execution-context.md`, `guard-pipeline.md`,
+`academic-year.md`, and **18 requests in the Postman collection**:
+
+| Backend documents    | `src/constants/headers.ts` sends | Verdict     |
+| -------------------- | -------------------------------- | ----------- |
+| `X-Organization-Id`  | `X-Tenant-Id`                    | ✗ mismatch  |
+| `X-Branch-Id`        | `X-Branch-Id`                    | ✓ agrees    |
+| `X-Academic-Year-Id` | `X-Academic-Year`                | ✗ mismatch  |
+
+Two of the three scope headers the platform sends are therefore names the
+backend does not read. Per its documented resolution algorithm it falls back to
+**Priority 2, automatic resolution** — which silently produces the right answer
+for a user with exactly one organization, branch and year, and a `409
+CONTEXT_SELECTION_REQUIRED` for a `SUPER_ADMIN` or `ORG_ADMIN` who has more than
+one. That is consistent with a workspace selection appearing to be ignored.
+
+**This has not been changed.** It is a platform seam
+([AGENTS.md §27](../AGENTS.md#27-workspace-scope), [Workspace](./workspace.md)),
+not an academic-year concern, and renaming it is a one-line edit in
+`headers.ts` plus its documentation — worth doing deliberately rather than as a
+side effect of a feature commit. Academic Year is unaffected either way: its
+endpoints are documented as **bypassing** academic-year context, and it passes
+`branchId` explicitly as the documented query parameter.
+
+> **Needed:** confirmation of the three wire names, then a one-line change.
+
+---
+
+## H. What is needed, in priority order
 
 1. **One example response body** for `GET /maintenance-rules/active/status`,
    `GET /audit-logs/summary` and `GET /audit-logs/timeline` (A). Highest value
@@ -189,6 +254,24 @@ fully wired.
    it when the current state is unknown.
 9. Whether branding, localization, security policy and infrastructure metrics
    (B4–B7) are planned, and roughly when.
+
+Added by the Academic Year milestone, in the same order of value:
+
+10. **Confirmation of the three scope header names** (G19). Two of the three the
+    platform sends are not names the backend reads. One line to fix once
+    confirmed, and it affects every scoped request in the app.
+11. **A `GET /academic-years/:id`** (G2). Its absence is what makes every detail
+    screen branch-dependent and removes per-record refetching.
+12. **Whether the lock blocks the lifecycle endpoints** (G4), and **whether any
+    inverse transition is planned** (G3) — unlock in particular, since locking
+    is currently unrecoverable.
+13. **An `isDeleted` field, or confirmation that the list excludes deleted
+    years** (G5). Either one turns several "not a total" caveats into real
+    figures.
+14. **The empty-case response for `/academic-years/current`** (G8), and the
+    **initial flags of a non-first year** (G9). Two one-line answers.
+15. Whether an **academic calendar** — terms, holidays, exam windows — is
+    planned (G14). It is the largest single absence in this module.
 
 None of these blocks further frontend work. Each one, when answered, turns a
 `Backend Pending` marker into a wired feature without restructuring anything.

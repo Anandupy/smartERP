@@ -107,7 +107,7 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 | Path                                                | Responsibility                                                                                                                                                                    |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).                                                                                                                           |
-| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `organization`, `branch`, `system-settings`, `maintenance`, `audit`. |
+| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `organization`, `branch`, `academic-year`, `system-settings`, `maintenance`, `audit`. |
 | `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.                                                                                                                              |
 | `src/shared/components/{data,data-display,overlay}` | Table system, tiles/badges/cards, dialogs and drawers.                                                                                                                            |
 | `src/shared`                                        | Cross-feature presentational building blocks + error boundary.                                                                                                                    |
@@ -432,11 +432,20 @@ inferred.
 - **No partial write unless the backend documents one.** Both settings and
   maintenance rebuild the complete documented body from the loaded record plus
   the user's edits.
+- **A missing endpoint is never filled in.** Where a read the screens need is
+  simply absent, satisfy it from a documented one and make the consequences
+  visible — Academic Year has no `GET /:id`, so a record is resolved out of the
+  branch list, which is why its detail screens need an active branch and say
+  "not in this branch's list" rather than implying a 404.
+- **A lifecycle with no inverse says so.** Name the missing reverse transitions
+  on screen (`UNSUPPORTED_ACADEMIC_YEAR_TRANSITIONS`) and warn in the
+  confirmation, rather than letting an irreversible action look ordinary.
 - **Two features that meet do so at the route**, through slots — never by
   importing each other.
 
 Detail: [`docs/administration-modules.md`](./docs/administration-modules.md),
 [`docs/organization-module.md`](./docs/organization-module.md),
 [`docs/branch-module.md`](./docs/branch-module.md),
+[`docs/academic-year-module.md`](./docs/academic-year-module.md),
 [`docs/dashboard-shell.md`](./docs/dashboard-shell.md), and the running gap
 inventory in [`docs/backend-gaps.md`](./docs/backend-gaps.md).
