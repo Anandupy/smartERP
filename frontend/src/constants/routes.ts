@@ -103,6 +103,27 @@ export const ROUTES = Object.freeze({
         history: (id: string) => `/app/branches/${id}/settings/history`,
       },
     },
+    /**
+     * Academic years — the administrative timeframes inside a branch.
+     *
+     * Mirrors the branch tree: an overview at the root, a directory, and
+     * per-record detail, editor and lifecycle screens. `calendar` is the one
+     * addition, and it sits beside the directory rather than under a record
+     * because it plots every year of the branch on one axis.
+     *
+     * Every screen below is scoped to the **active branch** — `branchId` is a
+     * documented required parameter on both read endpoints — so these paths
+     * carry no branch segment and are read in the workspace's current scope.
+     */
+    academicYears: {
+      root: "/app/academic-years",
+      directory: "/app/academic-years/directory",
+      calendar: "/app/academic-years/calendar",
+      create: "/app/academic-years/new",
+      detail: (id: string) => `/app/academic-years/${id}`,
+      edit: (id: string) => `/app/academic-years/${id}/edit`,
+      lifecycle: (id: string) => `/app/academic-years/${id}/lifecycle`,
+    },
   },
 });
 
