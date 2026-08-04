@@ -2,6 +2,7 @@ import {
   Blocks,
   Building2,
   CalendarDays,
+  CalendarRange,
   GraduationCap,
   Landmark,
   LayoutDashboard,
@@ -49,6 +50,13 @@ export const NAV_SECTIONS: readonly NavSection[] = Object.freeze([
         href: ROUTES.app.branches.root,
         icon: School,
         description: "Campuses and settings",
+      },
+      {
+        id: "academic-years",
+        label: "Academic Years",
+        href: ROUTES.app.academicYears.root,
+        icon: CalendarRange,
+        description: "Timeframes and calendar",
       },
       {
         id: "system-settings",
@@ -143,6 +151,10 @@ export const BREADCRUMB_LABELS: Readonly<Record<string, string>> =
     [ROUTES.app.branches.root]: "Branches",
     [ROUTES.app.branches.directory]: "Directory",
     [ROUTES.app.branches.create]: "New branch",
+    [ROUTES.app.academicYears.root]: "Academic Years",
+    [ROUTES.app.academicYears.directory]: "Directory",
+    [ROUTES.app.academicYears.calendar]: "Calendar",
+    [ROUTES.app.academicYears.create]: "New academic year",
   });
 
 /** Placeholder copy for the header affordances that are not wired yet. */
