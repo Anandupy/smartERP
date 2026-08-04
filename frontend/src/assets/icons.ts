@@ -54,6 +54,7 @@ export {
   Info,
   KeyRound,
   Landmark,
+  Layers,
   LayoutDashboard,
   LifeBuoy,
   ListFilter,

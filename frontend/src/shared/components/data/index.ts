@@ -12,3 +12,4 @@ export {
   DataTableColumnHeader,
   type DataTableColumnHeaderProps,
 } from "./data-table-column-header";
+export { TreeView, type TreeViewProps } from "./tree-view";
