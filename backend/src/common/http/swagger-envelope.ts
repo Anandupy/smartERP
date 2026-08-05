@@ -1,23 +1,12 @@
 import { OpenAPIObject } from '@nestjs/swagger';
-
-const ENVELOPE_SCHEMA = 'ResponseEnvelope';
-const ERROR_SCHEMA = 'ErrorEnvelope';
-
-/** Envelope fields shared by success and failure responses. */
-const envelopeProperties = (): Record<string, unknown> => ({
-  success: { type: 'boolean', example: true },
-  message: { type: 'string', example: 'Operation completed successfully' },
-  meta: { type: 'object', additionalProperties: true, example: {} },
-  error: {
-    allOf: [{ $ref: `#/components/schemas/${ERROR_SCHEMA}` }],
-    nullable: true,
-  },
-  requestId: {
-    type: 'string',
-    example: '019fc2a1-0d7c-76cd-86ec-cbdf1628a566',
-  },
-  timestamp: { type: 'string', format: 'date-time' },
-});
+import {
+  ENVELOPE_MARKER,
+  ENVELOPE_REQUIRED,
+  ENVELOPE_SCHEMA,
+  ERROR_SCHEMA,
+  buildEnvelopeSchema,
+  envelopeProperties,
+} from './envelope-schema';
 
 /**
  * Rewrites the generated OpenAPI document so responses match what the server
@@ -25,12 +14,16 @@ const envelopeProperties = (): Record<string, unknown> => ({
  *
  * `GlobalResponseInterceptor` wraps every controller return value, so a schema
  * generated from the handler's return type describes the payload, not the
- * response. Documenting that accurately per endpoint would mean a decorator on
- * roughly two hundred handlers — and one forgotten decorator silently
- * reintroduces the drift. Transforming the finished document keeps the
- * contract in one place and cannot be forgotten.
+ * response.
+ *
+ * Handlers documented with `ApiEnvelopeResponse` already carry the full
+ * envelope and are marked as such; this pass skips them and wraps everything
+ * else. Keeping the transformer means an endpoint that nobody remembered to
+ * decorate still shows the right outer shape instead of silently drifting.
  *
  * Applied once in `main.ts`, after `SwaggerModule.createDocument`.
+ *
+ * @see docs/core/response-contract.md
  */
 export function applyResponseEnvelope(document: OpenAPIObject): OpenAPIObject {
   document.components ??= {};
@@ -64,15 +57,7 @@ export function applyResponseEnvelope(document: OpenAPIObject): OpenAPIObject {
       ...envelopeProperties(),
       data: { nullable: true },
     },
-    required: [
-      'success',
-      'message',
-      'data',
-      'meta',
-      'error',
-      'requestId',
-      'timestamp',
-    ],
+    required: [...ENVELOPE_REQUIRED],
   };
 
   for (const pathItem of Object.values(document.paths ?? {})) {
@@ -114,22 +99,17 @@ function wrapResponse(statusCode: string, response: unknown): void {
     return;
   }
 
-  const payloadSchema = content.schema;
+  if (isEnveloped(content.schema)) {
+    // Declared by ApiEnvelopeResponse, which already nested the payload under
+    // `data`. Wrapping it again would bury the DTO one level too deep.
+    return;
+  }
 
-  content.schema = {
-    type: 'object',
-    properties: {
-      ...envelopeProperties(),
-      data: payloadSchema,
-    },
-    required: [
-      'success',
-      'message',
-      'data',
-      'meta',
-      'error',
-      'requestId',
-      'timestamp',
-    ],
-  };
+  content.schema = buildEnvelopeSchema({
+    data: content.schema as Record<string, unknown>,
+  });
+}
+
+function isEnveloped(schema: unknown): boolean {
+  return (schema as Record<string, unknown>)?.[ENVELOPE_MARKER] === true;
 }

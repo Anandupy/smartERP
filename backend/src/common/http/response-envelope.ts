@@ -52,6 +52,29 @@ export class ErrorEnvelopeDto implements ErrorEnvelope {
   details!: Record<string, unknown> | null;
 }
 
+/**
+ * Envelope-level pagination metadata.
+ *
+ * Used by endpoints whose service returns `{ data, meta }` and whose controller
+ * returns that object unchanged — `GlobalResponseInterceptor` then lifts `meta`
+ * onto the envelope. Endpoints that nest `{ items, meta }` under `data` are
+ * documented with `PaginatedPayloadDto` instead, because that is where the
+ * pagination actually lands at runtime.
+ */
+export class PaginationMetaDto {
+  @ApiProperty({ description: 'Total matching records.', example: 137 })
+  total!: number;
+
+  @ApiProperty({ description: 'Current page, 1-based.', example: 1 })
+  page!: number;
+
+  @ApiProperty({ description: 'Records per page.', example: 50 })
+  limit!: number;
+
+  @ApiProperty({ description: 'Total number of pages.', example: 3 })
+  totalPages!: number;
+}
+
 export class ResponseEnvelopeDto {
   @ApiProperty({ example: true })
   success!: boolean;
