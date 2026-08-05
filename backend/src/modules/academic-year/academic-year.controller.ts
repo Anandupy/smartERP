@@ -24,6 +24,13 @@ import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
+import {
+  ApiCreatedEnvelope,
+  ApiEmptyEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import { AcademicYearDto } from './dto/academic-year-response.dto';
 
 @ApiTags('Academic Years')
 @ApiBearerAuth()
@@ -42,6 +49,10 @@ export class AcademicYearController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create academic year' })
+  @ApiCreatedEnvelope(AcademicYearDto, {
+    message: 'Academic year created successfully',
+  })
+  @ApiStandardErrors(404, 409)
   async create(@Body() dto: CreateAcademicYearDto, @Req() req: any) {
     if (req.context?.branchId && !dto.branchId) {
       dto.branchId = req.context.branchId;
@@ -59,6 +70,11 @@ export class AcademicYearController {
   )
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get all academic years for a branch' })
+  @ApiOkEnvelope(AcademicYearDto, {
+    isArray: true,
+    message: 'Academic years retrieved successfully',
+  })
+  @ApiStandardErrors()
   async findAll(@Query('branchId') branchId: string, @Req() req: any) {
     const targetBranchId = req.context?.branchId || branchId;
 
@@ -76,7 +92,16 @@ export class AcademicYearController {
     UserRole.PARENT,
   )
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'Get current (selected) academic year' })
+  @ApiOperation({
+    summary: 'Get current (selected) academic year',
+    description:
+      'Returns `data: null` when the branch has no selected year, rather than 404.',
+  })
+  @ApiOkEnvelope(AcademicYearDto, {
+    nullable: true,
+    message: 'Current academic year retrieved successfully',
+  })
+  @ApiStandardErrors()
   async findCurrent(@Query('branchId') branchId: string, @Req() req: any) {
     const targetBranchId = req.context?.branchId || branchId;
 
@@ -88,6 +113,10 @@ export class AcademicYearController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update academic year' })
+  @ApiOkEnvelope(AcademicYearDto, {
+    message: 'Academic year updated successfully',
+  })
+  @ApiStandardErrors(404)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateAcademicYearDto,
@@ -100,7 +129,12 @@ export class AcademicYearController {
   @Patch(':id/activate')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Activate academic year' })
+  @ApiOperation({
+    summary: 'Activate academic year',
+    description: 'Deactivates whichever year in the branch was active.',
+  })
+  @ApiEmptyEnvelope({ message: 'Academic year activated successfully' })
+  @ApiStandardErrors(404)
   async activate(@Param('id') id: string) {
     return this.academicYearService.activate(id);
   }
@@ -108,7 +142,12 @@ export class AcademicYearController {
   @Patch(':id/select')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Select academic year (set as current)' })
+  @ApiOperation({
+    summary: 'Select academic year (set as current)',
+    description: 'Deselects whichever year in the branch was selected.',
+  })
+  @ApiEmptyEnvelope({ message: 'Academic year selected successfully' })
+  @ApiStandardErrors(404)
   async select(@Param('id') id: string) {
     return this.academicYearService.select(id);
   }
@@ -117,6 +156,10 @@ export class AcademicYearController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Lock academic year' })
+  @ApiOkEnvelope(AcademicYearDto, {
+    message: 'Academic year locked successfully',
+  })
+  @ApiStandardErrors(404)
   async lock(@Param('id') id: string) {
     const data = await this.academicYearService.lock(id);
     return { data, message: 'Academic year locked successfully' };
@@ -126,6 +169,8 @@ export class AcademicYearController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Soft delete academic year' })
+  @ApiEmptyEnvelope({ message: 'Academic year deleted successfully' })
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string) {
     await this.academicYearService.softDelete(id);
     return { message: 'Academic year deleted successfully' };

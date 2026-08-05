@@ -17,6 +17,15 @@ import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  BranchDto,
+  BranchWithOrganizationDto,
+} from './dto/branch-response.dto';
 
 @ApiTags('Branches')
 @ApiBearerAuth()
@@ -29,6 +38,8 @@ export class BranchController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create a new branch (Super/Org Admin only)' })
+  @ApiCreatedEnvelope(BranchDto, { message: 'Branch created successfully' })
+  @ApiStandardErrors(404, 409)
   async create(@Body() dto: CreateBranchDto, @Req() req: any) {
     const data = await this.branchService.createBranch(dto, req.userId);
     return { data, message: 'Branch created successfully' };
@@ -36,7 +47,16 @@ export class BranchController {
 
   @Get()
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'Get all branches' })
+  @ApiOperation({
+    summary: 'Get all branches',
+    description:
+      'Scoped to the caller’s organization for every role except SUPER_ADMIN.',
+  })
+  @ApiOkEnvelope(BranchWithOrganizationDto, {
+    isArray: true,
+    message: 'Branches retrieved successfully',
+  })
+  @ApiStandardErrors()
   async findAll() {
     const data = await this.branchService.getAllBranches();
     return { data, message: 'Branches retrieved successfully' };
@@ -45,6 +65,10 @@ export class BranchController {
   @Get(':id')
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get branch by ID' })
+  @ApiOkEnvelope(BranchWithOrganizationDto, {
+    message: 'Branch retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.branchService.getBranchById(id);
     return { data, message: 'Branch retrieved successfully' };
@@ -53,6 +77,11 @@ export class BranchController {
   @Get('organization/:orgId')
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get branches by organization' })
+  @ApiOkEnvelope(BranchDto, {
+    isArray: true,
+    message: 'Organization branches retrieved successfully',
+  })
+  @ApiStandardErrors()
   async findByOrg(@Param('orgId') orgId: string) {
     const data = await this.branchService.getBranchesByOrganization(orgId);
     return { data, message: 'Organization branches retrieved successfully' };
@@ -62,6 +91,8 @@ export class BranchController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update branch' })
+  @ApiOkEnvelope(BranchDto, { message: 'Branch updated successfully' })
+  @ApiStandardErrors(404, 409)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateBranchDto,
@@ -74,7 +105,13 @@ export class BranchController {
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Soft delete branch (Super Admin only)' })
+  @ApiOperation({
+    summary: 'Soft delete branch (Super Admin only)',
+    description:
+      'Marks the branch deleted and inactive, and returns the updated record.',
+  })
+  @ApiOkEnvelope(BranchDto, { message: 'Branch deactivated successfully' })
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string, @Req() req: any) {
     const data = await this.branchService.softDeleteBranch(id, req.userId);
     return { data, message: 'Branch deactivated successfully' };
@@ -84,6 +121,8 @@ export class BranchController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Toggle branch active status' })
+  @ApiOkEnvelope(BranchDto, { message: 'Branch status toggled successfully' })
+  @ApiStandardErrors(404)
   async toggleStatus(@Param('id') id: string, @Req() req: any) {
     const data = await this.branchService.toggleBranchStatus(id, req.userId);
     return { data, message: 'Branch status toggled successfully' };

@@ -17,6 +17,12 @@ import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import { OrganizationDto } from './dto/organization-response.dto';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -29,6 +35,10 @@ export class OrganizationController {
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create a new organization (Super Admin only)' })
+  @ApiCreatedEnvelope(OrganizationDto, {
+    message: 'Organization created successfully',
+  })
+  @ApiStandardErrors(409)
   async create(@Body() dto: CreateOrganizationDto, @Req() req: any) {
     const data = await this.organizationService.createOrganization(
       dto,
@@ -40,7 +50,15 @@ export class OrganizationController {
   @Get()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'Get all organizations' })
+  @ApiOperation({
+    summary: 'Get all organizations',
+    description: 'Excludes organizations that have been soft-deleted.',
+  })
+  @ApiOkEnvelope(OrganizationDto, {
+    isArray: true,
+    message: 'Organizations retrieved successfully',
+  })
+  @ApiStandardErrors()
   async findAll() {
     const data = await this.organizationService.getAllOrganizations();
     return { data, message: 'Organizations retrieved successfully' };
@@ -50,6 +68,10 @@ export class OrganizationController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get organization by ID' })
+  @ApiOkEnvelope(OrganizationDto, {
+    message: 'Organization retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.organizationService.getOrganizationById(id);
     return { data, message: 'Organization retrieved successfully' };
@@ -59,6 +81,10 @@ export class OrganizationController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update organization' })
+  @ApiOkEnvelope(OrganizationDto, {
+    message: 'Organization updated successfully',
+  })
+  @ApiStandardErrors(404, 409)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateOrganizationDto,
@@ -75,7 +101,15 @@ export class OrganizationController {
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Soft delete organization (Super Admin only)' })
+  @ApiOperation({
+    summary: 'Soft delete organization (Super Admin only)',
+    description:
+      'Sets status to INACTIVE and returns the updated record — the row is not removed.',
+  })
+  @ApiOkEnvelope(OrganizationDto, {
+    message: 'Organization deactivated successfully',
+  })
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string, @Req() req: any) {
     const data = await this.organizationService.softDeleteOrganization(
       id,

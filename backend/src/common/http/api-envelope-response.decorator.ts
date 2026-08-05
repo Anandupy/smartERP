@@ -27,6 +27,11 @@ export interface EnvelopeResponseOptions {
   /** Document `data` as an array of the given type. */
   isArray?: boolean;
   /**
+   * The endpoint can legitimately return `null` — a lookup that finds nothing
+   * and answers 200 rather than 404.
+   */
+  nullable?: boolean;
+  /**
    * Type of the envelope-level `meta`. Pass `PaginationMetaDto` for endpoints
    * that return `{ data, meta }` straight from the service.
    */
@@ -40,6 +45,7 @@ function isClass(type: EnvelopeDataType): type is Type<unknown> {
 function dataSchema(
   type: EnvelopeDataType | undefined,
   isArray: boolean,
+  nullable: boolean,
 ): Record<string, unknown> {
   if (!type) {
     return NULL_DATA_SCHEMA;
@@ -51,7 +57,17 @@ function dataSchema(
       ? { type }
       : (type as Record<string, unknown>);
 
-  return isArray ? { type: 'array', items: base } : base;
+  const schema = isArray ? { type: 'array', items: base } : base;
+
+  if (!nullable) {
+    return schema;
+  }
+
+  // OpenAPI 3.0 cannot put `nullable` beside a `$ref` — sibling keys of a
+  // `$ref` are ignored — so the reference is wrapped in an `allOf`.
+  return schema.$ref
+    ? { allOf: [schema], nullable: true }
+    : { ...schema, nullable: true };
 }
 
 function extraModels(
@@ -83,6 +99,7 @@ export function ApiEnvelopeResponse(
     description,
     message,
     isArray = false,
+    nullable = false,
     meta,
   } = options;
 
@@ -98,7 +115,7 @@ export function ApiEnvelopeResponse(
       status,
       description: description ?? message ?? 'Success',
       schema: buildEnvelopeSchema({
-        data: type ? dataSchema(type, isArray) : undefined,
+        data: type ? dataSchema(type, isArray, nullable) : undefined,
         meta: metaSchema,
         message,
         marked: true,

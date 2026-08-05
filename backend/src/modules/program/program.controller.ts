@@ -23,6 +23,17 @@ import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  ProgramDetailDto,
+  ProgramDto,
+  ProgramTreeNodeDto,
+  ProgramWithParentDto,
+} from './dto/program-response.dto';
 
 @ApiTags('Programs')
 @ApiBearerAuth()
@@ -40,6 +51,8 @@ export class ProgramController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create a new program' })
+  @ApiCreatedEnvelope(ProgramDto, { message: 'Program created successfully' })
+  @ApiStandardErrors(404, 409)
   async create(@Body() createProgramDto: CreateProgramDto, @Req() req: any) {
     if (req.context?.branchId && !createProgramDto.branchId) {
       createProgramDto.branchId = req.context.branchId;
@@ -60,6 +73,11 @@ export class ProgramController {
   )
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get all programs for a branch' })
+  @ApiOkEnvelope(ProgramWithParentDto, {
+    isArray: true,
+    message: 'Programs retrieved successfully',
+  })
+  @ApiStandardErrors()
   async findAll(@Query('branchId') branchId: string, @Req() req: any) {
     const targetBranchId = req.context?.branchId || branchId;
 
@@ -75,7 +93,16 @@ export class ProgramController {
     UserRole.STAFF,
   )
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'Get hierarchical program tree for a branch' })
+  @ApiOperation({
+    summary: 'Get hierarchical program tree for a branch',
+    description:
+      'The same programs as `GET /programs`, nested under their parents instead of flat.',
+  })
+  @ApiOkEnvelope(ProgramTreeNodeDto, {
+    isArray: true,
+    message: 'Program tree retrieved successfully',
+  })
+  @ApiStandardErrors()
   async getTree(@Query('branchId') branchId: string, @Req() req: any) {
     const targetBranchId = req.context?.branchId || branchId;
 
@@ -92,6 +119,10 @@ export class ProgramController {
   )
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get program by ID' })
+  @ApiOkEnvelope(ProgramDetailDto, {
+    message: 'Program retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.programService.findById(id);
     return { data, message: 'Program retrieved successfully' };
@@ -101,6 +132,8 @@ export class ProgramController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update program' })
+  @ApiOkEnvelope(ProgramDto, { message: 'Program updated successfully' })
+  @ApiStandardErrors(404)
   async update(
     @Param('id') id: string,
     @Body() updateProgramDto: UpdateProgramDto,
@@ -117,7 +150,13 @@ export class ProgramController {
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Soft delete program' })
+  @ApiOperation({
+    summary: 'Soft delete program',
+    description:
+      'Rejected with 400 while the program still has active sub-programs.',
+  })
+  @ApiOkEnvelope(ProgramDto, { message: 'Program deleted successfully' })
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string, @Req() req: any) {
     const data = await this.programService.softDeleteProgram(id, req.userId);
     return { data, message: 'Program deleted successfully' };
@@ -127,6 +166,8 @@ export class ProgramController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Toggle program status' })
+  @ApiOkEnvelope(ProgramDto, { message: 'Program status toggled successfully' })
+  @ApiStandardErrors(404)
   async toggleStatus(@Param('id') id: string, @Req() req: any) {
     const data = await this.programService.toggleProgramStatus(id, req.userId);
     return { data, message: 'Program status toggled successfully' };

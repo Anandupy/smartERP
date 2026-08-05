@@ -25,6 +25,16 @@ import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator
 import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  AcademicUnitDetailDto,
+  AcademicUnitDto,
+  AcademicUnitTreeNodeDto,
+} from './dto/academic-unit-response.dto';
 
 @ApiTags('Academic Units')
 @ApiBearerAuth()
@@ -48,6 +58,10 @@ export class AcademicUnitController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Create an academic unit' })
+  @ApiCreatedEnvelope(AcademicUnitDto, {
+    message: 'Academic unit created successfully',
+  })
+  @ApiStandardErrors(404, 409)
   async create(@Body() createDto: CreateAcademicUnitDto, @Req() req: any) {
     if (req.context?.role !== UserRole.SUPER_ADMIN && req.context?.branchId) {
       createDto.branchId = req.context.branchId;
@@ -70,7 +84,15 @@ export class AcademicUnitController {
     UserRole.STAFF,
   )
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'Get all academic units' })
+  @ApiOperation({
+    summary: 'Get all academic units',
+    description: 'Flat list ordered by level, then display order, then name.',
+  })
+  @ApiOkEnvelope(AcademicUnitDto, {
+    isArray: true,
+    message: 'Academic units retrieved successfully',
+  })
+  @ApiStandardErrors()
   async findAll(
     @Query('branchId') branchId: string,
     @Query('academicYearId') academicYearId: string,
@@ -98,7 +120,16 @@ export class AcademicUnitController {
     UserRole.STAFF,
   )
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'Get hierarchical academic unit tree' })
+  @ApiOperation({
+    summary: 'Get hierarchical academic unit tree',
+    description:
+      'The same units as `GET /academic-units`, nested under their parents instead of flat.',
+  })
+  @ApiOkEnvelope(AcademicUnitTreeNodeDto, {
+    isArray: true,
+    message: 'Academic tree retrieved successfully',
+  })
+  @ApiStandardErrors()
   async getTree(
     @Query('branchId') branchId: string,
     @Query('academicYearId') academicYearId: string,
@@ -127,6 +158,10 @@ export class AcademicUnitController {
   )
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({ summary: 'Get academic unit by ID' })
+  @ApiOkEnvelope(AcademicUnitDetailDto, {
+    message: 'Academic unit retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.academicUnitService.getAcademicUnitById(id);
     return { data, message: 'Academic unit retrieved successfully' };
@@ -136,6 +171,10 @@ export class AcademicUnitController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Update academic unit details' })
+  @ApiOkEnvelope(AcademicUnitDto, {
+    message: 'Academic unit updated successfully',
+  })
+  @ApiStandardErrors(404, 409)
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateAcademicUnitDto,
@@ -152,7 +191,14 @@ export class AcademicUnitController {
   @Patch(':id/move')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Move academic unit in hierarchy' })
+  @ApiOperation({
+    summary: 'Move academic unit in hierarchy',
+    description: 'Rejected with 400 when the move would create a cycle.',
+  })
+  @ApiOkEnvelope(AcademicUnitDto, {
+    message: 'Academic unit moved successfully',
+  })
+  @ApiStandardErrors(404, 409)
   async move(
     @Param('id') id: string,
     @Body() moveDto: MoveAcademicUnitDto,
@@ -170,6 +216,10 @@ export class AcademicUnitController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({ summary: 'Toggle academic unit active status' })
+  @ApiOkEnvelope(AcademicUnitDto, {
+    message: 'Academic unit status toggled successfully',
+  })
+  @ApiStandardErrors(404)
   async toggleStatus(@Param('id') id: string, @Req() req: any) {
     const data = await this.academicUnitService.toggleAcademicUnitStatus(
       id,
@@ -181,7 +231,15 @@ export class AcademicUnitController {
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Soft delete academic unit' })
+  @ApiOperation({
+    summary: 'Soft delete academic unit',
+    description:
+      'Rejected with 400 while the unit still has active child units.',
+  })
+  @ApiOkEnvelope(AcademicUnitDto, {
+    message: 'Academic unit deleted successfully',
+  })
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string, @Req() req: any) {
     const data = await this.academicUnitService.softDeleteAcademicUnit(
       id,
