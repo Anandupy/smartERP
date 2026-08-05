@@ -170,7 +170,11 @@ export class AcademicUnitController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Update academic unit details' })
+  @ApiOperation({
+    summary: 'Update academic unit details',
+    description:
+      'Accepts a partial body — send only the fields being changed. Omitted fields are left as they are. `parentId` is accepted here, but a re-parent should go through PATCH /:id/move — that is the endpoint which recalculates `level`.',
+  })
   @ApiOkEnvelope(AcademicUnitDto, {
     message: 'Academic unit updated successfully',
   })
@@ -215,7 +219,11 @@ export class AcademicUnitController {
   @Patch(':id/status')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Toggle academic unit active status' })
+  @ApiOperation({
+    summary: 'Toggle academic unit active status',
+    description:
+      'Takes no body: it flips the current value rather than setting a target state, so it is **not idempotent** — sending it twice returns to where it started. Read the record first if the resulting state matters. PATCH /:id also accepts `isActive` and does set a target state; use that when the desired value is known.',
+  })
   @ApiOkEnvelope(AcademicUnitDto, {
     message: 'Academic unit status toggled successfully',
   })

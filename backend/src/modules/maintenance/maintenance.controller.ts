@@ -143,7 +143,11 @@ export class MaintenanceController {
   @ApiBearerAuth()
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.System.Maintenance)
-  @ApiOperation({ summary: 'Update a maintenance rule (SUPER_ADMIN only)' })
+  @ApiOperation({
+    summary: 'Update a maintenance rule (SUPER_ADMIN only)',
+    description:
+      'Accepts a partial body — send only the fields being changed. Omitted fields are left as they are.',
+  })
   @ApiOkEnvelope(MaintenanceRuleDto, {
     message: 'Maintenance rule updated successfully',
   })

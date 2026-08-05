@@ -90,7 +90,11 @@ export class BranchController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Update branch' })
+  @ApiOperation({
+    summary: 'Update branch',
+    description:
+      'Accepts a partial body — send only the fields being changed. Omitted fields are left as they are.',
+  })
   @ApiOkEnvelope(BranchDto, { message: 'Branch updated successfully' })
   @ApiStandardErrors(404, 409)
   async update(
@@ -120,7 +124,11 @@ export class BranchController {
   @Patch(':id/status')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Toggle branch active status' })
+  @ApiOperation({
+    summary: 'Toggle branch active status',
+    description:
+      'Takes no body: it flips the current value rather than setting a target state, so it is **not idempotent** — sending it twice returns to where it started. Read the record first if the resulting state matters.',
+  })
   @ApiOkEnvelope(BranchDto, { message: 'Branch status toggled successfully' })
   @ApiStandardErrors(404)
   async toggleStatus(@Param('id') id: string, @Req() req: any) {

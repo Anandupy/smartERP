@@ -70,7 +70,11 @@ export class AcademicYearController {
     UserRole.STAFF,
   )
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'Get all academic years for a branch' })
+  @ApiOperation({
+    summary: 'Get all academic years for a branch',
+    description:
+      'Soft-deleted years are excluded, so the count is the branch’s live years. Ordered by start date, ascending. Scoped to one branch — there is no cross-branch listing.',
+  })
   @ApiOkEnvelope(AcademicYearDto, {
     isArray: true,
     message: 'Academic years retrieved successfully',
@@ -138,7 +142,11 @@ export class AcademicYearController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Update academic year' })
+  @ApiOperation({
+    summary: 'Update academic year',
+    description:
+      'Accepts a partial body — send only the fields being changed. Omitted fields are left as they are. A locked year rejects every update with 403.',
+  })
   @ApiOkEnvelope(AcademicYearDto, {
     message: 'Academic year updated successfully',
   })
@@ -157,7 +165,8 @@ export class AcademicYearController {
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({
     summary: 'Activate academic year',
-    description: 'Deactivates whichever year in the branch was active.',
+    description:
+      'Deactivates whichever year in the branch was active. Permitted on a locked year — the lock covers update and delete only. There is no deactivate endpoint.',
   })
   @ApiEmptyEnvelope({ message: 'Academic year activated successfully' })
   @ApiStandardErrors(404)
@@ -170,7 +179,8 @@ export class AcademicYearController {
   @RequirePermission(PERMISSIONS.Settings.Manage)
   @ApiOperation({
     summary: 'Select academic year (set as current)',
-    description: 'Deselects whichever year in the branch was selected.',
+    description:
+      'Deselects whichever year in the branch was selected. Permitted on a locked year — the lock covers update and delete only. There is no deselect endpoint.',
   })
   @ApiEmptyEnvelope({ message: 'Academic year selected successfully' })
   @ApiStandardErrors(404)
@@ -181,7 +191,11 @@ export class AcademicYearController {
   @Patch(':id/lock')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Lock academic year' })
+  @ApiOperation({
+    summary: 'Lock academic year',
+    description:
+      'Blocks update and delete on the year. Activate, select and lock are **not** blocked — a locked year can still be made current. There is no unlock endpoint, so this cannot be reversed.',
+  })
   @ApiOkEnvelope(AcademicYearDto, {
     message: 'Academic year locked successfully',
   })
@@ -194,7 +208,11 @@ export class AcademicYearController {
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Soft delete academic year' })
+  @ApiOperation({
+    summary: 'Soft delete academic year',
+    description:
+      'Sets `isDeleted` and leaves the row. The year stops appearing in the list and in reads by id. Rejected with 403 on a locked year and 400 on the selected year. There is no restore endpoint.',
+  })
   @ApiEmptyEnvelope({ message: 'Academic year deleted successfully' })
   @ApiStandardErrors(404)
   async remove(@Param('id') id: string) {

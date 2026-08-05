@@ -51,7 +51,11 @@ export class SystemSettingsController {
 
   @Patch()
   @RequirePermission(PERMISSIONS.System.Manage)
-  @ApiOperation({ summary: 'Update system configuration' })
+  @ApiOperation({
+    summary: 'Update system configuration',
+    description:
+      'Accepts a partial body — send only the fields being changed. Omitted fields are left as they are.',
+  })
   @ApiOkEnvelope(SystemSettingsDto, {
     message: 'System settings updated successfully',
   })

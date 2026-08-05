@@ -52,7 +52,8 @@ export class OrganizationController {
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({
     summary: 'Get all organizations',
-    description: 'Excludes organizations that have been soft-deleted.',
+    description:
+      'Returns ACTIVE and SUSPENDED organizations. INACTIVE ones — which is what a soft delete sets — are excluded, and no parameter widens this, so a deactivated organization is not reachable through any list.',
   })
   @ApiOkEnvelope(OrganizationDto, {
     isArray: true,
@@ -80,7 +81,11 @@ export class OrganizationController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Update organization' })
+  @ApiOperation({
+    summary: 'Update organization',
+    description:
+      'Accepts a partial body — send only the fields being changed. Omitted fields are left as they are.',
+  })
   @ApiOkEnvelope(OrganizationDto, {
     message: 'Organization updated successfully',
   })

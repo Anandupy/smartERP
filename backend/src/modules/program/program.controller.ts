@@ -72,7 +72,11 @@ export class ProgramController {
     UserRole.STAFF,
   )
   @RequirePermission(PERMISSIONS.Settings.View)
-  @ApiOperation({ summary: 'Get all programs for a branch' })
+  @ApiOperation({
+    summary: 'Get all programs for a branch',
+    description:
+      'Soft-deleted programs are excluded, so the count is the branch’s live programs. Scoped to one branch — there is no cross-branch listing.',
+  })
   @ApiOkEnvelope(ProgramWithParentDto, {
     isArray: true,
     message: 'Programs retrieved successfully',
@@ -131,7 +135,11 @@ export class ProgramController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Update program' })
+  @ApiOperation({
+    summary: 'Update program',
+    description:
+      'Accepts a partial body — send only the fields being changed. Omitted fields are left as they are.',
+  })
   @ApiOkEnvelope(ProgramDto, { message: 'Program updated successfully' })
   @ApiStandardErrors(404)
   async update(
@@ -165,7 +173,11 @@ export class ProgramController {
   @Patch(':id/status')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Settings.Manage)
-  @ApiOperation({ summary: 'Toggle program status' })
+  @ApiOperation({
+    summary: 'Toggle program status',
+    description:
+      'Takes no body: it flips the current value rather than setting a target state, so it is **not idempotent** — sending it twice returns to where it started. Read the record first if the resulting state matters.',
+  })
   @ApiOkEnvelope(ProgramDto, { message: 'Program status toggled successfully' })
   @ApiStandardErrors(404)
   async toggleStatus(@Param('id') id: string, @Req() req: any) {
