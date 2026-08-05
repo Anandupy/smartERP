@@ -14,6 +14,7 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiHeader,
+  ApiParam,
 } from '@nestjs/swagger';
 import { AcademicYearService } from './academic-year.service';
 import { CreateAcademicYearDto } from './dto/create-academic-year.dto';
@@ -107,6 +108,31 @@ export class AcademicYearController {
 
     const data = await this.academicYearService.findCurrent(targetBranchId);
     return { data, message: 'Current academic year retrieved successfully' };
+  }
+
+  // Declared after `current` so that literal path wins the match; a `:id`
+  // route registered first would swallow `/academic-years/current`.
+  @Get(':id')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ORG_ADMIN,
+    UserRole.BRANCH_ADMIN,
+    UserRole.STAFF,
+  )
+  @RequirePermission(PERMISSIONS.Settings.View)
+  @ApiOperation({
+    summary: 'Get academic year by ID',
+    description:
+      'Reads one year directly, without going through its branch list. Soft-deleted years are not found, matching the list.',
+  })
+  @ApiParam({ name: 'id', description: 'Academic Year UUID' })
+  @ApiOkEnvelope(AcademicYearDto, {
+    message: 'Academic year retrieved successfully',
+  })
+  @ApiStandardErrors(404)
+  async findOne(@Param('id') id: string) {
+    const data = await this.academicYearService.findById(id);
+    return { data, message: 'Academic year retrieved successfully' };
   }
 
   @Patch(':id')

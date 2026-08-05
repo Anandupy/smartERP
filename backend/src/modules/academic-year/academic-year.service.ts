@@ -255,7 +255,17 @@ export class AcademicYearService {
     return deleted;
   }
 
-  private async findById(id: string) {
+  /**
+   * Reads one academic year.
+   *
+   * Public because `GET /academic-years/:id` needs it. Without that endpoint a
+   * client could only reach a year through its branch's list, which made every
+   * detail view depend on an active branch and left no way to refetch a single
+   * record.
+   *
+   * Soft-deleted years are not found, matching the list.
+   */
+  async findById(id: string) {
     const year = await this.prisma.academicYear.findUnique({
       where: { id, isDeleted: false },
     });

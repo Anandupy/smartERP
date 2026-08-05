@@ -160,4 +160,26 @@ describe('AcademicYearService', () => {
       );
     });
   });
+
+  describe('findById', () => {
+    it('returns the year', async () => {
+      const year = { id: 'year-1', name: '2025-26', isDeleted: false };
+      mockPrisma.academicYear.findUnique.mockResolvedValue(year);
+
+      await expect(service.findById('year-1')).resolves.toEqual(year);
+    });
+
+    it('excludes soft-deleted years, matching the list', async () => {
+      // The query itself filters isDeleted, so a deleted year is simply not
+      // found — a client cannot reach through the soft delete by id.
+      mockPrisma.academicYear.findUnique.mockResolvedValue(null);
+
+      await expect(service.findById('year-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrisma.academicYear.findUnique).toHaveBeenCalledWith({
+        where: { id: 'year-1', isDeleted: false },
+      });
+    });
+  });
 });
