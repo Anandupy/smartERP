@@ -22,6 +22,7 @@ export class AcademicUnitDto {
   academicYearId!: string;
 
   @ApiProperty({
+    type: String,
     description: 'Parent unit. Null at the root of the hierarchy.',
     nullable: true,
     example: null,
@@ -31,7 +32,7 @@ export class AcademicUnitDto {
   @ApiProperty({ example: 'Class 11' })
   name!: string;
 
-  @ApiProperty({ nullable: true, example: 'XI' })
+  @ApiProperty({ type: String, nullable: true, example: 'XI' })
   code!: string | null;
 
   @ApiProperty({
@@ -46,7 +47,7 @@ export class AcademicUnitDto {
   })
   level!: number;
 
-  @ApiProperty({ nullable: true, example: 10 })
+  @ApiProperty({ type: Number, nullable: true, example: 10 })
   displayOrder!: number | null;
 
   @ApiProperty({ example: true })
@@ -64,10 +65,10 @@ export class AcademicUnitDto {
   })
   metadata!: Record<string, unknown> | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

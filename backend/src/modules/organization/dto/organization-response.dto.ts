@@ -17,7 +17,11 @@ export class OrganizationDto {
   @ApiProperty({ description: 'Unique tenant code.', example: 'net' })
   code!: string;
 
-  @ApiProperty({ nullable: true, example: 'https://cdn.example.edu/logo.png' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'https://cdn.example.edu/logo.png',
+  })
   logoUrl!: string | null;
 
   @ApiProperty({ example: 'office@northfield.edu' })
@@ -26,22 +30,22 @@ export class OrganizationDto {
   @ApiProperty({ example: '+912212345678' })
   contactPhone!: string;
 
-  @ApiProperty({ nullable: true, example: '14 Ring Road' })
+  @ApiProperty({ type: String, nullable: true, example: '14 Ring Road' })
   addressLine1!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Sector 7' })
+  @ApiProperty({ type: String, nullable: true, example: 'Sector 7' })
   addressLine2!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Pune' })
+  @ApiProperty({ type: String, nullable: true, example: 'Pune' })
   city!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Maharashtra' })
+  @ApiProperty({ type: String, nullable: true, example: 'Maharashtra' })
   state!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'India' })
+  @ApiProperty({ type: String, nullable: true, example: 'India' })
   country!: string | null;
 
-  @ApiProperty({ nullable: true, example: '411001' })
+  @ApiProperty({ type: String, nullable: true, example: '411001' })
   pincode!: string | null;
 
   @ApiProperty({
@@ -58,16 +62,16 @@ export class OrganizationDto {
   })
   status!: OrganizationStatus;
 
-  @ApiProperty({ nullable: true, example: 'Asia/Kolkata' })
+  @ApiProperty({ type: String, nullable: true, example: 'Asia/Kolkata' })
   timezone!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'INR' })
+  @ApiProperty({ type: String, nullable: true, example: 'INR' })
   currency!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

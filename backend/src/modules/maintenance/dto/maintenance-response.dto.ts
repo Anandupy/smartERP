@@ -19,6 +19,7 @@ export class MaintenanceRuleDto {
   scopeType!: MaintenanceScopeType;
 
   @ApiProperty({
+    type: String,
     description:
       'Null for GLOBAL; otherwise an organization id, branch id, module name or feature name.',
     nullable: true,
@@ -44,38 +45,52 @@ export class MaintenanceRuleDto {
   })
   customStatus!: number;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   customPage!: string | null;
 
   @ApiProperty({
-    description: 'Role names allowed through the window.',
+    description:
+      'Role names allowed through the window. Stored as a JSON array of strings.',
+    type: [String],
     nullable: true,
     example: ['SUPER_ADMIN'],
   })
-  bypassRoles!: unknown;
+  bypassRoles!: string[] | null;
 
-  @ApiProperty({ nullable: true, example: 'Scheduled maintenance' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Scheduled maintenance',
+  })
   title!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'We will be back shortly.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'We will be back shortly.',
+  })
   shortMessage!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   description!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Database migration' })
+  @ApiProperty({ type: String, nullable: true, example: 'Database migration' })
   reason!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   estimatedCompletion!: Date | null;
 
-  @ApiProperty({ nullable: true, example: '02:00–04:00 IST' })
+  @ApiProperty({ type: String, nullable: true, example: '02:00–04:00 IST' })
   maintenanceWindow!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'support@northfield.edu' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'support@northfield.edu',
+  })
   supportContact!: string | null;
 
-  @ApiProperty({ nullable: true, example: '#f59e0b' })
+  @ApiProperty({ type: String, nullable: true, example: '#f59e0b' })
   bannerColor!: string | null;
 
   @ApiProperty({
@@ -85,13 +100,13 @@ export class MaintenanceRuleDto {
   })
   severity!: MaintenanceSeverity | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   maintenanceIcon!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   announcementLink!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   externalStatusPageUrl!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
@@ -107,22 +122,23 @@ export class MaintenanceRuleDto {
   isRecurring!: boolean;
 
   @ApiProperty({
+    type: Number,
     description: '0 is Sunday, 6 is Saturday.',
     nullable: true,
     example: null,
   })
   recurrenceDayOfWeek!: number | null;
 
-  @ApiProperty({ nullable: true, example: '02:00' })
+  @ApiProperty({ type: String, nullable: true, example: '02:00' })
   recurrenceStartTime!: string | null;
 
-  @ApiProperty({ nullable: true, example: '04:00' })
+  @ApiProperty({ type: String, nullable: true, example: '04:00' })
   recurrenceEndTime!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
@@ -157,7 +173,7 @@ export class MaintenanceStatusDto {
   })
   scopeType?: MaintenanceScopeType;
 
-  @ApiPropertyOptional({ nullable: true, example: null })
+  @ApiPropertyOptional({ type: String, nullable: true, example: null })
   scopeId?: string | null;
 
   @ApiPropertyOptional({ example: 'System Maintenance' })

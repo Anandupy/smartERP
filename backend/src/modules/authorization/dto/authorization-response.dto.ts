@@ -12,10 +12,14 @@ export class PermissionCategoryDto {
   @ApiProperty({ example: 'Settings' })
   name!: string;
 
-  @ApiProperty({ nullable: true, example: 'Configuration of the workspace.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Configuration of the workspace.',
+  })
   description!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'settings' })
+  @ApiProperty({ type: String, nullable: true, example: 'settings' })
   icon!: string | null;
 
   @ApiProperty({ description: 'Sort order within the catalog.', example: 10 })
@@ -51,7 +55,11 @@ export class PermissionDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a70' })
   categoryId!: string;
 
-  @ApiProperty({ nullable: true, example: 'Change workspace settings.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Change workspace settings.',
+  })
   description!: string | null;
 
   @ApiProperty({ example: true })
@@ -130,13 +138,17 @@ export class UserPermissionOverrideDto {
   })
   type!: OverrideType;
 
-  @ApiProperty({ nullable: true, example: 'Temporary cover for admissions.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Temporary cover for admissions.',
+  })
   reason!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

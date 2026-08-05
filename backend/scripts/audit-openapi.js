@@ -105,6 +105,28 @@ if (unenveloped.length) {
   console.log('');
 }
 
+const vague = [];
+for (const [name, schema] of Object.entries(doc.components?.schemas ?? {})) {
+  for (const [prop, p] of Object.entries(schema.properties ?? {})) {
+    const described =
+      p.$ref ||
+      p.allOf ||
+      p.oneOf ||
+      p.items ||
+      p.enum ||
+      p.additionalProperties ||
+      p.properties ||
+      (p.type && p.type !== 'object');
+    if (!described) vague.push(`${name}.${prop}`);
+  }
+}
+
+if (vague.length) {
+  console.log('Schema properties with no concrete type:');
+  for (const entry of vague) console.log(`  ${entry}`);
+  console.log('');
+}
+
 if (missingErrors.length) {
   console.log('Operations missing standard failure responses:');
   for (const row of missingErrors) {
@@ -117,5 +139,6 @@ if (missingErrors.length) {
 
 console.log(
   `${rows.length} operations | ${rows.length - undocumented.length} with a documented payload | ` +
-    `${rows.length - unenveloped.length} enveloped | ${rows.length - missingErrors.length} with full error coverage`,
+    `${rows.length - unenveloped.length} enveloped | ${rows.length - missingErrors.length} with full error coverage | ` +
+    `${vague.length} untyped schema properties`,
 );

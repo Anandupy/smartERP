@@ -19,6 +19,7 @@ export class UpsertWorkspaceConfigDto {
   scopeType!: WorkspaceScopeType;
 
   @ApiPropertyOptional({
+    type: String,
     example: '019fa012-...',
     description: 'Target scope UUID identifier (null for PRODUCT global level)',
   })

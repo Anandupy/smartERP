@@ -14,6 +14,7 @@ export class WorkflowHistoryDto {
   applicantId!: string;
 
   @ApiProperty({
+    type: String,
     description: 'The status the applicant left.',
     nullable: true,
     example: 'DRAFT',
@@ -26,10 +27,11 @@ export class WorkflowHistoryDto {
   @ApiProperty({ example: 'STATUS_CHANGE' })
   actionType!: string;
 
-  @ApiProperty({ nullable: true, example: 'Documents verified.' })
+  @ApiProperty({ type: String, nullable: true, example: 'Documents verified.' })
   remarks!: string | null;
 
   @ApiProperty({
+    type: String,
     description: 'User id, or SYSTEM for an automated transition.',
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6a',

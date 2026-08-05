@@ -34,6 +34,7 @@ export class CreateMenuDto {
   moduleId!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: '019fa017-...',
     description: 'Parent menu UUID identifier (null for root menu)',
   })

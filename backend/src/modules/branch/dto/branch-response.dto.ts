@@ -26,7 +26,7 @@ export class BranchDto {
   })
   code!: string;
 
-  @ApiProperty({ nullable: true, example: 'MH/EDU/2019/4471' })
+  @ApiProperty({ type: String, nullable: true, example: 'MH/EDU/2019/4471' })
   registrationNumber!: string | null;
 
   @ApiProperty({ enum: InstitutionType, example: InstitutionType.SCHOOL })
@@ -39,10 +39,14 @@ export class BranchDto {
   })
   affiliationType!: AffiliationType | null;
 
-  @ApiProperty({ nullable: true, example: 'CBSE' })
+  @ApiProperty({ type: String, nullable: true, example: 'CBSE' })
   affiliationName!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'https://cdn.example.edu/main.png' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'https://cdn.example.edu/main.png',
+  })
   logoUrl!: string | null;
 
   @ApiProperty({ example: 'main@northfield.edu' })
@@ -54,7 +58,7 @@ export class BranchDto {
   @ApiProperty({ example: '14 Ring Road' })
   addressLine1!: string;
 
-  @ApiProperty({ nullable: true, example: 'Sector 7' })
+  @ApiProperty({ type: String, nullable: true, example: 'Sector 7' })
   addressLine2!: string | null;
 
   @ApiProperty({ example: 'Pune' })
@@ -86,10 +90,10 @@ export class BranchDto {
   })
   isDeleted!: boolean;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

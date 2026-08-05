@@ -3,6 +3,7 @@ import { IsUUID, IsOptional, IsInt, Min } from 'class-validator';
 
 export class MoveMenuDto {
   @ApiPropertyOptional({
+    type: String,
     example: '019fa017-...',
     description:
       'New parent menu UUID identifier (null to promote to root level)',

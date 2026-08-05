@@ -26,19 +26,43 @@ export const ENVELOPE_REQUIRED = [
   'timestamp',
 ] as const;
 
-/** The fields every response carries, success or failure. */
-export function envelopeProperties(message?: string): Record<string, unknown> {
+/**
+ * The fields every response carries, success or failure.
+ *
+ * `success` and `error` move together and are the two halves of the same fact,
+ * so the flavour sets both: a success can only carry `error: null`, and a
+ * failure can only carry `success: false`. Emitting one example for both cases
+ * is what made generated Postman collections show a 400 whose `success` was
+ * true.
+ */
+export function envelopeProperties(
+  message?: string,
+  flavour: 'success' | 'failure' = 'success',
+): Record<string, unknown> {
+  const failed = flavour === 'failure';
+
   return {
-    success: { type: 'boolean', example: true },
+    success: { type: 'boolean', example: !failed },
     message: {
       type: 'string',
-      example: message ?? 'Operation completed successfully',
+      example:
+        message ??
+        (failed
+          ? 'The request could not be completed'
+          : 'Operation completed successfully'),
     },
     meta: { type: 'object', additionalProperties: true, example: {} },
-    error: {
-      allOf: [{ $ref: `#/components/schemas/${ERROR_SCHEMA}` }],
-      nullable: true,
-    },
+    error: failed
+      ? {
+          allOf: [{ $ref: `#/components/schemas/${ERROR_SCHEMA}` }],
+          description: 'The machine-readable code and any structured detail.',
+        }
+      : {
+          allOf: [{ $ref: `#/components/schemas/${ERROR_SCHEMA}` }],
+          nullable: true,
+          example: null,
+          description: 'Always `null` on a success.',
+        },
     requestId: {
       type: 'string',
       example: '019fc2a1-0d7c-76cd-86ec-cbdf1628a566',

@@ -5,18 +5,21 @@ import { NavigationTreeNodeDto } from '../navigation/dto/navigation-response.dto
 /** The tenant context the layout was resolved against. */
 export class WorkspaceActiveContextsDto {
   @ApiProperty({
+    type: String,
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6b',
   })
   organizationId!: string | null;
 
   @ApiProperty({
+    type: String,
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6c',
   })
   branchId!: string | null;
 
   @ApiProperty({
+    type: String,
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6d',
   })
@@ -118,6 +121,7 @@ export class WorkspaceConfigurationDto {
   scopeType!: WorkspaceScopeType;
 
   @ApiProperty({
+    type: String,
     description: 'Null for the PRODUCT layer.',
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6b',
@@ -141,7 +145,7 @@ export class WorkspaceConfigurationDto {
   @ApiProperty({ example: true })
   isActive!: boolean;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdById!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

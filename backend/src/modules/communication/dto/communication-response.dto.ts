@@ -22,10 +22,10 @@ export class CommunicationTemplateDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5b10' })
   id!: string;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   organizationId!: string | null;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   branchId!: string | null;
 
   @ApiProperty({ example: 'ADMISSION_APPROVED' })
@@ -35,6 +35,7 @@ export class CommunicationTemplateDto {
   name!: string;
 
   @ApiProperty({
+    type: String,
     nullable: true,
     example: 'Sent when an applicant is approved.',
   })
@@ -52,21 +53,34 @@ export class CommunicationTemplateDto {
   })
   category!: NotificationCategory;
 
-  @ApiProperty({ nullable: true, example: 'Your admission is confirmed' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Your admission is confirmed',
+  })
   subject!: string | null;
 
-  @ApiProperty({ nullable: true, example: '<p>Dear {{name}}…</p>' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: '<p>Dear {{name}}…</p>',
+  })
   bodyHtml!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Dear {{name}}…' })
+  @ApiProperty({ type: String, nullable: true, example: 'Dear {{name}}…' })
   bodyText!: string | null;
 
   @ApiProperty({
-    description: 'Names of the variables the body expects.',
+    description:
+      'Names of the variables the body expects — either a JSON array of names or a JSON object describing each one.',
+    oneOf: [
+      { type: 'array', items: {} },
+      { type: 'object', additionalProperties: true },
+    ],
     nullable: true,
     example: ['name', 'applicationNo'],
   })
-  variables!: unknown;
+  variables!: string[] | Record<string, unknown> | null;
 
   @ApiProperty({ example: 'en' })
   language!: string;
@@ -94,10 +108,10 @@ export class CommunicationTemplateDto {
   })
   metadata!: Record<string, unknown> | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
@@ -137,10 +151,10 @@ export class DeliveryLogDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5b20' })
   id!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   organizationId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   branchId!: string | null;
 
   @ApiProperty({
@@ -155,22 +169,31 @@ export class DeliveryLogDto {
   @ApiProperty({ example: 'rohan@example.com' })
   recipient!: string;
 
-  @ApiProperty({ nullable: true, example: 'no-reply@northfield.edu' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'no-reply@northfield.edu',
+  })
   sender!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Your admission is confirmed' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Your admission is confirmed',
+  })
   subject!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   templateId!: string | null;
 
-  @ApiProperty({ nullable: true, example: 1 })
+  @ApiProperty({ type: Number, nullable: true, example: 1 })
   templateVersion!: number | null;
 
   @ApiProperty({ enum: DeliveryStatus, example: DeliveryStatus.DELIVERED })
   status!: DeliveryStatus;
 
   @ApiProperty({
+    type: Number,
     description: 'Provider round-trip time.',
     nullable: true,
     example: 412,
@@ -180,10 +203,10 @@ export class DeliveryLogDto {
   @ApiProperty({ example: 0 })
   retryCount!: number;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   errorCode!: string | null;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   errorMessage!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
@@ -259,10 +282,10 @@ export class InAppNotificationDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5b30' })
   id!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   organizationId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   branchId!: string | null;
 
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6a' })
@@ -290,6 +313,7 @@ export class InAppNotificationDto {
   status!: NotificationStatus;
 
   @ApiProperty({
+    type: String,
     description: 'Where the client should navigate when the row is opened.',
     nullable: true,
     example: '/admissions/applicants/018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5ab0',
@@ -395,10 +419,10 @@ export class CommunicationSettingDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5b50' })
   id!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   organizationId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   branchId!: string | null;
 
   @ApiProperty({ example: true })
@@ -440,10 +464,10 @@ export class CommunicationSettingDto {
   @ApiProperty({ enum: ProviderType, example: ProviderType.CUSTOM })
   defaultPushProvider!: ProviderType;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

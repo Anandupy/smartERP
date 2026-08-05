@@ -16,10 +16,10 @@ export class NavigationModuleDto {
   @ApiProperty({ example: 'Admissions' })
   name!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   description!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'user-plus' })
+  @ApiProperty({ type: String, nullable: true, example: 'user-plus' })
   icon!: string | null;
 
   @ApiProperty({ example: 10 })
@@ -75,13 +75,13 @@ export class NavigationMenuDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5c30' })
   moduleId!: string;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   parentId!: string | null;
 
   @ApiProperty({ example: '/admissions/applicants' })
   route!: string;
 
-  @ApiProperty({ nullable: true, example: 'ApplicantListPage' })
+  @ApiProperty({ type: String, nullable: true, example: 'ApplicantListPage' })
   componentIdentifier!: string | null;
 
   @ApiProperty({
@@ -101,19 +101,19 @@ export class NavigationMenuDto {
   @ApiProperty({ example: 'Applicants' })
   displayName!: string;
 
-  @ApiProperty({ nullable: true, example: 'users' })
+  @ApiProperty({ type: String, nullable: true, example: 'users' })
   icon!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   tooltip!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   description!: string | null;
 
   @ApiProperty({ example: 10 })
   displayOrder!: number;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   badge!: string | null;
 
   @ApiProperty({
@@ -123,10 +123,10 @@ export class NavigationMenuDto {
   })
   searchKeywords!: string[];
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   helpUrl!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   documentationUrl!: string | null;
 
   @ApiProperty({ enum: MenuStatus, example: MenuStatus.ACTIVE })
@@ -220,40 +220,40 @@ export class NavigationTreeNodeDto implements Omit<
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5c30' })
   moduleId!: string;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   parentId!: string | null;
 
   @ApiProperty({ example: '/admissions/applicants' })
   route!: string;
 
-  @ApiProperty({ nullable: true, example: 'ApplicantListPage' })
+  @ApiProperty({ type: String, nullable: true, example: 'ApplicantListPage' })
   componentIdentifier!: string | null;
 
   @ApiProperty({ example: 'Applicants' })
   displayName!: string;
 
-  @ApiProperty({ nullable: true, example: 'users' })
+  @ApiProperty({ type: String, nullable: true, example: 'users' })
   icon!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   tooltip!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   description!: string | null;
 
   @ApiProperty({ example: 10 })
   displayOrder!: number;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   badge!: string | null;
 
   @ApiProperty({ type: [String], example: ['admission', 'enquiry'] })
   searchKeywords!: string[];
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   helpUrl!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   documentationUrl!: string | null;
 
   @ApiProperty({ enum: MenuStatus, example: MenuStatus.ACTIVE })

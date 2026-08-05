@@ -112,6 +112,28 @@ describe('ApiEnvelopeResponse decorators', () => {
     expect(schema.properties.meta).toMatchObject({ type: 'object' });
   });
 
+  it('shows error as null on a success', () => {
+    // `success` and `error` are two halves of one fact. Describing both cases
+    // with one set of examples produced generated collections whose 2xx
+    // example carried a populated error.
+    const schema = responsesOf(ApiOkEnvelope(ThingDto))['200'].schema;
+
+    expect(schema.properties.success.example).toBe(true);
+    expect(schema.properties.error).toMatchObject({
+      nullable: true,
+      example: null,
+    });
+  });
+
+  it('shows success as false on the failure envelope', () => {
+    const doc = applyResponseEnvelope({ paths: {} } as never);
+    const envelope: any = doc.components?.schemas?.ResponseEnvelope;
+
+    expect(envelope.properties.success.example).toBe(false);
+    expect(envelope.properties.data.example).toBeNull();
+    expect(envelope.properties.error.nullable).toBeUndefined();
+  });
+
   it('documents failures with the shared envelope', () => {
     const responses = responsesOf(ApiStandardErrors(404, 409));
 

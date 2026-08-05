@@ -55,6 +55,7 @@ export class WorkspaceSetupStatusDto {
   allowedActions!: SetupActionDto[];
 
   @ApiProperty({
+    type: String,
     description: 'When setup was completed. Null while setup is required.',
     nullable: true,
     example: null,

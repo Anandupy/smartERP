@@ -37,7 +37,7 @@ export class ApplicantDto {
   @ApiProperty({ example: 'Rohan' })
   firstName!: string;
 
-  @ApiProperty({ nullable: true, example: 'Kumar' })
+  @ApiProperty({ type: String, nullable: true, example: 'Kumar' })
   middleName!: string | null;
 
   @ApiProperty({ example: 'Sharma' })
@@ -52,64 +52,64 @@ export class ApplicantDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5aa0' })
   genderId!: string;
 
-  @ApiProperty({ nullable: true, example: 'Pune' })
+  @ApiProperty({ type: String, nullable: true, example: 'Pune' })
   birthPlace!: string | null;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   photoFileId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   religionId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   casteId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   categoryId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   motherTongueId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   bloodGroupId!: string | null;
 
   @ApiProperty({ example: false })
   disabilityStatus!: boolean;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   disabilityTypeId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   disabilityNotes!: string | null;
 
-  @ApiProperty({ nullable: true, example: '123456789012' })
+  @ApiProperty({ type: String, nullable: true, example: '123456789012' })
   aadhaarNo!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   penNo!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   apaarId!: string | null;
 
   @ApiProperty({ example: '+919876543210' })
   primaryMobile!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   alternateMobile!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'rohan@example.com' })
+  @ApiProperty({ type: String, nullable: true, example: 'rohan@example.com' })
   primaryEmail!: string | null;
 
   @ApiProperty({ example: '14 Ring Road' })
   currentAddressLine1!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   currentAddressLine2!: string | null;
 
   @ApiProperty({ example: 'Pune' })
   city!: string;
 
-  @ApiProperty({ nullable: true, example: 'Pune' })
+  @ApiProperty({ type: String, nullable: true, example: 'Pune' })
   district!: string | null;
 
   @ApiProperty({ example: 'Maharashtra' })
@@ -121,25 +121,29 @@ export class ApplicantDto {
   @ApiProperty({ example: '411001' })
   pincode!: string;
 
-  @ApiProperty({ nullable: true, example: 'St. Xavier High School' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'St. Xavier High School',
+  })
   previousSchoolName!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'CBSE' })
+  @ApiProperty({ type: String, nullable: true, example: 'CBSE' })
   previousBoard!: string | null;
 
-  @ApiProperty({ nullable: true, example: '10' })
+  @ApiProperty({ type: String, nullable: true, example: '10' })
   previousClass!: string | null;
 
-  @ApiProperty({ nullable: true, example: 87.5 })
+  @ApiProperty({ type: Number, nullable: true, example: 87.5 })
   previousPercentage!: number | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   tcNumber!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   admissionSourceId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   quotaId!: string | null;
 
   @ApiProperty({
@@ -156,13 +160,13 @@ export class ApplicantDto {
   })
   admissionStatus!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   internalRemarks!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   counsellorRemarks!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   assignedCounsellorId!: string | null;
 
   @ApiProperty({ example: false })
@@ -202,25 +206,30 @@ export class ApplicantDto {
   checklistStatus!: Record<string, unknown> | null;
 
   @ApiProperty({
-    description: 'Free-form labels attached to the applicant.',
+    description:
+      'Free-form labels attached to the applicant. Stored as an unconstrained JSON column, so the shape is whatever the branch writes.',
+    oneOf: [
+      { type: 'array', items: {} },
+      { type: 'object', additionalProperties: true },
+    ],
     nullable: true,
     example: null,
   })
-  tags!: unknown;
+  tags!: unknown[] | Record<string, unknown> | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   formTemplateVersion!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   approvedBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   rejectedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
@@ -312,7 +321,7 @@ export class DuplicateMatchDto {
   @ApiProperty({ example: '+919876543210' })
   primaryMobile!: string;
 
-  @ApiProperty({ nullable: true, example: '123456789012' })
+  @ApiProperty({ type: String, nullable: true, example: '123456789012' })
   aadhaarNo!: string | null;
 
   @ApiProperty({ example: 'SUBMITTED' })

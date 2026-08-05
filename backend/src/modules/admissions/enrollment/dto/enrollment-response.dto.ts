@@ -31,13 +31,14 @@ export class EnrollmentDto {
   applicantId!: string;
 
   @ApiProperty({
+    type: String,
     description: 'Reserved for the permanent student record.',
     nullable: true,
     example: null,
   })
   futureStudentId!: string | null;
 
-  @ApiProperty({ nullable: true, example: '11A-014' })
+  @ApiProperty({ type: String, nullable: true, example: '11A-014' })
   rollNumber!: string | null;
 
   @ApiProperty({

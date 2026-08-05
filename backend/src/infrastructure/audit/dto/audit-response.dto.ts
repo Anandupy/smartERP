@@ -28,50 +28,59 @@ export class AuditLogDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5ab0' })
   aggregateId!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   userId!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'asha.verma@example.edu' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'asha.verma@example.edu',
+  })
   userEmail!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'BRANCH_ADMIN' })
+  @ApiProperty({ type: String, nullable: true, example: 'BRANCH_ADMIN' })
   role!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   organizationId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   branchId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   academicYearId!: string | null;
 
   @ApiProperty({
+    type: String,
     description: 'Correlates with the `requestId` of the response envelope.',
     nullable: true,
     example: '019fc2a1-0d7c-76cd-86ec-cbdf1628a566',
   })
   requestId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   traceId!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   correlationId!: string | null;
 
-  @ApiProperty({ nullable: true, example: '203.0.113.42' })
+  @ApiProperty({ type: String, nullable: true, example: '203.0.113.42' })
   ipAddress!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   userAgent!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'POST' })
+  @ApiProperty({ type: String, nullable: true, example: 'POST' })
   httpMethod!: string | null;
 
-  @ApiProperty({ nullable: true, example: '/v1/admissions/applicants' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: '/v1/admissions/applicants',
+  })
   route!: string | null;
 
-  @ApiProperty({ nullable: true, example: 128 })
+  @ApiProperty({ type: Number, nullable: true, example: 128 })
   executionTime!: number | null;
 
   @ApiProperty({ enum: ['INFO', 'WARN', 'ERROR'], example: 'INFO' })
@@ -121,7 +130,11 @@ export class AuditTimelineEventDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5ab0' })
   aggregateId!: string;
 
-  @ApiProperty({ nullable: true, example: 'asha.verma@example.edu' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'asha.verma@example.edu',
+  })
   userEmail!: string | null;
 
   @ApiProperty({ example: 'INFO' })

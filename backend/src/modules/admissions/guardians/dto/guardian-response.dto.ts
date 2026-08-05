@@ -21,7 +21,7 @@ export class GuardianDto {
   @ApiProperty({ example: 'Anil' })
   firstName!: string;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   middleName!: string | null;
 
   @ApiProperty({ example: 'Sharma' })
@@ -30,41 +30,46 @@ export class GuardianDto {
   @ApiProperty({ example: '+919876543211' })
   mobilePrimary!: string;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   mobileSecondary!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'anil.sharma@example.com' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'anil.sharma@example.com',
+  })
   email!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Engineer' })
+  @ApiProperty({ type: String, nullable: true, example: 'Engineer' })
   occupation!: string | null;
 
   @ApiProperty({
+    type: Number,
     description: 'Declared annual income.',
     nullable: true,
     example: 850000,
   })
   income!: number | null;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   aadhaarNo!: string | null;
 
-  @ApiProperty({ nullable: true, example: '14 Ring Road' })
+  @ApiProperty({ type: String, nullable: true, example: '14 Ring Road' })
   addressLine1!: string | null;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   addressLine2!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Pune' })
+  @ApiProperty({ type: String, nullable: true, example: 'Pune' })
   city!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Maharashtra' })
+  @ApiProperty({ type: String, nullable: true, example: 'Maharashtra' })
   state!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'India' })
+  @ApiProperty({ type: String, nullable: true, example: 'India' })
   country!: string | null;
 
-  @ApiProperty({ nullable: true, example: '411001' })
+  @ApiProperty({ type: String, nullable: true, example: '411001' })
   pincode!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

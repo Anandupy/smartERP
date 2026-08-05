@@ -23,10 +23,10 @@ export class NumberSequenceConfigDto {
   })
   purpose!: string;
 
-  @ApiProperty({ nullable: true, example: 'ADM' })
+  @ApiProperty({ type: String, nullable: true, example: 'ADM' })
   prefix!: string | null;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   suffix!: string | null;
 
   @ApiProperty({ example: true })

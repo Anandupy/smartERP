@@ -17,6 +17,7 @@ export class AdmissionMasterDto {
   id!: string;
 
   @ApiProperty({
+    type: String,
     description: 'Null for a system-wide default.',
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6b',
@@ -24,6 +25,7 @@ export class AdmissionMasterDto {
   organizationId!: string | null;
 
   @ApiProperty({
+    type: String,
     description: 'Null when the row applies to the whole organization.',
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6c',
@@ -42,7 +44,11 @@ export class AdmissionMasterDto {
   })
   name!: string;
 
-  @ApiProperty({ nullable: true, example: 'Applicants with no reservation.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Applicants with no reservation.',
+  })
   description!: string | null;
 
   @ApiProperty({ description: 'Sort order within the list.', example: 0 })

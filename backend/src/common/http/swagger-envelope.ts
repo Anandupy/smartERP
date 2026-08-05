@@ -49,13 +49,22 @@ export function applyResponseEnvelope(document: OpenAPIObject): OpenAPIObject {
     required: ['code', 'details'],
   };
 
+  // Referenced by every failure response. Success responses build their own
+  // copy of the envelope with the endpoint's payload nested under `data`, so
+  // this one only ever has to describe a failure: `success` false, `data`
+  // null, and `error` populated.
   document.components.schemas[ENVELOPE_SCHEMA] = {
     type: 'object',
     description:
-      'The shared response shape. `data` is populated on success, `error` on failure.',
+      'The shared response shape as a failure carries it: `success` is false, `data` is null and `error` holds the machine-readable code.',
     properties: {
-      ...envelopeProperties(),
-      data: { nullable: true },
+      ...envelopeProperties(undefined, 'failure'),
+      data: {
+        type: 'object',
+        nullable: true,
+        example: null,
+        description: 'Always `null` on a failure.',
+      },
     },
     required: [...ENVELOPE_REQUIRED],
   };

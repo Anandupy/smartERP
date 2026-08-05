@@ -30,7 +30,7 @@ export class SystemSettingsDto {
   })
   maintenanceMode!: boolean;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: String, nullable: true, example: null })
   maintenanceMessage!: string | null;
 
   @ApiProperty({ example: 'Asia/Kolkata' })
@@ -51,10 +51,10 @@ export class SystemSettingsDto {
   @ApiProperty({ example: true })
   isActive!: boolean;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

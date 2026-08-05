@@ -34,12 +34,14 @@ export class UserProfileDto {
   role!: RoleType;
 
   @ApiProperty({
+    type: String,
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6b',
   })
   organizationId!: string | null;
 
   @ApiProperty({
+    type: String,
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6c',
   })
@@ -61,18 +63,21 @@ export class UserProfileDto {
 /** The tenant context `GET /auth/me` resolved for the request. */
 export class AuthContextDto {
   @ApiProperty({
+    type: String,
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6b',
   })
   organizationId!: string | null;
 
   @ApiProperty({
+    type: String,
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6c',
   })
   branchId!: string | null;
 
   @ApiProperty({
+    type: String,
     nullable: true,
     example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6d',
   })
@@ -144,13 +149,14 @@ export class AuthSessionDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6e' })
   id!: string;
 
-  @ApiProperty({ nullable: true, example: 'Desktop' })
+  @ApiProperty({ type: String, nullable: true, example: 'Desktop' })
   device!: string | null;
 
-  @ApiProperty({ nullable: true, example: '203.0.113.42' })
+  @ApiProperty({ type: String, nullable: true, example: '203.0.113.42' })
   ipAddress!: string | null;
 
   @ApiProperty({
+    type: String,
     nullable: true,
     example: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
   })

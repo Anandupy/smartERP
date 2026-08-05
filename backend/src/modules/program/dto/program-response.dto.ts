@@ -25,13 +25,14 @@ export class ProgramDto {
   })
   level!: ProgramLevel | null;
 
-  @ApiProperty({ nullable: true, example: 'English' })
+  @ApiProperty({ type: String, nullable: true, example: 'English' })
   medium!: string | null;
 
-  @ApiProperty({ nullable: true, example: 'Science' })
+  @ApiProperty({ type: String, nullable: true, example: 'Science' })
   stream!: string | null;
 
   @ApiProperty({
+    type: String,
     description: 'Parent program, when this one is a specialisation.',
     nullable: true,
     example: null,
@@ -44,10 +45,10 @@ export class ProgramDto {
   @ApiProperty({ example: false })
   isDeleted!: boolean;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   createdBy!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   updatedBy!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
