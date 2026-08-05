@@ -1,41 +1,67 @@
-# Branch Module
+# Branch Settings
 
-The Branch module represents the actual operational units (Schools/Colleges) within an organization.
+**There is no branch settings resource.** No entity, no endpoint, no request or
+response contract. This file exists because its name has been read as a promise
+that one does.
 
-## Features
-- **Hierarchical Structure**: Each branch must belong to a parent Organization.
-- **Operational Details**: Stores branch name, logo, contact info, and physical address.
-- **Structure Modes**: Supports `DEFAULT` and `CUSTOM` structure modes for future flexibility.
-- **Status Management**: Support for enabling/disabling (`isActive`) and soft deletion (`isDeleted`).
-- **Hierarchy-Aware RBAC**: Implements a role hierarchy where higher roles inherit permissions from lower roles.
+Every endpoint under `/v1/branches` operates on the **branch record itself** —
+see [Branch Module](./branch.md), which is the complete contract for it.
 
-## Data Structure
-- `organizationId`: String (FK to Organization)
-- `name`: String
-- `code`: String (Unique slug-safe lowercase)
-- `logoUrl`: String (Optional)
-- `contactEmail`: String
-- `contactPhone`: String
-- `address`: Line1, Line2, City, State, Country, Pincode
-- `structureMode`: DEFAULT, CUSTOM
-- `isActive`: Boolean
-- `isDeleted`: Boolean
+---
 
-## API Endpoints
-- `POST /v1/branches`: Create a new branch.
-- `GET /v1/branches`: List all active branches.
-- `GET /v1/branches/:id`: Get specific branch details.
-- `GET /v1/branches/organization/:orgId`: Get all branches for a specific organization.
-- `PATCH /v1/branches/:id`: Update branch details.
-- `DELETE /v1/branches/:id`: Soft delete a branch.
-- `PATCH /v1/branches/:id/status`: Toggle branch active status.
+## Why this file is named this way
 
-## Role Hierarchy & Access
-The system uses a weighted hierarchy:
-`SUPER_ADMIN (5) > ORG_ADMIN (4) > BRANCH_ADMIN (3) > STAFF (2) > STUDENT/PARENT (1)`
+It previously held a second, partial copy of the branch entity's documentation:
+a data-structure table and a seven-endpoint list, under the heading "Branch
+Module". [`branch.md`](./branch.md) held a different partial copy — the guard
+pipeline, the institution types, and five of the same seven endpoints. Neither
+was complete, and a reader who found one did not know to look for the other.
 
-- **CREATE**: SUPER_ADMIN, ORG_ADMIN
-- **UPDATE**: SUPER_ADMIN, ORG_ADMIN
-- **DELETE**: SUPER_ADMIN only
-- **GET**: All roles
-- **TOGGLE STATUS**: SUPER_ADMIN, ORG_ADMIN
+Both have been merged into [`branch.md`](./branch.md). This file is kept as a
+pointer so existing links keep working, and so the question it raises gets a
+written answer rather than being inferred from an empty file.
+
+---
+
+## What a branch settings module would need
+
+Nothing below exists. It is listed so that a reader can tell at a glance that
+the absence is total rather than partial, and so a future implementation has a
+starting inventory:
+
+| Missing | Detail |
+| :--- | :--- |
+| **Entity** | No resource, no id, no shape. |
+| **Endpoints** | No read, no write, no reset-to-defaults. |
+| **Request contracts** | No body for any section. |
+| **Response contracts** | Nothing to type against. |
+| **Validation** | No lengths, formats, ranges or vocabularies. |
+
+The fields a settings module has been asked for, none of which has a column:
+working hours, holiday calendar, locale / date / currency format, grading
+system, passing threshold, academic cycle, attendance policy and thresholds,
+biometric integration, email and SMS gateway, sender identity, push
+notifications, SSO, IP allowlist, session timeout, encryption standard, LMS
+provider and sync, API credentials, webhooks.
+
+Some of these overlap resources that **do** exist and should not be duplicated
+if a settings module is ever built:
+
+- **Email / SMS gateway, sender identity, push notifications** — the
+  [Communication module](./communication/communication.md) already owns provider
+  configuration, per-scope channel switches and templates, at
+  `/v1/communication/settings`. It is scoped by organization and branch.
+- **Locale and currency defaults** — [System Settings](./system-settings.md)
+  holds `defaultTimezone`, `defaultCurrency` and `defaultLanguage` at the
+  deployment level. There is no per-branch override.
+- **Academic cycle** — [Academic Years](./academic-year.md) owns the session
+  calendar.
+
+---
+
+## Change history for a branch
+
+Available today, without a settings resource: branch writes publish
+`branch.created`, `branch.updated` and `branch.deleted`, which the
+[audit trail](../core/audit.md) records. Query them with
+`GET /v1/audit-logs?aggregateType=Branch&aggregateId=<id>`.
