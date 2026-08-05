@@ -17,6 +17,17 @@ import { UserRole } from '@/common/enums/role.enum';
 import { Public } from '@/common/decorators/public.decorator';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
+import {
+  ApiCreatedEnvelope,
+  ApiEmptyEnvelope,
+  ApiOkEnvelope,
+  ApiPublicErrors,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  MaintenanceRuleDto,
+  MaintenanceStatusDto,
+} from './dto/maintenance-response.dto';
 
 @ApiTags('Maintenance Rules')
 @Controller('maintenance-rules')
@@ -29,6 +40,12 @@ export class MaintenanceController {
     summary:
       'Check current resolved active maintenance status matching request context',
   })
+  @ApiOkEnvelope(MaintenanceStatusDto, {
+    description:
+      'When no rule matches, `maintenanceEnabled` is false and it is the only field present.',
+    message: 'System is operating normally',
+  })
+  @ApiPublicErrors()
   async getActiveStatus(@Req() req: any) {
     const requestContext = req.context || {};
     const userId =
@@ -82,6 +99,10 @@ export class MaintenanceController {
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.System.Maintenance)
   @ApiOperation({ summary: 'Create a new maintenance rule (SUPER_ADMIN only)' })
+  @ApiCreatedEnvelope(MaintenanceRuleDto, {
+    message: 'Maintenance rule created successfully',
+  })
+  @ApiStandardErrors()
   async create(@Body() dto: CreateMaintenanceRuleDto, @Req() req: any) {
     const data = await this.maintenanceService.createRule(dto, req.userId);
     return { data, message: 'Maintenance rule created successfully' };
@@ -92,6 +113,11 @@ export class MaintenanceController {
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.System.View)
   @ApiOperation({ summary: 'List all maintenance rules (SUPER_ADMIN only)' })
+  @ApiOkEnvelope(MaintenanceRuleDto, {
+    isArray: true,
+    message: 'Maintenance rules retrieved successfully',
+  })
+  @ApiStandardErrors()
   async findAll() {
     const data = await this.maintenanceService.listRules();
     return { data, message: 'Maintenance rules retrieved successfully' };
@@ -104,6 +130,10 @@ export class MaintenanceController {
   @ApiOperation({
     summary: 'Get details of a maintenance rule by ID (SUPER_ADMIN only)',
   })
+  @ApiOkEnvelope(MaintenanceRuleDto, {
+    message: 'Maintenance rule retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.maintenanceService.getRule(id);
     return { data, message: 'Maintenance rule retrieved successfully' };
@@ -114,6 +144,10 @@ export class MaintenanceController {
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.System.Maintenance)
   @ApiOperation({ summary: 'Update a maintenance rule (SUPER_ADMIN only)' })
+  @ApiOkEnvelope(MaintenanceRuleDto, {
+    message: 'Maintenance rule updated successfully',
+  })
+  @ApiStandardErrors(404)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateMaintenanceRuleDto,
@@ -127,7 +161,12 @@ export class MaintenanceController {
   @ApiBearerAuth()
   @Roles(UserRole.SUPER_ADMIN)
   @RequirePermission(PERMISSIONS.System.Maintenance)
-  @ApiOperation({ summary: 'Delete a maintenance rule (SUPER_ADMIN only)' })
+  @ApiOperation({
+    summary: 'Delete a maintenance rule (SUPER_ADMIN only)',
+    description: 'Removes the rule outright — this is not a soft delete.',
+  })
+  @ApiEmptyEnvelope({ message: 'Maintenance rule deleted successfully' })
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string) {
     const data = await this.maintenanceService.deleteRule(id);
     return { message: data.message };

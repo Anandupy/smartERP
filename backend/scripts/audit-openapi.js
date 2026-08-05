@@ -13,13 +13,22 @@ const fs = require('fs');
 const doc = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const verbose = process.argv.includes('--verbose');
 
-const REQUIRED_ERRORS = ['400', '401', '403', '500'];
+/** Every operation must document these. */
+const REQUIRED_ERRORS = ['400', '500'];
+
+/**
+ * Only an authenticated operation can answer 401 or 403, so requiring them of
+ * a public endpoint would report a gap that cannot be filled.
+ */
+const AUTHENTICATED_ERRORS = ['401', '403'];
+
 const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
 
 /** True when `data` is documented as something more than "an object". */
 function describesPayload(schema) {
   if (!schema) return false;
   if (schema.$ref) return true;
+  if (schema.allOf) return schema.allOf.some(describesPayload);
   if (schema.type === 'array') return describesPayload(schema.items);
   if (schema.nullable === true && schema.example === null) return true; // explicit null
   if (schema.properties && Object.keys(schema.properties).length > 0)
@@ -49,7 +58,12 @@ for (const [path, item] of Object.entries(doc.paths ?? {})) {
     const enveloped = !!schema?.properties?.success;
     const dataSchema = schema?.properties?.data;
     const documented = describesPayload(dataSchema);
-    const missingErrors = REQUIRED_ERRORS.filter((code) => !responses[code]);
+
+    const authenticated = (operation.security ?? []).length > 0;
+    const expectedErrors = authenticated
+      ? [...REQUIRED_ERRORS, ...AUTHENTICATED_ERRORS]
+      : REQUIRED_ERRORS;
+    const missingErrors = expectedErrors.filter((code) => !responses[code]);
 
     rows.push({
       route: `${method.toUpperCase()} ${path}`,

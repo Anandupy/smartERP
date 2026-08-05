@@ -1,10 +1,5 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { UserRole } from '@/common/enums/role.enum';
@@ -14,6 +9,15 @@ import { RequestContextService } from '@/common/logger/request-context.service';
 import { WorkspaceService, WorkspaceLayoutResponse } from './workspace.service';
 import { WorkspaceConfigService } from './configuration/workspace-config.service';
 import { UpsertWorkspaceConfigDto } from './configuration/dto/workspace-config.dto';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  WorkspaceConfigurationDto,
+  WorkspaceLayoutDto,
+} from './dto/workspace-response.dto';
 
 @ApiTags('Workspace')
 @ApiBearerAuth()
@@ -31,10 +35,10 @@ export class WorkspaceController {
     description:
       'Resolves activeContexts, client metadata, layered configuration, and authorized navigation tree',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Workspace layout resolved successfully',
+  @ApiOkEnvelope(WorkspaceLayoutDto, {
+    message: 'Workspace layout resolved successfully',
   })
+  @ApiStandardErrors()
   async getWorkspaceLayout(): Promise<{
     data: WorkspaceLayoutResponse;
     message: string;
@@ -57,13 +61,15 @@ export class WorkspaceController {
   @ApiOperation({
     summary: 'Upsert a workspace configuration layer (Super Admin only)',
   })
-  @ApiResponse({
-    status: 201,
-    description: 'Workspace configuration layer upserted successfully',
+  @ApiCreatedEnvelope(WorkspaceConfigurationDto, {
+    description:
+      'Creates the layer, or merges into the existing one for the same scope.',
+    message: 'Workspace configuration layer upserted successfully',
   })
+  @ApiStandardErrors()
   async upsertConfiguration(
     @Body() dto: UpsertWorkspaceConfigDto,
-  ): Promise<{ data: any; message: string }> {
+  ): Promise<{ data: WorkspaceConfigurationDto; message: string }> {
     const data = await this.configService.upsertConfiguration(
       dto.scopeType,
       dto.scopeId || null,

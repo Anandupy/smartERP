@@ -13,7 +13,6 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
@@ -27,6 +26,17 @@ import { UpdateMenuDto } from '../dto/menu/update-menu.dto';
 import { MoveMenuDto } from '../dto/menu/move-menu.dto';
 import { ReorderMenusDto } from '../dto/menu/reorder-menu.dto';
 import { UpdateMenuStatusDto } from '../dto/menu/menu-status.dto';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  NavigationActionResultDto,
+  NavigationMenuDetailDto,
+  NavigationMenuDto,
+  NavigationMenuListItemDto,
+} from '../dto/navigation-response.dto';
 
 @ApiTags('Admin - Navigation Menus')
 @ApiBearerAuth()
@@ -39,7 +49,11 @@ export class NavigationAdminMenuController {
   @Get()
   @ApiOperation({ summary: 'List all navigation menus' })
   @ApiQuery({ name: 'moduleId', required: false, type: String })
-  @ApiResponse({ status: 200, description: 'Menus retrieved successfully' })
+  @ApiOkEnvelope(NavigationMenuListItemDto, {
+    isArray: true,
+    message: 'Menus retrieved successfully',
+  })
+  @ApiStandardErrors()
   async getAllMenus(
     @Query('moduleId') moduleId?: string,
   ): Promise<{ data: any[]; message: string }> {
@@ -49,7 +63,10 @@ export class NavigationAdminMenuController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get navigation menu by ID' })
-  @ApiResponse({ status: 200, description: 'Menu retrieved successfully' })
+  @ApiOkEnvelope(NavigationMenuDetailDto, {
+    message: 'Menu retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async getMenuById(
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
   ): Promise<{ data: any; message: string }> {
@@ -59,7 +76,10 @@ export class NavigationAdminMenuController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new navigation menu' })
-  @ApiResponse({ status: 201, description: 'Menu item created successfully' })
+  @ApiCreatedEnvelope(NavigationMenuDto, {
+    message: 'Menu item created successfully',
+  })
+  @ApiStandardErrors(404, 409)
   async createMenu(
     @Body() dto: CreateMenuDto,
   ): Promise<{ data: any; message: string }> {
@@ -69,7 +89,10 @@ export class NavigationAdminMenuController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a navigation menu' })
-  @ApiResponse({ status: 200, description: 'Menu item updated successfully' })
+  @ApiOkEnvelope(NavigationMenuDto, {
+    message: 'Menu item updated successfully',
+  })
+  @ApiStandardErrors(404, 409)
   async updateMenu(
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
     @Body() dto: UpdateMenuDto,
@@ -83,7 +106,11 @@ export class NavigationAdminMenuController {
     summary:
       'Move navigation menu (change parent/module) with hierarchy validation',
   })
-  @ApiResponse({ status: 200, description: 'Menu item moved successfully' })
+  @ApiOkEnvelope(NavigationMenuDto, {
+    description: 'Rejected with 400 when the move would create a cycle.',
+    message: 'Menu item moved successfully',
+  })
+  @ApiStandardErrors(404)
   async moveMenu(
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
     @Body() dto: MoveMenuDto,
@@ -94,7 +121,10 @@ export class NavigationAdminMenuController {
 
   @Put('reorder')
   @ApiOperation({ summary: 'Bulk reorder navigation menu display ranks' })
-  @ApiResponse({ status: 200, description: 'Menus reordered successfully' })
+  @ApiOkEnvelope(NavigationActionResultDto, {
+    message: 'Menus reordered successfully',
+  })
+  @ApiStandardErrors(404)
   async reorderMenus(
     @Body() dto: ReorderMenusDto,
   ): Promise<{ data: any; message: string }> {
@@ -104,10 +134,10 @@ export class NavigationAdminMenuController {
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update menu status' })
-  @ApiResponse({
-    status: 200,
-    description: 'Menu status updated successfully',
+  @ApiOkEnvelope(NavigationMenuDto, {
+    message: 'Menu status updated successfully',
   })
+  @ApiStandardErrors(404)
   async updateMenuStatus(
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
     @Body() dto: UpdateMenuStatusDto,
@@ -118,10 +148,10 @@ export class NavigationAdminMenuController {
 
   @Post(':id/duplicate')
   @ApiOperation({ summary: 'Duplicate a navigation menu' })
-  @ApiResponse({
-    status: 201,
-    description: 'Menu item duplicated successfully',
+  @ApiCreatedEnvelope(NavigationMenuDto, {
+    message: 'Menu item duplicated successfully',
   })
+  @ApiStandardErrors(404)
   async duplicateMenu(
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
   ): Promise<{ data: any; message: string }> {
@@ -131,7 +161,10 @@ export class NavigationAdminMenuController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a navigation menu' })
-  @ApiResponse({ status: 200, description: 'Menu item deleted successfully' })
+  @ApiOkEnvelope(NavigationActionResultDto, {
+    message: 'Menu item deleted successfully',
+  })
+  @ApiStandardErrors(404)
   async deleteMenu(
     @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
   ): Promise<{ data: any; message: string }> {

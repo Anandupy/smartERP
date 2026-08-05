@@ -1,5 +1,5 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   HealthCheck,
@@ -9,6 +9,11 @@ import {
 } from '@nestjs/terminus';
 import { Public } from '@/common/decorators/public.decorator';
 import { PrismaHealthIndicator } from './prisma.health';
+import {
+  ApiOkEnvelope,
+  ApiPublicErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import { HealthCheckResultDto, LivenessDto } from './dto/health-response.dto';
 
 /** Heap ceiling above which the process is considered unhealthy. */
 const HEAP_LIMIT_BYTES = 512 * 1024 * 1024;
@@ -51,7 +56,8 @@ export class HealthController {
     description:
       'Returns 200 while the process is running. Checks no dependencies, so a database outage never triggers a restart.',
   })
-  @ApiResponse({ status: 200, description: 'Process is alive' })
+  @ApiOkEnvelope(LivenessDto, { message: 'Success' })
+  @ApiPublicErrors()
   live(): { status: string; uptimeSeconds: number } {
     return {
       status: 'ok',
@@ -68,8 +74,8 @@ export class HealthController {
     description:
       'Returns 200 when this instance can serve traffic. Fails while the database is unreachable.',
   })
-  @ApiResponse({ status: 200, description: 'Instance is ready' })
-  @ApiResponse({ status: 503, description: 'A dependency is unavailable' })
+  @ApiOkEnvelope(HealthCheckResultDto, { message: 'Success' })
+  @ApiPublicErrors(503)
   ready(): Promise<HealthCheckResult> {
     return this.health.check([() => this.prisma.isHealthy('database')]);
   }
@@ -82,8 +88,8 @@ export class HealthController {
     summary: 'Full health report',
     description: 'Dependency and resource checks, for monitoring dashboards.',
   })
-  @ApiResponse({ status: 200, description: 'All checks passed' })
-  @ApiResponse({ status: 503, description: 'At least one check failed' })
+  @ApiOkEnvelope(HealthCheckResultDto, { message: 'Success' })
+  @ApiPublicErrors(503)
   health_(): Promise<HealthCheckResult> {
     return this.health.check([
       () => this.prisma.isHealthy('database'),

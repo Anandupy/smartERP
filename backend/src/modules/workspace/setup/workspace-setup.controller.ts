@@ -1,16 +1,16 @@
 import { Controller, Get, Post, Req } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { AuthenticatedRequest } from '@/common/logger/request-context.middleware';
 import { WorkspaceSetupService } from './workspace-setup.service';
 import { WorkspaceSetupStatusDto } from './dto/workspace-setup-status.dto';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
 
 @ApiTags('Workspace Setup')
 @ApiBearerAuth()
@@ -26,7 +26,10 @@ export class WorkspaceSetupController {
     description:
       'Reports the current setup stage, which resources are missing, and which requests are permitted until setup completes.',
   })
-  @ApiResponse({ status: 200, type: WorkspaceSetupStatusDto })
+  @ApiOkEnvelope(WorkspaceSetupStatusDto, {
+    message: 'Workspace setup status retrieved successfully',
+  })
+  @ApiStandardErrors()
   async getStatus(): Promise<{
     data: WorkspaceSetupStatusDto;
     message: string;
@@ -43,11 +46,10 @@ export class WorkspaceSetupController {
     description:
       'Completes bootstrap once an organization, branch and academic year all exist. From this point the tenant context headers apply as normal. Idempotent.',
   })
-  @ApiResponse({ status: 201, type: WorkspaceSetupStatusDto })
-  @ApiResponse({
-    status: 409,
-    description: 'SETUP_INCOMPLETE — a required resource is still missing.',
+  @ApiCreatedEnvelope(WorkspaceSetupStatusDto, {
+    message: 'Workspace marked initialized successfully',
   })
+  @ApiStandardErrors(409)
   async complete(@Req() req: AuthenticatedRequest): Promise<{
     data: WorkspaceSetupStatusDto;
     message: string;
