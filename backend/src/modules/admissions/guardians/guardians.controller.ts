@@ -24,6 +24,17 @@ import {
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import {
+  ApiCreatedEnvelope,
+  ApiEmptyEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  ApplicantGuardianMappingDto,
+  GuardianDto,
+  MappedGuardianDto,
+} from './dto/guardian-response.dto';
 
 @ApiTags('Guardians')
 @ApiBearerAuth()
@@ -40,6 +51,10 @@ export class GuardiansController {
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Create a new guardian' })
+  @ApiCreatedEnvelope(GuardianDto, {
+    message: 'Guardian created successfully',
+  })
+  @ApiStandardErrors()
   async create(@Body() dto: CreateGuardianDto, @Req() req: any) {
     const orgId = req.context?.organizationId || '';
     const branchId = req.context?.branchId || '';
@@ -58,6 +73,13 @@ export class GuardiansController {
     summary:
       'Search guardians for sibling reuse (search by primary mobile, aadhaar, or name)',
   })
+  @ApiOkEnvelope(GuardianDto, {
+    isArray: true,
+    message: 'Guardians search results',
+    description:
+      'At most 10 matches. An empty query returns an empty array rather than the whole branch.',
+  })
+  @ApiStandardErrors()
   async search(@Query('q') query: string, @Req() req: any) {
     const branchId = req.context?.branchId || '';
     const data = await this.service.search(query, branchId);
@@ -72,6 +94,8 @@ export class GuardiansController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get guardian by ID' })
+  @ApiOkEnvelope(GuardianDto, { message: 'Guardian retrieved successfully' })
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.service.findOne(id);
     return { data, message: 'Guardian retrieved successfully' };
@@ -80,6 +104,8 @@ export class GuardiansController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Update guardian details' })
+  @ApiOkEnvelope(GuardianDto, { message: 'Guardian updated successfully' })
+  @ApiStandardErrors(404)
   async update(@Param('id') id: string, @Body() dto: UpdateGuardianDto) {
     const data = await this.service.update(id, dto);
     return { data, message: 'Guardian updated successfully' };
@@ -88,7 +114,15 @@ export class GuardiansController {
   // Applicant mapping endpoints
   @Post('applicant/:applicantId/map')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
-  @ApiOperation({ summary: 'Map a guardian to an applicant' })
+  @ApiOperation({
+    summary: 'Map a guardian to an applicant',
+    description:
+      'Idempotent: mapping the same guardian again updates the existing link rather than adding a second one.',
+  })
+  @ApiCreatedEnvelope(ApplicantGuardianMappingDto, {
+    message: 'Guardian mapped to applicant successfully',
+  })
+  @ApiStandardErrors(404)
   async map(
     @Param('applicantId') applicantId: string,
     @Body() dto: MapGuardianDto,
@@ -105,6 +139,11 @@ export class GuardiansController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get all guardians mapped to an applicant' })
+  @ApiOkEnvelope(MappedGuardianDto, {
+    isArray: true,
+    message: 'Mapped guardians retrieved successfully',
+  })
+  @ApiStandardErrors()
   async getMapped(@Param('applicantId') applicantId: string) {
     const data = await this.service.getMappedGuardians(applicantId);
     return { data, message: 'Mapped guardians retrieved successfully' };
@@ -112,7 +151,12 @@ export class GuardiansController {
 
   @Delete('applicant/:applicantId/map/:guardianId')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
-  @ApiOperation({ summary: 'Remove a guardian mapping from an applicant' })
+  @ApiOperation({
+    summary: 'Remove a guardian mapping from an applicant',
+    description: 'Removes the link. The guardian record itself is kept.',
+  })
+  @ApiEmptyEnvelope({ message: 'Guardian mapping removed successfully' })
+  @ApiStandardErrors(404)
   async removeMap(
     @Param('applicantId') applicantId: string,
     @Param('guardianId') guardianId: string,

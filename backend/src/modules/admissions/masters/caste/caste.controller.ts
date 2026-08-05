@@ -18,6 +18,13 @@ import {
 import { CasteService } from './caste.service';
 import { CreateMasterDto, UpdateMasterDto } from '../dto/master.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import {
+  ApiCreatedEnvelope,
+  ApiEmptyEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import { AdmissionMasterDto } from '../dto/master-response.dto';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
@@ -36,6 +43,8 @@ export class CasteController {
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Create a caste' })
+  @ApiCreatedEnvelope(AdmissionMasterDto)
+  @ApiStandardErrors()
   async create(@Body() dto: CreateMasterDto, @Req() req: any) {
     const orgId = req.context?.organizationId || null;
     const branchId = req.context?.branchId || null;
@@ -51,6 +60,8 @@ export class CasteController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get all castes' })
+  @ApiOkEnvelope(AdmissionMasterDto, { isArray: true })
+  @ApiStandardErrors()
   async findAll(
     @Req() req: any,
     @Query('includeInactive') includeInactive?: boolean,
@@ -69,6 +80,8 @@ export class CasteController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get caste by ID' })
+  @ApiOkEnvelope(AdmissionMasterDto)
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.service.findOne(id);
     return { data, message: 'Caste retrieved successfully' };
@@ -77,6 +90,8 @@ export class CasteController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Update caste' })
+  @ApiOkEnvelope(AdmissionMasterDto)
+  @ApiStandardErrors(404)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateMasterDto,
@@ -91,6 +106,8 @@ export class CasteController {
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Soft delete caste' })
+  @ApiEmptyEnvelope()
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string) {
     await this.service.remove(id);
     return { message: 'Caste deleted successfully' };

@@ -18,6 +18,13 @@ import {
 import { CategoryService } from './category.service';
 import { CreateMasterDto, UpdateMasterDto } from '../dto/master.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import {
+  ApiCreatedEnvelope,
+  ApiEmptyEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import { AdmissionMasterDto } from '../dto/master-response.dto';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 
@@ -36,6 +43,8 @@ export class CategoryController {
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Create a category' })
+  @ApiCreatedEnvelope(AdmissionMasterDto)
+  @ApiStandardErrors()
   async create(@Body() dto: CreateMasterDto, @Req() req: any) {
     const orgId = req.context?.organizationId || null;
     const branchId = req.context?.branchId || null;
@@ -51,6 +60,8 @@ export class CategoryController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get all categories' })
+  @ApiOkEnvelope(AdmissionMasterDto, { isArray: true })
+  @ApiStandardErrors()
   async findAll(
     @Req() req: any,
     @Query('includeInactive') includeInactive?: boolean,
@@ -69,6 +80,8 @@ export class CategoryController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get category by ID' })
+  @ApiOkEnvelope(AdmissionMasterDto)
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.service.findOne(id);
     return { data, message: 'Category retrieved successfully' };
@@ -77,6 +90,8 @@ export class CategoryController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Update category' })
+  @ApiOkEnvelope(AdmissionMasterDto)
+  @ApiStandardErrors(404)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateMasterDto,
@@ -91,6 +106,8 @@ export class CategoryController {
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Soft delete category' })
+  @ApiEmptyEnvelope()
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string) {
     await this.service.remove(id);
     return { message: 'Category deleted successfully' };

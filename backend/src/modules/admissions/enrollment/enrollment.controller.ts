@@ -11,6 +11,12 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import { EnrollmentDetailDto } from './dto/enrollment-response.dto';
 
 @ApiTags('Enrollment Placements')
 @ApiBearerAuth()
@@ -36,6 +42,12 @@ export class EnrollmentController {
     summary:
       'Enroll an approved applicant into a program and class academic unit',
   })
+  @ApiCreatedEnvelope(EnrollmentDetailDto, {
+    description:
+      'A second enrollment for the same applicant is rejected with 400 rather than replacing the first.',
+    message: 'Applicant enrolled successfully',
+  })
+  @ApiStandardErrors(404)
   async create(
     @Param('applicantId') applicantId: string,
     @Body() dto: CreateEnrollmentDto,
@@ -63,6 +75,10 @@ export class EnrollmentController {
     UserRole.STAFF,
   )
   @ApiOperation({ summary: 'Get enrollment details for an applicant' })
+  @ApiOkEnvelope(EnrollmentDetailDto, {
+    message: 'Enrollment details retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async get(@Param('applicantId') applicantId: string) {
     const data = await this.service.getEnrollment(applicantId);
     return { data, message: 'Enrollment details retrieved successfully' };

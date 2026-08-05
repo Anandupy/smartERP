@@ -11,6 +11,13 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import { ApplicantDto } from '../applicant/dto/applicant-response.dto';
+import { WorkflowHistoryDto } from './dto/workflow-response.dto';
 
 @ApiTags('Applicant Workflow')
 @ApiBearerAuth()
@@ -36,6 +43,12 @@ export class WorkflowController {
     summary:
       'Transition an applicant state (submit, review, approve, reject, cancel)',
   })
+  @ApiCreatedEnvelope(ApplicantDto, {
+    description:
+      'The updated applicant. An illegal transition is rejected with 400 and the applicant is unchanged.',
+    message: 'Applicant successfully transitioned to state APPROVED',
+  })
+  @ApiStandardErrors(404)
   async transition(
     @Param('applicantId') applicantId: string,
     @Body() dto: TransitionDto,
@@ -59,7 +72,15 @@ export class WorkflowController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
-  @ApiOperation({ summary: 'Get workflow transition history for an applicant' })
+  @ApiOperation({
+    summary: 'Get workflow transition history for an applicant',
+    description: 'Newest transition first.',
+  })
+  @ApiOkEnvelope(WorkflowHistoryDto, {
+    isArray: true,
+    message: 'Workflow history retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async getHistory(@Param('applicantId') applicantId: string) {
     const data = await this.service.getHistory(applicantId);
     return { data, message: 'Workflow history retrieved successfully' };

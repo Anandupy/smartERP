@@ -28,6 +28,19 @@ import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator
 import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
+import {
+  ApiCreatedEnvelope,
+  ApiEmptyEnvelope,
+  ApiOkEnvelope,
+  ApiPaginatedItemsEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  ApplicantDetailDto,
+  ApplicantDto,
+  ApplicantListItemDto,
+  DuplicateCheckResultDto,
+} from './dto/applicant-response.dto';
 
 @ApiTags('Applicants')
 @ApiBearerAuth()
@@ -55,7 +68,15 @@ export class ApplicantController {
     UserRole.STAFF,
   )
   @RequirePermission(PERMISSIONS.Admissions.Create)
-  @ApiOperation({ summary: 'Register a new applicant' })
+  @ApiOperation({
+    summary: 'Register a new applicant',
+    description:
+      'Runs a duplicate check but does not block on it. The handler returns the applicant alone; the duplicate warnings it computes are not part of the response.',
+  })
+  @ApiCreatedEnvelope(ApplicantDto, {
+    message: 'Applicant registered successfully',
+  })
+  @ApiStandardErrors(404, 409)
   async create(@Body() dto: CreateApplicantDto, @Req() req: any) {
     const orgId = req.context?.organizationId || '';
     const branchId = req.context?.branchId || '';
@@ -83,7 +104,15 @@ export class ApplicantController {
     UserRole.STAFF,
   )
   @RequirePermission(PERMISSIONS.Admissions.View)
-  @ApiOperation({ summary: 'Check for potential duplicate applicant records' })
+  @ApiOperation({
+    summary: 'Check for potential duplicate applicant records',
+    description:
+      'Matches on Aadhaar, primary mobile, or name and date of birth within the branch. Advisory only.',
+  })
+  @ApiCreatedEnvelope(DuplicateCheckResultDto, {
+    message: 'Duplicate check completed',
+  })
+  @ApiStandardErrors()
   async checkDupes(@Body() dto: CheckDuplicatesDto, @Req() req: any) {
     const branchId = req.context?.branchId || '';
     const result = await this.service.checkDuplicates(dto, branchId);
@@ -101,6 +130,12 @@ export class ApplicantController {
   @ApiOperation({
     summary: 'Get all applicants for branch and academic year (filtered/paged)',
   })
+  @ApiPaginatedItemsEnvelope(ApplicantListItemDto, {
+    message: 'Applicants retrieved successfully',
+    description:
+      'Pagination is nested inside `data` as `{ items, meta }`; the envelope’s own `meta` stays empty.',
+  })
+  @ApiStandardErrors()
   async findAll(@Query() query: QueryApplicantDto, @Req() req: any) {
     const branchId = req.context?.branchId || '';
     const academicYearId = req.context?.academicYearId || '';
@@ -117,6 +152,10 @@ export class ApplicantController {
   )
   @RequirePermission(PERMISSIONS.Admissions.View)
   @ApiOperation({ summary: 'Get applicant details by ID' })
+  @ApiOkEnvelope(ApplicantDetailDto, {
+    message: 'Applicant details retrieved successfully',
+  })
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     const data = await this.service.findOne(id);
     return { data, message: 'Applicant details retrieved successfully' };
@@ -131,6 +170,8 @@ export class ApplicantController {
   )
   @RequirePermission(PERMISSIONS.Admissions.Update)
   @ApiOperation({ summary: 'Update applicant details' })
+  @ApiOkEnvelope(ApplicantDto, { message: 'Applicant updated successfully' })
+  @ApiStandardErrors(404)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateApplicantDto,
@@ -144,6 +185,8 @@ export class ApplicantController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @RequirePermission(PERMISSIONS.Admissions.Delete)
   @ApiOperation({ summary: 'Soft delete applicant' })
+  @ApiEmptyEnvelope({ message: 'Applicant deleted successfully' })
+  @ApiStandardErrors(404)
   async remove(@Param('id') id: string, @Req() req: any) {
     await this.service.remove(id, req.userId);
     return { message: 'Applicant deleted successfully' };
