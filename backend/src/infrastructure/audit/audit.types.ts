@@ -4,8 +4,22 @@ export interface FieldChange {
   newValue?: any;
 }
 
-export type AuditSeverity = 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL';
-export type AuditStatus = 'SUCCESS' | 'FAILURE';
+/**
+ * The severities an audit entry can carry.
+ *
+ * Declared as a const tuple rather than only a union so the same list can be
+ * the type *and* the Swagger `enum` — the values were previously visible to
+ * TypeScript alone, which left `severity` documented as an open string and a
+ * client with no way to build a filter for it.
+ */
+export const AUDIT_SEVERITIES = ['INFO', 'WARN', 'ERROR', 'CRITICAL'] as const;
+
+export type AuditSeverity = (typeof AUDIT_SEVERITIES)[number];
+
+/** The outcomes an audit entry can record. */
+export const AUDIT_STATUSES = ['SUCCESS', 'FAILURE'] as const;
+
+export type AuditStatus = (typeof AUDIT_STATUSES)[number];
 
 export interface CreateAuditLogInput {
   id?: string;

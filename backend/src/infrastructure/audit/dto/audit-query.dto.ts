@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { AUDIT_SEVERITIES, AUDIT_STATUSES } from '../audit.types';
 
 export class AuditQueryDto {
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
@@ -28,7 +29,8 @@ export class AuditQueryDto {
   limit?: number = 50;
 
   @ApiPropertyOptional({
-    description: 'Sort by field',
+    description:
+      'Sort by field. An unrecognised value is ignored and `timestamp` is used, rather than rejected — so a request is never refused over a sort key.',
     enum: ['timestamp', 'severity', 'module', 'executionTime'],
     default: 'timestamp',
   })
@@ -80,12 +82,20 @@ export class AuditQueryDto {
   @IsString()
   action?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by Severity' })
+  @ApiPropertyOptional({
+    description:
+      'Filter by severity. These are the values the audit pipeline writes; the column is a plain string, so the filter is not restricted to them.',
+    enum: AUDIT_SEVERITIES,
+  })
   @IsOptional()
   @IsString()
   severity?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by Status' })
+  @ApiPropertyOptional({
+    description:
+      'Filter by outcome. These are the values the audit pipeline writes; the column is a plain string, so the filter is not restricted to them.',
+    enum: AUDIT_STATUSES,
+  })
   @IsOptional()
   @IsString()
   status?: string;

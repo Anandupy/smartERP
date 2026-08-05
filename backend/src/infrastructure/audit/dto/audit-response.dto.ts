@@ -1,4 +1,34 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiProperty,
+  ApiPropertyOptional,
+  getSchemaPath,
+} from '@nestjs/swagger';
+import {
+  AUDIT_SEVERITIES,
+  AUDIT_STATUSES,
+  AuditSeverity,
+  AuditStatus,
+  FieldChange,
+} from '../audit.types';
+
+/** One field a write altered, as an emitter reports it. */
+export class AuditFieldChangeDto implements FieldChange {
+  @ApiProperty({ example: 'isActive' })
+  field!: string;
+
+  @ApiPropertyOptional({
+    description: 'The value before the write. Absent on a create.',
+    example: true,
+  })
+  oldValue?: unknown;
+
+  @ApiPropertyOptional({
+    description: 'The value after the write. Absent on a delete.',
+    example: false,
+  })
+  newValue?: unknown;
+}
 
 /**
  * An audit log entry.
@@ -6,6 +36,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * `metadata` and `changes` are only selected when the request sets
  * `includeDetails`, so they are absent from a default list rather than null.
  */
+@ApiExtraModels(AuditFieldChangeDto)
 export class AuditLogDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5c00' })
   id!: string;
@@ -83,11 +114,20 @@ export class AuditLogDto {
   @ApiProperty({ type: Number, nullable: true, example: 128 })
   executionTime!: number | null;
 
-  @ApiProperty({ enum: ['INFO', 'WARN', 'ERROR'], example: 'INFO' })
-  severity!: string;
+  @ApiProperty({
+    description:
+      'Defaults to INFO. An emitter raises it through the event metadata.',
+    enum: AUDIT_SEVERITIES,
+    example: 'INFO',
+  })
+  severity!: AuditSeverity;
 
-  @ApiProperty({ enum: ['SUCCESS', 'FAILURE'], example: 'SUCCESS' })
-  status!: string;
+  @ApiProperty({
+    description: 'Defaults to SUCCESS.',
+    enum: AUDIT_STATUSES,
+    example: 'SUCCESS',
+  })
+  status!: AuditStatus;
 
   @ApiPropertyOptional({
     description: 'Only present when the query sets `includeDetails`.',
@@ -99,12 +139,14 @@ export class AuditLogDto {
 
   @ApiPropertyOptional({
     description:
-      'Before and after values. Only present when the query sets `includeDetails`.',
-    type: 'object',
-    additionalProperties: true,
+      'What the write altered, field by field. Only present when the query sets `includeDetails`. Emitters that report a diff send an array of FieldChange; the column is unconstrained JSON, so an emitter that reports something else is stored as sent.',
+    oneOf: [
+      { type: 'array', items: { $ref: getSchemaPath(AuditFieldChangeDto) } },
+      { type: 'object', additionalProperties: true },
+    ],
     nullable: true,
   })
-  changes?: Record<string, unknown> | null;
+  changes?: FieldChange[] | Record<string, unknown> | null;
 }
 
 /** A timeline event: the columns a chronological view needs, nothing more. */
@@ -137,11 +179,11 @@ export class AuditTimelineEventDto {
   })
   userEmail!: string | null;
 
-  @ApiProperty({ example: 'INFO' })
-  severity!: string;
+  @ApiProperty({ enum: AUDIT_SEVERITIES, example: 'INFO' })
+  severity!: AuditSeverity;
 
-  @ApiProperty({ example: 'SUCCESS' })
-  status!: string;
+  @ApiProperty({ enum: AUDIT_STATUSES, example: 'SUCCESS' })
+  status!: AuditStatus;
 }
 
 /** Entries per module. */
@@ -164,8 +206,8 @@ export class AuditActionCountDto {
 
 /** Entries per severity. */
 export class AuditSeverityCountDto {
-  @ApiProperty({ example: 'INFO' })
-  severity!: string;
+  @ApiProperty({ enum: AUDIT_SEVERITIES, example: 'INFO' })
+  severity!: AuditSeverity;
 
   @ApiProperty({ example: 1180 })
   count!: number;
@@ -173,8 +215,8 @@ export class AuditSeverityCountDto {
 
 /** Entries per outcome. */
 export class AuditStatusCountDto {
-  @ApiProperty({ example: 'SUCCESS' })
-  status!: string;
+  @ApiProperty({ enum: AUDIT_STATUSES, example: 'SUCCESS' })
+  status!: AuditStatus;
 
   @ApiProperty({ example: 1174 })
   count!: number;
