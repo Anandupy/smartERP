@@ -24,6 +24,19 @@ import { Public } from '@/common/decorators/public.decorator';
 import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_BUCKET } from '@/common/throttling/throttler.config';
+import {
+  ApiCreatedEnvelope,
+  ApiEmptyEnvelope,
+  ApiOkEnvelope,
+  ApiPublicErrors,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  AuthMeDto,
+  AuthSessionDto,
+  AuthTokensDto,
+  VerificationResultDto,
+} from './dto/auth-response.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -38,6 +51,8 @@ export class AuthController {
     description:
       'Also reports workspace bootstrap state via `setup`. When `setup.setupRequired` is true the client must run the setup flow; tenant context headers are not required until it completes.',
   })
+  @ApiOkEnvelope(AuthMeDto, { message: 'Profile retrieved successfully' })
+  @ApiStandardErrors(404)
   async getMe(@Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
     const data = await this.authService.getMe(userId, req.context);
@@ -48,6 +63,8 @@ export class AuthController {
   @Throttle({ [THROTTLE_BUCKET.AUTH]: {} })
   @Post('login')
   @ApiOperation({ summary: 'Login with email/username/phone' })
+  @ApiCreatedEnvelope(AuthTokensDto, { message: 'Login successful' })
+  @ApiStandardErrors(429, 503)
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     const sessionInfo = {
       ipAddress: req.ip,
@@ -62,6 +79,8 @@ export class AuthController {
   @Throttle({ [THROTTLE_BUCKET.AUTH]: {} })
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
+  @ApiCreatedEnvelope(AuthTokensDto, { message: 'Token refreshed' })
+  @ApiStandardErrors(429)
   async refresh(@Body('refreshToken') token: string) {
     if (!token) throw new UnauthorizedException('Refresh token required');
     const data = await this.authService.refreshToken(token);
@@ -71,6 +90,8 @@ export class AuthController {
   @Post('logout')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and revoke refresh token' })
+  @ApiEmptyEnvelope({ status: 201, message: 'Logged out successfully' })
+  @ApiStandardErrors()
   async logout(
     @Body('refreshToken') token: string,
     @Query('allDevices') allDevices?: string,
@@ -84,6 +105,11 @@ export class AuthController {
   @Get('sessions')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get active sessions for current user' })
+  @ApiOkEnvelope(AuthSessionDto, {
+    isArray: true,
+    message: 'Sessions retrieved successfully',
+  })
+  @ApiStandardErrors()
   async getSessions(@Req() req: any) {
     const data = await this.authService.getSessions(req.user.id);
     return { data, message: 'Sessions retrieved successfully' };
@@ -92,6 +118,8 @@ export class AuthController {
   @Delete('sessions/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiEmptyEnvelope({ message: 'Session revoked successfully' })
+  @ApiStandardErrors()
   async revokeSession(@Param('id') id: string, @Req() req: any) {
     await this.authService.revokeSession(req.user.id, id);
     return { message: 'Session revoked successfully' };
@@ -100,6 +128,8 @@ export class AuthController {
   @Delete('sessions')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke all sessions' })
+  @ApiEmptyEnvelope({ message: 'All sessions revoked successfully' })
+  @ApiStandardErrors()
   async revokeAllSessions(@Req() req: any) {
     await this.authService.revokeAllSessions(req.user.id);
     return { message: 'All sessions revoked successfully' };
@@ -108,7 +138,17 @@ export class AuthController {
   @Public()
   @Throttle({ [THROTTLE_BUCKET.PASSWORD_RESET]: {} })
   @Post('forgot-password')
-  @ApiOperation({ summary: 'Request password reset link/OTP' })
+  @ApiOperation({
+    summary: 'Request password reset link/OTP',
+    description:
+      'Always succeeds with the same message whether or not the email matches an account, so the endpoint cannot be used to enumerate users.',
+  })
+  @ApiEmptyEnvelope({
+    status: 201,
+    message:
+      'If the email matches an account in our system, a password reset link will be sent shortly.',
+  })
+  @ApiPublicErrors(429)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);
   }
@@ -117,6 +157,8 @@ export class AuthController {
   @Throttle({ [THROTTLE_BUCKET.PASSWORD_RESET]: {} })
   @Post('reset-password')
   @ApiOperation({ summary: 'Reset password using secure token' })
+  @ApiEmptyEnvelope({ status: 201, message: 'Password reset successfully' })
+  @ApiPublicErrors(429)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
@@ -125,6 +167,10 @@ export class AuthController {
   @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('verify-email')
   @ApiOperation({ summary: 'Verify email address using OTP' })
+  @ApiCreatedEnvelope(VerificationResultDto, {
+    message: 'Email verified successfully',
+  })
+  @ApiPublicErrors(404, 429)
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto.email, dto.otp);
   }
@@ -133,6 +179,11 @@ export class AuthController {
   @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('resend-verification')
   @ApiOperation({ summary: 'Resend email verification OTP' })
+  @ApiEmptyEnvelope({
+    status: 201,
+    message: 'Verification email resent successfully',
+  })
+  @ApiPublicErrors(404, 429)
   async resendVerification(@Body() dto: ResendVerificationDto) {
     return this.authService.resendVerification(dto.email);
   }
@@ -141,6 +192,8 @@ export class AuthController {
   @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('send-otp')
   @ApiOperation({ summary: 'Generate and send OTP for specific purpose' })
+  @ApiEmptyEnvelope({ status: 201, message: 'OTP sent successfully' })
+  @ApiPublicErrors(404, 429)
   async sendOtp(@Body() dto: SendOtpDto) {
     return this.authService.sendOtp(dto.identifier, dto.purpose);
   }
@@ -149,6 +202,10 @@ export class AuthController {
   @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('verify-otp')
   @ApiOperation({ summary: 'Verify OTP code' })
+  @ApiCreatedEnvelope(VerificationResultDto, {
+    message: 'OTP verified successfully',
+  })
+  @ApiPublicErrors(429)
   async verifyOtp(@Body() dto: VerifyAuthOtpDto) {
     return this.authService.verifyOtp(dto.identifier, dto.purpose, dto.otp);
   }
@@ -157,6 +214,8 @@ export class AuthController {
   @Throttle({ [THROTTLE_BUCKET.OTP]: {} })
   @Post('resend-otp')
   @ApiOperation({ summary: 'Resend OTP' })
+  @ApiEmptyEnvelope({ status: 201, message: 'OTP resent successfully' })
+  @ApiPublicErrors(404, 429)
   async resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto.identifier, dto.purpose);
   }

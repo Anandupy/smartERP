@@ -32,3 +32,4 @@ Thumbs.db
 # Prisma
 /node_modules/.prisma
 /prisma/generated/
+openapi.json
