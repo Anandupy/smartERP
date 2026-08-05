@@ -6,6 +6,15 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { DeliveryLogService } from './delivery-log.service';
 import { QueryDeliveryLogDto } from './dto/query-delivery-log.dto';
+import {
+  ApiOkEnvelope,
+  ApiPaginatedEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  DeliveryAnalyticsDto,
+  DeliveryLogDto,
+} from '../dto/communication-response.dto';
 
 @ApiTags('Communication Delivery Logs')
 @ApiBearerAuth()
@@ -16,7 +25,13 @@ export class DeliveryLogController {
 
   @Get()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
-  @ApiOperation({ summary: 'Query paginated communication delivery logs' })
+  @ApiOperation({
+    summary: 'Query paginated communication delivery logs',
+    description:
+      'The handler returns the service result unchanged, so pagination is lifted onto the envelope’s `meta` and `data` is the bare page.',
+  })
+  @ApiPaginatedEnvelope(DeliveryLogDto)
+  @ApiStandardErrors()
   async findAll(@Query() query: QueryDeliveryLogDto) {
     return this.deliveryLogService.findAll(query);
   }
@@ -24,6 +39,8 @@ export class DeliveryLogController {
   @Get('analytics')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Get operational delivery metrics & statistics' })
+  @ApiOkEnvelope(DeliveryAnalyticsDto)
+  @ApiStandardErrors()
   async getAnalytics(
     @Query('organizationId') organizationId?: string,
     @Query('branchId') branchId?: string,

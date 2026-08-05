@@ -14,6 +14,11 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { CommunicationConfigService } from './communication-config.service';
 import { UpdateCommunicationConfigDto } from './dto/update-config.dto';
+import {
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import { CommunicationSettingDto } from '../dto/communication-response.dto';
 
 @ApiTags('Communication Settings')
 @ApiBearerAuth()
@@ -24,7 +29,13 @@ export class CommunicationConfigController {
 
   @Get()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
-  @ApiOperation({ summary: 'Get current communication settings' })
+  @ApiOperation({
+    summary: 'Get current communication settings',
+    description:
+      'A scope with no saved settings is answered with the defaults rather than a 404.',
+  })
+  @ApiOkEnvelope(CommunicationSettingDto)
+  @ApiStandardErrors()
   async getConfig(
     @Query('organizationId') organizationId?: string,
     @Query('branchId') branchId?: string,
@@ -35,6 +46,8 @@ export class CommunicationConfigController {
   @Patch()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Update communication settings' })
+  @ApiOkEnvelope(CommunicationSettingDto)
+  @ApiStandardErrors()
   async updateConfig(
     @Body() dto: UpdateCommunicationConfigDto,
     @Query('organizationId') organizationId?: string,

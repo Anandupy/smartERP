@@ -19,6 +19,15 @@ import { TemplateService } from './template.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { RenderTemplatePreviewDto } from './dto/render-template-preview.dto';
+import {
+  ApiCreatedEnvelope,
+  ApiOkEnvelope,
+  ApiStandardErrors,
+} from '@/common/http/api-envelope-response.decorator';
+import {
+  CommunicationTemplateDto,
+  TemplatePreviewDto,
+} from '../dto/communication-response.dto';
 
 @ApiTags('Communication Templates')
 @ApiBearerAuth()
@@ -30,6 +39,8 @@ export class TemplateController {
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Create a new communication template' })
+  @ApiCreatedEnvelope(CommunicationTemplateDto)
+  @ApiStandardErrors(409)
   async create(@Body() dto: CreateTemplateDto, @Req() req: any) {
     return this.templateService.create(dto, req.user?.id);
   }
@@ -37,6 +48,8 @@ export class TemplateController {
   @Get()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'List communication templates' })
+  @ApiOkEnvelope(CommunicationTemplateDto, { isArray: true })
+  @ApiStandardErrors()
   async findAll(
     @Query('channel') channel?: CommunicationChannel,
     @Query('status') status?: TemplateStatus,
@@ -48,6 +61,8 @@ export class TemplateController {
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
   @ApiOperation({ summary: 'Get template by ID' })
+  @ApiOkEnvelope(CommunicationTemplateDto)
+  @ApiStandardErrors(404)
   async findOne(@Param('id') id: string) {
     return this.templateService.findById(id);
   }
@@ -55,6 +70,8 @@ export class TemplateController {
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Update a communication template' })
+  @ApiOkEnvelope(CommunicationTemplateDto)
+  @ApiStandardErrors(404, 409)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateTemplateDto,
@@ -65,7 +82,13 @@ export class TemplateController {
 
   @Post('preview')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
-  @ApiOperation({ summary: 'Render a template preview with variables' })
+  @ApiOperation({
+    summary: 'Render a template preview with variables',
+    description:
+      'Identify the template by `templateId`, or by `code` plus the `channel` query parameter. Supplying neither is rejected with 409.',
+  })
+  @ApiCreatedEnvelope(TemplatePreviewDto)
+  @ApiStandardErrors(404, 409)
   async preview(
     @Body() dto: RenderTemplatePreviewDto,
     @Query('channel') channel?: CommunicationChannel,
