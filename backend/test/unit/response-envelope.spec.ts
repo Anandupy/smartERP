@@ -63,6 +63,74 @@ describe('response contract', () => {
 
       expect(body.requestId).toBe('req-1');
     });
+
+    it('keeps a bare array an array', async () => {
+      // Object-spreading a list turned it into {"0": …, "1": …} while an empty
+      // list stayed an array, so one endpoint returned two different types
+      // depending on how many rows it found.
+      const body = await run([{ id: 'a' }, { id: 'b' }]);
+
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data).toEqual([{ id: 'a' }, { id: 'b' }]);
+    });
+
+    it('keeps an empty array an array', async () => {
+      const body = await run([]);
+
+      expect(body.data).toEqual([]);
+    });
+
+    it('keeps a nested array under an explicit data key', async () => {
+      const body = await run({ data: [{ id: 'a' }], message: 'Listed' });
+
+      expect(body.data).toEqual([{ id: 'a' }]);
+      expect(body.message).toBe('Listed');
+    });
+
+    it.each([
+      ['a boolean', true],
+      ['a false boolean', false],
+      ['a string', 'ok'],
+      ['a number', 123],
+      ['zero', 0],
+    ])('passes %s through as the payload', async (_label, value) => {
+      const body = await run(value);
+
+      expect(body.data).toBe(value);
+      expect(body.message).toBe('Success');
+    });
+
+    it('turns null and undefined into a null payload', async () => {
+      expect((await run(null)).data).toBeNull();
+      expect((await run(undefined)).data).toBeNull();
+    });
+
+    it('leaves an already-built envelope alone', async () => {
+      const envelope = {
+        success: true,
+        message: 'Prebuilt',
+        data: [{ id: 'a' }],
+        meta: { total: 1 },
+        error: null,
+        requestId: 'req-0',
+        timestamp: '2026-08-05T00:00:00.000Z',
+      };
+
+      expect(await run(envelope)).toEqual(envelope);
+    });
+
+    it('still treats a bare object as the payload', async () => {
+      const body = await run({ id: 'x', name: 'Main Campus' });
+
+      expect(body.data).toEqual({ id: 'x', name: 'Main Campus' });
+    });
+
+    it('still returns a null payload for a message-only return', async () => {
+      const body = await run({ message: 'Logged out successfully' });
+
+      expect(body.data).toBeNull();
+      expect(body.message).toBe('Logged out successfully');
+    });
   });
 
   describe('GlobalExceptionFilter', () => {
