@@ -42,12 +42,19 @@ export class AcademicUnitDto {
   unitType!: AcademicUnitType;
 
   @ApiProperty({
-    description: 'Depth in the hierarchy, 1 at the root.',
-    example: 1,
+    description:
+      'Depth in the hierarchy, 0 at the root. Server-computed on create and recalculated across the subtree on move — never accepted from a client.',
+    example: 0,
   })
   level!: number;
 
-  @ApiProperty({ type: Number, nullable: true, example: 10 })
+  @ApiProperty({
+    description:
+      'Sort order among siblings. Null sorts last, after every sibling that has one.',
+    type: Number,
+    nullable: true,
+    example: 10,
+  })
   displayOrder!: number | null;
 
   @ApiProperty({ example: true })
