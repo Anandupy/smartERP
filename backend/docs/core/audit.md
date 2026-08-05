@@ -52,11 +52,26 @@ sequenceDiagram
 | `organizationId` | `String?` | Organization UUID context. Indexed. |
 | `branchId` | `String?` | Branch UUID context. Indexed. |
 | `academicYearId` | `String?` | Academic Year UUID context. Indexed. |
-| `requestId` | `String?` | Request correlation ID. Indexed. |
+| `requestId` | `String?` | Request correlation ID. Indexed. Matches the `requestId` of the response envelope. |
+| `traceId` | `String?` | Distributed trace ID, when one was supplied. |
+| `correlationId` | `String?` | Cross-request correlation ID, when one was supplied. |
 | `ipAddress` | `String?` | Incoming client IP address. |
 | `userAgent` | `String?` | Incoming client HTTP User Agent. |
+| `httpMethod` | `String?` | HTTP method of the originating request. |
+| `route` | `String?` | Route of the originating request. |
+| `executionTime` | `Int?` | Handler duration in milliseconds. |
+| `severity` | `String` | `INFO` (default), `WARN`, `ERROR`, `CRITICAL`. |
+| `status` | `String` | `SUCCESS` (default), `FAILURE`. |
 | `metadata` | `Json?` | Full event payload and custom attributes. |
 | `changes` | `Json?` | Field-level diffs (`[{ field, oldValue, newValue }]`). |
+
+Every column above is returned by the query API. `metadata` and `changes` are
+the two exceptions: they are omitted from list results unless the request sets
+`includeDetails=true`, and are always present on `GET /v1/audit-logs/:id`.
+
+`severity` and `status` are plain string columns rather than database enums, so
+the filter accepts any value; the four and two listed above are what the
+pipeline writes.
 
 ---
 
@@ -77,6 +92,27 @@ The following ERP modules publish domain events that are automatically captured 
 | **Admissions** | `student.created`, `student.updated`, `student.deleted`, `applicant.created`, `applicant.updated`, `applicant.deleted`, `guardian.created`, `guardian.updated`, `guardian.mapped`, `guardian.unmapped`, `admission.transitioned`, `enrollment.completed`, `numbering_config.created`, `admissions_master.created`, `admissions_master.updated`, `admissions_master.deleted` | `CREATE`, `UPDATE`, `DELETE`, `EXECUTE` | `ADMISSIONS` |
 | **Authorization** | `role_permissions.updated`, `user_permission_override.updated`, `user_permission_override.deleted`, `authorization.permission_denied` | `UPDATE`, `DELETE`, `EXECUTE` | `AUTHORIZATION` |
 | **Workspace** | `workspace.module_created`, `workspace.module_updated`, `workspace.menu_created`, `workspace.menu_updated`, `workspace.menu_deleted`, `workspace.config_updated` | `CREATE`, `UPDATE`, `DELETE` | `WORKSPACE` |
+
+### State transitions are audited as `.updated`
+
+Every write leaves a trail, including the ones that are not a field edit — but
+they share the generic event name of the entity they change, so the trail
+records **that** the record changed and not **which transition** did it:
+
+| Transition                                  | Event published          |
+| :------------------------------------------ | :----------------------- |
+| `PATCH /academic-years/:id/activate`        | `academic_year.updated`  |
+| `PATCH /academic-years/:id/select`          | `academic_year.updated`  |
+| `PATCH /academic-years/:id/lock`            | `academic_year.updated`  |
+| `PATCH /academic-units/:id/move`            | `academic_unit.updated`  |
+| `PATCH /academic-units/:id/status`          | `academic_unit.updated`  |
+| `PATCH /programs/:id/status`                | `program.updated`        |
+| `PATCH /branches/:id/status`                | `branch.updated`         |
+
+So a client filtering on `eventName` cannot separate "this year was locked"
+from "this year was renamed". Distinguishing them means either reading
+`changes`, where the emitter reports one, or introducing dedicated event names
+— which would be a new vocabulary, not a documentation change.
 
 ---
 
@@ -205,15 +241,113 @@ Allows querying paginated, filtered audit logs. To optimize performance and data
 * **Details Toggle**:
   - `includeDetails` (boolean, default: `false`).
 
+**`severity` and `status` vocabularies.** Both are filterable and both are
+plain string columns, so the filter accepts anything. The values the audit
+pipeline actually writes are:
+
+- `severity` — `INFO` (default), `WARN`, `ERROR`, `CRITICAL`
+- `status` — `SUCCESS` (default), `FAILURE`
+
+**An unrecognised `sortBy` is ignored**, not rejected: the repository falls back
+to `timestamp`. So `sortBy=createdAt` returns `200` sorted by `timestamp` — it
+does not fail, and it does not sort by anything called `createdAt`.
+
+##### Response shape
+
+**Pagination is nested inside `data`, not on the envelope's `meta`.** The
+handler wraps the service result, so the envelope's own `meta` stays `{}`:
+
+```json
+{
+  "success": true,
+  "message": "Audit logs retrieved successfully",
+  "data": {
+    "items": [ /* AuditLog[] — metadata and changes only when includeDetails */ ],
+    "meta": { "total": 1204, "page": 1, "limit": 50, "totalPages": 25 }
+  },
+  "meta": {},
+  "error": null,
+  "requestId": "019fc2a1-0d7c-76cd-86ec-cbdf1628a566",
+  "timestamp": "2026-08-05T09:12:44.310Z"
+}
+```
+
+The keys are `total`, `page`, `limit`, `totalPages` — **`limit`, not
+`pageSize`**, and the object is at `data.meta`, not `meta.pagination`.
+
 #### 2. Detailed Summary API
 `GET /v1/audit-logs/summary`
 
 Returns total counts and distribution metrics (grouped by `module`, `action`, `severity`, and `status`) within the user's authorization boundary. This endpoint accepts the same filters as the paginated list.
 
+Each of the four breakdowns is an array of `{ <dimension>, count }`, and each
+sums to `totalCount` because all four group the same filtered set:
+
+```json
+{
+  "success": true,
+  "message": "Audit summary retrieved successfully",
+  "data": {
+    "totalCount": 1204,
+    "byModule": [{ "module": "admissions", "count": 412 }],
+    "byAction": [{ "action": "CREATE", "count": 180 }],
+    "bySeverity": [{ "severity": "INFO", "count": 1180 }],
+    "byStatus": [{ "status": "SUCCESS", "count": 1174 }]
+  },
+  "meta": {},
+  "error": null,
+  "requestId": "019fc2a1-0d7c-76cd-86ec-cbdf1628a566",
+  "timestamp": "2026-08-05T09:12:44.310Z"
+}
+```
+
+This endpoint is **not paginated** — the arrays hold one entry per distinct
+value in the filtered set.
+
 #### 3. Activity Timeline API
 `GET /v1/audit-logs/timeline`
 
 Returns daily log activity counts (within the specified or derived date ranges) to populate chronological analytics charts, plus the list of recent simplified chronological timeline events.
+
+`dailyActivity` covers the **whole** filtered range. `events` is **one page** of
+it, newest first, obeying `page` and `limit` — so the two are not two views of
+the same rows, and summing `dailyActivity[].count` will not equal
+`events.length`:
+
+```json
+{
+  "success": true,
+  "message": "Audit timeline retrieved successfully",
+  "data": {
+    "dailyActivity": [
+      { "date": "2026-08-03", "count": 64 },
+      { "date": "2026-08-04", "count": 87 }
+    ],
+    "events": [
+      {
+        "id": "018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5c00",
+        "timestamp": "2026-08-04T11:02:19.441Z",
+        "eventName": "ApplicantCreated",
+        "action": "CREATE",
+        "module": "admissions",
+        "aggregateType": "Applicant",
+        "aggregateId": "018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5ab0",
+        "userEmail": "asha.verma@example.edu",
+        "severity": "INFO",
+        "status": "SUCCESS"
+      }
+    ]
+  },
+  "meta": {},
+  "error": null,
+  "requestId": "019fc2a1-0d7c-76cd-86ec-cbdf1628a566",
+  "timestamp": "2026-08-05T09:12:44.310Z"
+}
+```
+
+`date` is a `YYYY-MM-DD` calendar day in **UTC**. A timeline event carries ten
+fields — it is a deliberately narrow projection of `AuditLog`, not the whole
+record.
 
 #### 4. Detail Lookup By ID
 `GET /v1/audit-logs/:id`
