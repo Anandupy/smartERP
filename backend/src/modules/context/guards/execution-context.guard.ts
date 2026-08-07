@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
+import { ALLOW_UNRESOLVED_CONTEXT_KEY } from '@/common/decorators/allow-unresolved-context.decorator';
 import {
   AuthenticatedRequest,
   AuthenticatedUser,
@@ -80,12 +81,27 @@ export class ExecutionContextGuard implements CanActivate {
       requestId: request.requestId || request.context?.requestId,
     };
 
+    // Whether an ambiguous scope must be settled before this route may run.
+    // Almost every route operates inside one tenant and says yes; the identity
+    // and tenant-administration routes that sit above or before a selection
+    // declare @AllowUnresolvedContext() and say no. Deciding it here, from
+    // route metadata, keeps the rule in one place instead of in each
+    // controller.
+    const selectionRequired = !this.reflector.getAllAndOverride<boolean>(
+      ALLOW_UNRESOLVED_CONTEXT_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
     // Until the workspace is bootstrapped the tenant hierarchy is incomplete by
     // definition, and the strict resolver would reject every request. Resolve
     // best-effort instead so the setup routes can operate on whatever already
     // exists — a branch created in the previous step, for example.
     const scope = (await this.setupService.isInitialized())
-      ? (await this.contextResolver.resolveContext(input)).context
+      ? (
+          await this.contextResolver.resolveContext(input, {
+            selectionRequired,
+          })
+        ).context
       : await this.contextResolver.resolveBootstrapContext(input);
 
     RequestContextService.applyExecutionScope(request.context, {

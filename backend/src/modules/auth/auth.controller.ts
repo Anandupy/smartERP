@@ -22,6 +22,7 @@ import { VerifyAuthOtpDto } from './dto/verify-auth-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
+import { AllowUnresolvedContext } from '@/common/decorators/allow-unresolved-context.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE_BUCKET } from '@/common/throttling/throttler.config';
 import {
@@ -45,11 +46,14 @@ export class AuthController {
 
   @Get('me')
   @AllowDuringSetup()
+  // This is the endpoint that reports `availableOrganizations`, so it cannot be
+  // the endpoint that demands one be chosen first.
+  @AllowUnresolvedContext()
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get current authenticated user profile & context',
     description:
-      'Also reports workspace bootstrap state via `setup`. When `setup.setupRequired` is true the client must run the setup flow; tenant context headers are not required until it completes.',
+      'Also reports workspace bootstrap state via `setup`. When `setup.setupRequired` is true the client must run the setup flow; tenant context headers are not required until it completes. Answers whether or not a tenant scope has been selected: a caller with access to several organizations gets the list to choose from rather than `409 CONTEXT_SELECTION_REQUIRED`.',
   })
   @ApiOkEnvelope(AuthMeDto, { message: 'Profile retrieved successfully' })
   @ApiStandardErrors(404)

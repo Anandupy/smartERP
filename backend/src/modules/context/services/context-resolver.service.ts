@@ -12,6 +12,7 @@ import { ContextValidatorService } from './context-validator.service';
 import {
   ResolvedContextResult,
   ExecutionContextPayload,
+  ContextDiscoveryResult,
 } from '../interfaces/execution-context.interface';
 import {
   ContextValidationFailedEvent,
@@ -32,6 +33,24 @@ export interface ResolveContextInput {
     academicYearId?: string | null;
   };
   requestId?: string | null;
+}
+
+export interface ResolveContextOptions {
+  /**
+   * Whether an **ambiguous** scope must be settled before the request may run.
+   *
+   * `true` (the default) is the documented Priority 3 behaviour: a user who can
+   * see several organizations, or several branches, and supplied no header to
+   * choose between them, gets `409 CONTEXT_SELECTION_REQUIRED` with the
+   * candidates.
+   *
+   * `false` is for routes that do not operate inside one tenant — see
+   * `@AllowUnresolvedContext()`. The ambiguous level and everything below it
+   * resolve to `null` instead. Nothing else changes: a supplied header is still
+   * validated and a cross-tenant one is still refused, so this narrows what the
+   * request can reach, never widens it.
+   */
+  selectionRequired?: boolean;
 }
 
 @Injectable()
@@ -160,8 +179,10 @@ export class ContextResolverService {
    */
   async resolveContext(
     input: ResolveContextInput,
+    options: ResolveContextOptions = {},
   ): Promise<ResolvedContextResult> {
     const startTime = Date.now();
+    const selectionRequired = options.selectionRequired ?? true;
     const { user, headers, requestId } = input;
     const {
       id: userId,
@@ -195,6 +216,9 @@ export class ContextResolverService {
           if (discovery.availableOrganizations.length === 1) {
             targetOrgId = discovery.availableOrganizations[0].id;
           } else if (discovery.availableOrganizations.length > 1) {
+            if (!selectionRequired) {
+              return this.unresolved(discovery);
+            }
             return await this.triggerSelectionRequired(
               userId,
               role,
@@ -228,7 +252,10 @@ export class ContextResolverService {
           );
           if (discovery.availableBranches.length === 1) {
             targetBranchId = discovery.availableBranches[0].id;
-          } else if (discovery.availableBranches.length > 1) {
+          } else if (
+            discovery.availableBranches.length > 1 &&
+            selectionRequired
+          ) {
             return await this.triggerSelectionRequired(
               userId,
               role,
@@ -362,6 +389,10 @@ export class ContextResolverService {
       let selectedOrgId: string | null = null;
       if (discovery.availableOrganizations.length === 1) {
         selectedOrgId = discovery.availableOrganizations[0].id;
+      } else if (!selectionRequired) {
+        // The route does not operate inside one tenant, so ambiguity is not an
+        // error for it — leave the whole scope unset.
+        return this.unresolved(discovery);
       } else {
         // Multiple organizations without header -> Priority 3 selection required
         return await this.triggerSelectionRequired(
@@ -383,10 +414,17 @@ export class ContextResolverService {
 
       // An organization with no branch resolves to an organization-only scope
       // rather than failing; BranchGuard rejects the routes that require one.
+      // Absence is not ambiguity: there is nothing for the client to select, so
+      // answering CONTEXT_SELECTION_REQUIRED with an empty candidate list would
+      // put it in a loop it cannot leave — which is what a newly created
+      // organization did to every request made against it.
       let selectedBranchId: string | null = null;
       if (branchDiscovery.availableBranches.length === 1) {
         selectedBranchId = branchDiscovery.availableBranches[0].id;
-      } else {
+      } else if (
+        branchDiscovery.availableBranches.length > 1 &&
+        selectionRequired
+      ) {
         // Multiple branches without header -> Selection Required
         return await this.triggerSelectionRequired(
           userId,
@@ -531,6 +569,31 @@ export class ContextResolverService {
 
       throw error;
     }
+  }
+
+  /**
+   * An ambiguous scope, left unresolved for a route that does not need one.
+   *
+   * No event is published and nothing is thrown: for these routes an ambiguous
+   * scope is an ordinary outcome, not a failure. The discovery result is still
+   * returned, so `/auth/me` can report the candidates the caller must choose
+   * between before calling anything that is scoped.
+   */
+  private unresolved(discovery: ContextDiscoveryResult): ResolvedContextResult {
+    return {
+      context: {
+        organizationId: null,
+        branchId: null,
+        academicYearId: null,
+        programId: null,
+        departmentId: null,
+        campusId: null,
+        branch: null,
+        academicYear: null,
+      },
+      source: 'UNRESOLVED',
+      discovery,
+    };
   }
 
   /**

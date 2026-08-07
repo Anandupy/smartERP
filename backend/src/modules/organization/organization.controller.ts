@@ -16,6 +16,7 @@ import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
 import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
+import { AllowUnresolvedContext } from '@/common/decorators/allow-unresolved-context.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 import {
   ApiCreatedEnvelope,
@@ -27,6 +28,17 @@ import { OrganizationDto } from './dto/organization-response.dto';
 @ApiTags('Organizations')
 @ApiBearerAuth()
 @Controller('organizations')
+/**
+ * Tenant administration, which is the one surface that sits *above* a tenant.
+ *
+ * Every endpoint here names its organization in the path or the body and none
+ * of them reads `req.context` for scoping, so "which organization is the caller
+ * operating in" has no bearing on the answer — while demanding one made the
+ * organizations unreachable for the `SUPER_ADMIN` who administers several of
+ * them. Access is unchanged: `@Roles()` and `@RequirePermission()` still decide
+ * who may call these.
+ */
+@AllowUnresolvedContext()
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 

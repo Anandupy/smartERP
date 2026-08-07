@@ -63,6 +63,11 @@ export interface ContextDiscoveryResult {
 
 export interface ResolvedContextResult {
   context: ExecutionContextPayload;
-  source: 'HEADER' | 'AUTO' | 'SINGLE_CONTEXT';
+  /**
+   * `UNRESOLVED` is an ambiguous scope that was not settled because the route
+   * does not operate inside one — see `@AllowUnresolvedContext()`. The context
+   * is null throughout and `discovery` carries the candidates.
+   */
+  source: 'HEADER' | 'AUTO' | 'SINGLE_CONTEXT' | 'UNRESOLVED';
   discovery: ContextDiscoveryResult;
 }
