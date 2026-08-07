@@ -3,6 +3,7 @@ import { ExecutionContextGuard } from '@/modules/context/guards/execution-contex
 import { ContextResolverService } from '@/modules/context/services/context-resolver.service';
 import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup.service';
 import { Reflector } from '@nestjs/core';
+import { ALLOW_UNRESOLVED_CONTEXT_KEY } from '@/common/decorators/allow-unresolved-context.decorator';
 import { RoleType } from '@/generated/client';
 import { buildRequestContext } from '../../factories/request-context.factory';
 
@@ -137,6 +138,64 @@ describe('ExecutionContextGuard', () => {
     // The failure must still be attributable.
     expect(mockReq.context.userId).toBe('u1');
     expect(mockReq.context.role).toBe(RoleType.STAFF);
+    expect(mockReq.context.organizationId).toBeNull();
+  });
+
+  it('requires a selection by default', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    const mockReq: any = buildRequest();
+    resolver.resolveContext.mockResolvedValue({
+      context: {
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        academicYearId: 'ay-1',
+        programId: null,
+        departmentId: null,
+        campusId: null,
+        branch: null,
+        academicYear: null,
+      },
+      source: 'AUTO',
+    });
+
+    await guard.canActivate(asExecutionContext(mockReq));
+
+    expect(resolver.resolveContext).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ selectionRequired: true }),
+    );
+  });
+
+  it('does not require a selection for a route that declares @AllowUnresolvedContext()', async () => {
+    // `@Public()` reads false, the allow-unresolved key reads true — the guard
+    // must still authenticate and resolve, only without demanding a choice.
+    reflector.getAllAndOverride.mockImplementation((key: string) =>
+      key === ALLOW_UNRESOLVED_CONTEXT_KEY ? true : false,
+    );
+    const mockReq: any = buildRequest();
+    resolver.resolveContext.mockResolvedValue({
+      context: {
+        organizationId: null,
+        branchId: null,
+        academicYearId: null,
+        programId: null,
+        departmentId: null,
+        campusId: null,
+        branch: null,
+        academicYear: null,
+      },
+      source: 'UNRESOLVED',
+    });
+
+    const can = await guard.canActivate(asExecutionContext(mockReq));
+
+    expect(can).toBe(true);
+    expect(resolver.resolveContext).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ selectionRequired: false }),
+    );
+    // Identity is still established; only the tenant scope is left unset.
+    expect(mockReq.context.userId).toBe('u1');
     expect(mockReq.context.organizationId).toBeNull();
   });
 

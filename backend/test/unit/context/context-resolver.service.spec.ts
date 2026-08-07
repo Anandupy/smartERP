@@ -176,5 +176,80 @@ describe('ContextResolverService', () => {
         expect.objectContaining({ eventName: 'context.selection_required' }),
       );
     });
+
+    it('resolves an organization-only scope when the organization has no branch', async () => {
+      // Absence is not ambiguity. A freshly created organization has no branch,
+      // and answering CONTEXT_SELECTION_REQUIRED with an empty candidate list
+      // asked the client to choose from nothing — so every request against that
+      // organization failed, including the one creating its first branch.
+      discoveryService.discoverContexts.mockResolvedValue({
+        availableOrganizations: [mockOrg],
+        availableBranches: [],
+        availableAcademicYears: [],
+      });
+      validatorService.validateOrganization.mockResolvedValue(mockOrg);
+
+      const res = await resolver.resolveContext({
+        user: { id: 'u3', role: RoleType.ORG_ADMIN, organizationId: 'org-1' },
+        headers: {},
+      });
+
+      expect(res.context.organizationId).toBe('org-1');
+      expect(res.context.branchId).toBeNull();
+      expect(res.context.academicYearId).toBeNull();
+      expect(eventBus.publish).not.toHaveBeenCalled();
+    });
+
+    it('leaves the scope unresolved instead of throwing when no selection is required', async () => {
+      const secondOrg = { id: 'org-2', name: 'Org 2', code: 'O2' };
+      discoveryService.discoverContexts.mockResolvedValue({
+        availableOrganizations: [mockOrg, secondOrg],
+        availableBranches: [],
+        availableAcademicYears: [],
+      });
+
+      const res = await resolver.resolveContext(
+        { user: { id: 'u-sa', role: RoleType.SUPER_ADMIN }, headers: {} },
+        { selectionRequired: false },
+      );
+
+      expect(res.source).toBe('UNRESOLVED');
+      expect(res.context.organizationId).toBeNull();
+      expect(res.context.branchId).toBeNull();
+      // The candidates still come back, so /auth/me can report them.
+      expect(res.discovery.availableOrganizations).toHaveLength(2);
+      // Not a failure, so nothing is audited as one.
+      expect(eventBus.publish).not.toHaveBeenCalled();
+    });
+
+    it('still validates a supplied header when no selection is required', async () => {
+      // Opting out of the selection does not opt out of the tenant boundary:
+      // the header is resolved and validated exactly as it always was.
+      discoveryService.discoverContexts.mockResolvedValue({
+        availableOrganizations: [mockOrg],
+        availableBranches: [mockBranch],
+        availableAcademicYears: [mockAy],
+      });
+      validatorService.validateOrganization.mockResolvedValue(mockOrg);
+      validatorService.validateBranch.mockResolvedValue(mockBranch);
+      validatorService.validateAcademicYear.mockResolvedValue(mockAy);
+
+      const res = await resolver.resolveContext(
+        {
+          user: { id: 'u1', role: RoleType.SUPER_ADMIN },
+          headers: { organizationId: 'org-1' },
+        },
+        { selectionRequired: false },
+      );
+
+      expect(res.source).toBe('HEADER');
+      expect(res.context.organizationId).toBe('org-1');
+      expect(validatorService.validateOrganization).toHaveBeenCalledWith(
+        'org-1',
+        'u1',
+        RoleType.SUPER_ADMIN,
+        undefined,
+      );
+    });
   });
 });
