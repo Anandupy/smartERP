@@ -3,10 +3,11 @@ import {
   IsNotEmpty,
   IsEmail,
   IsOptional,
-  IsDateString,
+  IsDate,
   Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ToDate } from '@/common/transformers/to-date.transformer';
 
 export class CreateOrganizationDto {
   @ApiProperty({
@@ -48,12 +49,19 @@ export class CreateOrganizationDto {
   contactPhone!: string;
 
   @ApiProperty({
-    description: 'Master License Expiry Date (ISO format)',
+    description:
+      'Master License Expiry Date. A calendar date, `YYYY-MM-DD`; a full ISO 8601 timestamp is also accepted.',
+    type: String,
+    format: 'date',
     example: '2030-12-31',
   })
-  @IsDateString()
   @IsNotEmpty()
-  masterExpiryDate!: string;
+  @IsDate({
+    message:
+      'masterExpiryDate must be an ISO 8601 date (YYYY-MM-DD or a full timestamp)',
+  })
+  @ToDate()
+  masterExpiryDate!: Date;
 
   @ApiPropertyOptional({
     description: 'Address Line 1',

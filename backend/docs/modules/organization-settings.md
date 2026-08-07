@@ -25,7 +25,7 @@ service performs no projection, so every column reaches the client.
 | `contactPhone` | `String` | Required. |
 | `addressLine1` / `addressLine2` | `String?` | Optional. |
 | `city` / `state` / `country` / `pincode` | `String?` | Optional. |
-| `masterExpiryDate` | `DateTime` | Required. ISO 8601 on the wire. |
+| `masterExpiryDate` | `DateTime` | Required. Read as an ISO 8601 timestamp. On write, send a calendar date — `2027-08-07` — or a full ISO 8601 timestamp; see below. |
 | `status` | `OrganizationStatus` | `ACTIVE`, `INACTIVE`, `SUSPENDED`. **Read-only** — see below. |
 | `timezone` | `String?` | Optional. |
 | `currency` | `String?` | Optional. |
@@ -51,6 +51,16 @@ Two consequences, and they compound:
 Expiry is a date and nothing more. No job, guard or service reads it, so an
 organization past its `masterExpiryDate` stays `ACTIVE` and keeps working. Treat
 it as a date to display, never as a state.
+
+### Writing `masterExpiryDate`
+
+`POST` and `PATCH` accept a calendar date, `YYYY-MM-DD`, which is the form a
+date input produces. Because a calendar date names no time zone, the API pins it
+to UTC midnight, so `2027-08-07` is stored as `2027-08-07T00:00:00.000Z` on
+every machine. A full ISO 8601 timestamp is still accepted and is kept as sent.
+
+Anything else — `07/08/2027`, `2027-02-31` — answers `400`. A date that does not
+exist is rejected rather than rolled forward into the next month.
 
 ## API Endpoints
 
