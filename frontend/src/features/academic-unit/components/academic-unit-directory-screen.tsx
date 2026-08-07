@@ -81,10 +81,9 @@ function Directory({
   /**
    * The unit types this scope actually uses.
    *
-   * Built from the data rather than from `SUGGESTED_UNIT_TYPES`, because the
-   * documentation is explicit that the type is a free-form UI tag — offering a
-   * fixed vocabulary would hide real units behind options that do not match
-   * them.
+   * Built from the data rather than from `ACADEMIC_UNIT_TYPES`, because a
+   * filter offering the whole value set would list eight types that narrow to
+   * nothing. The form picks from the enum; the filter narrows what is here.
    */
   const typeOptions = useMemo(() => {
     const seen = new Set<string>();

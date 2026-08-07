@@ -1,7 +1,10 @@
 import { Ban, CircleCheckBig, Power, type LucideIcon } from "@/assets/icons";
 import type { StatusBadgeTone } from "@/shared/components/data-display";
 
-import type { AcademicUnitDto } from "./types/academic-unit.dto";
+import {
+  ACADEMIC_UNIT_TYPES,
+  type AcademicUnitDto,
+} from "./types/academic-unit.dto";
 
 /**
  * An academic unit's operating state, derived from the one documented flag.
@@ -59,6 +62,21 @@ export const STATE_FILTER_OPTIONS = [
 
 /** Filter value meaning "don't narrow on unit type". */
 export const ANY_TYPE = "ANY";
+
+/**
+ * The unit-type choices, in the order the backend declares them.
+ *
+ * The label is title case for reading; the value is the enum constant and is
+ * what the request body carries, unchanged. The constant is repeated as the
+ * option's hint so the picker still shows the value that will be sent — the
+ * detail screens, the table and the directory filter all display the raw
+ * constant, and a user should be able to connect the two.
+ */
+export const ACADEMIC_UNIT_TYPE_OPTIONS = ACADEMIC_UNIT_TYPES.map((value) => ({
+  value,
+  label: value.charAt(0) + value.slice(1).toLowerCase(),
+  hint: value,
+}));
 
 /** Filter value meaning "don't narrow on program". */
 export const ANY_PROGRAM = "ANY";

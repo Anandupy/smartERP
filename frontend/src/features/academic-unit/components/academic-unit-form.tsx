@@ -18,13 +18,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getErrorMessage } from "@/lib";
 import { BackendPendingNote, Banner, Spinner } from "@/shared/components/feedback";
 
-import { NO_PARENT } from "../constants";
+import { ACADEMIC_UNIT_TYPE_OPTIONS, NO_PARENT } from "../constants";
 import {
   academicUnitFormSchema,
   findDuplicateSibling,
   type AcademicUnitFormValues,
 } from "../schemas/academic-unit.schema";
-import { SUGGESTED_UNIT_TYPES, type AcademicUnitDto } from "../types/academic-unit.dto";
+import type { AcademicUnitDto } from "../types/academic-unit.dto";
 import { eligibleParents } from "../utils/academic-unit-hierarchy";
 
 export interface AcademicUnitFormProps {
@@ -210,25 +210,15 @@ export function AcademicUnitForm({
               description="Optional."
               disabled={isSubmitting}
             />
-            <div className="space-y-2">
-              <TextField
-                control={form.control}
-                name="unitType"
-                label="Unit type"
-                placeholder="SECTION"
-                description="Optional. A display tag."
-                disabled={isSubmitting}
-              />
-              <p className="text-muted-foreground text-xs">
-                Documented examples: {SUGGESTED_UNIT_TYPES.join(", ")}.
-              </p>
-              <BackendPendingNote>
-                no value set is documented. The documentation calls the type a
-                UI tag and explicitly warns against hardcoding logic for a
-                particular level, so this is free text and nothing in this app
-                branches on the value.
-              </BackendPendingNote>
-            </div>
+            <SelectField
+              control={form.control}
+              name="unitType"
+              label="Unit type"
+              options={ACADEMIC_UNIT_TYPE_OPTIONS}
+              placeholder="Select a unit type"
+              description="Optional. A display tag, sent as the backend's own constant."
+              disabled={isSubmitting}
+            />
             <TextField
               control={form.control}
               name="displayOrder"

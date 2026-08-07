@@ -15,13 +15,15 @@
  *
  * 1. **No response body is documented** for any of the eight endpoints — every
  *    Postman `body` is `""`.
- * 2. **`unitType` has no value set.** The doc gives six values across two
+ * 2. **`unitType` has a value set — nine values.** The doc gives six across two
  *    examples (`CLASS`, `DIVISION`, `DEPARTMENT`, `YEAR`, `BATCH`) plus
- *    `SECTION` from the Postman sample, and then explicitly says: "AcademicUnitType
- *    serves mainly as UI tags. Always depend on tree structure and node
- *    references rather than hardcoding logic targeting a specific level." So
- *    the examples are offered as suggestions, the field accepts anything, and
- *    **no behaviour in this module branches on the value**.
+ *    `SECTION` from the Postman sample, and then says: "AcademicUnitType serves
+ *    mainly as UI tags. Always depend on tree structure and node references
+ *    rather than hardcoding logic targeting a specific level." The backend has
+ *    since confirmed the full set, recorded in `ACADEMIC_UNIT_TYPES`, so a
+ *    write picks from a list. The doc's warning is still honoured: **no
+ *    behaviour in this module branches on the value**, and a value read back is
+ *    rendered verbatim rather than looked up.
  * 3. **`level` is server-computed and must never be sent.** The doc is explicit:
  *    "auto-calculated starting at 0 for roots… maintained across moves
  *    dynamically… Do not update manually." It is absent from every request body
@@ -131,19 +133,29 @@ export interface MoveAcademicUnitRequest {
 }
 
 /**
- * The unit types the documentation names, offered as suggestions only.
+ * The `AcademicUnitType` value set, as the backend confirmed it.
  *
- * Five come from the two hierarchy examples and one (`SECTION`) from the
- * Postman body. They are **not** an enum: the doc explicitly says the type is a
- * UI tag and warns against hardcoding logic for a particular level, so the form
- * offers these while still accepting anything, and nothing here branches on the
- * value.
+ * The module doc names six values across its examples and calls the type a UI
+ * tag; the backend's enum is the authority and holds these nine. They are the
+ * only values a write may carry, so the form offers them as a closed list
+ * instead of asking a user to type one exactly.
+ *
+ * The doc's other instruction still stands and is unaffected: nothing in this
+ * module *branches* on the value. This list decides what can be picked, never
+ * what the UI does with what it reads — a value read back is still rendered
+ * verbatim, and the directory's filter is still built from the data.
  */
-export const SUGGESTED_UNIT_TYPES = [
-  "DEPARTMENT",
-  "CLASS",
-  "YEAR",
-  "DIVISION",
+export const ACADEMIC_UNIT_TYPES = [
   "SECTION",
+  "CLASS",
+  "DIVISION",
+  "STREAM",
+  "DEPARTMENT",
+  "YEAR",
+  "SEMESTER",
   "BATCH",
+  "CUSTOM",
 ] as const;
+
+/** One of the nine values a write may carry. */
+export type AcademicUnitType = (typeof ACADEMIC_UNIT_TYPES)[number];

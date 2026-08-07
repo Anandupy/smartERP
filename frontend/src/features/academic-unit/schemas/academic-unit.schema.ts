@@ -24,10 +24,12 @@ import { NO_PARENT } from "../constants";
  *
  * Two fields are deliberately loose:
  *
- * - **`unitType` accepts anything.** The doc names six values across its
- *   examples and then says the type "serves mainly as UI tags" and warns
- *   against hardcoding logic for a level. An enum here would reject a
- *   legitimate value the backend accepts.
+ * - **`unitType` accepts any string.** The form's control is a select over the
+ *   backend's nine values, so the UI cannot express anything else; the schema
+ *   stays a plain string because it also validates records seeded from the
+ *   wire, where an unrecognised value must round-trip rather than be rejected
+ *   by the browser. The doc's warning against hardcoding logic for a level
+ *   still holds — nothing branches on the value.
  * - **`metadata` is validated only as JSON**, because the doc describes it as
  *   the escape hatch for attributes that "don't need strict relational
  *   schemas" and names no keys at all.

@@ -602,6 +602,90 @@ describe("Academic unit create — the Program seam", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers the unit types as a closed list and sends the constant", async () => {
+    const user = userEvent.setup();
+    withActiveScope();
+    withUnits();
+    server.use(
+      http.get(`${API_BASE}/programs`, () =>
+        HttpResponse.json(successEnvelope([programDto()])),
+      ),
+    );
+
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/academic-units`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(successEnvelope(academicUnitDto(body)), {
+          status: 201,
+        });
+      }),
+    );
+
+    render(<CreateAcademicUnitScreen programPicker={picker()} />);
+
+    await user.click(await screen.findByRole("combobox", { name: /program/i }));
+    await user.click(
+      await screen.findByRole("option", { name: /Higher Secondary Science/ }),
+    );
+    await user.type(screen.getByLabelText(/^name$/i), "Div C");
+
+    // Exactly the backend's nine values, and nothing this app invented.
+    await user.click(screen.getByRole("combobox", { name: /unit type/i }));
+    const options = await screen.findAllByRole("option");
+    expect(options.map((option) => option.textContent)).toEqual([
+      "SectionSECTION",
+      "ClassCLASS",
+      "DivisionDIVISION",
+      "StreamSTREAM",
+      "DepartmentDEPARTMENT",
+      "YearYEAR",
+      "SemesterSEMESTER",
+      "BatchBATCH",
+      "CustomCUSTOM",
+    ]);
+
+    await user.click(screen.getByRole("option", { name: /section/i }));
+    await user.click(screen.getByRole("button", { name: /create unit/i }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    // The label is title case; the payload is the enum constant, unchanged.
+    expect(body!.unitType).toBe("SECTION");
+  });
+
+  it("still sends null when no unit type is chosen", async () => {
+    const user = userEvent.setup();
+    withActiveScope();
+    withUnits();
+    server.use(
+      http.get(`${API_BASE}/programs`, () =>
+        HttpResponse.json(successEnvelope([programDto()])),
+      ),
+    );
+
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${API_BASE}/academic-units`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(successEnvelope(academicUnitDto(body)), {
+          status: 201,
+        });
+      }),
+    );
+
+    render(<CreateAcademicUnitScreen programPicker={picker()} />);
+
+    await user.click(await screen.findByRole("combobox", { name: /program/i }));
+    await user.click(
+      await screen.findByRole("option", { name: /Higher Secondary Science/ }),
+    );
+    await user.type(screen.getByLabelText(/^name$/i), "Div C");
+    await user.click(screen.getByRole("button", { name: /create unit/i }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body!.unitType).toBeNull();
+  });
+
   it("says the branch has no programs when the picker is empty", async () => {
     withActiveScope();
     withUnits();
@@ -629,6 +713,33 @@ describe("Academic unit edit", () => {
 
     expect(await screen.findByDisplayValue("Div A")).toBeInTheDocument();
     expect(screen.getByDisplayValue("HHS-001-A")).toBeInTheDocument();
+  });
+
+  it("pre-selects the saved unit type and resends it unchanged", async () => {
+    const user = userEvent.setup();
+    withActiveScope();
+    withUnits(academicUnitDto(), childUnitDto());
+    withUnit(childUnitDto());
+
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.patch(`${API_BASE}/academic-units/:id`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(successEnvelope(academicUnitDto(body)));
+      }),
+    );
+
+    render(<EditAcademicUnitScreen id="unit-2" programPicker={picker()} />);
+
+    await screen.findByDisplayValue("Div A");
+    expect(screen.getByRole("combobox", { name: /unit type/i })).toHaveTextContent(
+      "Division",
+    );
+
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body!.unitType).toBe("DIVISION");
   });
 
   it("explains why re-parenting is done through Move rather than the form", async () => {

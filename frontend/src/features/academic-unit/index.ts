@@ -15,11 +15,13 @@
  *    of the scope is missing rather than showing one generic message — a branch
  *    with no selected academic year is fixed in a different module than a
  *    missing branch.
- * 2. **`unitType` has no value set.** The documentation names six values across
- *    two examples and then says the type "serves mainly as UI tags", warning
- *    against hardcoding logic for a particular level. So it is free text, the
- *    examples are offered as suggestions, filters are built from the data, and
- *    **nothing in this module branches on the value**.
+ * 2. **`unitType` is picked from the backend's nine-value enum.** The
+ *    documentation names six values across two examples and warns against
+ *    hardcoding logic for a particular level; the backend has since confirmed
+ *    the full set, so the form offers it as a closed list
+ *    (`ACADEMIC_UNIT_TYPES`) while the warning still holds — filters are built
+ *    from the data, values read back are rendered verbatim, and **nothing in
+ *    this module branches on the value**.
  * 3. **`level` is server-computed and never sent.** The documentation is
  *    explicit that it is auto-calculated and maintained across moves, and it
  *    appears in no request body. When the response omits it, the depth shown is
@@ -137,8 +139,9 @@ export {
 
 // Contracts
 export {
-  SUGGESTED_UNIT_TYPES,
+  ACADEMIC_UNIT_TYPES,
   type AcademicUnitDto,
+  type AcademicUnitType,
   type CreateAcademicUnitRequest,
   type MoveAcademicUnitRequest,
   type UpdateAcademicUnitRequest,
@@ -152,6 +155,7 @@ export {
 } from "./schemas/academic-unit.schema";
 export {
   ACADEMIC_UNIT_AUDIT_MODULE,
+  ACADEMIC_UNIT_TYPE_OPTIONS,
   ANY_PROGRAM,
   ANY_STATE,
   ANY_TYPE,

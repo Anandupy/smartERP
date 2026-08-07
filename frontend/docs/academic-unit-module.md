@@ -63,7 +63,7 @@ selected academic year is the likelier case and the one whose remedy is
 non-obvious — it lives in the Academic Year module, not the workspace switcher
 — so that state links there.
 
-### 2. `unitType` has no value set
+### 2. `unitType` is picked from a nine-value enum
 
 The documentation names six values across its two examples (`CLASS`,
 `DIVISION`, `DEPARTMENT`, `YEAR`, `BATCH`, plus `SECTION` from the Postman
@@ -73,10 +73,23 @@ body) and then says, explicitly:
 > Always depend on tree structure and node references rather than hardcoding
 > logic targeting a specific level like "CLASS".
 
-Taken literally: the field is **free text**, `SUGGESTED_UNIT_TYPES` is offered
-as a hint beneath the input rather than as a dropdown, the directory's type
-filter is built from the values the data actually contains, and **nothing in
-this module branches on the value**.
+The backend has since confirmed the whole set — `SECTION`, `CLASS`, `DIVISION`,
+`STREAM`, `DEPARTMENT`, `YEAR`, `SEMESTER`, `BATCH`, `CUSTOM` — recorded once in
+`ACADEMIC_UNIT_TYPES`. A write can therefore only be one of nine values, so the
+form offers a **select** rather than a text box a user has to spell correctly.
+
+Two things the warning asks for are unchanged:
+
+- **Nothing branches on the value.** The list decides what can be *picked*; no
+  screen behaves differently because a unit is a `CLASS`.
+- **What is read back is rendered verbatim.** No lookup stands between a stored
+  value and the screen, and the directory's type filter is still built from the
+  values the data actually contains — a filter listing all nine would offer
+  eight that narrow to nothing.
+
+The picker shows a title-case label (`Section`) beside the constant it sends
+(`SECTION`), because every other screen displays the raw constant. The request
+body carries the constant exactly, unchanged.
 
 ### 3. `level` is server-computed and never sent
 
