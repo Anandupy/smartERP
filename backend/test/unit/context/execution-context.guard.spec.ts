@@ -141,6 +141,75 @@ describe('ExecutionContextGuard', () => {
     expect(mockReq.context.organizationId).toBeNull();
   });
 
+  it('reads the scope from the alias header names the web client sends', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    const mockReq: any = buildRequest({
+      headers: {
+        'x-tenant-id': 'org-1',
+        'x-branch-id': 'branch-1',
+        'x-academic-year': 'ay-1',
+      },
+    });
+    resolver.resolveContext.mockResolvedValue({
+      context: {
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        academicYearId: 'ay-1',
+        programId: null,
+        departmentId: null,
+        campusId: null,
+        branch: null,
+        academicYear: null,
+      },
+      source: 'HEADER',
+    });
+
+    await guard.canActivate(asExecutionContext(mockReq));
+
+    expect(resolver.resolveContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: {
+          organizationId: 'org-1',
+          branchId: 'branch-1',
+          academicYearId: 'ay-1',
+        },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('prefers the canonical header name when both are present', async () => {
+    reflector.getAllAndOverride.mockReturnValue(false);
+    const mockReq: any = buildRequest({
+      headers: {
+        'x-organization-id': 'org-canonical',
+        'x-tenant-id': 'org-alias',
+      },
+    });
+    resolver.resolveContext.mockResolvedValue({
+      context: {
+        organizationId: 'org-canonical',
+        branchId: null,
+        academicYearId: null,
+        programId: null,
+        departmentId: null,
+        campusId: null,
+        branch: null,
+        academicYear: null,
+      },
+      source: 'HEADER',
+    });
+
+    await guard.canActivate(asExecutionContext(mockReq));
+
+    expect(resolver.resolveContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({ organizationId: 'org-canonical' }),
+      }),
+      expect.anything(),
+    );
+  });
+
   it('requires a selection by default', async () => {
     reflector.getAllAndOverride.mockReturnValue(false);
     const mockReq: any = buildRequest();

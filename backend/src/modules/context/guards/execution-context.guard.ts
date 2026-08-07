@@ -12,6 +12,26 @@ import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup
 import { RoleType } from '@/generated/client';
 
 /**
+ * The header names each scope level is read from, in precedence order.
+ *
+ * The first name of each is canonical and is what the documentation and the
+ * Postman collection specify. The second is an accepted alias that the shipped
+ * web client sends, and dropping the request on the floor because of a name is
+ * the worst of both worlds: the client believed it had named a scope, the
+ * server saw none, and the caller was told to select the scope it had already
+ * selected. Reading both makes the platform tolerant of the name while the
+ * clients converge on one.
+ *
+ * An alias is only a spelling. The value is resolved and validated identically
+ * whichever name carried it.
+ */
+export const SCOPE_HEADERS = {
+  organizationId: ['x-organization-id', 'x-tenant-id'],
+  branchId: ['x-branch-id'],
+  academicYearId: ['x-academic-year-id', 'x-academic-year'],
+} as const;
+
+/**
  * The sole owner of the request execution scope.
  *
  * No other guard, interceptor or service writes identity or tenant scope onto
@@ -74,9 +94,9 @@ export class ExecutionContextGuard implements CanActivate {
         branchId: user?.branchId || null,
       },
       headers: {
-        organizationId: this.header(request, 'x-organization-id'),
-        branchId: this.header(request, 'x-branch-id'),
-        academicYearId: this.header(request, 'x-academic-year-id'),
+        organizationId: this.header(request, SCOPE_HEADERS.organizationId),
+        branchId: this.header(request, SCOPE_HEADERS.branchId),
+        academicYearId: this.header(request, SCOPE_HEADERS.academicYearId),
       },
       requestId: request.requestId || request.context?.requestId,
     };
@@ -122,8 +142,17 @@ export class ExecutionContextGuard implements CanActivate {
     return user?.id || user?.sub || null;
   }
 
-  private header(request: AuthenticatedRequest, name: string): string | null {
-    const value = request.headers[name];
-    return typeof value === 'string' ? value : null;
+  /** The first of `names` present on the request. Node lowercases all names. */
+  private header(
+    request: AuthenticatedRequest,
+    names: readonly string[],
+  ): string | null {
+    for (const name of names) {
+      const value = request.headers[name];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value;
+      }
+    }
+    return null;
   }
 }
