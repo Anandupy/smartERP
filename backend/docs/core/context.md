@@ -114,11 +114,17 @@ req.context = {
 
 ### Priority 1: Header Resolution
 When HTTP headers are present:
-- `X-Organization-Id`
+- `X-Organization-Id` (alias: `X-Tenant-Id`)
 - `X-Branch-Id`
-- `X-Academic-Year-Id`
+- `X-Academic-Year-Id` (alias: `X-Academic-Year`)
 
 The system validates each supplied identifier against the database and user authorization. If all supplied headers are valid, `req.context` is populated with `source: HEADER`.
+
+**A partial set is complete.** The hierarchy is strict, so the levels above the
+most specific header supplied are *derived*, not requested: `X-Branch-Id` alone
+resolves its organization, and `X-Academic-Year-Id` alone resolves both. The
+derived ids are validated exactly like supplied ones — deriving never widens
+access. See [execution-context.md](./execution-context.md).
 
 ### Priority 2: Automatic Resolution
 When headers are missing (or partially supplied), the platform auto-resolves if:

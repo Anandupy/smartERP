@@ -181,6 +181,38 @@ it. A route that reads `req.context` for scoping must therefore **not** carry
 it — such a route declares `@RequireBranch()` / `@RequireAcademicYear()`, and
 those guards reject a null scope.
 
+### The scope headers, and their aliases
+
+| Level         | Canonical name         | Also accepted     |
+| :------------ | :--------------------- | :---------------- |
+| Organization  | `x-organization-id`    | `x-tenant-id`     |
+| Branch        | `x-branch-id`          | —                 |
+| Academic year | `x-academic-year-id`   | `x-academic-year` |
+
+The canonical name is what the Postman collection and every document here
+specify. The aliases are the names the shipped web client sends; the platform
+reads both, because refusing a scope over its spelling produced the worst
+possible outcome — the client believed it had named a scope, the server saw
+none, and the caller was told to select the scope it had already selected.
+
+An alias is only a spelling. The value is resolved and validated identically
+whichever name carried it.
+
+### The hierarchy resolves upward too
+
+A branch belongs to exactly one organization and an academic year to exactly one
+branch, so **naming the specific level names the levels above it**. A request
+carrying only `x-branch-id` resolves its organization from that branch; one
+carrying only the academic year resolves both. Demanding `x-organization-id`
+from a client that already named a branch asks it to repeat itself, and
+answering `409` because it did not is how a correctly scoped request failed.
+
+Deriving is a **lookup, not a grant**. The derived ids go through
+`validateOrganization` and `validateBranch` exactly as a supplied header does,
+so an `ORG_ADMIN` who names a branch in another tenant is still refused with
+`403`. An id that resolves to nothing returns the request to ordinary discovery
+rather than inventing a different error.
+
 ### Absence is not ambiguity
 
 An organization with **no** branches resolves to an organization-only scope. It
