@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiConfig } from "@/config";
 import { AuditExplorer, AuditScreen } from "@/features/audit";
 
-import { auditLogDto } from "@tests/fixtures/audit";
+import { auditLogDto, auditLogPage } from "@tests/fixtures/audit";
 import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
 import { server } from "@tests/mocks/server";
 import { render, screen, waitFor, within } from "@tests/setup/render";
@@ -31,13 +31,7 @@ function captureListQuery(): { current: URLSearchParams | null } {
   server.use(
     http.get(`${API_BASE}/audit-logs`, ({ request }) => {
       captured.current = new URL(request.url).searchParams;
-      return HttpResponse.json(
-        successEnvelope([auditLogDto()], {
-          meta: {
-            pagination: { page: 1, pageSize: 50, total: 1, totalPages: 1 },
-          },
-        }),
-      );
+      return HttpResponse.json(successEnvelope(auditLogPage()));
     }),
   );
 
@@ -115,20 +109,21 @@ describe("Audit log list", () => {
     expect(captured.current!.get("page")).toBe("1");
   });
 
-  it("reports the range and total from the envelope's pagination", async () => {
+  it("reports the range and total from the page's own pagination", async () => {
+    // The endpoint nests pagination inside `data` and calls the page size
+    // `limit`; the pager reads `pageSize`. Both translations happen in the
+    // hook, and this is the assertion that they happen at all.
     server.use(
       http.get(`${API_BASE}/audit-logs`, () =>
         HttpResponse.json(
-          successEnvelope([auditLogDto()], {
-            meta: {
-              pagination: {
-                page: 1,
-                pageSize: 50,
-                total: 2492,
-                totalPages: 50,
-              },
-            },
-          }),
+          successEnvelope(
+            auditLogPage([auditLogDto()], {
+              page: 1,
+              limit: 50,
+              total: 2492,
+              totalPages: 50,
+            }),
+          ),
         ),
       ),
     );
@@ -136,6 +131,29 @@ describe("Audit log list", () => {
     render(<AuditScreen />);
 
     expect(await screen.findByText("1–50 of 2,492")).toBeInTheDocument();
+  });
+
+  it("renders the rows out of the page's items array", async () => {
+    // The regression this module shipped with: `data` is an object, not an
+    // array. Reading it as an array handed the table a non-iterable and the
+    // screen showed an empty state against a healthy backend.
+    server.use(
+      http.get(`${API_BASE}/audit-logs`, () =>
+        HttpResponse.json(
+          successEnvelope(
+            auditLogPage([
+              auditLogDto({ id: "a-1", eventName: "branch.created" }),
+              auditLogDto({ id: "a-2", eventName: "program.updated" }),
+            ]),
+          ),
+        ),
+      ),
+    );
+
+    render(<AuditScreen />);
+
+    expect(await screen.findByText("branch.created")).toBeInTheDocument();
+    expect(screen.getByText("program.updated")).toBeInTheDocument();
   });
 
   it("renders a failed list through the shared error state", async () => {
@@ -184,18 +202,16 @@ describe("Audit analytics", () => {
   });
 
   it("falls back to the list's own total when the summary has none", async () => {
-    // `meta.pagination.total` is documented; the summary's shape is not.
+    // The list's pagination is documented; the summary's shape is not.
     server.use(
       http.get(`${API_BASE}/audit-logs/summary`, () =>
         HttpResponse.json(successEnvelope({})),
       ),
       http.get(`${API_BASE}/audit-logs`, () =>
         HttpResponse.json(
-          successEnvelope([auditLogDto()], {
-            meta: {
-              pagination: { page: 1, pageSize: 50, total: 137, totalPages: 3 },
-            },
-          }),
+          successEnvelope(
+            auditLogPage([auditLogDto()], { total: 137, totalPages: 3 }),
+          ),
         ),
       ),
     );
@@ -203,6 +219,32 @@ describe("Audit analytics", () => {
     render(<AuditScreen />);
 
     expect(await screen.findByText("137")).toBeInTheDocument();
+  });
+
+  it("plots the daily activity the timeline endpoint returns", async () => {
+    // The series arrives under `dailyActivity`. Looking only for `daily`,
+    // `trends` or `points` reported the shape as unreadable and hid a chart
+    // the backend was populating correctly.
+    server.use(
+      http.get(`${API_BASE}/audit-logs/timeline`, () =>
+        HttpResponse.json(
+          successEnvelope({
+            dailyActivity: [
+              { date: "2026-08-01", count: 4 },
+              { date: "2026-08-02", count: 9 },
+            ],
+            events: [],
+          }),
+        ),
+      ),
+    );
+
+    render(<AuditScreen />);
+
+    expect(await screen.findByTitle(/9/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/timeline endpoint answered with a shape/i),
+    ).toBeNull();
   });
 
   it("declares the gap when the timeline shape is unreadable", async () => {

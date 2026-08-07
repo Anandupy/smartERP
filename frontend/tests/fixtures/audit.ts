@@ -1,4 +1,7 @@
-import type { AuditLogDto } from "@/features/audit/types/audit.dto";
+import type {
+  AuditLogDto,
+  AuditLogPage,
+} from "@/features/audit/types/audit.dto";
 
 /**
  * Builder for an audit record.
@@ -28,5 +31,32 @@ export function auditLogDto(overrides: Partial<AuditLogDto> = {}): AuditLogDto {
     ipAddress: "127.0.0.1",
     userAgent: "vitest",
     ...overrides,
+  };
+}
+
+/**
+ * A page of audit records **in the shape the endpoint actually returns**.
+ *
+ * `GET /audit-logs` nests its pagination inside `data` as `{ items, meta }`,
+ * and names the page size `limit`. Mocking the platform's other convention —
+ * a bare array plus `meta.pagination` — is what let a green suite coexist with
+ * a table that rendered nothing, so page responses are built here rather than
+ * hand-written per test.
+ */
+export function auditLogPage(
+  items: AuditLogDto[] = [auditLogDto()],
+  meta: Partial<AuditLogPage["meta"]> = {},
+): AuditLogPage {
+  const limit = meta.limit ?? 50;
+  const total = meta.total ?? items.length;
+
+  return {
+    items,
+    meta: {
+      total,
+      page: meta.page ?? 1,
+      limit,
+      totalPages: meta.totalPages ?? Math.max(1, Math.ceil(total / limit)),
+    },
   };
 }

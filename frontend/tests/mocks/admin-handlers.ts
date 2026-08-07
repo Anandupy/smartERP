@@ -12,7 +12,7 @@ import {
   lockedAcademicYearDto,
 } from "@tests/fixtures/academic-year";
 import { successEnvelope } from "@tests/fixtures/api";
-import { auditLogDto } from "@tests/fixtures/audit";
+import { auditLogDto, auditLogPage } from "@tests/fixtures/audit";
 import { branchDto, secondBranchDto } from "@tests/fixtures/branch";
 import { maintenanceRuleDto } from "@tests/fixtures/maintenance";
 import {
@@ -284,7 +284,8 @@ export const adminHandlers = [
   http.get(`${base}/audit-logs/summary`, () =>
     HttpResponse.json(
       successEnvelope({
-        total: 1,
+        // The endpoint names the total `totalCount`, not `total`.
+        totalCount: 1,
         byModule: [{ module: "SYSTEM", count: 1 }],
         byAction: [{ action: "UPDATE", count: 1 }],
         bySeverity: [],
@@ -294,7 +295,10 @@ export const adminHandlers = [
   ),
   http.get(`${base}/audit-logs/timeline`, () =>
     HttpResponse.json(
-      successEnvelope({ daily: [{ date: "2026-08-01", count: 1 }] }),
+      successEnvelope({
+        dailyActivity: [{ date: "2026-08-01", count: 1 }],
+        events: [],
+      }),
     ),
   ),
   http.get(`${base}/audit-logs/:id`, ({ params }) =>
@@ -311,12 +315,6 @@ export const adminHandlers = [
     ),
   ),
   http.get(`${base}/audit-logs`, () =>
-    HttpResponse.json(
-      successEnvelope([auditLogDto()], {
-        meta: {
-          pagination: { page: 1, pageSize: 50, total: 1, totalPages: 1 },
-        },
-      }),
-    ),
+    HttpResponse.json(successEnvelope(auditLogPage())),
   ),
 ];
