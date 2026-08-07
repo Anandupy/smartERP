@@ -1,14 +1,21 @@
 import { api } from "@/core/api";
 import { compact } from "@/utils";
 
-import type { AuditLogDto, AuditLogQuery } from "../types/audit.dto";
+import type {
+  AuditLogDto,
+  AuditLogPage,
+  AuditLogQuery,
+} from "../types/audit.dto";
 
 /**
  * Transport for `/audit-logs`.
  *
- * `list` uses `getEnvelope` rather than `get`: the documentation says the
- * endpoint returns "list of audit logs and pagination meta information", and
- * pagination arrives in `meta`, which the unwrapping helper discards.
+ * `list` uses `get`, not `getEnvelope`: this endpoint nests its pagination
+ * **inside the payload** as `{ items, meta }` rather than lifting it onto the
+ * envelope's `meta.pagination`. Both conventions exist in the API and each
+ * endpoint documents its own; reading the wrong one here handed the table an
+ * object where it expected an array, so no row ever rendered and the pager had
+ * no totals.
  *
  * `summary` and `timeline` are typed `unknown` on purpose. Both endpoints have
  * a documented *purpose* — distribution counts grouped by module, action,
@@ -19,9 +26,9 @@ import type { AuditLogDto, AuditLogQuery } from "../types/audit.dto";
  * it recognizes and reports the rest as pending.
  */
 export const auditService = {
-  /** `GET /audit-logs` → paginated, filtered records plus `meta.pagination`. */
+  /** `GET /audit-logs` → `{ items, meta }` — the page and its pagination. */
   list: (query: AuditLogQuery = {}) =>
-    api.getEnvelope<AuditLogDto[]>("/audit-logs", { params: compact(query) }),
+    api.get<AuditLogPage>("/audit-logs", { params: compact(query) }),
 
   /** `GET /audit-logs/:id` → one record, including `metadata` and `changes`. */
   get: (id: string) => api.get<AuditLogDto>(`/audit-logs/${id}`),

@@ -3,6 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
+import type { PaginationMeta } from "@/types/api";
+
 import { auditKeys } from "../api/audit.keys";
 import { auditService } from "../api/audit.service";
 import type { AuditLogQuery } from "../types/audit.dto";
@@ -17,6 +19,11 @@ import { readSummary, readTimeline } from "../utils/analytics";
  *
  * `placeholderData` keeps the previous page on screen while the next loads, so
  * paging does not blank the table and bounce the scroll position.
+ *
+ * The endpoint returns its page as `{ items, meta }` inside `data`, and names
+ * the page size `limit`. Both are translated here, once, into the shape the
+ * rest of the platform's list UI reads (`PaginationMeta`), so the explorer and
+ * the pager stay identical to every other list in the app.
  */
 export function useAuditLogs(query: AuditLogQuery) {
   const result = useQuery({
@@ -26,10 +33,25 @@ export function useAuditLogs(query: AuditLogQuery) {
     placeholderData: (previous) => previous,
   });
 
+  const page = result.data;
+  const meta = page?.meta;
+
+  // Left to the React Compiler rather than a manual `useMemo`: the inferred
+  // dependency is the whole page, and pinning it to `page.meta` by hand made
+  // the compiler skip the hook entirely.
+  const pagination: PaginationMeta | null = meta
+    ? {
+        page: meta.page,
+        pageSize: meta.limit,
+        total: meta.total,
+        totalPages: meta.totalPages,
+      }
+    : null;
+
   return {
     ...result,
-    logs: result.data?.data ?? [],
-    pagination: result.data?.meta?.pagination ?? null,
+    logs: page?.items ?? [],
+    pagination,
   };
 }
 

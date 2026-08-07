@@ -18,6 +18,9 @@
  *   `string`. `action` and `module` do have documented vocabularies.
  * - `metadata` and `changes` are excluded from list rows unless
  *   `includeDetails=true`, and the detail endpoint always includes them.
+ * - **The list nests its pagination inside `data`** as `{ items, meta }` — see
+ *   `AuditLogPage`. This is one of the platform's two list conventions and the
+ *   one this endpoint documents; reading the other produces an empty table.
  */
 
 /** Documented action categories. */
@@ -137,6 +140,30 @@ export interface AuditLogQuery {
 
   /** Documented default `false`; excludes `metadata` and `changes` when unset. */
   includeDetails?: boolean;
+}
+
+/**
+ * Pagination as this endpoint reports it — **inside `data`**, not on the
+ * envelope's `meta`.
+ *
+ * The platform has two list conventions and each endpoint documents which one
+ * it uses. `/audit-logs` is documented with `ApiPaginatedItemsEnvelope`: the
+ * payload is `{ items, meta }` and `meta.pagination` is never populated. Note
+ * the page size is named `limit` here, matching the query parameter, where the
+ * envelope convention names it `pageSize`.
+ */
+export interface AuditPageMeta {
+  total: number;
+  page: number;
+  /** Records per page. The envelope convention calls this `pageSize`. */
+  limit: number;
+  totalPages: number;
+}
+
+/** The payload of `GET /audit-logs`: one page and its pagination. */
+export interface AuditLogPage {
+  items: AuditLogDto[];
+  meta: AuditPageMeta;
 }
 
 /** Documented pagination defaults, so the UI and the backend start in step. */

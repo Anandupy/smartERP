@@ -183,6 +183,10 @@ export function readTimeline(payload: unknown): AuditTimeline {
     ? payload
     : source
       ? firstOf(source, [
+          // What the endpoint actually returns. The rest stay accepted: they
+          // cost nothing and the reader's whole purpose is to survive a shape
+          // it was not told about.
+          "dailyActivity",
           "daily",
           "dailyCounts",
           "trends",
