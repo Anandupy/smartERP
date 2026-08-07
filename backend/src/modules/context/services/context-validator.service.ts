@@ -153,6 +153,38 @@ export class ContextValidatorService {
   }
 
   /**
+   * The organization a branch belongs to, or `null` if there is no such branch.
+   *
+   * A lookup, not a check: the caller passes the result through
+   * `validateOrganization` and `validateBranch`, which is where existence,
+   * activity and user access are decided. Returning `null` rather than throwing
+   * keeps an unknown id on the ordinary resolution path instead of turning it
+   * into a different error than it would otherwise have been.
+   */
+  async findBranchOrganizationId(branchId: string): Promise<string | null> {
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { organizationId: true, isDeleted: true },
+    });
+
+    return branch && !branch.isDeleted ? branch.organizationId : null;
+  }
+
+  /** The branch an academic year belongs to. Same contract as above. */
+  async findAcademicYearBranchId(
+    academicYearId: string,
+  ): Promise<string | null> {
+    const academicYear = await this.prisma.academicYear.findUnique({
+      where: { id: academicYearId },
+      select: { branchId: true, isDeleted: true },
+    });
+
+    return academicYear && !academicYear.isDeleted
+      ? academicYear.branchId
+      : null;
+  }
+
+  /**
    * Full pipeline validation of Org, Branch, and Academic Year
    */
   async validateFullContext(

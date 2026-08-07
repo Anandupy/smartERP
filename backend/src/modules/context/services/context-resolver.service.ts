@@ -205,6 +205,23 @@ export class ContextResolverService {
         // Step 1: Resolve Organization from header or fallback
         let targetOrgId = rawOrgHeader;
 
+        // A client that named a branch has already named its organization: the
+        // hierarchy is strict, so the levels above the most specific header are
+        // implied, not ambiguous. Asking such a client to select an
+        // organization asks it to repeat what it just said — and answering 409
+        // because it did not is how a scoped request from a correctly
+        // configured client still failed.
+        //
+        // This is a lookup, not a grant: `validateOrganization` and
+        // `validateBranch` run immediately below on whatever it produces, so a
+        // caller naming a branch outside their tenant is still refused.
+        if (!targetOrgId) {
+          targetOrgId = await this.deriveOrganizationId(
+            rawBranchHeader,
+            rawAyHeader,
+          );
+        }
+
         if (!targetOrgId) {
           // If org header omitted, try finding user's single available org
           const discovery = await this.discoveryService.discoverContexts(
@@ -241,6 +258,12 @@ export class ContextResolverService {
 
         // Step 2: Resolve Branch from header or fallback
         let targetBranchId = rawBranchHeader;
+
+        // An academic year names its branch, for the same reason.
+        if (!targetBranchId && rawAyHeader) {
+          targetBranchId =
+            await this.validatorService.findAcademicYearBranchId(rawAyHeader);
+        }
 
         if (!targetBranchId) {
           const discovery = await this.discoveryService.discoverContexts(
@@ -569,6 +592,36 @@ export class ContextResolverService {
 
       throw error;
     }
+  }
+
+  /**
+   * The organization implied by the most specific scope header supplied.
+   *
+   * Branch → organization, or academic year → branch → organization. Returns
+   * `null` when nothing was named or the id does not resolve, which puts the
+   * request back on the ordinary discovery path rather than inventing an error.
+   *
+   * Deriving is never a permission: every id this produces goes through
+   * `validateOrganization` / `validateBranch`, which is where tenant boundaries
+   * are enforced.
+   */
+  private async deriveOrganizationId(
+    branchHeader: string | null,
+    academicYearHeader: string | null,
+  ): Promise<string | null> {
+    const branchId =
+      branchHeader ??
+      (academicYearHeader
+        ? await this.validatorService.findAcademicYearBranchId(
+            academicYearHeader,
+          )
+        : null);
+
+    if (!branchId) {
+      return null;
+    }
+
+    return this.validatorService.findBranchOrganizationId(branchId);
   }
 
   /**

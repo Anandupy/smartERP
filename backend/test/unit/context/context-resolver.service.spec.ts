@@ -45,6 +45,8 @@ describe('ContextResolverService', () => {
       validateBranch: jest.fn(),
       validateAcademicYear: jest.fn(),
       validateFullContext: jest.fn(),
+      findBranchOrganizationId: jest.fn(),
+      findAcademicYearBranchId: jest.fn(),
     };
     eventBus = {
       publish: jest.fn().mockResolvedValue(undefined),
@@ -93,6 +95,78 @@ describe('ContextResolverService', () => {
       expect(res.context.organizationId).toBe('org-1');
       expect(res.context.branchId).toBe('branch-1');
       expect(res.context.academicYearId).toBe('ay-1');
+    });
+
+    it('derives the organization from a branch header alone', async () => {
+      // A branch belongs to exactly one organization, so a client that named a
+      // branch has named its organization. Asking it to select one asks it to
+      // repeat itself, and answering 409 because it did not is how a correctly
+      // scoped request failed.
+      validatorService.findBranchOrganizationId.mockResolvedValue('org-1');
+      validatorService.validateOrganization.mockResolvedValue(mockOrg);
+      validatorService.validateBranch.mockResolvedValue(mockBranch);
+      validatorService.validateAcademicYear.mockResolvedValue(mockAy);
+      discoveryService.discoverContexts.mockResolvedValue({
+        availableOrganizations: [mockOrg, { id: 'org-2', name: 'Org 2' }],
+        availableBranches: [mockBranch],
+        availableAcademicYears: [mockAy],
+      });
+
+      const res = await resolver.resolveContext({
+        user: { id: 'u1', role: RoleType.SUPER_ADMIN },
+        headers: { branchId: 'branch-1' },
+      });
+
+      expect(res.source).toBe('HEADER');
+      expect(res.context.organizationId).toBe('org-1');
+      expect(res.context.branchId).toBe('branch-1');
+      // Derivation is a lookup, not a grant: access is still decided here.
+      expect(validatorService.validateOrganization).toHaveBeenCalledWith(
+        'org-1',
+        'u1',
+        RoleType.SUPER_ADMIN,
+        undefined,
+      );
+    });
+
+    it('derives the branch and organization from an academic-year header alone', async () => {
+      validatorService.findAcademicYearBranchId.mockResolvedValue('branch-1');
+      validatorService.findBranchOrganizationId.mockResolvedValue('org-1');
+      validatorService.validateOrganization.mockResolvedValue(mockOrg);
+      validatorService.validateBranch.mockResolvedValue(mockBranch);
+      validatorService.validateAcademicYear.mockResolvedValue(mockAy);
+      discoveryService.discoverContexts.mockResolvedValue({
+        availableOrganizations: [mockOrg, { id: 'org-2', name: 'Org 2' }],
+        availableBranches: [mockBranch],
+        availableAcademicYears: [mockAy],
+      });
+
+      const res = await resolver.resolveContext({
+        user: { id: 'u1', role: RoleType.SUPER_ADMIN },
+        headers: { academicYearId: 'ay-1' },
+      });
+
+      expect(res.context.organizationId).toBe('org-1');
+      expect(res.context.branchId).toBe('branch-1');
+      expect(res.context.academicYearId).toBe('ay-1');
+    });
+
+    it('falls back to discovery when the named branch does not resolve', async () => {
+      // An unknown id must not become a different error than it would have
+      // been: the request rejoins the ordinary path.
+      validatorService.findBranchOrganizationId.mockResolvedValue(null);
+      discoveryService.discoverContexts.mockResolvedValue({
+        availableOrganizations: [mockOrg, { id: 'org-2', name: 'Org 2' }],
+        availableBranches: [],
+        availableAcademicYears: [],
+      });
+
+      await expect(
+        resolver.resolveContext({
+          user: { id: 'u1', role: RoleType.SUPER_ADMIN },
+          headers: { branchId: 'branch-unknown' },
+        }),
+      ).rejects.toThrow(ConflictException);
     });
   });
 
