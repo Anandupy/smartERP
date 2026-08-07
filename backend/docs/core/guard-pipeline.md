@@ -99,6 +99,7 @@ been removed.
 | Decorator                            | Guard                                   | Effect                                      |
 | :----------------------------------- | :-------------------------------------- | :------------------------------------------ |
 | `@Public()`                          | `JwtAuthGuard`, `ExecutionContextGuard` | Skips authentication and context resolution |
+| `@AllowUnresolvedContext()`          | `ExecutionContextGuard`                 | An ambiguous scope resolves to `null` instead of `409 CONTEXT_SELECTION_REQUIRED`. Headers, roles and permissions are unaffected — see [execution-context.md](./execution-context.md). |
 | `@Roles(...)`                        | `RolesGuard`                            | Minimum role in the hierarchy               |
 | `@RequirePermission(...)`            | `PermissionGuard`                       | Named permissions, `ALL` or `ANY`           |
 | `@RequireBranch({ optional })`       | `BranchGuard`                           | Branch must be in scope                     |

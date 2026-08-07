@@ -150,6 +150,45 @@ auto-resolve → HTTP 409 `CONTEXT_SELECTION_REQUIRED`) still lives in
 Consumers must therefore treat a null scope as "no scope", not "not yet
 resolved".
 
+### Who decides that an ambiguous scope is fatal
+
+Ambiguity — a caller who can see several organizations, or several branches,
+having named none — is answered with `409 CONTEXT_SELECTION_REQUIRED` so the
+client chooses and retries. That is right for a route that reads or writes
+inside one tenant, and impossible for two kinds of route:
+
+| Route                           | Why a selection cannot precede it                          |
+| :------------------------------ | :--------------------------------------------------------- |
+| `GET /auth/me`                  | It **reports** `availableOrganizations`. Demanding a choice before answering means the client can never see what to choose from. |
+| `/organizations/*`              | Tenant administration sits *above* a tenant: each endpoint names its target in the path or body and reads no scope. |
+
+Those routes declare **`@AllowUnresolvedContext()`**, and the guard turns that
+one piece of route metadata into the resolver's `selectionRequired` policy. The
+decision therefore lives in exactly two places — the decorator on the route and
+the flag in the resolver — never in a controller body.
+
+What the flag does **not** change:
+
+- Authentication, `@Roles()` and `@RequirePermission()` still run.
+- A supplied header is still resolved and validated, so a cross-tenant
+  `x-organization-id` is still `403`.
+- Every other route still answers `409` with its candidate list.
+
+It only decides what happens when the scope is *ambiguous*: the ambiguous level
+and the levels beneath it resolve to `null` (`source: 'UNRESOLVED'`) instead of
+failing the request. That narrows what the request can reach; it never widens
+it. A route that reads `req.context` for scoping must therefore **not** carry
+it — such a route declares `@RequireBranch()` / `@RequireAcademicYear()`, and
+those guards reject a null scope.
+
+### Absence is not ambiguity
+
+An organization with **no** branches resolves to an organization-only scope. It
+used to raise `CONTEXT_SELECTION_REQUIRED` with an empty candidate list, which
+asked the client to choose from nothing: a newly created organization failed
+every request made against it, including the one that would have created its
+first branch. Only a count **greater than one** is a selection problem.
+
 ---
 
 ## 5. Consumers

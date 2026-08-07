@@ -127,6 +127,16 @@ When headers are missing (or partially supplied), the platform auto-resolves if:
 - The Branch has **exactly one active/selected Academic Year**.
 
 ### Priority 3: Selection Required (HTTP 409 Conflict)
+Two conditions bound this priority, and both matter:
+
+- **Only ambiguity triggers it** — a count *greater than one*. Having no branch
+  at all is absence, not ambiguity, and resolves to an organization-only scope.
+- **Only routes that operate inside a tenant are subject to it.** The routes
+  that report the choices (`GET /auth/me`) or administer tenants
+  (`/organizations/*`) declare `@AllowUnresolvedContext()` and resolve to a null
+  scope instead — otherwise the selection could never be made, because the list
+  to choose from would itself sit behind the 409.
+
 When ambiguity exists (e.g. `SUPER_ADMIN` or `ORG_ADMIN` with multiple available branches/organizations) and explicit headers are omitted, the backend returns:
 
 **HTTP 409 Conflict**
