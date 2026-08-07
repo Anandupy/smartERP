@@ -27,19 +27,19 @@ when every section is filled and *Open questions* is empty.
 | # | Module | Status | Document |
 | :--- | :--- | :--- | :--- |
 | **F1** | Data protection & key custody | `planned` ⚠️ 1 legal question + backup-retention prerequisite | [`00-foundation/01-data-protection.md`](00-foundation/01-data-protection.md) |
-| **F2** | Configuration engine | `not started` | `00-foundation/02-configuration.md` |
+| **F2** | Configuration engine | `planned` ⚠️ 2 open questions | [`00-foundation/02-configuration.md`](00-foundation/02-configuration.md) |
 | **F3** | Numbering & identity engine | `planned` ⚠️ 2 open questions | [`00-foundation/03-numbering.md`](00-foundation/03-numbering.md) |
 | — | Cross-cutting principles | `not started` | `00-foundation/00-principles.md` |
 | **I1** | Person | `planned` ⚠️ 2 open questions | [`01-identity-core/01-person.md`](01-identity-core/01-person.md) |
 | **I2** | Applicant *(exists — needs changes)* | `planned` ⚠️ 2 open questions | [`01-identity-core/02-applicant.md`](01-identity-core/02-applicant.md) |
 | **I3+I4+I5** | Admission, Student, Enrollment *(one unit)* | `planned` ⚠️ 3 open questions | [`01-identity-core/03-05-admission-student-enrollment.md`](01-identity-core/03-05-admission-student-enrollment.md) |
-| **S1** | Guardian & family *(partially exists)* | `not started` | `02-guardian-family/` |
-| **S2** | Address | `not started` | `03-address/` |
-| **S3** | Document | `not started` | `04-documents/` |
-| **S4** | Employee / staff | `not started` | `05-employee/` |
+| **S1** | Guardian & family *(partially exists)* | `planned` ⚠️ 2 open questions | [`02-guardian-family/01-guardian.md`](02-guardian-family/01-guardian.md) |
+| **S2** | Address | `planned` ⚠️ 2 open questions | [`03-address/01-address.md`](03-address/01-address.md) |
+| **S3** | Document | `planned` ⚠️ 3 open questions | [`04-documents/01-document.md`](04-documents/01-document.md) |
+| **S4** | Employee / staff | `planned` ⚠️ 3 open questions | [`05-employee/01-employee.md`](05-employee/01-employee.md) |
 | **A1** | Program & academic unit *(exists)* | `not started` | `06-academic-structure/` |
 | **A2** | Academic year & calendar *(exists, calendar missing)* | `not started` | `06-academic-structure/` |
-| **A3** | Subject & curriculum | `not started` | `06-academic-structure/` |
+| **A3** | Subject & curriculum | `planned` ⚠️ 3 open questions | [`06-academic-structure/03-subject-curriculum.md`](06-academic-structure/03-subject-curriculum.md) |
 | **A4** | Timetable | `not started` | `07-timetable/` |
 | **A5** | Promotion rules | `not started` | `06-academic-structure/` |
 | **O1** | Attendance | `not started` | `08-attendance/` |

@@ -120,6 +120,8 @@ ambiguous.
 | :--- | :--- | :--- | :--- |
 | **Aadhaar** | `Enc` + `Hash` + `Last4` | yes, by hash | `XXXX XXXX 1234` |
 | **Bank account** (scholarship, refund) | `Enc` + `Last4` | no | `••••3456` |
+| **`ProviderConfig.credentials`** | `Enc` | no | never displayed |
+| **`User.twoFactorSecret`** | `Enc` | no | never displayed |
 | **APAAR ID** | plaintext | yes | in full |
 | **ABC ID** | plaintext | yes | in full |
 | **PEN** | plaintext | yes | in full |
@@ -129,6 +131,21 @@ ambiguous.
 | Photograph | blob, access-controlled | n/a | via signed URL |
 | Health notes, disability details | plaintext, restricted roles | no | restricted screens |
 | Biometric templates | **not collected in v1** | — | — |
+
+> **Two columns have exactly one chance to be got right.**
+> [`../../core/configuration.md`](../../core/configuration.md) §5 records that
+> `ProviderConfig.credentials` (SMTP passwords, gateway API keys) and
+> `User.twoFactorSecret` are **never written today** — the provider integration
+> and two-factor authentication are both unimplemented. They must be encrypted
+> **before their first write**, because retrofitting encryption onto a populated
+> column means a migration plus a period where both forms coexist. Unlike every
+> other auth column, `twoFactorSecret` cannot be hashed — a TOTP secret must be
+> recoverable to verify a code.
+>
+> That same section states *"ENCRYPTION_KEY — reserved, not yet consumed"* and
+> *"No sensitive value is currently stored in the database."* **F1 makes both
+> statements false**; `core/configuration.md` §5 must be rewritten when F1 is
+> implemented.
 
 > Biometrics are excluded deliberately. Under the DPDP Act, biometric data of
 > children carries the heaviest obligations in the statute, and §12 Q8/Q9
