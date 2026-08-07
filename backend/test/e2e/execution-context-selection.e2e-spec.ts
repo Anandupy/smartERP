@@ -28,8 +28,15 @@ describe('Execution context selection (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let superAdminToken: string;
+  let orgAdminToken: string;
   let firstOrgId: string;
   let secondOrgId: string;
+  /** A branch of the first organization. */
+  let branchId: string;
+  /** An academic year of that branch. */
+  let academicYearId: string;
+  /** A branch of the *second* organization — off limits to the org admin. */
+  let foreignBranchId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -72,6 +79,54 @@ describe('Execution context selection (e2e)', () => {
     firstOrgId = first.id;
     secondOrgId = second.id;
 
+    // A branch and an academic year, so a request can name the specific level
+    // without naming the levels above it.
+    const branch = await prisma.branch.create({
+      data: {
+        organizationId: first.id,
+        name: 'Context Branch',
+        code: `ctx-branch-${stamp}`,
+        institutionType: 'SCHOOL',
+        contactEmail: 'branch@test.com',
+        contactPhone: '1234567890',
+        addressLine1: '1 Test Road',
+        city: 'Testville',
+        state: 'TS',
+        country: 'IN',
+        pincode: '000000',
+      },
+    });
+    branchId = branch.id;
+
+    const academicYear = await prisma.academicYear.create({
+      data: {
+        branchId: branch.id,
+        name: `2026-27-${stamp}`,
+        startDate: new Date('2026-06-01'),
+        endDate: new Date('2027-05-31'),
+        isActive: true,
+        isSelected: true,
+      },
+    });
+    academicYearId = academicYear.id;
+
+    const foreignBranch = await prisma.branch.create({
+      data: {
+        organizationId: second.id,
+        name: 'Context Foreign Branch',
+        code: `ctx-foreign-${stamp}`,
+        institutionType: 'SCHOOL',
+        contactEmail: 'foreign@test.com',
+        contactPhone: '1234567890',
+        addressLine1: '2 Test Road',
+        city: 'Testville',
+        state: 'TS',
+        country: 'IN',
+        pincode: '000000',
+      },
+    });
+    foreignBranchId = foreignBranch.id;
+
     const password = 'Password123!';
     const hash = await passwordService.hash(password);
     const superAdmin = await prisma.user.create({
@@ -85,10 +140,27 @@ describe('Execution context selection (e2e)', () => {
       },
     });
 
+    const orgAdmin = await prisma.user.create({
+      data: {
+        fullName: 'Context Org Admin',
+        username: `ctx-orgadmin-${stamp}`,
+        email: `ctx-orgadmin-${stamp}@test.com`,
+        phone: `999${stamp}`,
+        passwordHash: hash,
+        role: UserRole.ORG_ADMIN,
+        organizationId: first.id,
+      },
+    });
+
     const login = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ identifier: superAdmin.email, password });
     superAdminToken = login.body.data.accessToken;
+
+    const orgAdminLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ identifier: orgAdmin.email, password });
+    orgAdminToken = orgAdminLogin.body.data.accessToken;
   });
 
   afterAll(async () => {
@@ -161,6 +233,73 @@ describe('Execution context selection (e2e)', () => {
         .patch(`/organizations/${firstOrgId}`)
         .set('Authorization', `Bearer ${superAdminToken}`)
         .send({ name: 'Context First Org Renamed' });
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('a scoped route, given only the more specific scope', () => {
+    it('derives the organization from the branch header alone', async () => {
+      // The hierarchy is strict, so a named branch names its organization. A
+      // client that sends only `x-branch-id` has not left anything ambiguous
+      // and must not be asked to select.
+      const response = await request(app.getHttpServer())
+        .get('/branches')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-branch-id', branchId);
+
+      expect(response.status).toBe(200);
+    });
+
+    it('derives the branch and organization from the academic-year header alone', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/branches')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-academic-year-id', academicYearId);
+
+      expect(response.status).toBe(200);
+    });
+
+    it('still refuses a branch outside the caller’s tenant', async () => {
+      // Deriving is a lookup, not a grant: the derived organization is still
+      // validated against the caller. An ORG_ADMIN of the first organization
+      // naming a branch of the second is refused, not resolved.
+      const response = await request(app.getHttpServer())
+        .get('/branches')
+        .set('Authorization', `Bearer ${orgAdminToken}`)
+        .set('x-branch-id', foreignBranchId);
+
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe('the header names the shipped client sends', () => {
+    it('accepts x-tenant-id as the organization', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/branches')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-tenant-id', firstOrgId);
+
+      expect(response.status).toBe(200);
+    });
+
+    it('reports the selection made with x-tenant-id back on /auth/me', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-tenant-id', secondOrgId);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.context.organizationId).toBe(secondOrgId);
+    });
+
+    it('accepts x-academic-year as the academic year', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/branches')
+        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('x-tenant-id', firstOrgId)
+        .set('x-branch-id', branchId)
+        .set('x-academic-year', academicYearId);
 
       expect(response.status).toBe(200);
     });
