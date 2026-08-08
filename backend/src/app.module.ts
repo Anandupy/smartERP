@@ -7,6 +7,8 @@ import { validateEnv } from '@/config/env.validation';
 import { PrismaModule } from '@/infrastructure/database/prisma.module';
 import { EventsModule } from '@/infrastructure/events/events.module';
 import { AuditModule } from '@/infrastructure/audit/audit.module';
+import { OutboxModule } from '@/infrastructure/outbox/outbox.module';
+import { NumberingModule } from '@/infrastructure/numbering/numbering.module';
 import { LoggerModule } from '@/common/logger/logger.module';
 import { RequestContextMiddleware } from '@/common/logger/request-context.middleware';
 
@@ -53,7 +55,9 @@ import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-thro
     HealthModule,
     PrismaModule,
     EventsModule,
+    OutboxModule,
     AuditModule,
+    NumberingModule,
     SecurityModule,
     AuthModule,
     UserModule,
