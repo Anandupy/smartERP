@@ -22,10 +22,25 @@ when every section is filled and *Open questions* is empty.
   `prisma/schema.prisma` (see [`../prisma-guide.md`](../prisma-guide.md)).
 - Every decision records *why*. A decision without reasoning gets re-litigated.
 
+## The build blueprint
+
+Before implementing anything in the Admission → Enrollment → Student path, read
+[`student-admission-enrollment-architecture.md`](student-admission-enrollment-architecture.md).
+
+It is not another module spec. It consolidates **F3, I1, I2, I3+I4+I5** and their
+supporting modules into one dependency-ordered plan, verifies each against the
+actual repository, and records the ten places where the specs and the code
+disagree (§9.1). It also defines **Phase 0 — blocking foundation work**: four
+defects in existing code that would corrupt `studentCode` or leak data across
+tenants the first time `admit()` runs. Where it and a module spec conflict, it
+states which is correct and why; Appendix B lists the corrections to fold back
+into the specs.
+
 ## Status
 
 | # | Module | Status | Document |
 | :--- | :--- | :--- | :--- |
+| **★** | **Admission → Enrollment → Student — build blueprint** | `planned` ⚠️ 12 open questions, 12 Phase-0 blockers | [`student-admission-enrollment-architecture.md`](student-admission-enrollment-architecture.md) |
 | **F1** | Data protection & key custody | `planned` ⚠️ 1 legal question + backup-retention prerequisite | [`00-foundation/01-data-protection.md`](00-foundation/01-data-protection.md) |
 | **F2** | Configuration engine | `planned` ⚠️ 2 open questions | [`00-foundation/02-configuration.md`](00-foundation/02-configuration.md) |
 | **F3** | Numbering & identity engine | `planned` ⚠️ 2 open questions | [`00-foundation/03-numbering.md`](00-foundation/03-numbering.md) |
