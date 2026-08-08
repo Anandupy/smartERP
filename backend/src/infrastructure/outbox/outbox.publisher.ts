@@ -1,8 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@/generated/client';
 import { DomainEvent } from '@/common/events/domain-event.base';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { PrismaTransactionClient } from '@/infrastructure/database/prisma-transaction.types';
 import { OutboxContextSnapshot } from './outbox.types';
+
+/**
+ * Widen a value to the shape Prisma accepts for a `Json` column.
+ *
+ * The snapshot and the payload are ordinary serialisable objects, but Prisma's
+ * `InputJsonValue` demands an index signature that a precise interface
+ * deliberately does not have. Narrowing the interface instead would let any
+ * misspelled field through at every construction site, so the coercion happens
+ * once, here, where it is visible.
+ */
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
 
 /**
  * Writes a domain event into the same transaction as the data it describes.
@@ -44,9 +58,9 @@ export class OutboxPublisher {
         aggregateType: event.aggregateType,
         aggregateId: event.aggregateId,
         occurredAt: event.occurredAt,
-        payload: (event as { payload?: unknown }).payload ?? {},
-        metadata: (event.metadata ?? undefined) as object | undefined,
-        contextSnapshot: snapshot,
+        payload: asJson((event as { payload?: unknown }).payload ?? {}),
+        metadata: event.metadata ? asJson(event.metadata) : undefined,
+        contextSnapshot: asJson(snapshot),
         organizationId: snapshot.organizationId,
       },
     });

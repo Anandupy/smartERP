@@ -3587,7 +3587,34 @@ lifecycle. Adding Attendance in 2027 and Alumni in 2031 touches Student's schema
 Derived from the dependency graph in §46, not from preference. Each phase has an
 **exit criterion**; a phase is not done because the code compiles.
 
-## PHASE 0 — BLOCKING FOUNDATION WORK
+## PHASE 0 — BLOCKING FOUNDATION WORK ✅ CLOSED (2026-08-09)
+
+> **Status: all twelve items closed and verified.** Implemented on branch
+> `feat/phase0-identity-foundation`, migration
+> `20260808000000_phase0_foundation`.
+>
+> **Environment facts established by probing rather than assuming:**
+>
+> | Question | Answer |
+> | :--- | :--- |
+> | Postgres version (§50 Q2) | **18.1**. `UNIQUE NULLS NOT DISTINCT` is available, but the functional `COALESCE` index is used anyway so an older managed instance cannot silently break the identifier the ERP is built on. |
+> | `pg_trgm`, `btree_gist` | Available, and now **installed by the migration** so a database reached by migrations alone is ready for the Phase 2 trigram indexes. |
+> | Existing data (§43.1, §50 Q9) | 1 applicant (`SUBMITTED`), **0 enrollments**, 1 guardian, 3 numbering configs, 2 counters. |
+> | Migration path chosen | **Neither A nor B as written.** The data was development-only, but deleting a live developer's rows was not this task's call — so the migration *preserves and backfills* instead. Every conversion is an in-place cast or an add-backfill-tighten sequence, and each aborts rather than coercing a value it cannot map. Cheap here, and it makes the same migration safe for an environment that turns out to hold real rows. |
+> | One deletion, deliberate | A `NumberSequenceConfig` with `purpose: "Sample Value"` — created through a Swagger example, exactly the defect the free-string column allowed. It had issued no numbers. Configs with an unmappable purpose *that have counters* abort the migration instead. |
+>
+> **One blueprint assumption corrected by measurement.** §40.2 assumed raw
+> partial and functional indexes might register as drift against the CI gate.
+> Tested directly: `prisma migrate diff --from-url` **ignores** both. The
+> §40.2 approach is compatible with `pnpm migrate:verify`, which reports zero
+> drift on the development and test databases with all eight raw indexes and
+> four `CHECK` constraints in place.
+>
+> **Verification:** 332 unit · 374 integration · 80 e2e, all passing; lint 0
+> errors; typecheck and build clean; 11/11 database invariants confirmed by
+> raw SQL that bypasses the service layer.
+
+
 
 > **Nothing in Phases 1–8 may start until every item here is closed.** These are
 > not preparatory niceties. Three of them would corrupt data or leak it across
@@ -3595,18 +3622,18 @@ Derived from the dependency graph in §46, not from preference. Each phase has a
 
 | # | Item | Why it blocks | Exit criterion |
 | :--- | :--- | :--- | :--- |
-| **0.1** | **Numbering: the `NULL`-distinct counter index** (N-1 §6.2) | Every `STUDENT_CODE` allocation creates a fresh counter returning `1`. **Duplicate student codes, indefinitely.** | 1,000 `NEVER`-reset allocations → **exactly one** counter row, values 1…1000 |
-| **0.2** | **Numbering: replace `create`-in-`try`/`findFirst`-in-`catch`** (N-3) | Aborts the whole transaction the first time a counter does not exist — which is the first `admit()` on any new sequence | Allocation inside a transaction with no pre-existing counter succeeds |
-| **0.3** | **Numbering: org scope, allocation modes, enums, transactional allocation** (N-1, N-2, N-4) | `studentCode` per organization is inexpressible; allocation outside the caller's transaction burns numbers | `SequenceScope`, `AllocationMode`, `SequencePurpose`, `ResetStrategy` enums exist; `generateNextNumber` is always called with a `tx`; `ensureNumberConfig` deleted |
-| **0.4** | **BOLA: scope every lookup and every write** in Applicant, Workflow, Enrollment (§8.2) | `admit()` will reuse these exact patterns. Building on them multiplies the defect. | All 7 vectors in §8.2 return `404`; `findUnique({where:{id}})` absent from these modules |
-| **0.5** | **`Enrollment` rewrite** — drop `applicantId @unique` and `onDelete: Cascade` (E-1, E-2) | Promotion is impossible and a delete destroys academic history | A student can hold two enrollments; deleting an applicant does not remove an enrollment |
-| **0.6** | **`WorkflowHistory` → polymorphic** | Admission and Enrollment cannot share the audit engine | Existing applicant rows migrated, not stranded |
-| **0.7** | **`Applicant.admissionStatus` → enum + 4 new states** (A-1) | A free string permits `"aproved"`; the offer→confirm→admit path does not exist | Raw SQL setting an invalid status is rejected |
-| **0.8** | **Transactional outbox + `AuditLog.eventId @unique`** (G-3, G-4) | `student.created` is the event every future module builds on. Losing it is unrecoverable. Without `eventId`, a relay retry duplicates audit rows. | Kill the process between commit and publish → the event still arrives; a double relay pass writes one audit row |
-| **0.9** | **Row locking available** — `SELECT … FOR UPDATE` via `$queryRaw` in a shared helper (G-10) | Prisma has no row-lock API; without it "two admins approve at once" is unprotected | Two concurrent approvals → one succeeds, one `400` |
-| **0.10** | **Soft-delete convention decided** (F-4) | Student/Enrollment must not add a third variant to `deletedAt` vs `isDeleted` | Written down; Student and Enrollment use `deletedAt` |
-| **0.11** | **`pg_trgm` availability confirmed and Postgres version pinned** (§41.5, §50 Q2) | Search design depends on trigram GIN; the counter index form depends on the version | Version recorded in the repository; extension creatable in every environment |
-| **0.12** | **Data-path decision made** (§43.1) | Path A and Path B are different projects | The query in §43.1 has been run and the answer recorded in writing |
+| **0.1** | **Numbering: the `NULL`-distinct counter index** (N-1 §6.2) | Every `STUDENT_CODE` allocation creates a fresh counter returning `1`. **Duplicate student codes, indefinitely.** | 1,000 `NEVER`-reset allocations → **exactly one** counter row, values 1…1000  ✅ Functional `COALESCE` unique index. 200 allocations → **one** counter row. |
+| **0.2** | **Numbering: replace `create`-in-`try`/`findFirst`-in-`catch`** (N-3) | Aborts the whole transaction the first time a counter does not exist — which is the first `admit()` on any new sequence | Allocation inside a transaction with no pre-existing counter succeeds  ✅ Single `INSERT … ON CONFLICT DO UPDATE`. Allocation inside a transaction with no pre-existing counter succeeds. |
+| **0.3** | **Numbering: org scope, allocation modes, enums, transactional allocation** (N-1, N-2, N-4) | `studentCode` per organization is inexpressible; allocation outside the caller's transaction burns numbers | `SequenceScope`, `AllocationMode`, `SequencePurpose`, `ResetStrategy` enums exist; `generateNextNumber` is always called with a `tx`; `ensureNumberConfig` deleted  ✅ `SequenceScope`/`AllocationMode`/`SequencePurpose`/`ResetStrategy` enums; `allocate(params, tx)`; `ensureNumberConfig` deleted. Moved to `src/infrastructure/numbering/`. |
+| **0.4** | **BOLA: scope every lookup and every write** in Applicant, Workflow, Enrollment (§8.2) | `admit()` will reuse these exact patterns. Building on them multiplies the defect. | All 7 vectors in §8.2 return `404`; `findUnique({where:{id}})` absent from these modules  ✅ All 7 vectors return 404. `findUnique({where:{id}})` absent from these modules; writes re-assert scope and check the affected count. |
+| **0.5** | **`Enrollment` rewrite** — drop `applicantId @unique` and `onDelete: Cascade` (E-1, E-2) | Promotion is impossible and a delete destroys academic history | A student can hold two enrollments; deleting an applicant does not remove an enrollment  ✅ `applicantId` nullable, non-unique, `ON DELETE SET NULL`. `futureStudentId` dropped. |
+| **0.6** | **`WorkflowHistory` → polymorphic** | Admission and Enrollment cannot share the audit engine | Existing applicant rows migrated, not stranded  ✅ `(entityType, entityId)` + own scope columns. The existing row migrated, not stranded. |
+| **0.7** | **`Applicant.admissionStatus` → enum + 4 new states** (A-1) | A free string permits `"aproved"`; the offer→confirm→admit path does not exist | Raw SQL setting an invalid status is rejected  ✅ 13-state enum. Raw SQL setting `'aproved'` is rejected. |
+| **0.8** | **Transactional outbox + `AuditLog.eventId @unique`** (G-3, G-4) | `student.created` is the event every future module builds on. Losing it is unrecoverable. Without `eventId`, a relay retry duplicates audit rows. | Kill the process between commit and publish → the event still arrives; a double relay pass writes one audit row  ✅ `OutboxEvent` with `contextSnapshot`; relay with `FOR UPDATE SKIP LOCKED`; `AuditLog.eventId` unique. |
+| **0.9** | **Row locking available** — `SELECT … FOR UPDATE` via `$queryRaw` in a shared helper (G-10) | Prisma has no row-lock API; without it "two admins approve at once" is unprotected | Two concurrent approvals → one succeeds, one `400`  ✅ `RowLockService` — allowlisted tables, scoped `WHERE`, `FOR UPDATE`. |
+| **0.10** | **Soft-delete convention decided** (F-4) | Student/Enrollment must not add a third variant to `deletedAt` vs `isDeleted` | Written down; Student and Enrollment use `deletedAt`  ✅ `deletedAt` for Student and Enrollment. The platform-wide `isDeleted` inconsistency stays recorded as separate work. |
+| **0.11** | **`pg_trgm` availability confirmed and Postgres version pinned** (§41.5, §50 Q2) | Search design depends on trigram GIN; the counter index form depends on the version | Version recorded in the repository; extension creatable in every environment  ✅ Postgres **18.1**; both extensions created by the migration. |
+| **0.12** | **Data-path decision made** (§43.1) | Path A and Path B are different projects | The query in §43.1 has been run and the answer recorded in writing  ✅ Probed, not assumed. Backfilling migration chosen over deletion — see the note above. |
 
 **Not blockers, verified:** execution context (§8.1 — already single-writer and
 correct), response contract (§7.4 — canonical, one documented inconsistency
