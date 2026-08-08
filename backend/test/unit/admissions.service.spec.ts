@@ -1,23 +1,44 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { RowLockService } from '@/infrastructure/database/row-lock.service';
+import { OutboxPublisher } from '@/infrastructure/outbox/outbox.publisher';
 import { ReligionService } from '@/modules/admissions/masters/religion/religion.service';
-import { NumberingService } from '@/modules/admissions/numbering/numbering.service';
+import { NumberingService } from '@/infrastructure/numbering/numbering.service';
 import { ApplicantService } from '@/modules/admissions/applicant/applicant.service';
 import { GuardiansService } from '@/modules/admissions/guardians/guardians.service';
 import { WorkflowService } from '@/modules/admissions/workflow/workflow.service';
 import { EnrollmentService } from '@/modules/admissions/enrollment/enrollment.service';
-import { WorkflowState } from '@/modules/admissions/workflow/dto/workflow.dto';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { ResourceScope } from '@/common/scope/resource-scope';
 import {
   ApplicantCreatedEvent,
-  GuardianCreatedEvent,
   GuardianMappedEvent,
-  AdmissionWorkflowTransitionedEvent,
-  EnrollmentCompletedEvent,
   NumberingConfigCreatedEvent,
-  AdmissionsMasterCreatedEvent,
 } from '@/common/events';
+
+/**
+ * The scope every service call now carries.
+ *
+ * Passing it explicitly is the point of the Phase 0 change: a service can no
+ * longer be handed a bare id and left to decide for itself whether the caller
+ * was entitled to it.
+ */
+const SCOPE: ResourceScope = {
+  organizationId: 'org-1',
+  branchId: 'branch-1',
+  academicYearId: 'year-1',
+};
+
+const OTHER_BRANCH_SCOPE: ResourceScope = {
+  organizationId: 'org-1',
+  branchId: 'branch-2',
+  academicYearId: 'year-1',
+};
 
 describe('Admissions Module Foundation - Unit Tests', () => {
   let religionService: ReligionService;
@@ -26,71 +47,67 @@ describe('Admissions Module Foundation - Unit Tests', () => {
   let guardiansService: GuardiansService;
   let workflowService: WorkflowService;
   let enrollmentService: EnrollmentService;
-  let prisma: PrismaService;
 
   const mockEventBus = {
     publish: jest.fn().mockResolvedValue(undefined),
+    publishAll: jest.fn().mockResolvedValue(undefined),
     subscribe: jest.fn(),
+    unsubscribe: jest.fn(),
+  };
+
+  /**
+   * Routes a raw query to the right canned answer.
+   *
+   * Two very different statements go through `$queryRawUnsafe` now — the
+   * numbering upsert and the row lock — so the mock has to tell them apart.
+   *
+   * Reinstalled in `beforeEach`, because a test that swaps the implementation
+   * to observe call ordering would otherwise leave the router replaced for
+   * every test after it.
+   */
+  const rawQuery = jest.fn() as jest.Mock & { lockResult: unknown[] };
+  rawQuery.lockResult = [];
+
+  const routeRawQuery = (sql: string) => {
+    if (sql.includes('NumberSequenceCounter')) {
+      return Promise.resolve([{ currentValue: 1 }]);
+    }
+    if (sql.includes('FOR UPDATE')) {
+      return Promise.resolve(rawQuery.lockResult);
+    }
+    return Promise.resolve([]);
   };
 
   const mockPrisma: any = {
-    religion: {
-      findFirst: jest.fn(),
-      create: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
-    },
-    gender: {
-      findFirst: jest.fn(),
-    },
-    caste: {
-      findFirst: jest.fn(),
-    },
-    category: {
-      findFirst: jest.fn(),
-    },
-    language: {
-      findFirst: jest.fn(),
-    },
-    bloodGroup: {
-      findFirst: jest.fn(),
-    },
-    disability: {
-      findFirst: jest.fn(),
-    },
-    admissionSource: {
-      findFirst: jest.fn(),
-    },
-    quota: {
-      findFirst: jest.fn(),
-    },
+    religion: { findFirst: jest.fn(), create: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+    gender: { findFirst: jest.fn() },
+    caste: { findFirst: jest.fn() },
+    category: { findFirst: jest.fn() },
+    language: { findFirst: jest.fn() },
+    bloodGroup: { findFirst: jest.fn() },
+    disability: { findFirst: jest.fn() },
+    admissionSource: { findFirst: jest.fn() },
+    quota: { findFirst: jest.fn() },
     numberSequenceConfig: {
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       findMany: jest.fn(),
     },
-    numberSequenceCounter: {
-      findFirst: jest.fn(),
-      create: jest.fn(),
-    },
-    branch: {
-      findUnique: jest.fn(),
-    },
-    academicYear: {
-      findUnique: jest.fn(),
-    },
-    program: {
-      findUnique: jest.fn(),
-    },
-    academicUnit: {
-      findUnique: jest.fn(),
-    },
+    numberSequenceCounter: { findFirst: jest.fn(), create: jest.fn() },
+    branch: { findUnique: jest.fn() },
+    academicYear: { findUnique: jest.fn(), findFirst: jest.fn() },
+    program: { findUnique: jest.fn(), findFirst: jest.fn() },
+    academicUnit: { findUnique: jest.fn(), findFirst: jest.fn() },
     applicant: {
       findFirst: jest.fn(),
+      findFirstOrThrow: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       count: jest.fn(),
     },
     guardian: {
@@ -100,9 +117,7 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
-    relationType: {
-      findFirst: jest.fn(),
-    },
+    relationType: { findFirst: jest.fn() },
     applicantGuardianMapping: {
       upsert: jest.fn(),
       updateMany: jest.fn(),
@@ -110,19 +125,17 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       findUnique: jest.fn(),
       delete: jest.fn(),
     },
-    enrollment: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-    },
-    workflowHistory: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-    },
-    $transaction: jest.fn((cb) => cb(mockPrisma)),
+    enrollment: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn() },
+    workflowHistory: { create: jest.fn(), findMany: jest.fn() },
+    outboxEvent: { create: jest.fn().mockResolvedValue({ id: 'outbox-1' }) },
+    $transaction: jest.fn((cb: any) => cb(mockPrisma)),
+    $queryRawUnsafe: rawQuery,
     $queryRaw: jest.fn(),
   };
 
   beforeEach(async () => {
+    rawQuery.mockImplementation(routeRawQuery);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReligionService,
@@ -131,143 +144,347 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         GuardiansService,
         WorkflowService,
         EnrollmentService,
+        // Real instances rather than mocks: both are thin, and using the real
+        // ones means these tests exercise the locking and outbox wiring instead
+        // of asserting against a stand-in that cannot be wrong.
+        RowLockService,
+        OutboxPublisher,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EventBus, useValue: mockEventBus },
       ],
     }).compile();
 
-    religionService = module.get<ReligionService>(ReligionService);
-    numberingService = module.get<NumberingService>(NumberingService);
-    applicantService = module.get<ApplicantService>(ApplicantService);
-    guardiansService = module.get<GuardiansService>(GuardiansService);
-    workflowService = module.get<WorkflowService>(WorkflowService);
-    enrollmentService = module.get<EnrollmentService>(EnrollmentService);
-    prisma = module.get<PrismaService>(PrismaService);
+    religionService = module.get(ReligionService);
+    numberingService = module.get(NumberingService);
+    applicantService = module.get(ApplicantService);
+    guardiansService = module.get(GuardiansService);
+    workflowService = module.get(WorkflowService);
+    enrollmentService = module.get(EnrollmentService);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    rawQuery.lockResult = [];
   });
 
   describe('Master Data uniqueness', () => {
-    it('should throw BadRequestException if master code already exists in scope', async () => {
-      mockPrisma.religion.findFirst.mockResolvedValueOnce({ id: 'existing' }); // code match
+    it('rejects a master whose code already exists in scope', async () => {
+      mockPrisma.religion.findFirst.mockResolvedValueOnce({ id: 'existing' });
       await expect(
         religionService.create({ code: 'HIND', name: 'Hindu' }, 'org-1', 'branch-1'),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException if master name already exists in scope', async () => {
+    it('rejects a master whose name already exists in scope', async () => {
       mockPrisma.religion.findFirst
-        .mockResolvedValueOnce(null) // code ok
-        .mockResolvedValueOnce({ id: 'existing' }); // name match
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'existing' });
       await expect(
         religionService.create({ code: 'HIND', name: 'Hindu' }, 'org-1', 'branch-1'),
       ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should create master record successfully and publish AdmissionsMasterCreatedEvent', async () => {
-      mockPrisma.religion.findFirst
-        .mockResolvedValueOnce(null) // code ok
-        .mockResolvedValueOnce(null); // name ok
-      mockPrisma.religion.create.mockResolvedValue({
-        id: 'rel-123',
-        code: 'HIND',
-        name: 'Hindu',
-      });
-
-      const result = await religionService.create({ code: 'HIND', name: 'Hindu' }, 'org-1', 'branch-1');
-      expect(result.id).toBe('rel-123');
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.any(AdmissionsMasterCreatedEvent),
-      );
     });
   });
 
-  describe('Numbering Generation safety', () => {
-    it('should generate next formatted string safely', async () => {
-      mockPrisma.numberSequenceConfig.findUnique.mockResolvedValue({
-        id: 'cfg-1',
-        prefix: 'ADM',
-        suffix: 'MUM',
-        includeBranchCode: true,
-        includeAcademicYear: true,
-        sequencePadding: 4,
-        format: '{prefix}-{branchCode}-{year}-{sequence}-{suffix}',
-        resetStrategy: 'NEVER',
-      });
-      mockPrisma.numberSequenceCounter.findFirst.mockResolvedValue({ id: 'cnt-1', currentValue: 0 });
-      mockPrisma.$queryRaw.mockResolvedValue([{ currentValue: 1 }]);
+  describe('Numbering', () => {
+    const config = {
+      id: 'cfg-1',
+      purpose: 'ADMISSION_FORM',
+      prefix: 'ADM',
+      suffix: null,
+      includeBranchCode: true,
+      includeAcademicYear: true,
+      sequencePadding: 4,
+      format: '{prefix}-{branchCode}-{year}-{sequence}',
+      resetStrategy: 'YEARLY',
+      allocationMode: 'MONOTONIC',
+      scope: 'BRANCH',
+      branchId: 'branch-1',
+    };
+
+    it('renders a value from the configured format', async () => {
+      mockPrisma.numberSequenceConfig.findFirst.mockResolvedValue(config);
       mockPrisma.branch.findUnique.mockResolvedValue({ code: 'MUM' });
       mockPrisma.academicYear.findUnique.mockResolvedValue({ name: '2026' });
 
-      const nextNum = await numberingService.generateNextNumber('branch-1', 'year-1', 'ADMISSION_FORM');
-      expect(nextNum).toBe('ADM-MUM-2026-0001-MUM');
+      const value = await numberingService.allocate(
+        {
+          purpose: 'ADMISSION_FORM',
+          organizationId: 'org-1',
+          branchId: 'branch-1',
+          academicYearId: 'year-1',
+        },
+        mockPrisma,
+      );
+
+      expect(value).toBe('ADM-MUM-2026-0001');
     });
 
-    it('should publish NumberingConfigCreatedEvent when creating config', async () => {
-      mockPrisma.numberSequenceConfig.findUnique.mockResolvedValue(null);
+    it('resolves placeholders before touching the counter', async () => {
+      const calls: string[] = [];
+      mockPrisma.numberSequenceConfig.findFirst.mockResolvedValue(config);
+      mockPrisma.branch.findUnique.mockImplementation(() => {
+        calls.push('branch');
+        return Promise.resolve({ code: 'MUM' });
+      });
+      mockPrisma.academicYear.findUnique.mockImplementation(() => {
+        calls.push('year');
+        return Promise.resolve({ name: '2026' });
+      });
+      rawQuery.mockImplementation((sql: string) => {
+        if (sql.includes('NumberSequenceCounter')) {
+          calls.push('increment');
+          return Promise.resolve([{ currentValue: 1 }]);
+        }
+        return Promise.resolve([]);
+      });
+
+      await numberingService.allocate(
+        {
+          purpose: 'ADMISSION_FORM',
+          organizationId: 'org-1',
+          branchId: 'branch-1',
+          academicYearId: 'year-1',
+        },
+        mockPrisma,
+      );
+
+      // Any lookup between the increment and the caller's commit is lock-hold
+      // time on a row every concurrent allocation is queued behind.
+      expect(calls).toEqual(['branch', 'year', 'increment']);
+    });
+
+    it('allocates in a single upsert rather than find-then-create', async () => {
+      mockPrisma.numberSequenceConfig.findFirst.mockResolvedValue({
+        ...config,
+        includeBranchCode: false,
+        includeAcademicYear: false,
+        format: '{prefix}{sequence}',
+      });
+
+      await numberingService.allocate(
+        {
+          purpose: 'ADMISSION_FORM',
+          organizationId: 'org-1',
+          branchId: 'branch-1',
+          academicYearId: 'year-1',
+        },
+        mockPrisma,
+      );
+
+      const sql = rawQuery.mock.calls[0][0] as string;
+      expect(sql).toContain('ON CONFLICT');
+      expect(sql).toContain('COALESCE');
+      // The find-then-create it replaces could not survive a unique violation
+      // inside a transaction: Postgres aborts, and the recovery read fails.
+      expect(mockPrisma.numberSequenceCounter.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.numberSequenceCounter.create).not.toHaveBeenCalled();
+    });
+
+    it('fails loudly when a sequence is not provisioned', async () => {
+      mockPrisma.numberSequenceConfig.findFirst.mockResolvedValue(null);
+
+      await expect(
+        numberingService.allocate(
+          {
+            purpose: 'STUDENT_CODE',
+            organizationId: 'org-1',
+            branchId: 'branch-1',
+          },
+          mockPrisma,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_NOT_PROVISIONED' },
+      });
+
+      // Inventing a config on the fly is how a tenant silently acquires a
+      // numbering scheme nobody chose.
+      expect(mockPrisma.numberSequenceConfig.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a format that renders no counter', async () => {
+      await expect(
+        numberingService.createConfig(
+          { purpose: 'STUDENT_CODE', prefix: 'STU', format: '{prefix}-{year}' },
+          'org-1',
+          null,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_FORMAT_INVALID' },
+      });
+    });
+
+    it('derives scope, reset and allocation mode from the purpose', async () => {
+      mockPrisma.numberSequenceConfig.findFirst.mockResolvedValue(null);
       mockPrisma.numberSequenceConfig.create.mockResolvedValue({
-        id: 'cfg-1',
-        purpose: 'TEST_PURPOSE',
-        format: '{prefix}-{sequence}',
+        id: 'cfg-2',
+        purpose: 'STUDENT_CODE',
+        format: '{prefix}{sequence}',
       });
 
       await numberingService.createConfig(
-        { purpose: 'TEST_PURPOSE', prefix: 'TST', sequencePadding: 4, format: '{prefix}-{sequence}' },
+        {
+          purpose: 'STUDENT_CODE',
+          prefix: 'STU',
+          sequencePadding: 10,
+          format: '{prefix}{sequence}',
+        },
         'org-1',
         'branch-1',
       );
 
+      const data = mockPrisma.numberSequenceConfig.create.mock.calls[0][0].data;
+      expect(data.scope).toBe('ORGANIZATION');
+      expect(data.resetStrategy).toBe('NEVER');
+      expect(data.allocationMode).toBe('MONOTONIC');
+      // An organization-scoped sequence is not pinned to whichever branch the
+      // administrator happened to have selected.
+      expect(data.branchId).toBeNull();
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.any(NumberingConfigCreatedEvent),
       );
     });
+
+    it('freezes prefix and padding once an identity sequence has issued a value', async () => {
+      mockPrisma.numberSequenceConfig.findFirst.mockResolvedValue({
+        id: 'cfg-2',
+        purpose: 'STUDENT_CODE',
+        resetStrategy: 'NEVER',
+        prefix: 'STU',
+        sequencePadding: 10,
+      });
+      mockPrisma.numberSequenceCounter.findFirst.mockResolvedValue({
+        id: 'cnt-1',
+      });
+
+      await expect(
+        numberingService.updateConfig('cfg-2', { sequencePadding: 8 }, 'org-1'),
+      ).rejects.toMatchObject({
+        response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' },
+      });
+    });
+
+    it('allows width changes before the first allocation', async () => {
+      mockPrisma.numberSequenceConfig.findFirst.mockResolvedValue({
+        id: 'cfg-2',
+        purpose: 'STUDENT_CODE',
+        resetStrategy: 'NEVER',
+        prefix: 'STU',
+        sequencePadding: 10,
+      });
+      mockPrisma.numberSequenceCounter.findFirst.mockResolvedValue(null);
+      mockPrisma.numberSequenceConfig.update.mockResolvedValue({ id: 'cfg-2' });
+
+      await expect(
+        numberingService.updateConfig('cfg-2', { sequencePadding: 8 }, 'org-1'),
+      ).resolves.toBeDefined();
+    });
   });
 
-  describe('Applicant lifecycle and duplicate warning detection', () => {
-    it('should warn duplicate matches on Aadhaar or mobile, but create applicant and publish event', async () => {
+  describe('Applicant', () => {
+    const dto = {
+      firstName: 'John',
+      lastName: 'Doe',
+      dob: '2020-01-01',
+      genderId: 'gen-1',
+      primaryMobile: '9999999999',
+      currentAddressLine1: 'Street 1',
+      city: 'Mumbai',
+      state: 'MH',
+      country: 'IN',
+      pincode: '400001',
+    } as any;
+
+    it('creates the applicant and its numbers in one transaction, and outboxes the event', async () => {
       mockPrisma.gender.findFirst.mockResolvedValue({ id: 'gen-1' });
-      mockPrisma.numberSequenceConfig.findUnique.mockResolvedValue({ id: 'cfg-1', format: '{prefix}-{sequence}', sequencePadding: 4 });
-      mockPrisma.numberSequenceCounter.findFirst.mockResolvedValue({ id: 'cnt-1' });
-      mockPrisma.$queryRaw.mockResolvedValue([{ currentValue: 1 }]);
+      mockPrisma.numberSequenceConfig.findFirst.mockResolvedValue({
+        id: 'cfg-1',
+        format: '{prefix}{sequence}',
+        prefix: 'ADM',
+        suffix: null,
+        sequencePadding: 4,
+        resetStrategy: 'YEARLY',
+        allocationMode: 'MONOTONIC',
+        includeBranchCode: false,
+        includeAcademicYear: false,
+      });
       mockPrisma.applicant.findMany.mockResolvedValue([
-        { id: 'app-old', displayName: 'John Doe', primaryMobile: '9999999999', aadhaarNo: '111122223333' },
+        { id: 'app-old', displayName: 'John Doe', primaryMobile: '9999999999' },
       ]);
       mockPrisma.applicant.create.mockResolvedValue({
         id: 'app-new',
         displayName: 'John Doe',
-        admissionFormNo: 'ADM-0001',
-        applicationNo: 'APP-0001',
+        admissionFormNo: 'ADM0001',
+        applicationNo: 'APP0001',
         primaryMobile: '9999999999',
       });
 
-      const dto = {
-        firstName: 'John',
-        lastName: 'Doe',
-        dob: '2020-01-01',
-        genderId: 'gen-1',
-        primaryMobile: '9999999999',
-        aadhaarNo: '111122223333',
-        currentAddressLine1: 'Street 1',
-        city: 'Mumbai',
-        state: 'MH',
-        country: 'IN',
-        pincode: '400001',
-      };
+      const result = await applicantService.create(dto, SCOPE);
 
-      const result = await applicantService.create(dto, 'org-1', 'branch-1', 'year-1');
-      expect(result.warnings.length).toBe(1);
       expect(result.applicant.id).toBe('app-new');
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.any(ApplicantCreatedEvent),
+      expect(result.warnings.length).toBe(1);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      // Durability, not fire-and-forget: the event commits with the row.
+      expect(mockPrisma.outboxEvent.create).toHaveBeenCalled();
+      const outboxed = mockPrisma.outboxEvent.create.mock.calls[0][0].data;
+      expect(outboxed.eventName).toBe(ApplicantCreatedEvent.EVENT_NAME);
+    });
+
+    it('confines a read to the caller scope', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(null);
+
+      await expect(applicantService.findOne('app-1', SCOPE)).rejects.toThrow(
+        NotFoundException,
       );
+
+      expect(mockPrisma.applicant.findFirst.mock.calls[0][0].where).toMatchObject({
+        id: 'app-1',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        deletedAt: null,
+      });
+    });
+
+    it('re-asserts the scope on the write, not only on the preceding read', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue({
+        id: 'app-1',
+        admissionStatus: 'DRAFT',
+        firstName: 'John',
+        middleName: null,
+        lastName: 'Doe',
+      });
+      mockPrisma.applicant.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.applicant.findFirstOrThrow.mockResolvedValue({
+        id: 'app-1',
+        displayName: 'Johnny Doe',
+      });
+
+      await applicantService.update('app-1', { firstName: 'Johnny' } as any, SCOPE);
+
+      expect(mockPrisma.applicant.updateMany.mock.calls[0][0].where).toMatchObject({
+        id: 'app-1',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+      });
+    });
+
+    it('refuses to edit an applicant that has been offered a seat', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue({
+        id: 'app-1',
+        admissionStatus: 'APPROVED',
+      });
+
+      await expect(
+        applicantService.update('app-1', { firstName: 'X' } as any, SCOPE),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
-  describe('Sibling guardian mappings emergency rules', () => {
-    it('should reset other primary guardians to false if new isPrimary is mapped and publish event', async () => {
-      mockPrisma.applicant.findFirst.mockResolvedValue({ id: 'app-1', admissionStatus: 'DRAFT' });
+  describe('Guardian mapping', () => {
+    it('clears the previous primary before setting a new one', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue({
+        id: 'app-1',
+        admissionStatus: 'DRAFT',
+      });
       mockPrisma.guardian.findFirst.mockResolvedValue({ id: 'guard-1' });
       mockPrisma.relationType.findFirst.mockResolvedValue({ id: 'rel-1' });
       mockPrisma.applicantGuardianMapping.upsert.mockResolvedValue({
@@ -287,65 +504,250 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         where: { applicantId: 'app-1', isPrimary: true },
         data: { isPrimary: false },
       });
-
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.any(GuardianMappedEvent),
       );
     });
   });
 
-  describe('Workflow Engine & illegal transitions', () => {
-    it('should reject transitions not defined in valid transition matrix', async () => {
-      mockPrisma.applicant.findUnique.mockResolvedValue({ id: 'app-1', admissionStatus: 'DRAFT' });
+  describe('Workflow engine', () => {
+    it('locks the applicant row before reading its state', async () => {
+      rawQuery.lockResult = [
+        { id: 'app-1', admissionStatus: 'DRAFT', deletedAt: null },
+      ];
+      mockPrisma.applicant.update.mockResolvedValue({
+        id: 'app-1',
+        admissionStatus: 'SUBMITTED',
+      });
 
-      await expect(
-        workflowService.transitionState('app-1', { newStatus: WorkflowState.APPROVED }),
-      ).rejects.toThrow(BadRequestException);
+      await workflowService.transitionState(
+        'app-1',
+        { newStatus: 'SUBMITTED' } as any,
+        SCOPE,
+      );
+
+      const lockSql = rawQuery.mock.calls.find((c) =>
+        String(c[0]).includes('FOR UPDATE'),
+      );
+      expect(lockSql).toBeDefined();
+      // Without the lock, two concurrent approvals both read the old state and
+      // both pass the transition guard.
+      expect(String(lockSql![0])).toContain('"Applicant"');
+      expect(String(lockSql![0])).toContain('"organizationId"');
+      expect(String(lockSql![0])).toContain('"branchId"');
     });
 
-    it('should permit valid transition draft -> submitted and publish event', async () => {
-      mockPrisma.applicant.findUnique.mockResolvedValue({ id: 'app-1', admissionStatus: 'DRAFT' });
-      mockPrisma.applicant.update.mockResolvedValue({ id: 'app-1', admissionStatus: 'SUBMITTED' });
+    it('rejects a transition the matrix does not allow', async () => {
+      rawQuery.lockResult = [
+        { id: 'app-1', admissionStatus: 'DRAFT', deletedAt: null },
+      ];
 
-      const updated = await workflowService.transitionState('app-1', { newStatus: WorkflowState.SUBMITTED });
-      expect(updated.admissionStatus).toBe('SUBMITTED');
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.any(AdmissionWorkflowTransitionedEvent),
+      await expect(
+        workflowService.transitionState(
+          'app-1',
+          { newStatus: 'APPROVED' } as any,
+          SCOPE,
+        ),
+      ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
+    });
+
+    it('never allows a bare transition into ADMITTED', async () => {
+      rawQuery.lockResult = [
+        { id: 'app-1', admissionStatus: 'APPROVED', deletedAt: null },
+      ];
+
+      // ADMITTED may only be reached through admit(), which writes a Student,
+      // an Admission and an Enrollment in the same transaction. A status-only
+      // route into it would produce an applicant marked admitted with no
+      // student behind it.
+      await expect(
+        workflowService.transitionState(
+          'app-1',
+          { newStatus: 'ADMITTED' } as any,
+          SCOPE,
+        ),
+      ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
+    });
+
+    it('treats an out-of-scope applicant as absent', async () => {
+      rawQuery.lockResult = [];
+
+      await expect(
+        workflowService.transitionState(
+          'app-1',
+          { newStatus: 'SUBMITTED' } as any,
+          OTHER_BRANCH_SCOPE,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('writes polymorphic history and outboxes the transition', async () => {
+      rawQuery.lockResult = [
+        { id: 'app-1', admissionStatus: 'DRAFT', deletedAt: null },
+      ];
+      mockPrisma.applicant.update.mockResolvedValue({
+        id: 'app-1',
+        admissionStatus: 'SUBMITTED',
+      });
+
+      await workflowService.transitionState(
+        'app-1',
+        { newStatus: 'SUBMITTED' } as any,
+        SCOPE,
       );
+
+      expect(mockPrisma.workflowHistory.create.mock.calls[0][0].data).toMatchObject(
+        {
+          entityType: 'APPLICANT',
+          entityId: 'app-1',
+          organizationId: 'org-1',
+          branchId: 'branch-1',
+          oldStatus: 'DRAFT',
+          newStatus: 'SUBMITTED',
+        },
+      );
+      expect(mockPrisma.outboxEvent.create).toHaveBeenCalled();
     });
   });
 
-  describe('Enrollment foundation placement rules', () => {
-    it('should throw BadRequestException if applicant is not approved', async () => {
-      mockPrisma.applicant.findUnique.mockResolvedValue({ id: 'app-1', admissionStatus: 'DRAFT' });
-      await expect(
-        enrollmentService.createEnrollment('app-1', { programId: 'prog-1', academicUnitId: 'unit-1' }, 'org-1', 'branch-1', 'year-1'),
-      ).rejects.toThrow(BadRequestException);
+  describe('Enrollment', () => {
+    const approvedApplicant = {
+      id: 'app-1',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      academicYearId: 'year-1',
+      admissionStatus: 'APPROVED',
+    };
+
+    const enrollDto = { programId: 'prog-1', academicUnitId: 'unit-1' } as any;
+
+    beforeEach(() => {
+      mockPrisma.academicYear.findFirst.mockResolvedValue({
+        id: 'year-1',
+        isLocked: false,
+      });
+      mockPrisma.program.findFirst.mockResolvedValue({
+        id: 'prog-1',
+        branchId: 'branch-1',
+      });
+      mockPrisma.academicUnit.findFirst.mockResolvedValue({
+        id: 'unit-1',
+        branchId: 'branch-1',
+        programId: 'prog-1',
+        academicYearId: 'year-1',
+      });
+      mockPrisma.enrollment.findFirst.mockResolvedValue(null);
     });
 
-    it('should create enrollment and publish EnrollmentCompletedEvent if approved', async () => {
-      mockPrisma.applicant.findUnique.mockResolvedValue({ id: 'app-1', admissionStatus: 'APPROVED' });
-      mockPrisma.program.findUnique.mockResolvedValue({ id: 'prog-1' });
-      mockPrisma.academicUnit.findUnique.mockResolvedValue({ id: 'unit-1' });
-      mockPrisma.enrollment.findUnique.mockResolvedValue(null);
+    it('refuses an applicant that is not approved', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue({
+        ...approvedApplicant,
+        admissionStatus: 'DRAFT',
+      });
+
+      await expect(
+        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'APPLICANT_NOT_ELIGIBLE' },
+      });
+    });
+
+    it('treats another branch applicant as absent instead of enrolling them', async () => {
+      // The defect this replaces: the applicant was fetched by id with no scope
+      // check, then written with the caller's branch — a cross-branch write.
+      mockPrisma.applicant.findFirst.mockResolvedValue(null);
+
+      await expect(
+        enrollmentService.createEnrollment('app-1', enrollDto, OTHER_BRANCH_SCOPE),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
+    });
+
+    it("writes the applicant's own scope, never the caller's", async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
       mockPrisma.enrollment.create.mockResolvedValue({
+        id: 'enr-1',
         applicantId: 'app-1',
         programId: 'prog-1',
         academicUnitId: 'unit-1',
         rollNumber: 'R001',
       });
 
-      const res = await enrollmentService.createEnrollment(
+      await enrollmentService.createEnrollment(
         'app-1',
-        { programId: 'prog-1', academicUnitId: 'unit-1', rollNumber: 'R001' },
-        'org-1',
-        'branch-1',
-        'year-1',
+        { ...enrollDto, rollNumber: 'R001' },
+        SCOPE,
       );
 
-      expect(res.rollNumber).toBe('R001');
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.any(EnrollmentCompletedEvent),
+      expect(mockPrisma.enrollment.create.mock.calls[0][0].data).toMatchObject({
+        organizationId: approvedApplicant.organizationId,
+        branchId: approvedApplicant.branchId,
+        academicYearId: approvedApplicant.academicYearId,
+      });
+      expect(mockPrisma.outboxEvent.create).toHaveBeenCalled();
+    });
+
+    it('refuses a locked academic year', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
+      mockPrisma.academicYear.findFirst.mockResolvedValue({
+        id: 'year-1',
+        isLocked: true,
+      });
+
+      await expect(
+        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_YEAR_LOCKED' },
+      });
+    });
+
+    it("refuses an academic unit from another branch", async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
+      mockPrisma.academicUnit.findFirst.mockResolvedValue({
+        id: 'unit-1',
+        branchId: 'branch-2',
+        programId: 'prog-1',
+        academicYearId: 'year-1',
+      });
+
+      await expect(
+        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_MISMATCH' },
+      });
+    });
+
+    it('refuses an academic unit that belongs to a different program', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
+      mockPrisma.academicUnit.findFirst.mockResolvedValue({
+        id: 'unit-1',
+        branchId: 'branch-1',
+        programId: 'prog-OTHER',
+        academicYearId: 'year-1',
+      });
+
+      await expect(
+        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_MISMATCH' },
+      });
+    });
+
+    it('allows a second enrollment in a later year but not a duplicate in the same one', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
+      mockPrisma.enrollment.findFirst.mockResolvedValue({ id: 'enr-existing' });
+
+      await expect(
+        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'ENROLLMENT_EXISTS_FOR_YEAR' },
+      });
+
+      // The duplicate check is now year-scoped rather than "one enrollment per
+      // applicant for life", which is what made promotion impossible.
+      expect(mockPrisma.enrollment.findFirst.mock.calls[0][0].where).toMatchObject(
+        { applicantId: 'app-1', academicYearId: 'year-1' },
       );
     });
   });

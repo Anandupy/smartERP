@@ -1,189 +1,490 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { AppModule } from '@/app.module';
-import { ReligionService } from '@/modules/admissions/masters/religion/religion.service';
-import { NumberingService } from '@/modules/admissions/numbering/numbering.service';
 import { ApplicantService } from '@/modules/admissions/applicant/applicant.service';
-import { GuardiansService } from '@/modules/admissions/guardians/guardians.service';
 import { WorkflowService } from '@/modules/admissions/workflow/workflow.service';
 import { EnrollmentService } from '@/modules/admissions/enrollment/enrollment.service';
-import { WorkflowState } from '@/modules/admissions/workflow/dto/workflow.dto';
+import { NumberingService } from '@/infrastructure/numbering/numbering.service';
+import { ResourceScope } from '@/common/scope/resource-scope';
 
-describe('Admissions Module Integration', () => {
+/**
+ * Tenant isolation, academic history durability, and the transition race.
+ *
+ * These exercise the three defects Phase 0 closes in the admissions services:
+ * unscoped lookups, an enrollment that could not outlive its applicant, and a
+ * state machine that took no lock before reading state.
+ */
+describe('Admissions Phase 0 (integration)', () => {
+  let moduleRef: TestingModule;
   let prisma: PrismaService;
-  let religionService: ReligionService;
-  let numberingService: NumberingService;
-  let applicantService: ApplicantService;
-  let guardiansService: GuardiansService;
-  let workflowService: WorkflowService;
-  let enrollmentService: EnrollmentService;
+  let applicants: ApplicantService;
+  let workflow: WorkflowService;
+  let enrollment: EnrollmentService;
+  let numbering: NumberingService;
 
-  let testBranchId: string;
-  let testOrgId: string;
-  let testYearId: string;
+  let orgId: string;
+  let otherOrgId: string;
+  let branchAId: string;
+  let branchBId: string;
+  let yearAId: string;
+  let programAId: string;
+  let unitAId: string;
+  let genderId: string;
+
+  let scopeA: ResourceScope;
+  let scopeB: ResourceScope;
+
+  const suffix = Date.now().toString();
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    await moduleRef.init();
 
-    prisma = module.get<PrismaService>(PrismaService);
-    religionService = module.get<ReligionService>(ReligionService);
-    numberingService = module.get<NumberingService>(NumberingService);
-    applicantService = module.get<ApplicantService>(ApplicantService);
-    guardiansService = module.get<GuardiansService>(GuardiansService);
-    workflowService = module.get<WorkflowService>(WorkflowService);
-    enrollmentService = module.get<EnrollmentService>(EnrollmentService);
+    prisma = moduleRef.get(PrismaService);
+    applicants = moduleRef.get(ApplicantService);
+    workflow = moduleRef.get(WorkflowService);
+    enrollment = moduleRef.get(EnrollmentService);
+    numbering = moduleRef.get(NumberingService);
 
-    await prisma.onModuleInit();
+    const org = await prisma.organization.create({
+      data: {
+        name: 'Phase0 Org',
+        code: 'P0ORG_' + suffix,
+        contactEmail: 'p0@test.local',
+        contactPhone: '1234567890',
+        masterExpiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      },
+    });
+    orgId = org.id;
 
-    // Retrieve or seed a test organization, branch, and academic year to test relationships
-    const org = await prisma.organization.findFirst();
-    if (org) {
-      testOrgId = org.id;
-    } else {
-      const newOrg = await prisma.organization.create({
-        data: {
-          name: 'Test Org',
-          code: 'TORG_' + Date.now(),
-          contactEmail: 'test@org.com',
-          contactPhone: '1234567890',
-          masterExpiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        },
-      });
-      testOrgId = newOrg.id;
+    const otherOrg = await prisma.organization.create({
+      data: {
+        name: 'Phase0 Other Org',
+        code: 'P0ORG2_' + suffix,
+        contactEmail: 'p0b@test.local',
+        contactPhone: '1234567890',
+        masterExpiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      },
+    });
+    otherOrgId = otherOrg.id;
+
+    const branchDefaults = {
+      institutionType: 'SCHOOL' as const,
+      contactEmail: 'b@test.local',
+      contactPhone: '1234567890',
+      addressLine1: 'Road 1',
+      city: 'Mumbai',
+      state: 'MH',
+      country: 'IN',
+      pincode: '400001',
+    };
+
+    const branchA = await prisma.branch.create({
+      data: { organizationId: orgId, name: 'Branch A', code: 'P0A_' + suffix, ...branchDefaults },
+    });
+    branchAId = branchA.id;
+
+    const branchB = await prisma.branch.create({
+      data: { organizationId: orgId, name: 'Branch B', code: 'P0B_' + suffix, ...branchDefaults },
+    });
+    branchBId = branchB.id;
+
+    const yearA = await prisma.academicYear.create({
+      data: {
+        branchId: branchAId,
+        name: '2026-27',
+        startDate: new Date('2026-04-01'),
+        endDate: new Date('2027-03-31'),
+      },
+    });
+    yearAId = yearA.id;
+
+    const yearB = await prisma.academicYear.create({
+      data: {
+        branchId: branchBId,
+        name: '2026-27',
+        startDate: new Date('2026-04-01'),
+        endDate: new Date('2027-03-31'),
+      },
+    });
+
+    const programA = await prisma.program.create({
+      data: { branchId: branchAId, name: 'Std 1 ' + suffix },
+    });
+    programAId = programA.id;
+
+    const unitA = await prisma.academicUnit.create({
+      data: {
+        branchId: branchAId,
+        programId: programAId,
+        academicYearId: yearAId,
+        name: 'Std 1-A',
+        unitType: 'SECTION',
+        level: 1,
+      },
+    });
+    unitAId = unitA.id;
+
+    const gender = await prisma.gender.create({
+      data: { organizationId: orgId, code: 'P0G_' + suffix, name: 'Gender ' + suffix },
+    });
+    genderId = gender.id;
+
+    for (const branchId of [branchAId, branchBId]) {
+      for (const purpose of ['ADMISSION_FORM', 'APPLICATION'] as const) {
+        await numbering.createConfig(
+          {
+            purpose,
+            prefix: purpose === 'ADMISSION_FORM' ? 'ADM' : 'APP',
+            sequencePadding: 4,
+            format: '{prefix}-{sequence}',
+          },
+          orgId,
+          branchId,
+        );
+      }
     }
 
-    const branch = await prisma.branch.findFirst({ where: { organizationId: testOrgId } });
-    if (branch) {
-      testBranchId = branch.id;
-    } else {
-      const newBranch = await prisma.branch.create({
-        data: {
-          organizationId: testOrgId,
-          name: 'Test Branch',
-          code: 'TBR_' + Date.now(),
-          institutionType: 'SCHOOL',
-          contactEmail: 'test@branch.com',
-          contactPhone: '1234567890',
-          addressLine1: 'Road 1',
-          city: 'Mumbai',
-          state: 'MH',
-          country: 'IN',
-          pincode: '400001',
-        },
-      });
-      testBranchId = newBranch.id;
-    }
-
-    const year = await prisma.academicYear.findFirst({ where: { branchId: testBranchId } });
-    if (year) {
-      testYearId = year.id;
-    } else {
-      const newYear = await prisma.academicYear.create({
-        data: {
-          branchId: testBranchId,
-          name: '2026-27',
-          startDate: new Date('2026-04-01'),
-          endDate: new Date('2027-03-31'),
-          isActive: true,
-        },
-      });
-      testYearId = newYear.id;
-    }
+    scopeA = { organizationId: orgId, branchId: branchAId, academicYearId: yearAId };
+    scopeB = { organizationId: orgId, branchId: branchBId, academicYearId: yearB.id };
   });
 
   afterAll(async () => {
-    if (prisma) {
-      await prisma.onModuleDestroy();
-    }
+    await prisma.outboxEvent.deleteMany({ where: { organizationId: orgId } });
+    await prisma.enrollment.deleteMany({ where: { organizationId: orgId } });
+    await prisma.workflowHistory.deleteMany({ where: { organizationId: orgId } });
+    await prisma.applicant.deleteMany({ where: { organizationId: orgId } });
+    await prisma.numberSequenceCounter.deleteMany({
+      where: { config: { organizationId: orgId } },
+    });
+    await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: orgId } });
+    await prisma.academicUnit.deleteMany({ where: { branchId: { in: [branchAId, branchBId] } } });
+    await prisma.program.deleteMany({ where: { branchId: { in: [branchAId, branchBId] } } });
+    await prisma.academicYear.deleteMany({ where: { branchId: { in: [branchAId, branchBId] } } });
+    await prisma.gender.deleteMany({ where: { organizationId: orgId } });
+    await prisma.branch.deleteMany({ where: { organizationId: orgId } });
+    await prisma.organization.deleteMany({ where: { id: { in: [orgId, otherOrgId] } } });
+    await moduleRef.close();
   });
 
-  it('should verify transactional creation of master and applicant record', async () => {
-    await prisma.$transaction(async (tx) => {
-      // 1. Create a religion master
-      const religion = await tx.religion.create({
+  async function createApplicant(scope: ResourceScope, first = 'Test') {
+    const { applicant } = await applicants.create(
+      {
+        firstName: first,
+        lastName: 'Candidate',
+        dob: '2020-01-01',
+        genderId,
+        primaryMobile: '99887' + Math.floor(10000 + Math.random() * 89999),
+        currentAddressLine1: 'Road 1',
+        city: 'Mumbai',
+        state: 'MH',
+        country: 'IN',
+        pincode: '400001',
+      } as any,
+      scope,
+    );
+    return applicant;
+  }
+
+  describe('tenant isolation', () => {
+    it('hides another branch applicant from a read', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      await expect(applicants.findOne(applicant.id, scopeB)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(applicants.findOne(applicant.id, scopeA)).resolves.toMatchObject(
+        { id: applicant.id },
+      );
+    });
+
+    it('refuses a cross-branch update', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      await expect(
+        applicants.update(applicant.id, { firstName: 'Hijacked' } as any, scopeB),
+      ).rejects.toThrow(NotFoundException);
+
+      const unchanged = await prisma.applicant.findUnique({
+        where: { id: applicant.id },
+      });
+      expect(unchanged!.firstName).not.toBe('Hijacked');
+    });
+
+    it('refuses a cross-branch soft delete', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      await expect(applicants.remove(applicant.id, scopeB)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      const unchanged = await prisma.applicant.findUnique({
+        where: { id: applicant.id },
+      });
+      expect(unchanged!.deletedAt).toBeNull();
+    });
+
+    it('refuses a cross-branch workflow transition', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      await expect(
+        workflow.transitionState(applicant.id, { newStatus: 'SUBMITTED' } as any, scopeB),
+      ).rejects.toThrow(NotFoundException);
+
+      const unchanged = await prisma.applicant.findUnique({
+        where: { id: applicant.id },
+      });
+      expect(unchanged!.admissionStatus).toBe('DRAFT');
+    });
+
+    /**
+     * The most serious of the seven vectors. The applicant was fetched by id
+     * with no scope check, and the enrollment was then written with the
+     * *caller's* organization, branch and year — fabricating a placement in a
+     * branch the applicant had never applied to.
+     */
+    it('refuses to enroll another branch applicant into the caller branch', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      await prisma.applicant.update({
+        where: { id: applicant.id },
+        data: { admissionStatus: 'APPROVED' },
+      });
+
+      await expect(
+        enrollment.createEnrollment(
+          applicant.id,
+          { programId: programAId, academicUnitId: unitAId } as any,
+          scopeB,
+        ),
+      ).rejects.toThrow(NotFoundException);
+
+      const rows = await prisma.enrollment.findMany({
+        where: { applicantId: applicant.id },
+      });
+      expect(rows).toHaveLength(0);
+    });
+
+    it('hides another branch enrollment from a read', async () => {
+      const applicant = await createApplicant(scopeA);
+      await prisma.applicant.update({
+        where: { id: applicant.id },
+        data: { admissionStatus: 'APPROVED' },
+      });
+      await enrollment.createEnrollment(
+        applicant.id,
+        { programId: programAId, academicUnitId: unitAId } as any,
+        scopeA,
+      );
+
+      await expect(
+        enrollment.getEnrollment(applicant.id, scopeB),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('academic history durability', () => {
+    it('lets one applicant hold enrollments in more than one year', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      const yearTwo = await prisma.academicYear.create({
         data: {
-          organizationId: testOrgId,
-          branchId: testBranchId,
-          code: 'TEST_REL_' + Date.now(),
-          name: 'Test Religion Name',
-          displayOrder: 1,
+          branchId: branchAId,
+          name: '2027-28 ' + suffix,
+          startDate: new Date('2027-04-01'),
+          endDate: new Date('2028-03-31'),
         },
       });
-      expect(religion.id).toBeDefined();
 
-      // 2. Create a gender master
-      const gender = await tx.gender.create({
+      // The unique constraint on applicantId made this impossible, which is
+      // what made promotion unrepresentable.
+      await prisma.enrollment.create({
         data: {
-          organizationId: testOrgId,
-          branchId: testBranchId,
-          code: 'TEST_GEN_' + Date.now(),
-          name: 'Test Gender Name',
-          displayOrder: 1,
+          organizationId: orgId,
+          branchId: branchAId,
+          academicYearId: yearAId,
+          programId: programAId,
+          academicUnitId: unitAId,
+          applicantId: applicant.id,
+          enrollmentStatus: 'PROMOTED',
         },
       });
 
-      // 3. Configure Number Sequence Configs for test
-      const config1 = await tx.numberSequenceConfig.create({
+      const unitTwo = await prisma.academicUnit.create({
         data: {
-          organizationId: testOrgId,
-          branchId: testBranchId,
-          purpose: 'ADMISSION_FORM',
-          prefix: 'ADM',
-          format: '{prefix}-{year}-{sequence}',
-          includeAcademicYear: true,
-          resetStrategy: 'YEARLY',
-        },
-      });
-      expect(config1.id).toBeDefined();
-
-      const config2 = await tx.numberSequenceConfig.create({
-        data: {
-          organizationId: testOrgId,
-          branchId: testBranchId,
-          purpose: 'APPLICATION',
-          prefix: 'APP',
-          format: '{prefix}-{sequence}',
-          sequencePadding: 3,
+          branchId: branchAId,
+          programId: programAId,
+          academicYearId: yearTwo.id,
+          name: 'Std 2-A',
+          unitType: 'SECTION',
+          level: 1,
         },
       });
 
-      // 4. Generate form/app numbers using NumberingService on transactional client
-      const formNo = await numberingService.generateNextNumber(testBranchId, testYearId, 'ADMISSION_FORM', tx);
-      const appNo = await numberingService.generateNextNumber(testBranchId, testYearId, 'APPLICATION', tx);
-      expect(formNo).toContain('ADM-');
-      expect(appNo).toContain('APP-001');
-
-      // 5. Create applicant
-      const applicant = await tx.applicant.create({
+      await prisma.enrollment.create({
         data: {
-          organizationId: testOrgId,
-          branchId: testBranchId,
-          academicYearId: testYearId,
-          admissionFormNo: formNo,
-          applicationNo: appNo,
-          firstName: 'Integration',
-          lastName: 'Test',
-          displayName: 'Integration Test',
-          dob: new Date('2020-01-01'),
-          genderId: gender.id,
-          religionId: religion.id,
-          primaryMobile: '9988776655',
-          currentAddressLine1: 'Mumbai Address',
-          city: 'Mumbai',
-          state: 'MH',
-          country: 'IN',
-          pincode: '400001',
-          admissionStatus: 'DRAFT',
+          organizationId: orgId,
+          branchId: branchAId,
+          academicYearId: yearTwo.id,
+          programId: programAId,
+          academicUnitId: unitTwo.id,
+          applicantId: applicant.id,
+          enrollmentStatus: 'ACTIVE',
         },
       });
-      expect(applicant.id).toBeDefined();
 
-      // Force Rollback to keep integration db clean
-      throw new Error('Rollback transaction');
-    }).catch((err) => {
-      expect(err.message).toBe('Rollback transaction');
+      const rows = await prisma.enrollment.findMany({
+        where: { applicantId: applicant.id },
+      });
+      expect(rows).toHaveLength(2);
+    });
+
+    it('keeps the enrollment when the applicant row is deleted', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      const created = await prisma.enrollment.create({
+        data: {
+          organizationId: orgId,
+          branchId: branchAId,
+          academicYearId: yearAId,
+          programId: programAId,
+          academicUnitId: unitAId,
+          applicantId: applicant.id,
+          enrollmentStatus: 'ACTIVE',
+        },
+      });
+
+      await prisma.workflowHistory.deleteMany({
+        where: { entityType: 'APPLICANT', entityId: applicant.id },
+      });
+      await prisma.applicant.delete({ where: { id: applicant.id } });
+
+      // The cascade previously destroyed the academic record along with the
+      // application it happened to originate from.
+      const survivor = await prisma.enrollment.findUnique({
+        where: { id: created.id },
+      });
+      expect(survivor).not.toBeNull();
+      expect(survivor!.applicantId).toBeNull();
+    });
+  });
+
+  describe('workflow concurrency', () => {
+    it('lets exactly one of two simultaneous transitions win', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      const results = await Promise.allSettled([
+        workflow.transitionState(applicant.id, { newStatus: 'SUBMITTED' } as any, scopeA),
+        workflow.transitionState(applicant.id, { newStatus: 'SUBMITTED' } as any, scopeA),
+      ]);
+
+      const fulfilled = results.filter((r) => r.status === 'fulfilled');
+      const rejected = results.filter((r) => r.status === 'rejected');
+
+      // Without SELECT ... FOR UPDATE both read DRAFT and both pass the guard.
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+
+      const history = await prisma.workflowHistory.findMany({
+        where: { entityType: 'APPLICANT', entityId: applicant.id },
+      });
+      expect(history).toHaveLength(1);
+    });
+
+    it('records history against the polymorphic key', async () => {
+      const applicant = await createApplicant(scopeA);
+      await workflow.transitionState(
+        applicant.id,
+        { newStatus: 'SUBMITTED', actionType: 'SUBMIT' } as any,
+        scopeA,
+      );
+
+      const history = await workflow.getHistory(applicant.id, scopeA);
+      expect(history).toHaveLength(1);
+      expect(history[0]).toMatchObject({
+        entityType: 'APPLICANT',
+        entityId: applicant.id,
+        organizationId: orgId,
+        branchId: branchAId,
+        oldStatus: 'DRAFT',
+        newStatus: 'SUBMITTED',
+      });
+    });
+  });
+
+  describe('academic structure validation', () => {
+    it('refuses an academic unit from another branch', async () => {
+      const applicant = await createApplicant(scopeA);
+      await prisma.applicant.update({
+        where: { id: applicant.id },
+        data: { admissionStatus: 'APPROVED' },
+      });
+
+      const programB = await prisma.program.create({
+        data: { branchId: branchBId, name: 'Std 1 B ' + suffix },
+      });
+      const yearB = await prisma.academicYear.findFirstOrThrow({
+        where: { branchId: branchBId },
+      });
+      const unitB = await prisma.academicUnit.create({
+        data: {
+          branchId: branchBId,
+          programId: programB.id,
+          academicYearId: yearB.id,
+          name: 'Std 1-B',
+          unitType: 'SECTION',
+          level: 1,
+        },
+      });
+
+      await expect(
+        enrollment.createEnrollment(
+          applicant.id,
+          { programId: programB.id, academicUnitId: unitB.id } as any,
+          scopeA,
+        ),
+      ).rejects.toMatchObject({ response: { error: 'ACADEMIC_UNIT_MISMATCH' } });
+    });
+
+    it('refuses a write into a locked academic year', async () => {
+      const applicant = await createApplicant(scopeA);
+      await prisma.applicant.update({
+        where: { id: applicant.id },
+        data: { admissionStatus: 'APPROVED' },
+      });
+      await prisma.academicYear.update({
+        where: { id: yearAId },
+        data: { isLocked: true },
+      });
+
+      try {
+        await expect(
+          enrollment.createEnrollment(
+            applicant.id,
+            { programId: programAId, academicUnitId: unitAId } as any,
+            scopeA,
+          ),
+        ).rejects.toMatchObject({ response: { error: 'ACADEMIC_YEAR_LOCKED' } });
+      } finally {
+        await prisma.academicYear.update({
+          where: { id: yearAId },
+          data: { isLocked: false },
+        });
+      }
+    });
+  });
+
+  describe('applicant status is an enum at the database', () => {
+    it('rejects a status the workflow engine could never produce', async () => {
+      const applicant = await createApplicant(scopeA);
+
+      await expect(
+        prisma.$executeRawUnsafe(
+          `UPDATE "Applicant" SET "admissionStatus" = 'aproved' WHERE "id" = $1`,
+          applicant.id,
+        ),
+      ).rejects.toThrow();
     });
   });
 });
