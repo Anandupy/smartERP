@@ -8,12 +8,25 @@ export class AuditRepository {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Persist one audit entry.
+   *
+   * Idempotent on `eventId`: outbox delivery is at-least-once, so the same
+   * event legitimately arrives twice and the second arrival must not produce a
+   * second row. `createMany({ skipDuplicates })` resolves that on the unique
+   * index rather than in a read-then-write that would race with itself.
+   */
   async createAuditLog(data: CreateAuditLogInput) {
+    if (data.eventId) {
+      return this.createDeduplicated(data);
+    }
+
     try {
       return await this.prisma.auditLog.create({
         data: {
           id: data.id,
           timestamp: data.timestamp,
+          eventId: data.eventId,
           eventName: data.eventName,
           action: data.action,
           module: data.module,
@@ -38,6 +51,67 @@ export class AuditRepository {
           metadata: data.metadata ? (data.metadata as any) : undefined,
           changes: data.changes ? (data.changes as any) : undefined,
         },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to persist audit log for event "${data.eventName}" (Aggregate: ${data.aggregateType}/${data.aggregateId}):`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Insert, or do nothing if this `eventId` has already been recorded.
+   *
+   * The replay is not an error and must not be logged as one — at-least-once
+   * delivery means it is the expected behaviour of a healthy relay.
+   */
+  private async createDeduplicated(data: CreateAuditLogInput) {
+    try {
+      const result = await this.prisma.auditLog.createMany({
+        data: [
+          {
+            id: data.id,
+            timestamp: data.timestamp,
+            eventId: data.eventId,
+            eventName: data.eventName,
+            action: data.action,
+            module: data.module,
+            aggregateType: data.aggregateType,
+            aggregateId: data.aggregateId,
+            userId: data.userId,
+            userEmail: data.userEmail,
+            role: data.role,
+            organizationId: data.organizationId,
+            branchId: data.branchId,
+            academicYearId: data.academicYearId,
+            requestId: data.requestId,
+            traceId: data.traceId,
+            correlationId: data.correlationId,
+            ipAddress: data.ipAddress,
+            userAgent: data.userAgent,
+            httpMethod: data.httpMethod,
+            route: data.route,
+            executionTime: data.executionTime,
+            severity: data.severity ?? 'INFO',
+            status: data.status ?? 'SUCCESS',
+            metadata: data.metadata ? (data.metadata as any) : undefined,
+            changes: data.changes ? (data.changes as any) : undefined,
+          },
+        ],
+        skipDuplicates: true,
+      });
+
+      if (result.count === 0) {
+        this.logger.debug(
+          `Audit entry for event ${data.eventId} already recorded; replay ignored.`,
+        );
+        return null;
+      }
+
+      return this.prisma.auditLog.findUnique({
+        where: { eventId: data.eventId as string },
       });
     } catch (error) {
       this.logger.error(

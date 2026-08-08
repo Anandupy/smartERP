@@ -25,6 +25,7 @@ export class AuditEventMapper {
     const changes = this.extractChanges(event);
 
     return {
+      eventId: event.eventId,
       eventName: event.eventName,
       action,
       module: moduleName,

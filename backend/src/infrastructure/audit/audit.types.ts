@@ -24,6 +24,14 @@ export type AuditStatus = (typeof AUDIT_STATUSES)[number];
 export interface CreateAuditLogInput {
   id?: string;
   timestamp?: Date;
+  /**
+   * The originating `DomainEvent.eventId`.
+   *
+   * Outbox delivery is at-least-once, so a relay retry hands the listener an
+   * event it has already recorded. The unique index on this column is what
+   * turns that replay into a no-op instead of a duplicate row.
+   */
+  eventId?: string | null;
   eventName: string;
   action: string;
   module: string;
