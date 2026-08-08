@@ -1,21 +1,40 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { OutboxPublisher } from '@/infrastructure/outbox/outbox.publisher';
+import { NumberingService } from '@/infrastructure/numbering/numbering.service';
 import {
   ApplicantCreatedEvent,
-  ApplicantUpdatedEvent,
   ApplicantDeletedEvent,
+  ApplicantUpdatedEvent,
 } from '@/common/events';
-import { NumberingService } from '../numbering/numbering.service';
+import { ResourceScope, scopedWhere } from '@/common/scope/resource-scope';
+import { AdmissionApplicationStatus } from '@/generated/client';
 import {
   CreateApplicantDto,
-  UpdateApplicantDto,
   QueryApplicantDto,
+  UpdateApplicantDto,
 } from './dto/applicant.dto';
+
+/**
+ * Statuses that freeze an applicant against direct edits.
+ *
+ * Everything from the offer onward: once a seat has been offered the record is
+ * evidence, and after `ADMITTED` it has already produced a Student.
+ */
+const FROZEN_STATUSES: AdmissionApplicationStatus[] = [
+  'APPROVED',
+  'SEAT_CONFIRMED',
+  'ADMITTED',
+  'DEFERRED',
+  'REJECTED',
+  'WITHDRAWN',
+  'CANCELLED',
+];
 
 @Injectable()
 export class ApplicantService {
@@ -23,6 +42,7 @@ export class ApplicantService {
     private readonly prisma: PrismaService,
     private readonly numberingService: NumberingService,
     private readonly eventBus: EventBus,
+    private readonly outbox: OutboxPublisher,
   ) {}
 
   private getDisplayName(
@@ -33,32 +53,6 @@ export class ApplicantService {
     return [firstName, middleName, lastName].filter(Boolean).join(' ');
   }
 
-  // Auto-init numbering config if missing, to prevent runtime failures in tests
-  private async ensureNumberConfig(
-    branchId: string,
-    orgId: string,
-    purpose: string,
-  ) {
-    const config = await this.prisma.numberSequenceConfig.findUnique({
-      where: { branchId_purpose: { branchId, purpose } },
-    });
-
-    if (!config) {
-      await this.prisma.numberSequenceConfig.create({
-        data: {
-          organizationId: orgId,
-          branchId,
-          purpose,
-          prefix: purpose === 'ADMISSION_FORM' ? 'ADM' : 'APP',
-          sequencePadding: 4,
-          format: '{prefix}-{year}-{sequence}',
-          includeAcademicYear: true,
-          resetStrategy: 'YEARLY',
-        },
-      });
-    }
-  }
-
   async checkDuplicates(
     data: {
       aadhaarNo?: string;
@@ -67,11 +61,12 @@ export class ApplicantService {
       lastName: string;
       dob: string;
     },
-    branchId: string,
+    scope: ResourceScope,
   ) {
     const matches = await this.prisma.applicant.findMany({
       where: {
-        branchId,
+        organizationId: scope.organizationId,
+        branchId: scope.branchId,
         deletedAt: null,
         OR: [
           ...(data.aadhaarNo ? [{ aadhaarNo: data.aadhaarNo }] : []),
@@ -96,104 +91,31 @@ export class ApplicantService {
         id: true,
         displayName: true,
         primaryMobile: true,
-        aadhaarNo: true,
         admissionStatus: true,
       },
     });
 
-    return {
-      hasDuplicates: matches.length > 0,
-      matches,
-    };
+    return { hasDuplicates: matches.length > 0, matches };
   }
 
-  async create(
-    dto: CreateApplicantDto,
-    orgId: string,
-    branchId: string,
-    academicYearId: string,
-    userId?: string,
-  ) {
+  /**
+   * Register an applicant.
+   *
+   * Number allocation and the insert now share one transaction. Previously the
+   * two form numbers were allocated first and the row inserted afterwards with
+   * no transaction between them, so a validation failure or a crash burned both
+   * numbers permanently.
+   *
+   * Both purposes are MONOTONIC, so the allocation still commits on its own
+   * connection and never holds the counter for the length of this transaction —
+   * a rollback here leaves a gap, which is the accepted trade for not
+   * serialising every registration at the branch.
+   */
+  async create(dto: CreateApplicantDto, scope: ResourceScope, userId?: string) {
     const dobDate = new Date(dto.dob);
 
-    // 1. Verify Master References exist if IDs are provided
-    if (dto.genderId) {
-      const exists = await this.prisma.gender.findFirst({
-        where: { id: dto.genderId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(`Gender with ID ${dto.genderId} not found`);
-    }
-    if (dto.religionId) {
-      const exists = await this.prisma.religion.findFirst({
-        where: { id: dto.religionId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(
-          `Religion with ID ${dto.religionId} not found`,
-        );
-    }
-    if (dto.casteId) {
-      const exists = await this.prisma.caste.findFirst({
-        where: { id: dto.casteId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(`Caste with ID ${dto.casteId} not found`);
-    }
-    if (dto.categoryId) {
-      const exists = await this.prisma.category.findFirst({
-        where: { id: dto.categoryId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(
-          `Category with ID ${dto.categoryId} not found`,
-        );
-    }
-    if (dto.motherTongueId) {
-      const exists = await this.prisma.language.findFirst({
-        where: { id: dto.motherTongueId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(
-          `Mother Tongue Language with ID ${dto.motherTongueId} not found`,
-        );
-    }
-    if (dto.bloodGroupId) {
-      const exists = await this.prisma.bloodGroup.findFirst({
-        where: { id: dto.bloodGroupId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(
-          `Blood Group with ID ${dto.bloodGroupId} not found`,
-        );
-    }
-    if (dto.disabilityTypeId) {
-      const exists = await this.prisma.disability.findFirst({
-        where: { id: dto.disabilityTypeId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(
-          `Disability Type with ID ${dto.disabilityTypeId} not found`,
-        );
-    }
-    if (dto.admissionSourceId) {
-      const exists = await this.prisma.admissionSource.findFirst({
-        where: { id: dto.admissionSourceId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(
-          `Admission Source with ID ${dto.admissionSourceId} not found`,
-        );
-    }
-    if (dto.quotaId) {
-      const exists = await this.prisma.quota.findFirst({
-        where: { id: dto.quotaId, deletedAt: null },
-      });
-      if (!exists)
-        throw new NotFoundException(`Quota with ID ${dto.quotaId} not found`);
-    }
+    await this.assertMasterReferencesExist(dto);
 
-    // 2. Perform duplicate check (returns warnings)
     const duplicateReport = await this.checkDuplicates(
       {
         aadhaarNo: dto.aadhaarNo,
@@ -202,22 +124,7 @@ export class ApplicantService {
         lastName: dto.lastName,
         dob: dto.dob,
       },
-      branchId,
-    );
-
-    // 3. Generate Form & Application numbers atomically
-    await this.ensureNumberConfig(branchId, orgId, 'ADMISSION_FORM');
-    await this.ensureNumberConfig(branchId, orgId, 'APPLICATION');
-
-    const formNo = await this.numberingService.generateNextNumber(
-      branchId,
-      academicYearId,
-      'ADMISSION_FORM',
-    );
-    const appNo = await this.numberingService.generateNextNumber(
-      branchId,
-      academicYearId,
-      'APPLICATION',
+      scope,
     );
 
     const displayName = this.getDisplayName(
@@ -226,31 +133,54 @@ export class ApplicantService {
       dto.lastName,
     );
 
-    // 4. Save applicant
-    const applicant = await this.prisma.applicant.create({
-      data: {
-        ...dto,
-        dob: dobDate,
-        displayName,
-        admissionFormNo: formNo,
-        applicationNo: appNo,
-        organizationId: orgId,
-        branchId,
-        academicYearId,
-        createdBy: userId,
-        admissionStatus: 'DRAFT',
-      },
-    });
+    const applicant = await this.prisma.$transaction(async (tx) => {
+      const formNo = await this.numberingService.allocate(
+        {
+          purpose: 'ADMISSION_FORM',
+          organizationId: scope.organizationId,
+          branchId: scope.branchId,
+          academicYearId: scope.academicYearId,
+        },
+        tx,
+      );
+      const appNo = await this.numberingService.allocate(
+        {
+          purpose: 'APPLICATION',
+          organizationId: scope.organizationId,
+          branchId: scope.branchId,
+          academicYearId: scope.academicYearId,
+        },
+        tx,
+      );
 
-    await this.eventBus.publish(
-      new ApplicantCreatedEvent({
-        applicantId: applicant.id,
-        displayName: applicant.displayName,
-        admissionFormNo: applicant.admissionFormNo,
-        applicationNo: applicant.applicationNo,
-        primaryMobile: applicant.primaryMobile,
-      }),
-    );
+      const created = await tx.applicant.create({
+        data: {
+          ...dto,
+          dob: dobDate,
+          displayName,
+          admissionFormNo: formNo,
+          applicationNo: appNo,
+          organizationId: scope.organizationId,
+          branchId: scope.branchId,
+          academicYearId: scope.academicYearId!,
+          createdBy: userId,
+          admissionStatus: 'DRAFT',
+        },
+      });
+
+      await this.outbox.enqueue(
+        new ApplicantCreatedEvent({
+          applicantId: created.id,
+          displayName: created.displayName,
+          admissionFormNo: created.admissionFormNo,
+          applicationNo: created.applicationNo,
+          primaryMobile: created.primaryMobile,
+        }),
+        tx,
+      );
+
+      return created;
+    });
 
     return {
       applicant,
@@ -258,9 +188,17 @@ export class ApplicantService {
     };
   }
 
-  async findOne(id: string) {
+  /**
+   * Read one applicant **within the caller's scope**.
+   *
+   * The scope is part of the lookup, not a check performed afterwards. A row
+   * belonging to another organization or branch is simply not found — and the
+   * caller cannot distinguish that from an id that does not exist, which is
+   * deliberate.
+   */
+  async findOne(id: string, scope: ResourceScope) {
     const applicant = await this.prisma.applicant.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, ...scopedWhere(scope), deletedAt: null },
       include: {
         gender: true,
         religion: true,
@@ -271,13 +209,8 @@ export class ApplicantService {
         disabilityType: true,
         admissionSource: true,
         quota: true,
-        guardians: {
-          include: {
-            guardian: true,
-            relationType: true,
-          },
-        },
-        enrollment: true,
+        guardians: { include: { guardian: true, relationType: true } },
+        enrollments: true,
       },
     });
 
@@ -287,35 +220,32 @@ export class ApplicantService {
     return applicant;
   }
 
-  async update(id: string, dto: UpdateApplicantDto, userId?: string) {
-    const applicant = await this.findOne(id);
+  /**
+   * Correct an applicant's declared details.
+   *
+   * The write re-asserts the scope in its own `WHERE` rather than trusting the
+   * preceding read. A read-then-write-by-id is only as safe as the read, and it
+   * is one refactor away from losing the scope entirely.
+   */
+  async update(
+    id: string,
+    dto: UpdateApplicantDto,
+    scope: ResourceScope,
+    userId?: string,
+  ) {
+    const applicant = await this.findOne(id, scope);
 
-    // Enforce lock state
-    if (
-      ['APPROVED', 'REJECTED', 'CANCELLED'].includes(applicant.admissionStatus)
-    ) {
+    if (FROZEN_STATUSES.includes(applicant.admissionStatus)) {
       throw new ForbiddenException(
         `Cannot modify applicant in status ${applicant.admissionStatus}`,
       );
     }
 
-    const updatedData: any = {
-      ...dto,
-      updatedBy: userId,
-    };
+    const updatedData: any = { ...dto, updatedBy: userId };
 
     if (dto.dob) {
       updatedData.dob = new Date(dto.dob);
     }
-
-    const firstName =
-      dto.firstName !== undefined ? dto.firstName : applicant.firstName;
-    const middleName =
-      dto.middleName !== undefined
-        ? dto.middleName
-        : applicant.middleName || undefined;
-    const lastName =
-      dto.lastName !== undefined ? dto.lastName : applicant.lastName;
 
     if (
       dto.firstName !== undefined ||
@@ -323,32 +253,41 @@ export class ApplicantService {
       dto.lastName !== undefined
     ) {
       updatedData.displayName = this.getDisplayName(
-        firstName,
-        middleName,
-        lastName,
+        dto.firstName ?? applicant.firstName,
+        dto.middleName !== undefined
+          ? dto.middleName
+          : (applicant.middleName ?? undefined),
+        dto.lastName ?? applicant.lastName,
       );
     }
 
-    const updatedApplicant = await this.prisma.applicant.update({
-      where: { id },
-      data: updatedData,
-    });
+    const updatedApplicant = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.applicant.updateMany({
+        where: { id, ...scopedWhere(scope), deletedAt: null },
+        data: updatedData,
+      });
 
-    await this.eventBus.publish(
-      new ApplicantUpdatedEvent({
-        applicantId: updatedApplicant.id,
-        displayName: updatedApplicant.displayName,
-      }),
-    );
+      if (result.count !== 1) {
+        throw new NotFoundException('Applicant not found');
+      }
+
+      const row = await tx.applicant.findFirstOrThrow({ where: { id } });
+
+      await this.outbox.enqueue(
+        new ApplicantUpdatedEvent({
+          applicantId: row.id,
+          displayName: row.displayName,
+        }),
+        tx,
+      );
+
+      return row;
+    });
 
     return updatedApplicant;
   }
 
-  async findAll(
-    query: QueryApplicantDto,
-    branchId: string,
-    academicYearId: string,
-  ) {
+  async findAll(query: QueryApplicantDto, scope: ResourceScope) {
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '10', 10);
     const skip = (page - 1) * limit;
@@ -357,8 +296,7 @@ export class ApplicantService {
     const sortOrder = query.sortOrder || 'desc';
 
     const whereClause: any = {
-      branchId,
-      academicYearId,
+      ...scopedWhere(scope, { includeAcademicYear: true }),
       deletedAt: null,
     };
 
@@ -370,7 +308,6 @@ export class ApplicantService {
       whereClause.OR = [
         { displayName: { contains: query.search, mode: 'insensitive' } },
         { primaryMobile: { contains: query.search } },
-        { aadhaarNo: { contains: query.search } },
         { applicationNo: { contains: query.search, mode: 'insensitive' } },
         { admissionFormNo: { contains: query.search, mode: 'insensitive' } },
       ];
@@ -383,49 +320,129 @@ export class ApplicantService {
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder },
-        include: {
-          gender: true,
-          admissionSource: true,
-          quota: true,
-        },
+        include: { gender: true, admissionSource: true, quota: true },
       }),
     ]);
 
     return {
       items,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
-  async remove(id: string, userId?: string) {
-    const applicant = await this.findOne(id);
-    if (
-      ['APPROVED', 'REJECTED', 'CANCELLED'].includes(applicant.admissionStatus)
-    ) {
+  async remove(id: string, scope: ResourceScope, userId?: string) {
+    const applicant = await this.findOne(id, scope);
+
+    if (FROZEN_STATUSES.includes(applicant.admissionStatus)) {
       throw new ForbiddenException(
         `Cannot delete applicant in status ${applicant.admissionStatus}`,
       );
     }
 
-    const deletedApplicant = await this.prisma.applicant.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        updatedBy: userId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.applicant.updateMany({
+        where: { id, ...scopedWhere(scope), deletedAt: null },
+        data: { deletedAt: new Date(), updatedBy: userId },
+      });
+
+      if (result.count !== 1) {
+        throw new NotFoundException('Applicant not found');
+      }
+
+      await this.outbox.enqueue(
+        new ApplicantDeletedEvent({ applicantId: id }),
+        tx,
+      );
+
+      return { id };
     });
+  }
 
-    await this.eventBus.publish(
-      new ApplicantDeletedEvent({
-        applicantId: deletedApplicant.id,
-      }),
-    );
+  private async assertMasterReferencesExist(
+    dto: CreateApplicantDto,
+  ): Promise<void> {
+    const checks: Array<[string | undefined, string, () => Promise<unknown>]> =
+      [
+        [
+          dto.genderId,
+          'Gender',
+          () =>
+            this.prisma.gender.findFirst({
+              where: { id: dto.genderId, deletedAt: null },
+            }),
+        ],
+        [
+          dto.religionId,
+          'Religion',
+          () =>
+            this.prisma.religion.findFirst({
+              where: { id: dto.religionId, deletedAt: null },
+            }),
+        ],
+        [
+          dto.casteId,
+          'Caste',
+          () =>
+            this.prisma.caste.findFirst({
+              where: { id: dto.casteId, deletedAt: null },
+            }),
+        ],
+        [
+          dto.categoryId,
+          'Category',
+          () =>
+            this.prisma.category.findFirst({
+              where: { id: dto.categoryId, deletedAt: null },
+            }),
+        ],
+        [
+          dto.motherTongueId,
+          'Mother Tongue Language',
+          () =>
+            this.prisma.language.findFirst({
+              where: { id: dto.motherTongueId, deletedAt: null },
+            }),
+        ],
+        [
+          dto.bloodGroupId,
+          'Blood Group',
+          () =>
+            this.prisma.bloodGroup.findFirst({
+              where: { id: dto.bloodGroupId, deletedAt: null },
+            }),
+        ],
+        [
+          dto.disabilityTypeId,
+          'Disability Type',
+          () =>
+            this.prisma.disability.findFirst({
+              where: { id: dto.disabilityTypeId, deletedAt: null },
+            }),
+        ],
+        [
+          dto.admissionSourceId,
+          'Admission Source',
+          () =>
+            this.prisma.admissionSource.findFirst({
+              where: { id: dto.admissionSourceId, deletedAt: null },
+            }),
+        ],
+        [
+          dto.quotaId,
+          'Quota',
+          () =>
+            this.prisma.quota.findFirst({
+              where: { id: dto.quotaId, deletedAt: null },
+            }),
+        ],
+      ];
 
-    return deletedApplicant;
+    for (const [value, label, lookup] of checks) {
+      if (!value) continue;
+      const exists = await lookup();
+      if (!exists) {
+        throw new NotFoundException(`${label} with ID ${value} not found`);
+      }
+    }
   }
 }

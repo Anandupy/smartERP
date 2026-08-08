@@ -1,22 +1,24 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { AdmissionApplicationStatus } from '@/generated/client';
 
-export enum WorkflowState {
-  DRAFT = 'DRAFT',
-  SUBMITTED = 'SUBMITTED',
-  UNDER_REVIEW = 'UNDER_REVIEW',
-  DOCUMENT_PENDING = 'DOCUMENT_PENDING',
-  FEE_PENDING = 'FEE_PENDING',
-  WAITLISTED = 'WAITLISTED',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED',
-  CANCELLED = 'CANCELLED',
-}
+/**
+ * The applicant workflow states.
+ *
+ * Re-exported from the Prisma enum rather than declared a second time. A local
+ * copy is a copy that drifts: the column and the DTO would disagree the first
+ * time one of them gained a state, and the disagreement would surface as a
+ * runtime cast failure rather than a build error.
+ */
+export { AdmissionApplicationStatus as WorkflowState };
 
 export class TransitionDto {
-  @ApiProperty({ description: 'Target workflow state', enum: WorkflowState })
-  @IsEnum(WorkflowState)
-  newStatus!: WorkflowState;
+  @ApiProperty({
+    description: 'Target workflow state',
+    enum: AdmissionApplicationStatus,
+  })
+  @IsEnum(AdmissionApplicationStatus)
+  newStatus!: AdmissionApplicationStatus;
 
   @ApiPropertyOptional({ description: 'Transition audit remarks' })
   @IsString()

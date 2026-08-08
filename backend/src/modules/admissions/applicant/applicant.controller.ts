@@ -35,6 +35,8 @@ import {
   ApiPaginatedItemsEnvelope,
   ApiStandardErrors,
 } from '@/common/http/api-envelope-response.decorator';
+import { resourceScopeOf } from '@/common/scope/resource-scope';
+import { AuthenticatedRequest } from '@/common/logger/request-context.types';
 import {
   ApplicantDetailDto,
   ApplicantDto,
@@ -77,17 +79,15 @@ export class ApplicantController {
     message: 'Applicant registered successfully',
   })
   @ApiStandardErrors(404, 409)
-  async create(@Body() dto: CreateApplicantDto, @Req() req: any) {
-    const orgId = req.context?.organizationId || '';
-    const branchId = req.context?.branchId || '';
-    const academicYearId = req.context?.academicYearId || '';
-
+  async create(
+    @Body() dto: CreateApplicantDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const scope = resourceScopeOf(req.context, { requireAcademicYear: true });
     const result = await this.service.create(
       dto,
-      orgId,
-      branchId,
-      academicYearId,
-      req.userId,
+      scope,
+      req.userId ?? undefined,
     );
     return {
       data: result.applicant,
@@ -113,9 +113,14 @@ export class ApplicantController {
     message: 'Duplicate check completed',
   })
   @ApiStandardErrors()
-  async checkDupes(@Body() dto: CheckDuplicatesDto, @Req() req: any) {
-    const branchId = req.context?.branchId || '';
-    const result = await this.service.checkDuplicates(dto, branchId);
+  async checkDupes(
+    @Body() dto: CheckDuplicatesDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const result = await this.service.checkDuplicates(
+      dto,
+      resourceScopeOf(req.context),
+    );
     return { data: result, message: 'Duplicate check completed' };
   }
 
@@ -136,10 +141,12 @@ export class ApplicantController {
       'Pagination is nested inside `data` as `{ items, meta }`; the envelope’s own `meta` stays empty.',
   })
   @ApiStandardErrors()
-  async findAll(@Query() query: QueryApplicantDto, @Req() req: any) {
-    const branchId = req.context?.branchId || '';
-    const academicYearId = req.context?.academicYearId || '';
-    const data = await this.service.findAll(query, branchId, academicYearId);
+  async findAll(
+    @Query() query: QueryApplicantDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const scope = resourceScopeOf(req.context, { requireAcademicYear: true });
+    const data = await this.service.findAll(query, scope);
     return { data, message: 'Applicants retrieved successfully' };
   }
 
@@ -156,8 +163,8 @@ export class ApplicantController {
     message: 'Applicant details retrieved successfully',
   })
   @ApiStandardErrors(404)
-  async findOne(@Param('id') id: string) {
-    const data = await this.service.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const data = await this.service.findOne(id, resourceScopeOf(req.context));
     return { data, message: 'Applicant details retrieved successfully' };
   }
 
@@ -175,9 +182,14 @@ export class ApplicantController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateApplicantDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const data = await this.service.update(id, dto, req.userId);
+    const data = await this.service.update(
+      id,
+      dto,
+      resourceScopeOf(req.context),
+      req.userId ?? undefined,
+    );
     return { data, message: 'Applicant updated successfully' };
   }
 
@@ -187,8 +199,12 @@ export class ApplicantController {
   @ApiOperation({ summary: 'Soft delete applicant' })
   @ApiEmptyEnvelope({ message: 'Applicant deleted successfully' })
   @ApiStandardErrors(404)
-  async remove(@Param('id') id: string, @Req() req: any) {
-    await this.service.remove(id, req.userId);
+  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    await this.service.remove(
+      id,
+      resourceScopeOf(req.context),
+      req.userId ?? undefined,
+    );
     return { message: 'Applicant deleted successfully' };
   }
 }

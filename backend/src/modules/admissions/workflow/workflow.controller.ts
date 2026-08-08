@@ -16,6 +16,8 @@ import {
   ApiOkEnvelope,
   ApiStandardErrors,
 } from '@/common/http/api-envelope-response.decorator';
+import { resourceScopeOf } from '@/common/scope/resource-scope';
+import { AuthenticatedRequest } from '@/common/logger/request-context.types';
 import { ApplicantDto } from '../applicant/dto/applicant-response.dto';
 import { WorkflowHistoryDto } from './dto/workflow-response.dto';
 
@@ -52,12 +54,13 @@ export class WorkflowController {
   async transition(
     @Param('applicantId') applicantId: string,
     @Body() dto: TransitionDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     const data = await this.service.transitionState(
       applicantId,
       dto,
-      req.userId,
+      resourceScopeOf(req.context, { requireAcademicYear: true }),
+      req.userId ?? undefined,
     );
     return {
       data,
@@ -81,8 +84,14 @@ export class WorkflowController {
     message: 'Workflow history retrieved successfully',
   })
   @ApiStandardErrors(404)
-  async getHistory(@Param('applicantId') applicantId: string) {
-    const data = await this.service.getHistory(applicantId);
+  async getHistory(
+    @Param('applicantId') applicantId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const data = await this.service.getHistory(
+      applicantId,
+      resourceScopeOf(req.context, { requireAcademicYear: true }),
+    );
     return { data, message: 'Workflow history retrieved successfully' };
   }
 }

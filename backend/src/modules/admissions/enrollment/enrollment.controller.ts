@@ -16,6 +16,8 @@ import {
   ApiOkEnvelope,
   ApiStandardErrors,
 } from '@/common/http/api-envelope-response.decorator';
+import { resourceScopeOf } from '@/common/scope/resource-scope';
+import { AuthenticatedRequest } from '@/common/logger/request-context.types';
 import { EnrollmentDetailDto } from './dto/enrollment-response.dto';
 
 @ApiTags('Enrollment Placements')
@@ -51,18 +53,12 @@ export class EnrollmentController {
   async create(
     @Param('applicantId') applicantId: string,
     @Body() dto: CreateEnrollmentDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const orgId = req.context?.organizationId || '';
-    const branchId = req.context?.branchId || '';
-    const academicYearId = req.context?.academicYearId || '';
-
     const data = await this.service.createEnrollment(
       applicantId,
       dto,
-      orgId,
-      branchId,
-      academicYearId,
+      resourceScopeOf(req.context, { requireAcademicYear: true }),
     );
     return { data, message: 'Applicant enrolled successfully' };
   }
@@ -79,8 +75,14 @@ export class EnrollmentController {
     message: 'Enrollment details retrieved successfully',
   })
   @ApiStandardErrors(404)
-  async get(@Param('applicantId') applicantId: string) {
-    const data = await this.service.getEnrollment(applicantId);
+  async get(
+    @Param('applicantId') applicantId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const data = await this.service.getEnrollment(
+      applicantId,
+      resourceScopeOf(req.context, { requireAcademicYear: true }),
+    );
     return { data, message: 'Enrollment details retrieved successfully' };
   }
 }
