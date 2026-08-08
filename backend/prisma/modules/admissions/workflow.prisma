@@ -1,14 +1,41 @@
+/// The entity kinds that share the workflow audit engine.
+///
+/// Applicant, Admission, Enrollment and Student all record lifecycle
+/// transitions. Four separate history tables would mean four transition
+/// engines, and the fourth one written would forget something the first three
+/// remembered.
+enum WorkflowEntityType {
+  APPLICANT
+  ADMISSION
+  ENROLLMENT
+  STUDENT
+}
+
+/// One recorded lifecycle transition, for any entity that has a lifecycle.
+///
+/// Polymorphic on `(entityType, entityId)` rather than holding a foreign key,
+/// so history survives the deletion of what it describes — the same reasoning
+/// that keeps `AuditLog` free of foreign keys to business tables.
+///
+/// `organizationId` and `branchId` are carried here rather than reached through
+/// a join so a history read can be scoped without touching the entity table.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §17.3.
 model WorkflowHistory {
-  id          String    @id @default(uuid(7))
-  applicantId String
-  oldStatus   String?
-  newStatus   String
-  actionType  String
-  remarks     String?
-  actionBy    String?
-  timestamp   DateTime  @default(now())
+  id             String             @id @default(uuid(7))
+  organizationId String
+  branchId       String
+  entityType     WorkflowEntityType
+  entityId       String
 
-  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  oldStatus  String?
+  newStatus  String
+  actionType String
+  remarks    String?
+  actionBy   String?
+  timestamp  DateTime @default(now())
 
-  @@index([applicantId])
+  @@index([entityType, entityId, timestamp])
+  @@index([organizationId])
+  @@index([branchId])
 }

@@ -1,0 +1,26 @@
+/// The thirteen states of one admission attempt.
+///
+/// Previously a free `String` with a comment listing the values, which the
+/// workflow engine validated on transition but nothing stopped a direct write
+/// of `"aproved"` from bypassing.
+///
+/// `APPROVED` means **"offer made, seat provisionally held"** — it is no longer
+/// terminal. `ADMITTED` is the terminal state, reached only through `admit()`,
+/// and it is the state in which a Student, Admission and first Enrollment exist.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §17.
+enum AdmissionApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  DOCUMENT_PENDING
+  FEE_PENDING
+  WAITLISTED
+  APPROVED
+  SEAT_CONFIRMED
+  DEFERRED
+  ADMITTED
+  REJECTED
+  WITHDRAWN
+  CANCELLED
+}

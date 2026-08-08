@@ -141,6 +141,36 @@ model Program {
 }
 
 
+// --- FROM: modules/admissions/admission-application.enums.prisma ---
+
+/// The thirteen states of one admission attempt.
+///
+/// Previously a free `String` with a comment listing the values, which the
+/// workflow engine validated on transition but nothing stopped a direct write
+/// of `"aproved"` from bypassing.
+///
+/// `APPROVED` means **"offer made, seat provisionally held"** — it is no longer
+/// terminal. `ADMITTED` is the terminal state, reached only through `admit()`,
+/// and it is the state in which a Student, Admission and first Enrollment exist.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §17.
+enum AdmissionApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  DOCUMENT_PENDING
+  FEE_PENDING
+  WAITLISTED
+  APPROVED
+  SEAT_CONFIRMED
+  DEFERRED
+  ADMITTED
+  REJECTED
+  WITHDRAWN
+  CANCELLED
+}
+
+
 // --- FROM: modules/admissions/applicant.prisma ---
 
 model Applicant {
@@ -200,7 +230,9 @@ model Applicant {
   // Admission Details
   admissionSourceId     String?
   quotaId               String?
-  admissionStatus       String                   @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, etc.
+  /// Enum, not a free string: the workflow engine validated transitions but
+  /// nothing stopped a direct write of an unlisted value. See §17.
+  admissionStatus       AdmissionApplicationStatus @default(DRAFT)
   internalRemarks       String?
   counsellorRemarks     String?
   assignedCounsellorId  String?
@@ -243,8 +275,11 @@ model Applicant {
   quota                 Quota?                   @relation(fields: [quotaId], references: [id])
 
   guardians             ApplicantGuardianMapping[]
-  enrollment            Enrollment?
-  workflowHistory       WorkflowHistory[]
+  /// No longer `Enrollment?` — an applicant is not limited to one enrollment
+  /// for life, and the link is provenance only. See §18.
+  enrollments           Enrollment[]
+  // WorkflowHistory is polymorphic and holds no foreign key. Query it by
+  // (entityType: APPLICANT, entityId: <applicant id>).
 
   @@unique([branchId, academicYearId, admissionFormNo])
   @@unique([branchId, academicYearId, applicationNo])
@@ -261,33 +296,53 @@ model Applicant {
 
 // --- FROM: modules/admissions/enrollment.prisma ---
 
+/// One academic year of study.
+///
+/// PHASE 0 SHAPE. This is the de-risked form, not the final one: the fields
+/// that make placement history representable — `studentId`, `admissionId`,
+/// `originType`, `previousEnrollmentId`, `supersededById`, `changeReason`,
+/// `version`, and the composite foreign key to Admission — arrive in Phase 4,
+/// once Student and Admission exist to reference. See §18.
+///
+/// What changed here, and why it could not wait for Phase 4:
+///
+///   * `applicantId` was `@unique`, which meant **one enrollment per applicant
+///     for life**. A twelve-year school career was unrepresentable and
+///     promotion was impossible.
+///   * `applicantId` cascaded on delete, so removing an applicant destroyed the
+///     academic record. The database permitted exactly what the domain forbids.
+///   * `futureStudentId` was a placeholder column pointing at no table.
 model Enrollment {
-  id              String       @id @default(uuid(7))
-  organizationId  String
-  branchId        String
-  academicYearId  String
-  programId       String
-  academicUnitId  String
-  applicantId     String       @unique
-  futureStudentId String?
-  rollNumber      String?
-  enrollmentStatus String       // ACTIVE, PROMOTED, COMPLETED, CANCELLED, etc.
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  deletedAt       DateTime?
+  id               String  @id @default(uuid(7))
+  organizationId   String
+  branchId         String
+  academicYearId   String
+  programId        String
+  academicUnitId   String
+  /// Provenance only, and nullable: an enrollment created by promotion has no
+  /// applicant. **No cascade** — an applicant's lifecycle must never reach the
+  /// academic record.
+  applicantId      String?
+  rollNumber       String?
+  enrollmentStatus String // ACTIVE, PROMOTED, COMPLETED, CANCELLED — becomes an enum in Phase 4
 
-  applicant       Applicant    @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  branch          Branch       @relation(fields: [branchId], references: [id])
-  academicYear    AcademicYear @relation(fields: [academicYearId], references: [id])
-  program         Program      @relation(fields: [programId], references: [id])
-  academicUnit    AcademicUnit @relation(fields: [academicUnitId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  applicant    Applicant?   @relation(fields: [applicantId], references: [id], onDelete: SetNull)
+  organization Organization @relation(fields: [organizationId], references: [id])
+  branch       Branch       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  program      Program      @relation(fields: [programId], references: [id])
+  academicUnit AcademicUnit @relation(fields: [academicUnitId], references: [id])
 
   @@index([organizationId])
   @@index([branchId])
   @@index([academicYearId])
   @@index([programId])
   @@index([academicUnitId])
+  @@index([applicantId])
 }
 
 
@@ -584,61 +639,48 @@ model AdmissionSource {
 }
 
 
-// --- FROM: modules/admissions/numbering.prisma ---
-
-model NumberSequenceConfig {
-  id                  String   @id @default(uuid(7))
-  organizationId      String
-  branchId            String
-  purpose             String   // e.g. "ADMISSION_FORM", "APPLICATION", "STUDENT_CODE", "RECEIPT"
-  prefix              String?
-  suffix              String?
-  includeBranchCode   Boolean  @default(false)
-  includeAcademicYear Boolean  @default(false)
-  sequencePadding     Int      @default(4)
-  format              String   // e.g., "{prefix}-{branchCode}-{year}-{sequence}"
-  resetStrategy       String   @default("NEVER") // "YEARLY", "NEVER"
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  deletedAt           DateTime?
-
-  counters            NumberSequenceCounter[]
-
-  @@unique([branchId, purpose])
-  @@index([organizationId])
-  @@index([branchId])
-}
-
-model NumberSequenceCounter {
-  id             String               @id @default(uuid(7))
-  configId       String
-  academicYearId String?
-  currentValue   Int                  @default(0)
-  updatedAt      DateTime             @updatedAt
-
-  config         NumberSequenceConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
-
-  @@unique([configId, academicYearId])
-  @@index([configId])
-}
-
-
 // --- FROM: modules/admissions/workflow.prisma ---
 
+/// The entity kinds that share the workflow audit engine.
+///
+/// Applicant, Admission, Enrollment and Student all record lifecycle
+/// transitions. Four separate history tables would mean four transition
+/// engines, and the fourth one written would forget something the first three
+/// remembered.
+enum WorkflowEntityType {
+  APPLICANT
+  ADMISSION
+  ENROLLMENT
+  STUDENT
+}
+
+/// One recorded lifecycle transition, for any entity that has a lifecycle.
+///
+/// Polymorphic on `(entityType, entityId)` rather than holding a foreign key,
+/// so history survives the deletion of what it describes — the same reasoning
+/// that keeps `AuditLog` free of foreign keys to business tables.
+///
+/// `organizationId` and `branchId` are carried here rather than reached through
+/// a join so a history read can be scoped without touching the entity table.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §17.3.
 model WorkflowHistory {
-  id          String    @id @default(uuid(7))
-  applicantId String
-  oldStatus   String?
-  newStatus   String
-  actionType  String
-  remarks     String?
-  actionBy    String?
-  timestamp   DateTime  @default(now())
+  id             String             @id @default(uuid(7))
+  organizationId String
+  branchId       String
+  entityType     WorkflowEntityType
+  entityId       String
 
-  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  oldStatus  String?
+  newStatus  String
+  actionType String
+  remarks    String?
+  actionBy   String?
+  timestamp  DateTime @default(now())
 
-  @@index([applicantId])
+  @@index([entityType, entityId, timestamp])
+  @@index([organizationId])
+  @@index([branchId])
 }
 
 
@@ -1148,6 +1190,125 @@ model ProviderConfig {
 }
 
 
+// --- FROM: modules/numbering/numbering.enums.prisma ---
+
+/// Where a sequence's uniqueness and counter live.
+///
+/// Identity numbers (`STUDENT_CODE`, `EMPLOYEE_CODE`) are ORGANIZATION-scoped so
+/// they survive a branch transfer; operational numbers are BRANCH-scoped because
+/// their meaning is local to the branch that issued them.
+enum SequenceScope {
+  ORGANIZATION
+  BRANCH
+}
+
+/// How strongly a sequence guarantees continuity.
+///
+/// MONOTONIC allocates in its own short transaction and commits immediately, so
+/// a caller that later rolls back burns the number and leaves a gap. Gaps in a
+/// student code are cosmetic; the absence of contention is not.
+///
+/// GAPLESS allocates inside the caller's transaction and rolls back with it, so
+/// the counter row stays locked until the caller commits. That serialises the
+/// purpose for its scope, which is the correct price for a receipt or invoice
+/// series an auditor will check for continuity.
+enum AllocationMode {
+  MONOTONIC
+  GAPLESS
+}
+
+/// The closed set of business identifiers this engine issues.
+///
+/// An enum rather than a free string: a typo previously created a second,
+/// silently parallel sequence rather than failing.
+enum SequencePurpose {
+  STUDENT_CODE
+  EMPLOYEE_CODE
+  ADMISSION_NO
+  ADMISSION_FORM
+  APPLICATION
+  RECEIPT
+  INVOICE
+  TC_NUMBER
+  CERTIFICATE
+}
+
+/// Whether a sequence restarts each academic year.
+///
+/// NEVER keeps one counter for the life of the tenant and is what makes an
+/// identity number permanent. YEARLY keys the counter on the academic year.
+enum ResetStrategy {
+  NEVER
+  YEARLY
+}
+
+
+// --- FROM: modules/numbering/numbering.prisma ---
+
+/// One engine issues every human-facing business identifier in the ERP.
+///
+/// It does not own primary keys — those are UUID v7 and are never generated
+/// here — and it does not own whether a generated value is unique at its
+/// destination. Uniqueness is enforced by the destination table's own
+/// constraint, so a generator bug surfaces as a rejected insert rather than as
+/// two students sharing a code.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §34.
+model NumberSequenceConfig {
+  id             String          @id @default(uuid(7))
+  organizationId String
+  /// Null when `scope = ORGANIZATION`. A CHECK constraint keeps the two in step.
+  branchId       String?
+  scope          SequenceScope
+  purpose        SequencePurpose
+  allocationMode AllocationMode  @default(MONOTONIC)
+
+  prefix              String?
+  suffix              String?
+  includeBranchCode   Boolean @default(false)
+  includeAcademicYear Boolean @default(false)
+  sequencePadding     Int     @default(4)
+  /// Must contain `{sequence}`; validated at create and update. Without it every
+  /// generated value is identical and the failure surfaces as a confusing
+  /// unique violation at the destination.
+  format              String
+
+  resetStrategy ResetStrategy @default(NEVER)
+  isActive      Boolean       @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  counters NumberSequenceCounter[]
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([organizationId, purpose])
+  // Uniqueness is two partial indexes — one per scope — declared in raw SQL
+  // because Prisma cannot express a partial unique index. See the migration.
+}
+
+/// The allocated position of a sequence, one row per config per reset window.
+///
+/// `academicYearId` is null for `resetStrategy = NEVER`. Postgres treats NULLs
+/// as distinct, so the obvious `@@unique([configId, academicYearId])` does not
+/// constrain those rows at all — every allocation would insert a fresh counter
+/// returning 1 and issue duplicate codes indefinitely. Uniqueness is therefore a
+/// functional index over a coalesced year, declared in raw SQL in the migration.
+model NumberSequenceCounter {
+  id             String   @id @default(uuid(7))
+  configId       String
+  academicYearId String?
+  currentValue   Int      @default(0)
+  updatedAt      DateTime @updatedAt
+
+  config NumberSequenceConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+}
+
+
 // --- FROM: modules/organization/affiliation.enums.prisma ---
 
 enum AffiliationType {
@@ -1260,6 +1421,17 @@ enum StructureMode {
 model AuditLog {
   id              String    @id @default(uuid(7))
   timestamp       DateTime  @default(now())
+
+  /// The originating `DomainEvent.eventId`.
+  ///
+  /// Outbox delivery is at-least-once (§36.4), so a relay retry republishes an
+  /// event the audit listener has already recorded. Without this column there
+  /// is no way to tell that replay from a genuine second event, and the log
+  /// silently accumulates duplicates.
+  ///
+  /// Nullable because events published outside the outbox — and every row
+  /// written before this column existed — carry no guarantee of one.
+  eventId         String?   @unique
 
   eventName       String
   action          String
@@ -1375,6 +1547,67 @@ model MaintenanceRule {
 
   @@index([scopeType, scopeId])
   @@index([isActive])
+}
+
+
+// --- FROM: modules/system/outbox.prisma ---
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+/// A domain event committed alongside the data it describes.
+///
+/// Publishing after a commit and hoping is fine for an annoyance and fatal for
+/// `student.created`: an in-process bus loses the event if the process dies
+/// between COMMIT and publish, leaving a Student no downstream module ever
+/// heard about — no fee schedule, no library membership, no portal account, and
+/// no way to discover the omission except by reconciliation.
+///
+/// The row is written inside the business transaction. A relay picks it up
+/// afterwards and hands it to the existing `EventBus`, so the outbox sits
+/// *behind* the abstraction and no consumer changes.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §36.
+model OutboxEvent {
+  id String @id @default(uuid(7))
+
+  /// The originating `DomainEvent.eventId`. Unique, so a relay retry cannot
+  /// enqueue the same event twice, and consumers can deduplicate on it.
+  eventId       String   @unique
+  eventName     String
+  aggregateType String
+  aggregateId   String
+  occurredAt    DateTime
+
+  /// The event's own `payload` and `metadata`, stored separately so the relay
+  /// can rebuild an event that is faithful to what the producer published.
+  payload  Json
+  metadata Json?
+
+  /// Who and where, captured at write time.
+  ///
+  /// `AuditEventMapper` reads the actor from `RequestContextService`, which is
+  /// backed by AsyncLocalStorage. The relay runs on a timer, outside any
+  /// request, so that store is empty — without this snapshot every replayed
+  /// audit row would be attributed to nobody.
+  contextSnapshot Json
+
+  organizationId String?
+
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  nextAttemptAt DateTime     @default(now())
+  lastError     String?
+
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@index([organizationId])
 }
 
 

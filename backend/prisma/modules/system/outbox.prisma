@@ -1,0 +1,57 @@
+enum OutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+/// A domain event committed alongside the data it describes.
+///
+/// Publishing after a commit and hoping is fine for an annoyance and fatal for
+/// `student.created`: an in-process bus loses the event if the process dies
+/// between COMMIT and publish, leaving a Student no downstream module ever
+/// heard about — no fee schedule, no library membership, no portal account, and
+/// no way to discover the omission except by reconciliation.
+///
+/// The row is written inside the business transaction. A relay picks it up
+/// afterwards and hands it to the existing `EventBus`, so the outbox sits
+/// *behind* the abstraction and no consumer changes.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §36.
+model OutboxEvent {
+  id String @id @default(uuid(7))
+
+  /// The originating `DomainEvent.eventId`. Unique, so a relay retry cannot
+  /// enqueue the same event twice, and consumers can deduplicate on it.
+  eventId       String   @unique
+  eventName     String
+  aggregateType String
+  aggregateId   String
+  occurredAt    DateTime
+
+  /// The event's own `payload` and `metadata`, stored separately so the relay
+  /// can rebuild an event that is faithful to what the producer published.
+  payload  Json
+  metadata Json?
+
+  /// Who and where, captured at write time.
+  ///
+  /// `AuditEventMapper` reads the actor from `RequestContextService`, which is
+  /// backed by AsyncLocalStorage. The relay runs on a timer, outside any
+  /// request, so that store is empty — without this snapshot every replayed
+  /// audit row would be attributed to nobody.
+  contextSnapshot Json
+
+  organizationId String?
+
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  nextAttemptAt DateTime     @default(now())
+  lastError     String?
+
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateType, aggregateId])
+  @@index([organizationId])
+}

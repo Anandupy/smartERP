@@ -1,0 +1,49 @@
+/// Where a sequence's uniqueness and counter live.
+///
+/// Identity numbers (`STUDENT_CODE`, `EMPLOYEE_CODE`) are ORGANIZATION-scoped so
+/// they survive a branch transfer; operational numbers are BRANCH-scoped because
+/// their meaning is local to the branch that issued them.
+enum SequenceScope {
+  ORGANIZATION
+  BRANCH
+}
+
+/// How strongly a sequence guarantees continuity.
+///
+/// MONOTONIC allocates in its own short transaction and commits immediately, so
+/// a caller that later rolls back burns the number and leaves a gap. Gaps in a
+/// student code are cosmetic; the absence of contention is not.
+///
+/// GAPLESS allocates inside the caller's transaction and rolls back with it, so
+/// the counter row stays locked until the caller commits. That serialises the
+/// purpose for its scope, which is the correct price for a receipt or invoice
+/// series an auditor will check for continuity.
+enum AllocationMode {
+  MONOTONIC
+  GAPLESS
+}
+
+/// The closed set of business identifiers this engine issues.
+///
+/// An enum rather than a free string: a typo previously created a second,
+/// silently parallel sequence rather than failing.
+enum SequencePurpose {
+  STUDENT_CODE
+  EMPLOYEE_CODE
+  ADMISSION_NO
+  ADMISSION_FORM
+  APPLICATION
+  RECEIPT
+  INVOICE
+  TC_NUMBER
+  CERTIFICATE
+}
+
+/// Whether a sequence restarts each academic year.
+///
+/// NEVER keeps one counter for the life of the tenant and is what makes an
+/// identity number permanent. YEARLY keys the counter on the academic year.
+enum ResetStrategy {
+  NEVER
+  YEARLY
+}

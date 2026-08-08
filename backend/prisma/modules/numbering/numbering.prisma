@@ -1,0 +1,62 @@
+/// One engine issues every human-facing business identifier in the ERP.
+///
+/// It does not own primary keys — those are UUID v7 and are never generated
+/// here — and it does not own whether a generated value is unique at its
+/// destination. Uniqueness is enforced by the destination table's own
+/// constraint, so a generator bug surfaces as a rejected insert rather than as
+/// two students sharing a code.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §34.
+model NumberSequenceConfig {
+  id             String          @id @default(uuid(7))
+  organizationId String
+  /// Null when `scope = ORGANIZATION`. A CHECK constraint keeps the two in step.
+  branchId       String?
+  scope          SequenceScope
+  purpose        SequencePurpose
+  allocationMode AllocationMode  @default(MONOTONIC)
+
+  prefix              String?
+  suffix              String?
+  includeBranchCode   Boolean @default(false)
+  includeAcademicYear Boolean @default(false)
+  sequencePadding     Int     @default(4)
+  /// Must contain `{sequence}`; validated at create and update. Without it every
+  /// generated value is identical and the failure surfaces as a confusing
+  /// unique violation at the destination.
+  format              String
+
+  resetStrategy ResetStrategy @default(NEVER)
+  isActive      Boolean       @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  counters NumberSequenceCounter[]
+
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([organizationId, purpose])
+  // Uniqueness is two partial indexes — one per scope — declared in raw SQL
+  // because Prisma cannot express a partial unique index. See the migration.
+}
+
+/// The allocated position of a sequence, one row per config per reset window.
+///
+/// `academicYearId` is null for `resetStrategy = NEVER`. Postgres treats NULLs
+/// as distinct, so the obvious `@@unique([configId, academicYearId])` does not
+/// constrain those rows at all — every allocation would insert a fresh counter
+/// returning 1 and issue duplicate codes indefinitely. Uniqueness is therefore a
+/// functional index over a coalesced year, declared in raw SQL in the migration.
+model NumberSequenceCounter {
+  id             String   @id @default(uuid(7))
+  configId       String
+  academicYearId String?
+  currentValue   Int      @default(0)
+  updatedAt      DateTime @updatedAt
+
+  config NumberSequenceConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+}

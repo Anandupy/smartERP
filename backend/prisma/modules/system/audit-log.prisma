@@ -2,6 +2,17 @@ model AuditLog {
   id              String    @id @default(uuid(7))
   timestamp       DateTime  @default(now())
 
+  /// The originating `DomainEvent.eventId`.
+  ///
+  /// Outbox delivery is at-least-once (§36.4), so a relay retry republishes an
+  /// event the audit listener has already recorded. Without this column there
+  /// is no way to tell that replay from a genuine second event, and the log
+  /// silently accumulates duplicates.
+  ///
+  /// Nullable because events published outside the outbox — and every row
+  /// written before this column existed — carry no guarantee of one.
+  eventId         String?   @unique
+
   eventName       String
   action          String
   module          String

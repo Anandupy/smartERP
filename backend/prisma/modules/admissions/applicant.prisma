@@ -55,7 +55,9 @@ model Applicant {
   // Admission Details
   admissionSourceId     String?
   quotaId               String?
-  admissionStatus       String                   @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, etc.
+  /// Enum, not a free string: the workflow engine validated transitions but
+  /// nothing stopped a direct write of an unlisted value. See §17.
+  admissionStatus       AdmissionApplicationStatus @default(DRAFT)
   internalRemarks       String?
   counsellorRemarks     String?
   assignedCounsellorId  String?
@@ -98,8 +100,11 @@ model Applicant {
   quota                 Quota?                   @relation(fields: [quotaId], references: [id])
 
   guardians             ApplicantGuardianMapping[]
-  enrollment            Enrollment?
-  workflowHistory       WorkflowHistory[]
+  /// No longer `Enrollment?` — an applicant is not limited to one enrollment
+  /// for life, and the link is provenance only. See §18.
+  enrollments           Enrollment[]
+  // WorkflowHistory is polymorphic and holds no foreign key. Query it by
+  // (entityType: APPLICANT, entityId: <applicant id>).
 
   @@unique([branchId, academicYearId, admissionFormNo])
   @@unique([branchId, academicYearId, applicationNo])
