@@ -118,16 +118,49 @@ export class EnvironmentVariables {
   @IsOptional()
   JWT_REFRESH_EXPIRES_IN: string = '7d';
 
+  // --- Identity & sensitive data -------------------------------------------
+
   /**
-   * Reserved for encryption of provider credentials at rest. Not consumed yet —
-   * validated only when supplied so that a malformed key is caught before the
-   * feature starts depending on it.
+   * The symmetric key-encryption key that wraps every organization's data key.
+   *
+   * Consumed as of Phase 1 — `docs/core/configuration.md` §5 previously
+   * recorded this as reserved, which is no longer true.
+   *
+   * Must be exactly 32 bytes, base64 or hex encoded. A passphrase of the same
+   * character count has far less entropy than it appears to, so the encoding is
+   * checked rather than the length:
+   *
+   *     openssl rand -base64 32
    */
-  @MinLength(MIN_SECRET_LENGTH, {
-    message: `ENCRYPTION_KEY must be at least ${MIN_SECRET_LENGTH} characters`,
-  })
+  @IsString()
   @IsOptional()
   ENCRYPTION_KEY?: string;
+
+  /**
+   * The pepper for identity blind indexes.
+   *
+   * ⚠️ This value can never change once identity data exists. Changing it
+   * raises no error — it silently stops duplicate detection from finding
+   * anyone, and every existing index becomes unmatchable.
+   */
+  @MinLength(MIN_SECRET_LENGTH, {
+    message: `IDENTITY_HASH_PEPPER must be at least ${MIN_SECRET_LENGTH} characters`,
+  })
+  @IsOptional()
+  IDENTITY_HASH_PEPPER?: string;
+
+  /**
+   * PEM **public** key of the recovery keypair.
+   *
+   * Only the public half belongs here. The private half lives offline, which is
+   * what makes recovery survive a full server compromise — see
+   * `docs/core/key-custody.md`. A deployment that sets the private half by
+   * mistake has defeated the entire mechanism, so the format is validated at
+   * boot and a private key is rejected.
+   */
+  @IsString()
+  @IsOptional()
+  KEK_RECOVERY_PUBLIC_KEY?: string;
 
   // --- Bootstrap seeding --------------------------------------------------
 
@@ -298,7 +331,108 @@ function collectSemanticErrors(config: EnvironmentVariables): string[] {
     );
   }
 
+  errors.push(...collectIdentityCryptoErrors(config, isProduction));
+
   return errors;
+}
+
+/**
+ * Identity crypto configuration.
+ *
+ * Every message here names the variable and the remedy and never echoes the
+ * value: a validation error is printed to a console, a log aggregator and
+ * usually a CI transcript, which is the last place a key should appear.
+ */
+function collectIdentityCryptoErrors(
+  config: EnvironmentVariables,
+  isProduction: boolean,
+): string[] {
+  const errors: string[] = [];
+
+  // Checking that the key *decodes to 32 bytes* rather than that it is "long
+  // enough". A 44-character passphrase passes a length check and is not a key.
+  if (config.ENCRYPTION_KEY) {
+    if (!isThirtyTwoByteKey(config.ENCRYPTION_KEY)) {
+      errors.push(
+        'ENCRYPTION_KEY must be exactly 32 bytes encoded as base64 or hex — generate one with `openssl rand -base64 32`',
+      );
+    }
+  } else if (isProduction) {
+    errors.push(
+      'ENCRYPTION_KEY is required in production; sensitive identity data cannot be stored without it',
+    );
+  }
+
+  if (!config.IDENTITY_HASH_PEPPER && isProduction) {
+    errors.push(
+      'IDENTITY_HASH_PEPPER is required in production; identity matching cannot run without it',
+    );
+  }
+
+  if (
+    config.IDENTITY_HASH_PEPPER &&
+    FORBIDDEN_SECRETS.has(config.IDENTITY_HASH_PEPPER.trim().toLowerCase())
+  ) {
+    errors.push(
+      'IDENTITY_HASH_PEPPER is set to a well-known placeholder value and must be replaced with a generated secret',
+    );
+  }
+
+  if (
+    config.ENCRYPTION_KEY &&
+    config.IDENTITY_HASH_PEPPER &&
+    config.ENCRYPTION_KEY === config.IDENTITY_HASH_PEPPER
+  ) {
+    errors.push(
+      'ENCRYPTION_KEY and IDENTITY_HASH_PEPPER must be different values; reusing one secret for both means a single disclosure breaks both confidentiality and matching',
+    );
+  }
+
+  if (config.KEK_RECOVERY_PUBLIC_KEY) {
+    const pem = config.KEK_RECOVERY_PUBLIC_KEY;
+    if (/PRIVATE KEY/.test(pem)) {
+      // The whole point of the recovery key is that the server cannot use it.
+      errors.push(
+        'KEK_RECOVERY_PUBLIC_KEY contains a PRIVATE key. Only the public half may be configured — the private half must stay offline, or recovery gives no protection against a server compromise',
+      );
+    } else if (!/BEGIN (RSA )?PUBLIC KEY/.test(pem)) {
+      errors.push('KEK_RECOVERY_PUBLIC_KEY must be a PEM-encoded public key');
+    }
+  } else if (isProduction) {
+    errors.push(
+      'KEK_RECOVERY_PUBLIC_KEY is required in production. Without it a data key has only one wrap, so losing ENCRYPTION_KEY loses the data — see docs/core/key-custody.md',
+    );
+  }
+
+  return errors;
+}
+
+/**
+ * True when the value decodes to exactly 32 bytes.
+ *
+ * `base64url` is accepted alongside `base64` and `hex` because it is what
+ * `crypto.randomBytes(32).toString('base64url')` produces — a perfectly good
+ * key that a base64-only check rejects over two substituted characters.
+ */
+function isThirtyTwoByteKey(value: string): boolean {
+  const trimmed = value.trim();
+
+  for (const encoding of ['base64', 'base64url', 'hex'] as const) {
+    try {
+      const buf = Buffer.from(trimmed, encoding);
+      if (buf.length !== 32) continue;
+      // Buffer.from silently drops invalid characters, so a passphrase can
+      // decode to the right length by accident. Round-tripping catches it.
+      const roundTrip = buf.toString(encoding);
+      if (roundTrip.replace(/=+$/, '') === trimmed.replace(/=+$/, '')) {
+        return true;
+      }
+    } catch {
+      // try the next encoding
+    }
+  }
+
+  return false;
 }
 
 /**
