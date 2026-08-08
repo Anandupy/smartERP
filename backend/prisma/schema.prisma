@@ -1190,6 +1190,306 @@ model ProviderConfig {
 }
 
 
+// --- FROM: modules/identity/data-key.prisma ---
+
+/// One data-encryption key per organization, stored only in wrapped form.
+///
+/// Envelope encryption: the DEK encrypts the tenant's sensitive values, and the
+/// DEK itself is encrypted ("wrapped") by a key-encryption key. Rotating a KEK
+/// then re-wraps N small rows instead of re-encrypting every record, the blast
+/// radius of a compromised DEK is one tenant, and offboarding a tenant becomes
+/// a key deletion rather than a table scan.
+///
+/// **The DEK is never stored.** Only its wrapped forms. It exists in process
+/// memory for the duration of an operation and is never logged.
+///
+/// ## Two wraps, and why the second one is asymmetric
+///
+/// `dekWrappedOperational` is produced with a symmetric key the server holds
+/// (`ENCRYPTION_KEY`). That is the wrap used on every request.
+///
+/// `dekWrappedRecovery` is produced with the **public half** of a recovery
+/// keypair. The private half never exists on the server, so a full server
+/// compromise yields the operational key only and the recovery path survives
+/// the breach. Encryption needs the public key alone, which is why the server
+/// can produce this wrap without ever holding recovery secret material.
+///
+/// Generating that keypair and custodying its private half is an operational
+/// ceremony, not something the application may invent — see
+/// docs/core/key-custody.md.
+model OrganizationDataKey {
+  id             String @id @default(uuid(7))
+  organizationId String @unique
+
+  /// Wrapped with the symmetric operational KEK. Always present.
+  dekWrappedOperational Bytes
+  operationalKekVersion Int
+
+  /// Wrapped with the recovery KEK's public half.
+  ///
+  /// Nullable only so a deployment without established recovery custody can
+  /// still run in development. A key in that state is `PENDING_RECOVERY_CUSTODY`
+  /// and is refused in production: the alternative is claiming a recovery
+  /// guarantee the deployment cannot honour.
+  dekWrappedRecovery Bytes?
+  recoveryKekVersion Int?
+
+  /// Explicit, so a future change of algorithm is legible in the data rather
+  /// than implied by the code that happens to be deployed.
+  algorithm String @default("AES-256-GCM")
+
+  status DataKeyStatus @default(PENDING_RECOVERY_CUSTODY)
+
+  createdAt       DateTime  @default(now())
+  /// Last KEK rotation. Distinct from a DEK rotation, which re-encrypts data.
+  lastRewrappedAt DateTime?
+
+  /// Tenant offboarding. Irreversible: with no wraps left the DEK is
+  /// unrecoverable and every ciphertext under it is permanently unreadable.
+  shreddedAt DateTime?
+  shreddedBy String?
+
+  @@index([status])
+}
+
+/// Append-only record of every key rotation and shred.
+///
+/// KEK rotation and DEK rotation are routinely confused and have very different
+/// costs — one re-wraps N rows, the other re-encrypts every encrypted row for
+/// the tenant. Recording which happened, and why, is what makes a later
+/// investigation possible.
+model DataKeyRotationLog {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  /// `KEK_REWRAP` or `DEK_ROTATE` or `SHRED`.
+  rotationType String
+  fromVersion  Int?
+  toVersion    Int?
+  /// Mandatory.
+  reason       String
+
+  performedBy String
+  performedAt DateTime @default(now())
+
+  @@index([organizationId])
+}
+
+
+// --- FROM: modules/identity/identity.enums.prisma ---
+
+/// The government identifier kinds this deployment understands.
+///
+/// Only AADHAAR is handled in v1 — F1 §3.4 classifies it as the one identifier
+/// needing ciphertext, blind index and a last-4 display form. APAAR, ABC, PEN,
+/// Saral and UDISE ids are institutional identifiers designed to be shared and
+/// printed; they stay plaintext on the record that owns them and never reach
+/// this table.
+enum GovernmentIdType {
+  AADHAAR
+}
+
+/// Lifecycle of an organization's data-encryption key.
+///
+/// `PENDING_RECOVERY_CUSTODY` is not in F1's original set and is the honest
+/// answer to an unfinished deployment: the DEK exists and works, but it has
+/// only one wrap, so losing `KEK_operational` would lose the data. A key in
+/// this state is refused outright in production — the application must not
+/// pretend a recovery path exists when it does not.
+enum DataKeyStatus {
+  PENDING_RECOVERY_CUSTODY
+  ACTIVE
+  ROTATING
+  RETIRED
+  SHREDDED
+}
+
+/// The outcome a human recorded for a candidate pair.
+///
+/// Only DISTINCT is ever written. The opposite conclusion is not a decision
+/// row — it is a merge, and merge execution is deliberately not built yet.
+enum MatchDecision {
+  DISTINCT
+}
+
+
+// --- FROM: modules/identity/person.prisma ---
+
+/// "Is this the same human?" — and nothing else.
+///
+/// A deduplication index with no lifecycle, no status and no behaviour of its
+/// own. It holds only *matching keys*: values whose sole purpose is deciding
+/// whether two records describe one person.
+///
+/// It does not own names for display, addresses, photographs, contact details,
+/// or any attribute a user edits. Those belong to Applicant (a frozen legal
+/// snapshot of what was declared), Student (current official truth) and
+/// Guardian (current truth) — three records that legitimately diverge over
+/// time.
+///
+/// The sprawl rule: the moment Person exists there is pressure to move "just
+/// the name" onto it, then the photo, then the address. Every one of those
+/// varies per role, which is precisely what Person must not do. A change adding
+/// a display or contact attribute here is a design error, not a convenience.
+///
+/// See docs/planning/01-identity-core/01-person.md and
+/// docs/planning/student-admission-enrollment-architecture.md §11.2.
+model Person {
+  id String @id @default(uuid(7))
+
+  /// Person never spans tenants. The same human at two organizations is two
+  /// Persons, by design — a global registry would let one tenant discover
+  /// another's students by probing an identifier.
+  organizationId String
+
+  /// Blind index over the government identifier:
+  /// `HMAC-SHA256(pepper, organizationId + ":" + domain + ":" + normalized)`.
+  ///
+  /// The organization id is inside the *message*, not merely the query scope,
+  /// so the same human at two tenants produces unrelated digests and the index
+  /// cannot correlate people across organizations even by direct comparison.
+  ///
+  /// Null until an identifier is supplied. Postgres treats NULLs as distinct,
+  /// so any number of people may have none.
+  govtIdHash String?
+
+  /// Blind index over the contact number, last 10 digits. A weak signal: one
+  /// household mobile routinely serves every child.
+  phoneHash String?
+
+  /// The primary discriminator between same-named people, and required because
+  /// a nullable one would silently degrade every medium- and low-confidence
+  /// match.
+  dob DateTime
+
+  /// Case-folded, punctuation-stripped, whitespace-collapsed. Never rendered to
+  /// a user — it exists to be compared, not read.
+  nameNormalized String
+
+  /// Non-null means this row is retired and `mergedIntoPersonId` names its
+  /// survivor. Merge execution is not built yet; the column exists so a stale
+  /// reference will resolve rather than dangle once it is.
+  mergedIntoPersonId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sensitive       PersonSensitive?
+  mergedInto      Person?  @relation("PersonMerge", fields: [mergedIntoPersonId], references: [id])
+  mergedFrom      Person[] @relation("PersonMerge")
+
+  /// The rule that resolves the two-branch collision: a child confirmed at two
+  /// branches resolves to one Person, so the second admission fails on
+  /// Student's own uniqueness rather than quietly creating a second identity.
+  @@unique([organizationId, govtIdHash])
+  @@index([organizationId, phoneHash, dob])
+  @@index([organizationId, nameNormalized, dob])
+  @@index([mergedIntoPersonId])
+  // There is deliberately no `deletedAt`. Historical records point at this row,
+  // and a Person whose sensitive data has been erased still deduplicates —
+  // which is what stops an erased subject re-enrolling as a stranger.
+}
+
+/// Ciphertext for the one identifier that needs it.
+///
+/// Split from Person so the matching index can be read freely while the
+/// recoverable value sits behind a separate table with its own access rules.
+/// The blind index stays on Person because it *is* a matching key; the
+/// ciphertext is not, and nothing should join to it to answer "same human?".
+model PersonSensitive {
+  id             String @id @default(uuid(7))
+  personId       String @unique
+  organizationId String
+
+  idType GovernmentIdType
+
+  /// AES-256-GCM. Authenticated, so tampering fails loudly rather than
+  /// returning plausible garbage.
+  ///
+  /// Nullable because crypto-erasure nulls it in place: the Person row, the
+  /// academic record and every foreign key survive; only the recoverable value
+  /// goes. See §24.
+  aadhaarEnc Bytes?
+
+  /// The last four digits, for routine screen display without decrypting.
+  /// Rendered as `XXXX XXXX 1234`.
+  aadhaarLast4 String?
+
+  /// Which DEK generation produced the ciphertext. Decrypt has to know, or a
+  /// key rotation invalidates every existing row.
+  keyVersion Int
+
+  /// Set when the value has been crypto-erased. The row remains so the erasure
+  /// itself is evidence.
+  erasedAt DateTime?
+  erasedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+/// A human reviewed two candidates and judged them different people.
+///
+/// Without this the same twin warning fires at every step of every year, and
+/// staff learn to dismiss all warnings reflexively — which destroys the value
+/// of the ones that matter.
+model PersonMatchDecision {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  /// Stored with `personAId < personBId` so the pair is order-independent and
+  /// one comparison cannot be recorded twice under two spellings.
+  personAId String
+  personBId String
+
+  decision   MatchDecision
+  /// Mandatory. "Twins", "father and son, same name" — the reason is what makes
+  /// the decision reviewable later.
+  reason     String
+  decidedBy  String
+  decidedAt  DateTime      @default(now())
+
+  @@unique([personAId, personBId])
+  @@index([organizationId])
+}
+
+/// Append-only evidence of a completed merge.
+///
+/// Merge is irreversible, so the evidence has to be reconstructable after the
+/// fact: repointing the references destroys the information about which side
+/// they came from.
+///
+/// **Nothing writes to this table yet.** Merge execution is deliberately
+/// deferred; the log exists so the operation is possible to add without a
+/// migration that touches live identity data.
+model PersonMergeLog {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  survivorPersonId String
+  mergedPersonId   String
+
+  /// Mandatory.
+  reason String
+
+  /// `{"applicant": [...], "student": [...], "guardian": [...]}` — exactly what
+  /// moved. Without it, "which records used to belong to the other person?" is
+  /// unanswerable.
+  repointedRefs Json
+
+  mergedBy String
+  mergedAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([survivorPersonId])
+  @@index([mergedPersonId])
+}
+
+
 // --- FROM: modules/numbering/numbering.enums.prisma ---
 
 /// Where a sequence's uniqueness and counter live.

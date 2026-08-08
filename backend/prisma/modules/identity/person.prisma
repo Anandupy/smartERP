@@ -1,0 +1,173 @@
+/// "Is this the same human?" — and nothing else.
+///
+/// A deduplication index with no lifecycle, no status and no behaviour of its
+/// own. It holds only *matching keys*: values whose sole purpose is deciding
+/// whether two records describe one person.
+///
+/// It does not own names for display, addresses, photographs, contact details,
+/// or any attribute a user edits. Those belong to Applicant (a frozen legal
+/// snapshot of what was declared), Student (current official truth) and
+/// Guardian (current truth) — three records that legitimately diverge over
+/// time.
+///
+/// The sprawl rule: the moment Person exists there is pressure to move "just
+/// the name" onto it, then the photo, then the address. Every one of those
+/// varies per role, which is precisely what Person must not do. A change adding
+/// a display or contact attribute here is a design error, not a convenience.
+///
+/// See docs/planning/01-identity-core/01-person.md and
+/// docs/planning/student-admission-enrollment-architecture.md §11.2.
+model Person {
+  id String @id @default(uuid(7))
+
+  /// Person never spans tenants. The same human at two organizations is two
+  /// Persons, by design — a global registry would let one tenant discover
+  /// another's students by probing an identifier.
+  organizationId String
+
+  /// Blind index over the government identifier:
+  /// `HMAC-SHA256(pepper, organizationId + ":" + domain + ":" + normalized)`.
+  ///
+  /// The organization id is inside the *message*, not merely the query scope,
+  /// so the same human at two tenants produces unrelated digests and the index
+  /// cannot correlate people across organizations even by direct comparison.
+  ///
+  /// Null until an identifier is supplied. Postgres treats NULLs as distinct,
+  /// so any number of people may have none.
+  govtIdHash String?
+
+  /// Blind index over the contact number, last 10 digits. A weak signal: one
+  /// household mobile routinely serves every child.
+  phoneHash String?
+
+  /// The primary discriminator between same-named people, and required because
+  /// a nullable one would silently degrade every medium- and low-confidence
+  /// match.
+  dob DateTime
+
+  /// Case-folded, punctuation-stripped, whitespace-collapsed. Never rendered to
+  /// a user — it exists to be compared, not read.
+  nameNormalized String
+
+  /// Non-null means this row is retired and `mergedIntoPersonId` names its
+  /// survivor. Merge execution is not built yet; the column exists so a stale
+  /// reference will resolve rather than dangle once it is.
+  mergedIntoPersonId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sensitive       PersonSensitive?
+  mergedInto      Person?  @relation("PersonMerge", fields: [mergedIntoPersonId], references: [id])
+  mergedFrom      Person[] @relation("PersonMerge")
+
+  /// The rule that resolves the two-branch collision: a child confirmed at two
+  /// branches resolves to one Person, so the second admission fails on
+  /// Student's own uniqueness rather than quietly creating a second identity.
+  @@unique([organizationId, govtIdHash])
+  @@index([organizationId, phoneHash, dob])
+  @@index([organizationId, nameNormalized, dob])
+  @@index([mergedIntoPersonId])
+  // There is deliberately no `deletedAt`. Historical records point at this row,
+  // and a Person whose sensitive data has been erased still deduplicates —
+  // which is what stops an erased subject re-enrolling as a stranger.
+}
+
+/// Ciphertext for the one identifier that needs it.
+///
+/// Split from Person so the matching index can be read freely while the
+/// recoverable value sits behind a separate table with its own access rules.
+/// The blind index stays on Person because it *is* a matching key; the
+/// ciphertext is not, and nothing should join to it to answer "same human?".
+model PersonSensitive {
+  id             String @id @default(uuid(7))
+  personId       String @unique
+  organizationId String
+
+  idType GovernmentIdType
+
+  /// AES-256-GCM. Authenticated, so tampering fails loudly rather than
+  /// returning plausible garbage.
+  ///
+  /// Nullable because crypto-erasure nulls it in place: the Person row, the
+  /// academic record and every foreign key survive; only the recoverable value
+  /// goes. See §24.
+  aadhaarEnc Bytes?
+
+  /// The last four digits, for routine screen display without decrypting.
+  /// Rendered as `XXXX XXXX 1234`.
+  aadhaarLast4 String?
+
+  /// Which DEK generation produced the ciphertext. Decrypt has to know, or a
+  /// key rotation invalidates every existing row.
+  keyVersion Int
+
+  /// Set when the value has been crypto-erased. The row remains so the erasure
+  /// itself is evidence.
+  erasedAt DateTime?
+  erasedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+/// A human reviewed two candidates and judged them different people.
+///
+/// Without this the same twin warning fires at every step of every year, and
+/// staff learn to dismiss all warnings reflexively — which destroys the value
+/// of the ones that matter.
+model PersonMatchDecision {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  /// Stored with `personAId < personBId` so the pair is order-independent and
+  /// one comparison cannot be recorded twice under two spellings.
+  personAId String
+  personBId String
+
+  decision   MatchDecision
+  /// Mandatory. "Twins", "father and son, same name" — the reason is what makes
+  /// the decision reviewable later.
+  reason     String
+  decidedBy  String
+  decidedAt  DateTime      @default(now())
+
+  @@unique([personAId, personBId])
+  @@index([organizationId])
+}
+
+/// Append-only evidence of a completed merge.
+///
+/// Merge is irreversible, so the evidence has to be reconstructable after the
+/// fact: repointing the references destroys the information about which side
+/// they came from.
+///
+/// **Nothing writes to this table yet.** Merge execution is deliberately
+/// deferred; the log exists so the operation is possible to add without a
+/// migration that touches live identity data.
+model PersonMergeLog {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  survivorPersonId String
+  mergedPersonId   String
+
+  /// Mandatory.
+  reason String
+
+  /// `{"applicant": [...], "student": [...], "guardian": [...]}` — exactly what
+  /// moved. Without it, "which records used to belong to the other person?" is
+  /// unanswerable.
+  repointedRefs Json
+
+  mergedBy String
+  mergedAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([survivorPersonId])
+  @@index([mergedPersonId])
+}

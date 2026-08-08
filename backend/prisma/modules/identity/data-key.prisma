@@ -1,0 +1,82 @@
+/// One data-encryption key per organization, stored only in wrapped form.
+///
+/// Envelope encryption: the DEK encrypts the tenant's sensitive values, and the
+/// DEK itself is encrypted ("wrapped") by a key-encryption key. Rotating a KEK
+/// then re-wraps N small rows instead of re-encrypting every record, the blast
+/// radius of a compromised DEK is one tenant, and offboarding a tenant becomes
+/// a key deletion rather than a table scan.
+///
+/// **The DEK is never stored.** Only its wrapped forms. It exists in process
+/// memory for the duration of an operation and is never logged.
+///
+/// ## Two wraps, and why the second one is asymmetric
+///
+/// `dekWrappedOperational` is produced with a symmetric key the server holds
+/// (`ENCRYPTION_KEY`). That is the wrap used on every request.
+///
+/// `dekWrappedRecovery` is produced with the **public half** of a recovery
+/// keypair. The private half never exists on the server, so a full server
+/// compromise yields the operational key only and the recovery path survives
+/// the breach. Encryption needs the public key alone, which is why the server
+/// can produce this wrap without ever holding recovery secret material.
+///
+/// Generating that keypair and custodying its private half is an operational
+/// ceremony, not something the application may invent — see
+/// docs/core/key-custody.md.
+model OrganizationDataKey {
+  id             String @id @default(uuid(7))
+  organizationId String @unique
+
+  /// Wrapped with the symmetric operational KEK. Always present.
+  dekWrappedOperational Bytes
+  operationalKekVersion Int
+
+  /// Wrapped with the recovery KEK's public half.
+  ///
+  /// Nullable only so a deployment without established recovery custody can
+  /// still run in development. A key in that state is `PENDING_RECOVERY_CUSTODY`
+  /// and is refused in production: the alternative is claiming a recovery
+  /// guarantee the deployment cannot honour.
+  dekWrappedRecovery Bytes?
+  recoveryKekVersion Int?
+
+  /// Explicit, so a future change of algorithm is legible in the data rather
+  /// than implied by the code that happens to be deployed.
+  algorithm String @default("AES-256-GCM")
+
+  status DataKeyStatus @default(PENDING_RECOVERY_CUSTODY)
+
+  createdAt       DateTime  @default(now())
+  /// Last KEK rotation. Distinct from a DEK rotation, which re-encrypts data.
+  lastRewrappedAt DateTime?
+
+  /// Tenant offboarding. Irreversible: with no wraps left the DEK is
+  /// unrecoverable and every ciphertext under it is permanently unreadable.
+  shreddedAt DateTime?
+  shreddedBy String?
+
+  @@index([status])
+}
+
+/// Append-only record of every key rotation and shred.
+///
+/// KEK rotation and DEK rotation are routinely confused and have very different
+/// costs — one re-wraps N rows, the other re-encrypts every encrypted row for
+/// the tenant. Recording which happened, and why, is what makes a later
+/// investigation possible.
+model DataKeyRotationLog {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  /// `KEK_REWRAP` or `DEK_ROTATE` or `SHRED`.
+  rotationType String
+  fromVersion  Int?
+  toVersion    Int?
+  /// Mandatory.
+  reason       String
+
+  performedBy String
+  performedAt DateTime @default(now())
+
+  @@index([organizationId])
+}

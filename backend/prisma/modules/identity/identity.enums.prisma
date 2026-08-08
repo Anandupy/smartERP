@@ -1,0 +1,33 @@
+/// The government identifier kinds this deployment understands.
+///
+/// Only AADHAAR is handled in v1 — F1 §3.4 classifies it as the one identifier
+/// needing ciphertext, blind index and a last-4 display form. APAAR, ABC, PEN,
+/// Saral and UDISE ids are institutional identifiers designed to be shared and
+/// printed; they stay plaintext on the record that owns them and never reach
+/// this table.
+enum GovernmentIdType {
+  AADHAAR
+}
+
+/// Lifecycle of an organization's data-encryption key.
+///
+/// `PENDING_RECOVERY_CUSTODY` is not in F1's original set and is the honest
+/// answer to an unfinished deployment: the DEK exists and works, but it has
+/// only one wrap, so losing `KEK_operational` would lose the data. A key in
+/// this state is refused outright in production — the application must not
+/// pretend a recovery path exists when it does not.
+enum DataKeyStatus {
+  PENDING_RECOVERY_CUSTODY
+  ACTIVE
+  ROTATING
+  RETIRED
+  SHREDDED
+}
+
+/// The outcome a human recorded for a candidate pair.
+///
+/// Only DISTINCT is ever written. The opposite conclusion is not a decision
+/// row — it is a merge, and merge execution is deliberately not built yet.
+enum MatchDecision {
+  DISTINCT
+}
