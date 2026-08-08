@@ -13,10 +13,29 @@ describe('validateEnv', () => {
     JWT_REFRESH_SECRET: 'a-different-sufficiently-long-refresh-secret',
   };
 
+  /**
+   * A 32-byte key and a PEM public key, so the identity-crypto rules in
+   * `productionBase` are satisfied by something realistic rather than by a
+   * string that happens to be long.
+   */
+  const VALID_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+  const VALID_PEPPER = Buffer.alloc(48, 11).toString('base64');
+  const VALID_RECOVERY_PUBLIC_KEY = [
+    '-----BEGIN PUBLIC KEY-----',
+    'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAexample',
+    '-----END PUBLIC KEY-----',
+  ].join('\n');
+
   const productionBase = {
     ...validBase,
     NODE_ENV: 'production',
     CORS_ORIGINS: 'https://app.example.com',
+    // Required in production as of Phase 1: sensitive identity data cannot be
+    // stored without a key, matched without a pepper, or recovered without the
+    // public half of the recovery keypair.
+    ENCRYPTION_KEY: VALID_ENCRYPTION_KEY,
+    IDENTITY_HASH_PEPPER: VALID_PEPPER,
+    KEK_RECOVERY_PUBLIC_KEY: VALID_RECOVERY_PUBLIC_KEY,
   };
 
   describe('accepts valid configuration', () => {
@@ -172,6 +191,73 @@ describe('validateEnv', () => {
       expect(() => validateEnv({ ...validBase, NODE_ENV: 'staging' })).toThrow(
         /NODE_ENV must be one of/,
       );
+    });
+  });
+
+  describe('identity crypto configuration', () => {
+    it('requires a key, a pepper and a recovery public key in production', () => {
+      for (const omitted of [
+        'ENCRYPTION_KEY',
+        'IDENTITY_HASH_PEPPER',
+        'KEK_RECOVERY_PUBLIC_KEY',
+      ]) {
+        const config: Record<string, unknown> = { ...productionBase };
+        delete config[omitted];
+        expect(() => validateEnv(config)).toThrow(new RegExp(omitted));
+      }
+    });
+
+    it('tolerates their absence outside production', () => {
+      expect(() => validateEnv({ ...validBase })).not.toThrow();
+    });
+
+    it('accepts a 32-byte key in base64, base64url or hex', () => {
+      const raw = Buffer.alloc(32, 3);
+      for (const encoding of ['base64', 'base64url', 'hex'] as const) {
+        expect(() =>
+          validateEnv({ ...validBase, ENCRYPTION_KEY: raw.toString(encoding) }),
+        ).not.toThrow();
+      }
+    });
+
+    it('rejects a long passphrase posing as a key', () => {
+      // 43 characters — the same length as unpadded base64 of 32 bytes, and the
+      // shape a naive length check waves through.
+      expect(() =>
+        validateEnv({
+          ...validBase,
+          ENCRYPTION_KEY: 'correct horse battery staple correct horse!',
+        }),
+      ).toThrow(/exactly 32 bytes/);
+    });
+
+    it('rejects a private key where the public half belongs', () => {
+      expect(() =>
+        validateEnv({
+          ...productionBase,
+          KEK_RECOVERY_PUBLIC_KEY:
+            '-----BEGIN PRIVATE KEY-----\nMIIE\n-----END PRIVATE KEY-----',
+        }),
+      ).toThrow(/PRIVATE key/);
+    });
+
+    it('refuses one secret used for two purposes', () => {
+      expect(() =>
+        validateEnv({
+          ...productionBase,
+          IDENTITY_HASH_PEPPER: productionBase.ENCRYPTION_KEY,
+        }),
+      ).toThrow(/must be different values/);
+    });
+
+    it('never echoes a rejected secret back in the error', () => {
+      const secret = 'this-is-not-a-valid-key-but-is-long-enough!';
+      try {
+        validateEnv({ ...validBase, ENCRYPTION_KEY: secret });
+        throw new Error('expected validateEnv to throw');
+      } catch (error) {
+        expect((error as Error).message).not.toContain(secret);
+      }
     });
   });
 
