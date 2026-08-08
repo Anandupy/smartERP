@@ -9,6 +9,7 @@ import { EventsModule } from '@/infrastructure/events/events.module';
 import { AuditModule } from '@/infrastructure/audit/audit.module';
 import { OutboxModule } from '@/infrastructure/outbox/outbox.module';
 import { NumberingModule } from '@/infrastructure/numbering/numbering.module';
+import { CryptoModule } from '@/infrastructure/crypto/crypto.module';
 import { LoggerModule } from '@/common/logger/logger.module';
 import { RequestContextMiddleware } from '@/common/logger/request-context.middleware';
 
@@ -21,6 +22,7 @@ import { AcademicYearModule } from '@/modules/academic-year/academic-year.module
 import { ProgramModule } from '@/modules/program/program.module';
 import { AcademicUnitModule } from '@/modules/academic-unit/academic-unit.module';
 import { SecurityModule } from '@/common/services/security.module';
+import { IdentityModule } from '@/modules/identity/identity.module';
 import { AdmissionsModule } from '@/modules/admissions/admissions.module';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -58,6 +60,7 @@ import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-thro
     OutboxModule,
     AuditModule,
     NumberingModule,
+    CryptoModule,
     SecurityModule,
     AuthModule,
     UserModule,
@@ -71,6 +74,7 @@ import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-thro
     AcademicYearModule,
     ProgramModule,
     AcademicUnitModule,
+    IdentityModule,
     AdmissionsModule,
     MaintenanceModule,
     CommunicationModule,

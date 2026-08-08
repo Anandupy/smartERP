@@ -5,6 +5,21 @@
  * The catalog below defines all system permissions grouped by functional domains.
  */
 export const PERMISSIONS = {
+  /**
+   * Identity index.
+   *
+   * `View` returns linkage and a masked identifier and never decrypts anything.
+   * Revealing a full government identifier is deliberately **not** a permission
+   * here yet: the reveal ships together with the access log that records who
+   * read what and why, and granting the capability before that log exists would
+   * create reads nobody can account for.
+   */
+  Person: {
+    View: 'person.view',
+    Search: 'person.search',
+    Correct: 'person.correct',
+    AttachGovernmentId: 'person.attach_government_id',
+  },
   Student: {
     View: 'student.view',
     Create: 'student.create',

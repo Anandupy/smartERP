@@ -66,6 +66,12 @@ export class AuditListener implements OnModuleInit {
     'context.validation_failed',
     'context.access_denied',
     'context.selection_required',
+    // Identity — Phase 1. An unregistered event bypasses audit silently,
+    // which for an identity operation is the worst possible failure mode.
+    'person.created',
+    'person.government_id_attached',
+    'person.match_reviewed',
+    'person.sensitive_erased',
   ]);
 
   constructor(

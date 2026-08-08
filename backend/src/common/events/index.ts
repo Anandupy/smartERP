@@ -14,3 +14,4 @@ export * from './workspace.events';
 export * from './authorization.events';
 export * from './communication.events';
 export * from './context.events';
+export * from './person.events';

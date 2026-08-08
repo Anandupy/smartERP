@@ -126,6 +126,7 @@ export class SeederService implements OnApplicationBootstrap {
       { code: 'SYSTEM', name: 'System', displayOrder: 10 },
       { code: 'AUDIT', name: 'Audit', displayOrder: 11 },
       { code: 'COMMUNICATION', name: 'Communication', displayOrder: 12 },
+      { code: 'IDENTITY', name: 'Identity', displayOrder: 13 },
     ];
 
     const categoryMap = new Map<string, string>();
@@ -149,6 +150,34 @@ export class SeederService implements OnApplicationBootstrap {
       categoryCode: string;
       description: string;
     }> = [
+      // Identity
+      //
+      // Separate from Students because Person is the human, not the learner: the
+      // same row is also a guardian and an employee, and it exists before any of
+      // them. Revealing a full government identifier is deliberately not a
+      // permission here — that ships with the access log that records who read
+      // what and why.
+      {
+        name: PERMISSIONS.Person.View,
+        categoryCode: 'IDENTITY',
+        description: 'View an identity record and its masked identifiers',
+      },
+      {
+        name: PERMISSIONS.Person.Search,
+        categoryCode: 'IDENTITY',
+        description: 'Search for identities that may be the same human',
+      },
+      {
+        name: PERMISSIONS.Person.Correct,
+        categoryCode: 'IDENTITY',
+        description: 'Record identity match decisions and corrections',
+      },
+      {
+        name: PERMISSIONS.Person.AttachGovernmentId,
+        categoryCode: 'IDENTITY',
+        description: 'Bind a government identifier to an identity',
+      },
+
       // Student
       {
         name: PERMISSIONS.Student.View,
