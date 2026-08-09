@@ -31,3 +31,33 @@ enum DataKeyStatus {
 enum MatchDecision {
   DISTINCT
 }
+
+/// The permanent lifecycle of a learner identity.
+///
+/// Distinct from the applicant, admission and enrollment lifecycles: those
+/// describe an attempt, a spell of study and a year's placement. This describes
+/// the person's standing with the institution, and it outlives all three.
+///
+/// There is no `DELETED`. Leaving is a status; deletion is not a lifecycle
+/// operation, and `ARCHIVED` is a write lock rather than a disappearance —
+/// archived students stay searchable and reportable.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §19.
+enum StudentStatus {
+  ACTIVE
+  SUSPENDED
+  WITHDRAWN
+  GRADUATED
+  EXPELLED
+  ARCHIVED
+}
+
+/// How a learner identity came into existence.
+///
+/// The distinction matters because it is the only thing that licenses a null
+/// `sourceApplicantId`: every student born through admission has an
+/// application behind them, and one that does not is a migrated record.
+enum StudentCreationMode {
+  ADMISSION
+  MIGRATION
+}

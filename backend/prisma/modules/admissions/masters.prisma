@@ -13,6 +13,7 @@ model Religion {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  students       Student[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -35,6 +36,7 @@ model Caste {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  students       Student[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -57,6 +59,7 @@ model Category {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  students       Student[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -79,6 +82,7 @@ model Gender {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  students       Student[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -101,6 +105,7 @@ model BloodGroup {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  students       Student[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -123,6 +128,7 @@ model Language {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  students       Student[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -145,6 +151,7 @@ model Disability {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  students       Student[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])

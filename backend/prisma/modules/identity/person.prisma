@@ -58,6 +58,7 @@ model Person {
   updatedAt DateTime @updatedAt
 
   sensitive       PersonSensitive?
+  student         Student?
   mergedInto      Person?  @relation("PersonMerge", fields: [mergedIntoPersonId], references: [id])
   mergedFrom      Person[] @relation("PersonMerge")
 

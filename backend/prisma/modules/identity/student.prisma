@@ -1,0 +1,201 @@
+/// The permanent learner identity within one organization.
+///
+/// Student answers "is this human an institutional learner here?" — where
+/// Person answers "is this the same human?". Both are needed: one human is
+/// routinely a student, a guardian and an employee, and only Person can say
+/// they are one human.
+///
+/// ## What Student deliberately does not hold
+///
+/// Every field passes the placement test: *what does this fact vary with?*
+/// Anything that varies with the academic year, the class, the section or the
+/// programme belongs to Enrollment, and anything that varies with the spell of
+/// study belongs to Admission. If a field would have to be **copied** when a
+/// student is promoted, it is in the wrong table.
+///
+/// So there is no `academicYearId`, no `programId`, no `academicUnitId`, no
+/// `rollNumber` — and no `currentEnrollmentId`. That last one looks harmless
+/// and is not: it needs maintaining on every promotion, correction, transfer,
+/// supersede and cancel, and each of those is a chance to leave it stale while
+/// looking authoritative. The execution context always carries an academic
+/// year, so "current placement" is a one-row indexed query rather than a
+/// pointer somebody has to remember to update.
+///
+/// There is also no `userId`. A student identity exists whether or not the
+/// learner can log in, and junior classes usually cannot.
+///
+/// And no Aadhaar. Phase 1 established `PersonSensitive` as the single owner of
+/// sensitive identity; a second copy here would be a second thing to erase.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §11.
+model Student {
+  id String @id @default(uuid(7))
+
+  /// Identity scope. Immutable — a Student never silently moves between
+  /// tenants. A genuine cross-organization move is a migration that mints a new
+  /// Student in the target, because Person and studentCode are both
+  /// organization-scoped and the academic structure belongs to the source.
+  organizationId String
+
+  /// A **mutable pointer**, not identity.
+  ///
+  /// It exists so a branch-scoped list does not need a join through Admission.
+  /// A branch transfer moves it; the immutable truth of where a spell of study
+  /// happened lives on Admission, whose `branchId` never changes.
+  ///
+  /// `[id, branchId]` is deliberately never declared unique: a composite
+  /// foreign key on a mutable column would break every child row the moment a
+  /// student transfers.
+  branchId String
+
+  /// The human. Immutable.
+  ///
+  /// Unique on its own as well as within the organization. The two overlap, and
+  /// deliberately: `@@unique([organizationId, personId])` is the invariant the
+  /// architecture names, and it stays because it survives a corrupted
+  /// `organizationId`; this column-level constraint is what makes the relation
+  /// one-to-one rather than one-to-many, so a reader sees `Person.student`
+  /// instead of `Person.students[]` and cannot be misled about the cardinality.
+  /// It is strictly stronger — a Person never spans tenants, so "one Student
+  /// per Person" and "one Student per Person per organization" say the same
+  /// thing.
+  personId String @unique
+
+  /// The human-facing identifier: permanent, organization-scoped, and
+  /// encoding nothing that can become false.
+  ///
+  /// Allocated once from the central numbering engine and then **persisted, not
+  /// derived**. Changing a numbering format next year must never alter an ID
+  /// card printed this year, so nothing recomputes this value — not from the
+  /// sequence, not from the id, not from the creation date.
+  ///
+  /// It is never a foreign key. Other modules reference `id`.
+  studentCode String
+
+  status StudentStatus @default(ACTIVE)
+
+  // --- Current official demographics ---------------------------------------
+  //
+  // Deliberately a separate copy from Applicant's, which is a frozen legal
+  // snapshot of what was declared on a date. A name corrected by affidavit in
+  // 2029 must not silently rewrite the 2026 application form. Two facts that
+  // happen to start equal and legitimately diverge.
+
+  firstName   String
+  middleName  String?
+  lastName    String
+  /// Derived from the name parts on write. Carries the trigram index that
+  /// serves fuzzy search.
+  displayName String
+
+  dob DateTime
+
+  genderId       String
+  religionId     String?
+  casteId        String?
+  categoryId     String?
+  motherTongueId String?
+  bloodGroupId   String?
+
+  disabilityStatus Boolean @default(false)
+  disabilityTypeId String?
+  disabilityNotes  String?
+
+  // --- Contact -------------------------------------------------------------
+  //
+  // The student's *own* contact, which an adult learner has and a five-year-old
+  // does not. A guardian's number is reached through Guardianship and is not
+  // copied here.
+
+  primaryMobile String?
+  /// Last ten digits, non-digits stripped. Stored because search-by-mobile has
+  /// to match `+91 98765 43210`, `098765 43210` and `9876543210` as one number,
+  /// and normalising at query time cannot use an index.
+  mobileNormalized String?
+  primaryEmail     String?
+
+  // --- Institutional identifiers -------------------------------------------
+  //
+  // Plaintext by design (F1 D5). These are issued to be shared between
+  // institutions and printed on records — they are personal data, not secrets,
+  // and encrypting them would add key-loss risk while buying nothing.
+
+  apaarId        String?
+  abcId          String?
+  penNo          String?
+  saralId        String?
+  udiseStudentId String?
+
+  /// A reference, never a blob. Student is not a document store; the Document
+  /// module owns the file, its scanning, its versioning and its access rules.
+  /// No foreign key, so Student compiles and migrates whether or not S3 exists.
+  photoDocumentId String?
+
+  // --- Provenance ----------------------------------------------------------
+
+  createdVia StudentCreationMode
+
+  /// Which application produced this student.
+  ///
+  /// Null only for a migrated student, enforced by a CHECK. A partial unique
+  /// index makes "one applicant produces at most one Student" a database fact
+  /// rather than a convention two concurrent requests can break.
+  sourceApplicantId String?
+
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  /// Present for schema consistency and **never set by any Student code path**.
+  /// Leaving is a lifecycle status; deletion is not a lifecycle operation.
+  deletedAt DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  branch         Branch       @relation(fields: [branchId], references: [id])
+  person         Person       @relation(fields: [personId], references: [id])
+  gender         Gender       @relation(fields: [genderId], references: [id])
+  religion       Religion?    @relation(fields: [religionId], references: [id])
+  caste          Caste?       @relation(fields: [casteId], references: [id])
+  category       Category?    @relation(fields: [categoryId], references: [id])
+  motherTongue   Language?    @relation(fields: [motherTongueId], references: [id])
+  bloodGroup     BloodGroup?  @relation(fields: [bloodGroupId], references: [id])
+  disabilityType Disability?  @relation(fields: [disabilityTypeId], references: [id])
+
+  /// The identity invariant. Also the last line of defence against a numbering
+  /// bug: a duplicate code cannot reach the database even if the generator
+  /// produced one.
+  @@unique([organizationId, studentCode])
+  /// One Student per human per organization. This is what resolves the
+  /// two-branch collision — a child confirmed at Mumbai and at Pune resolves to
+  /// one Person, so the second admission fails here rather than quietly
+  /// creating a second identity.
+  @@unique([organizationId, personId])
+  /// Enables composite references from child tables that must not be able to
+  /// name a student in another tenant.
+  @@unique([id, organizationId])
+
+  @@index([organizationId, branchId, status])
+  @@index([organizationId, mobileNormalized])
+  @@index([organizationId, dob])
+  @@index([sourceApplicantId])
+  @@index([personId])
+
+  /// Prefix and case-insensitive search on the code.
+  ///
+  /// Trigram rather than `text_pattern_ops`: the latter is the textbook answer
+  /// for `LIKE 'STU0001%'`, but Prisma cannot round-trip a btree carrying a
+  /// non-default operator class, so declaring one leaves the drift gate
+  /// permanently red. Trigram serves the same prefix query, additionally serves
+  /// `ILIKE`, and matches the index already used for names — one mechanism for
+  /// both text searches instead of two.
+  ///
+  /// Exact lookup does not touch this index; it uses the unique constraint.
+  @@index([studentCode(ops: raw("gin_trgm_ops"))], type: Gin, map: "student_code_trgm_idx")
+
+  /// Fuzzy name search. Requires `pg_trgm`, installed by the Phase 0 migration.
+  @@index([displayName(ops: raw("gin_trgm_ops"))], type: Gin, map: "student_display_name_trgm_idx")
+
+  // The partial unique index on `sourceApplicantId` and the CHECK constraints
+  // are raw SQL in the migration — Prisma expresses neither, and its drift
+  // check ignores both.
+}

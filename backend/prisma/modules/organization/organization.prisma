@@ -23,4 +23,5 @@ model Organization {
   applicants       Applicant[]
   enrollments      Enrollment[]
   guardians        Guardian[]
+  students         Student[]
 }
