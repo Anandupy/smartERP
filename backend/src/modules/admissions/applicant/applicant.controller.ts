@@ -16,6 +16,8 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { ApplicantService } from './applicant.service';
+import { ApplicantPreferenceService } from './applicant-preference.service';
+import { SetProgramPreferencesDto } from './dto/preference.dto';
 import {
   CreateApplicantDto,
   UpdateApplicantDto,
@@ -60,7 +62,10 @@ import {
 @RequireAcademicYear()
 @Controller('admissions/applicants')
 export class ApplicantController {
-  constructor(private readonly service: ApplicantService) {}
+  constructor(
+    private readonly service: ApplicantService,
+    private readonly preferences: ApplicantPreferenceService,
+  ) {}
 
   @Post()
   @Roles(
@@ -206,5 +211,60 @@ export class ApplicantController {
       req.userId ?? undefined,
     );
     return { message: 'Applicant deleted successfully' };
+  }
+
+  @Get(':id/preferences')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ORG_ADMIN,
+    UserRole.BRANCH_ADMIN,
+    UserRole.STAFF,
+  )
+  @RequirePermission(PERMISSIONS.Admissions.View)
+  @ApiOperation({
+    summary: 'Ordered programme preferences',
+    description:
+      'Empty for a school, which sets the programme directly. Only institutions ' +
+      'running an allotment round rank choices.',
+  })
+  @ApiStandardErrors(404)
+  async listPreferences(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const data = await this.preferences.list(
+      id,
+      resourceScopeOf(req.context, { requireAcademicYear: true }),
+    );
+    return { data, message: 'Programme preferences retrieved successfully' };
+  }
+
+  @Post(':id/preferences')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ORG_ADMIN,
+    UserRole.BRANCH_ADMIN,
+    UserRole.STAFF,
+  )
+  @RequirePermission(PERMISSIONS.Admissions.Update)
+  @ApiOperation({
+    summary: 'Set the ordered programme preferences',
+    description:
+      'Replaces the whole list. Positions come from array order, so a client cannot ' +
+      'send two entries claiming the same place, and a reorder is one atomic write ' +
+      'rather than a sequence during which two rows briefly share a position.',
+  })
+  @ApiStandardErrors(400, 404, 409)
+  async setPreferences(
+    @Param('id') id: string,
+    @Body() dto: SetProgramPreferencesDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const data = await this.preferences.replaceAll(
+      id,
+      dto.preferences,
+      resourceScopeOf(req.context, { requireAcademicYear: true }),
+    );
+    return { data, message: 'Programme preferences saved successfully' };
   }
 }

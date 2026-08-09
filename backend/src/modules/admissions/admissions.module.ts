@@ -4,6 +4,7 @@ import { GuardiansModule } from './guardians/guardians.module';
 import { ApplicantModule } from './applicant/applicant.module';
 import { WorkflowModule } from './workflow/workflow.module';
 import { EnrollmentModule } from './enrollment/enrollment.module';
+import { AdmissionModule } from './admission/admission.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
     ApplicantModule,
     WorkflowModule,
     EnrollmentModule,
+    AdmissionModule,
   ],
   exports: [
     MastersModule,
@@ -19,6 +21,7 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
     ApplicantModule,
     WorkflowModule,
     EnrollmentModule,
+    AdmissionModule,
   ],
 })
 export class AdmissionsModule {}

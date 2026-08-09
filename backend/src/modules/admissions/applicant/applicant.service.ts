@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -115,6 +116,9 @@ export class ApplicantService {
     const dobDate = new Date(dto.dob);
 
     await this.assertMasterReferencesExist(dto);
+    if (dto.programId) {
+      await this.assertProgramInBranch(dto.programId, scope.branchId);
+    }
 
     const duplicateReport = await this.checkDuplicates(
       {
@@ -241,6 +245,10 @@ export class ApplicantService {
       );
     }
 
+    if (dto.programId) {
+      await this.assertProgramInBranch(dto.programId, scope.branchId);
+    }
+
     const updatedData: any = { ...dto, updatedBy: userId };
 
     if (dto.dob) {
@@ -356,6 +364,43 @@ export class ApplicantService {
 
       return { id };
     });
+  }
+
+  /**
+   * The programme applied for must belong to the applicant's own branch.
+   *
+   * Checked for belonging, not existence. A programme id that merely resolves
+   * lets an application be filed against another branch's offering, which is
+   * the same reference hole as an out-of-scope applicant id — and it would then
+   * flow into the Admission that Phase 5 opens from it.
+   */
+  private async assertProgramInBranch(
+    programId: string,
+    branchId: string,
+  ): Promise<void> {
+    const program = await this.prisma.program.findFirst({
+      where: { id: programId, isDeleted: false },
+      select: { id: true, branchId: true, isActive: true },
+    });
+
+    if (!program) {
+      throw new NotFoundException({
+        error: 'PROGRAM_NOT_FOUND',
+        message: 'The selected programme does not exist.',
+      });
+    }
+    if (program.branchId !== branchId) {
+      throw new BadRequestException({
+        error: 'PROGRAM_OUT_OF_SCOPE',
+        message: 'The selected programme belongs to another branch.',
+      });
+    }
+    if (!program.isActive) {
+      throw new BadRequestException({
+        error: 'PROGRAM_NOT_ACTIVE',
+        message: 'The selected programme is not active.',
+      });
+    }
   }
 
   private async assertMasterReferencesExist(

@@ -1,12 +1,13 @@
 import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsDateString,
   IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsNotEmpty,
   IsNumber,
   IsObject,
-  IsEmail,
+  IsOptional,
+  IsString,
+  IsUUID,
   Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -196,6 +197,16 @@ export class CreateApplicantDto {
   @IsString()
   @IsOptional()
   quotaId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'The programme being applied for. Required before the application can be ' +
+      'submitted; optional while it is still a draft, because a draft is a form ' +
+      'somebody is part-way through filling in.',
+  })
+  @IsUUID()
+  @IsOptional()
+  programId?: string;
 
   @ApiPropertyOptional({ description: 'Internal staff remarks' })
   @IsString()
@@ -436,6 +447,16 @@ export class UpdateApplicantDto {
   @IsString()
   @IsOptional()
   quotaId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'The programme being applied for. Required before the application can be ' +
+      'submitted; optional while it is still a draft, because a draft is a form ' +
+      'somebody is part-way through filling in.',
+  })
+  @IsUUID()
+  @IsOptional()
+  programId?: string;
 
   @ApiPropertyOptional({ description: 'Internal staff remarks' })
   @IsString()
