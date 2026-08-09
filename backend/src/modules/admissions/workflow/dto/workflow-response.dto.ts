@@ -1,43 +1,39 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { WorkflowEntityType } from '@/generated/client';
 
 /**
- * One entry in an applicant's admission-status audit trail.
+ * One recorded transition.
  *
- * Written on every accepted transition, so the sequence of rows is the record
- * of who moved an applicant where and why.
+ * Append-only: a mistake is corrected by a further transition, never by editing
+ * or deleting the row that recorded it.
  */
 export class WorkflowHistoryDto {
-  @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5ae0' })
-  id!: string;
-
-  @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5ab0' })
-  applicantId!: string;
+  @ApiProperty() id!: string;
 
   @ApiProperty({
-    type: String,
-    description: 'The status the applicant left.',
-    nullable: true,
-    example: 'DRAFT',
+    enum: WorkflowEntityType,
+    description:
+      'Polymorphic, so Applicant, Admission, Enrollment and Student share one ' +
+      'transition engine rather than four history tables that drift apart.',
   })
+  entityType!: WorkflowEntityType;
+
+  @ApiProperty() entityId!: string;
+  @ApiProperty() organizationId!: string;
+  @ApiProperty() branchId!: string;
+
+  @ApiProperty({ type: String, nullable: true, example: 'UNDER_REVIEW' })
   oldStatus!: string | null;
 
-  @ApiProperty({ example: 'SUBMITTED' })
-  newStatus!: string;
-
-  @ApiProperty({ example: 'STATUS_CHANGE' })
-  actionType!: string;
-
-  @ApiProperty({ type: String, nullable: true, example: 'Documents verified.' })
-  remarks!: string | null;
+  @ApiProperty({ example: 'APPROVED' }) newStatus!: string;
 
   @ApiProperty({
-    type: String,
-    description: 'User id, or SYSTEM for an automated transition.',
-    nullable: true,
-    example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6a',
+    description: 'The action that caused it, e.g. `approve`.',
+    example: 'approve',
   })
-  actionBy!: string | null;
+  actionType!: string;
 
-  @ApiProperty({ type: String, format: 'date-time' })
-  timestamp!: Date;
+  @ApiProperty({ type: String, nullable: true }) remarks!: string | null;
+  @ApiProperty({ type: String, nullable: true }) actionBy!: string | null;
+  @ApiProperty({ type: String, format: 'date-time' }) timestamp!: Date;
 }

@@ -1,34 +1,43 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AdmissionApplicationStatus } from '@/generated/client';
+import { WorkflowAction } from '../workflow.transitions';
+
+export { AdmissionApplicationStatus as WorkflowState, WorkflowAction };
 
 /**
- * The applicant workflow states.
+ * A workflow command.
  *
- * Re-exported from the Prisma enum rather than declared a second time. A local
- * copy is a copy that drifts: the column and the DTO would disagree the first
- * time one of them gained a state, and the disagreement would surface as a
- * runtime cast failure rather than a build error.
+ * The client names a **verb**, never a destination state. `{ action: "approve" }`
+ * rather than `{ newStatus: "APPROVED" }`, because the engine owns where each
+ * action leads: a client that could name the destination could ask for
+ * `ADMITTED` and produce an applicant marked admitted with no student behind
+ * them, which is precisely what the state machine exists to prevent.
+ *
+ * `admit` is absent from the reachable set — it is Phase 5, and it writes far
+ * more than a status.
  */
-export { AdmissionApplicationStatus as WorkflowState };
-
-export class TransitionDto {
+export class TransitionApplicantDto {
   @ApiProperty({
-    description: 'Target workflow state',
-    enum: AdmissionApplicationStatus,
+    enum: WorkflowAction,
+    description:
+      'The action to apply. The engine derives the resulting state from the ' +
+      'current one; the destination is never supplied by the caller.',
+    example: WorkflowAction.APPROVE,
   })
-  @IsEnum(AdmissionApplicationStatus)
-  newStatus!: AdmissionApplicationStatus;
-
-  @ApiPropertyOptional({ description: 'Transition audit remarks' })
-  @IsString()
-  @IsOptional()
-  remarks?: string;
+  @IsEnum(WorkflowAction)
+  action!: WorkflowAction;
 
   @ApiPropertyOptional({
-    description: 'Action type identifier, e.g. SUBMIT, APPROVE, REJECT',
+    description:
+      'Why. Required for rejection, waitlisting, deferment, withdrawal, ' +
+      'cancellation, a document request and a force-reopen. Blank and ' +
+      'whitespace are rejected — a mandatory reason that accepts a space is a ' +
+      'mandatory keystroke.',
+    example: 'Documents verified; seat offered for the 2026 intake.',
   })
   @IsString()
   @IsOptional()
-  actionType?: string;
+  @MaxLength(1000)
+  remarks?: string;
 }

@@ -74,6 +74,20 @@ export class AuditListener implements OnModuleInit {
     'person.sensitive_erased',
     // Student — Phase 2.
     'student.code_assigned',
+    // Applicant workflow — Phase 3. Named per transition so audit can tell an
+    // approval from a rejection; an unregistered name bypasses audit silently.
+    'applicant.submitted',
+    'applicant.review_started',
+    'applicant.documents_requested',
+    'applicant.documents_received',
+    'applicant.fee_requested',
+    'applicant.waitlisted',
+    'applicant.offer_issued',
+    'applicant.seat_confirmed',
+    'applicant.deferred',
+    'applicant.offer_expired',
+    'applicant.cancelled',
+    'applicant.force_reopened',
   ]);
 
   constructor(

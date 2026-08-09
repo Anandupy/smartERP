@@ -1,15 +1,18 @@
-import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
   ApiBearerAuth,
   ApiHeader,
+  ApiOperation,
+  ApiTags,
 } from '@nestjs/swagger';
 import { WorkflowService } from './workflow.service';
-import { TransitionDto } from './dto/workflow.dto';
+import { TransitionApplicantDto } from './dto/workflow.dto';
+import { WorkflowHistoryDto } from './dto/workflow-response.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 import { UserRole } from '@/common/enums/role.enum';
 import {
   ApiCreatedEnvelope,
@@ -19,8 +22,19 @@ import {
 import { resourceScopeOf } from '@/common/scope/resource-scope';
 import { AuthenticatedRequest } from '@/common/logger/request-context.types';
 import { ApplicantDto } from '../applicant/dto/applicant-response.dto';
-import { WorkflowHistoryDto } from './dto/workflow-response.dto';
 
+/**
+ * The applicant state machine.
+ *
+ * One endpoint for every transition rather than a route per verb. The
+ * alternative — `/approve`, `/reject`, `/waitlist`, … — puts the transition
+ * vocabulary in two places and guarantees they diverge; here the table is the
+ * only definition and a new action needs no new route.
+ *
+ * The route-level permission is the coarse gate. Each action additionally
+ * declares its own, checked inside the engine, so approving demands more than
+ * editing even though both arrive here.
+ */
 @ApiTags('Applicant Workflow')
 @ApiBearerAuth()
 @ApiHeader({
@@ -37,34 +51,43 @@ import { WorkflowHistoryDto } from './dto/workflow-response.dto';
 @RequireAcademicYear()
 @Controller('admissions/applicants/:applicantId/workflow')
 export class WorkflowController {
-  constructor(private readonly service: WorkflowService) {}
+  constructor(private readonly workflow: WorkflowService) {}
 
   @Post('transition')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ORG_ADMIN,
+    UserRole.BRANCH_ADMIN,
+    UserRole.STAFF,
+  )
+  @RequirePermission(PERMISSIONS.Admissions.Update)
   @ApiOperation({
-    summary:
-      'Transition an applicant state (submit, review, approve, reject, cancel)',
+    summary: 'Apply a workflow action',
+    description:
+      'The caller names an action; the engine derives the resulting state. An action ' +
+      'that is not legal from the current state is refused before anything is written, ' +
+      'and the applicant row is locked before its state is read, so two administrators ' +
+      'acting at the same moment produce one transition and one clean failure.',
   })
   @ApiCreatedEnvelope(ApplicantDto, {
-    description:
-      'The updated applicant. An illegal transition is rejected with 400 and the applicant is unchanged.',
-    message: 'Applicant successfully transitioned to state APPROVED',
+    message: 'Workflow action applied successfully',
   })
-  @ApiStandardErrors(404)
+  @ApiStandardErrors(400, 403, 404)
   async transition(
     @Param('applicantId') applicantId: string,
-    @Body() dto: TransitionDto,
+    @Body() dto: TransitionApplicantDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    const data = await this.service.transitionState(
+    const data = await this.workflow.transition(
       applicantId,
-      dto,
+      { action: dto.action, remarks: dto.remarks },
       resourceScopeOf(req.context, { requireAcademicYear: true }),
-      req.userId ?? undefined,
+      { userId: req.userId, role: req.context.role },
     );
+
     return {
       data,
-      message: `Applicant successfully transitioned to state ${dto.newStatus}`,
+      message: `Workflow action '${dto.action}' applied successfully`,
     };
   }
 
@@ -75,9 +98,10 @@ export class WorkflowController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.Admissions.View)
   @ApiOperation({
-    summary: 'Get workflow transition history for an applicant',
-    description: 'Newest transition first.',
+    summary: 'Transition history for an application',
+    description: 'Newest first. Scoped — history never crosses a branch.',
   })
   @ApiOkEnvelope(WorkflowHistoryDto, {
     isArray: true,
@@ -88,10 +112,11 @@ export class WorkflowController {
     @Param('applicantId') applicantId: string,
     @Req() req: AuthenticatedRequest,
   ) {
-    const data = await this.service.getHistory(
+    const data = await this.workflow.getHistory(
       applicantId,
       resourceScopeOf(req.context, { requireAcademicYear: true }),
     );
+
     return { data, message: 'Workflow history retrieved successfully' };
   }
 }
