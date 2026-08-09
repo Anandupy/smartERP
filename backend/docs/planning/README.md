@@ -44,6 +44,7 @@ into the specs.
 | **P0** | Foundation blockers *(numbering, BOLA, outbox, row locks)* | `implemented` ✅ 2026-08-09 | blueprint §47 Phase 0 |
 | **P1** | Identity foundation — Person, crypto, blind index | `implemented` ✅ 2026-08-09 ⚠️ recovery custody ceremony outstanding | [`../core/key-custody.md`](../core/key-custody.md) |
 | **P2** | Student identity | `implemented` ✅ 2026-08-10 | blueprint §11, §13, §39, §41 |
+| **P3** | Admission domain & applicant state machine | `implemented` ✅ 2026-08-11 ⚠️ 2 CHECK constraints `NOT VALID` pending one legacy row | blueprint §15–§17, §31, §33, §40 |
 | **F1** | Data protection & key custody | `planned` ⚠️ 1 legal question + backup-retention prerequisite | [`00-foundation/01-data-protection.md`](00-foundation/01-data-protection.md) |
 | **F2** | Configuration engine | `planned` ⚠️ 2 open questions | [`00-foundation/02-configuration.md`](00-foundation/02-configuration.md) |
 | **F3** | Numbering & identity engine | `planned` ⚠️ 2 open questions | [`00-foundation/03-numbering.md`](00-foundation/03-numbering.md) |
@@ -97,6 +98,29 @@ Dependency-ordered, not preference-ordered:
 > is the reverse: Enrollment references Admission, which references Student. All
 > three are written in a single transaction at joining, so they must be designed
 > together. Planning them separately would produce three specs that disagree.
+
+## Where the admission pipeline stops today
+
+Phase 3 built the funnel and deliberately stopped at its end. An application can
+reach `SEAT_CONFIRMED`; nothing past that exists yet.
+
+| Reached by the workflow | Not built |
+| :--- | :--- |
+| `Applicant` through thirteen states, `ApplicantProgramPreference`, `Admission` (model, invariants and service), `WorkflowHistory`, the offer window and its expiry sweep | `admit()`, `Enrollment` from an application, `Student` creation from an application, lifecycle transitions, transfer, readmission, promotion |
+
+`AdmissionApplicationStatus.ADMITTED` has **no transition rule at all**, so it is
+currently unreachable. That is intentional: reaching it means a Student, an
+Admission and an Enrollment were written in one transaction, and a status-only
+edge would produce an applicant marked admitted with nothing behind them. Phase 5
+adds the operation, not the edge.
+
+Two CHECK constraints — `applicant_person_from_submitted_check` and
+`applicant_program_from_submitted_check` — are `NOT VALID`. They are enforced on
+every insert and update; the initial scan is skipped so that one pre-existing
+`SUBMITTED` applicant, which has neither a person nor a programme and no
+Enrollment to derive one from, is grandfathered rather than invented. The
+migration carries the two-line `VALIDATE CONSTRAINT` script to run once that row
+is resolved.
 
 ## Background — reasoning archive
 
