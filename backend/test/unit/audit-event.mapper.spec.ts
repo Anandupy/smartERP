@@ -1,5 +1,5 @@
 import { AuditEventMapper } from '@/infrastructure/audit/audit-event.mapper';
-import { StudentCreatedEvent } from '@/common/events/examples/student-created.event';
+import { StudentCreatedEvent } from '@/common/events/student.events';
 import { BranchCreatedEvent } from '@/common/events/examples/branch-created.event';
 import { UserLoggedInEvent } from '@/common/events/examples/user-logged-in.event';
 import { RequestContext } from '@/common/logger/request-context.middleware';
@@ -14,10 +14,14 @@ describe('AuditEventMapper', () => {
 
   it('should map StudentCreatedEvent into AuditLog payload with inferred action and module', () => {
     const event = new StudentCreatedEvent({
-      studentId: 'stud-55',
-      fullName: 'Ananya Rao',
-      admissionNo: 'ADM-2026-55',
-    });
+        studentId: 'stud-55',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
 
     const auditData = mapper.mapToAuditLog(event);
 
@@ -27,7 +31,7 @@ describe('AuditEventMapper', () => {
     expect(auditData.aggregateType).toBe('Student');
     expect(auditData.aggregateId).toBe('stud-55');
     expect(auditData.metadata).toBeDefined();
-    expect(auditData.metadata?.payload?.fullName).toBe('Ananya Rao');
+    expect(auditData.metadata?.payload?.studentCode).toBe('STU0000000001');
   });
 
   it('should map BranchCreatedEvent and infer ORGANIZATION module', () => {
@@ -62,10 +66,14 @@ describe('AuditEventMapper', () => {
 
   it('should enrich audit payload with RequestContext parameters when provided', () => {
     const event = new StudentCreatedEvent({
-      studentId: 'stud-100',
-      fullName: 'Kiran Verma',
-      admissionNo: 'ADM-100',
-    });
+        studentId: 'stud-100',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
 
     const mockContext: RequestContext = buildRequestContext({
       requestId: 'req-uuid-777',
@@ -105,10 +113,14 @@ describe('AuditEventMapper', () => {
 
   it('records every field a security investigation needs', () => {
     const event = new StudentCreatedEvent({
-      studentId: 'stud-1',
-      fullName: 'Asha Rao',
-      admissionNo: 'ADM-1',
-    });
+        studentId: 'stud-1',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
 
     const auditData = mapper.mapToAuditLog(
       event,

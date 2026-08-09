@@ -1,5 +1,5 @@
 import { DomainEvent } from '@/common/events/domain-event.base';
-import { StudentCreatedEvent } from '@/common/events/examples/student-created.event';
+import { StudentCreatedEvent } from '@/common/events/student.events';
 import { BranchCreatedEvent } from '@/common/events/examples/branch-created.event';
 import { UserLoggedInEvent } from '@/common/events/examples/user-logged-in.event';
 
@@ -58,10 +58,14 @@ describe('DomainEvent Foundation', () => {
 
   it('should not contain context fields (userId, requestId, branchId, orgId) in base event attributes', () => {
     const event = new StudentCreatedEvent({
-      studentId: 'stud-101',
-      fullName: 'Rahul Sharma',
-      admissionNo: 'ADM-2026-001',
-    });
+        studentId: 'stud-101',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
 
     const keys = Object.keys(event);
 

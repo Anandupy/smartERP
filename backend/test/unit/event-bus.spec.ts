@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { EventEmitterEventBus } from '@/infrastructure/events/adapters/event-emitter.event-bus';
 import { EventsModule } from '@/infrastructure/events/events.module';
-import { StudentCreatedEvent } from '@/common/events/examples/student-created.event';
+import { StudentCreatedEvent } from '@/common/events/student.events';
 import { BranchCreatedEvent } from '@/common/events/examples/branch-created.event';
 import { UserLoggedInEvent } from '@/common/events/examples/user-logged-in.event';
 
@@ -32,15 +32,19 @@ describe('EventBus Infrastructure', () => {
     eventBus.subscribe(StudentCreatedEvent.EVENT_NAME, handler);
 
     const event = new StudentCreatedEvent({
-      studentId: 'stud-1',
-      fullName: 'Aarav Patel',
-      admissionNo: 'ADM-001',
-    });
+        studentId: 'stud-1',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
 
     await eventBus.publish(event);
 
     expect(receivedEvents).toHaveLength(1);
-    expect(receivedEvents[0].payload.fullName).toBe('Aarav Patel');
+    expect(receivedEvents[0].payload.studentCode).toBe('STU0000000001');
 
     eventBus.unsubscribe(StudentCreatedEvent.EVENT_NAME, handler);
   });
@@ -55,9 +59,33 @@ describe('EventBus Infrastructure', () => {
     eventBus.subscribe(StudentCreatedEvent.EVENT_NAME, handler);
 
     const events = [
-      new StudentCreatedEvent({ studentId: 's1', fullName: 'Student 1', admissionNo: 'A1' }),
-      new StudentCreatedEvent({ studentId: 's2', fullName: 'Student 2', admissionNo: 'A2' }),
-      new StudentCreatedEvent({ studentId: 's3', fullName: 'Student 3', admissionNo: 'A3' }),
+      new StudentCreatedEvent({
+        studentId: 's1',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      }),
+      new StudentCreatedEvent({
+        studentId: 's2',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      }),
+      new StudentCreatedEvent({
+        studentId: 's3',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      }),
     ];
 
     await eventBus.publishAll(events);
@@ -102,7 +130,15 @@ describe('EventBus Infrastructure', () => {
     eventBus.subscribe('test.error.isolation', failingSub);
     eventBus.subscribe('test.error.isolation', healthySub);
 
-    const event = new StudentCreatedEvent({ studentId: 's1', fullName: 'Test', admissionNo: 'A1' });
+    const event = new StudentCreatedEvent({
+        studentId: 's1',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
     Object.defineProperty(event, 'eventName', { value: 'test.error.isolation' });
 
     await expect(eventBus.publish(event)).resolves.not.toThrow();
@@ -135,8 +171,12 @@ describe('EventBus Infrastructure', () => {
         eventBus.publish(
           new StudentCreatedEvent({
             studentId: `s-${i}`,
-            fullName: `Student ${i}`,
-            admissionNo: `ADM-${i}`,
+            organizationId: 'org-1',
+            branchId: 'branch-1',
+            personId: `person-${i}`,
+            studentCode: `STU${String(i).padStart(10, '0')}`,
+            createdVia: 'ADMISSION',
+            sourceApplicantId: `app-${i}`,
           }),
         ),
       );
@@ -177,7 +217,15 @@ describe('EventBus Infrastructure', () => {
 
     eventBus.subscribe('test.cleanup', handler);
 
-    const event = new StudentCreatedEvent({ studentId: 's1', fullName: 'Test', admissionNo: 'A1' });
+    const event = new StudentCreatedEvent({
+        studentId: 's1',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
     Object.defineProperty(event, 'eventName', { value: 'test.cleanup' });
 
     await eventBus.publish(event);

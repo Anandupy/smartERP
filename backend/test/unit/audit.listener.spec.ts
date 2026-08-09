@@ -4,7 +4,7 @@ import { AuditRepository } from '@/infrastructure/audit/audit.repository';
 import { AuditEventMapper } from '@/infrastructure/audit/audit-event.mapper';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { EventsModule } from '@/infrastructure/events/events.module';
-import { StudentCreatedEvent } from '@/common/events/examples/student-created.event';
+import { StudentCreatedEvent } from '@/common/events/student.events';
 import { BranchCreatedEvent } from '@/common/events/examples/branch-created.event';
 import { UserLoggedInEvent } from '@/common/events/examples/user-logged-in.event';
 
@@ -41,10 +41,14 @@ describe('AuditListener', () => {
 
   it('should automatically subscribe to registered domain events and persist audit logs when published', async () => {
     const event = new StudentCreatedEvent({
-      studentId: 'stud-999',
-      fullName: 'Vikram Mehta',
-      admissionNo: 'ADM-999',
-    });
+        studentId: 'stud-999',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
 
     await eventBus.publish(event);
 
@@ -82,10 +86,14 @@ describe('AuditListener', () => {
     listener.listenToEvent(customEventName);
 
     const customEvent = new StudentCreatedEvent({
-      studentId: 'stud-1',
-      fullName: 'Test',
-      admissionNo: 'A1',
-    });
+        studentId: 'stud-1',
+        organizationId: 'org-1',
+        branchId: 'branch-1',
+        personId: 'person-1',
+        studentCode: 'STU0000000001',
+        createdVia: 'ADMISSION',
+        sourceApplicantId: 'app-1',
+      });
     Object.defineProperty(customEvent, 'eventName', { value: customEventName });
 
     await eventBus.publish(customEvent);
@@ -105,8 +113,12 @@ describe('AuditListener', () => {
         eventBus.publish(
           new StudentCreatedEvent({
             studentId: `s-${i}`,
-            fullName: `Student ${i}`,
-            admissionNo: `ADM-${i}`,
+            organizationId: 'org-1',
+            branchId: 'branch-1',
+            personId: `person-${i}`,
+            studentCode: `STU${String(i).padStart(10, '0')}`,
+            createdVia: 'ADMISSION',
+            sourceApplicantId: `app-${i}`,
           }),
         ),
       );
