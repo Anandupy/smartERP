@@ -66,6 +66,7 @@ model AcademicUnit {
 
   parent            AcademicUnit? @relation("AcademicUnitHierarchy", fields: [parentId], references: [id])
   children          AcademicUnit[] @relation("AcademicUnitHierarchy")
+  admissionEntries Admission[]
   enrollments       Enrollment[]
 
   @@index([branchId])
@@ -134,6 +135,9 @@ model Program {
   children      Program[] @relation("ProgramHierarchy")
   academicUnits AcademicUnit[]
   enrollments   Enrollment[]
+  applicants    Applicant[]
+  preferences   ApplicantProgramPreference[]
+  admissionEntries Admission[]
 
   @@index([branchId])
   @@index([parentId])
@@ -168,6 +172,187 @@ enum AdmissionApplicationStatus {
   REJECTED
   WITHDRAWN
   CANCELLED
+}
+
+/// Where a preference sits in the allotment process.
+///
+/// Only meaningful to institutions that run a preference round; a school
+/// creates zero preference rows and never sees these.
+enum ProgramPreferenceStatus {
+  PENDING
+  ALLOTTED
+  REJECTED
+  WITHDRAWN
+}
+
+/// The academic nature of an entry.
+///
+/// Distinct from `AdmissionSource`, which records where the applicant came
+/// from — an acquisition channel. A REGULAR admission acquired through a
+/// referral is both, and collapsing them loses one of the two.
+///
+/// Core vocabulary, not configuration: policy *around* a type varies by
+/// institution, but what "lateral entry" means does not.
+enum AdmissionType {
+  REGULAR
+  LATERAL_ENTRY
+  TRANSFER
+  MIGRATION
+  READMISSION
+  BRANCH_TRANSFER
+  RTE
+}
+
+/// The lifecycle of one spell of study.
+///
+/// Deliberately not the applicant's enum. `Applicant.CANCELLED` means the
+/// application ended without producing a student; `Admission.CANCELLED` means a
+/// student who had actually joined stopped being admitted — which triggers
+/// refunds and a transfer certificate. Collapsing them loses a distinction
+/// every fee report depends on.
+enum AdmissionStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+  TRANSFERRED_OUT
+}
+
+/// Why a spell of study ended.
+///
+/// An enum rather than free text because a Transfer Certificate is issued
+/// against it and government reporting counts it. "Dropped out" and "left for
+/// another branch" are different numbers on a return.
+enum AdmissionExitReason {
+  GRADUATED
+  TRANSFER_OUT
+  BRANCH_TRANSFER
+  DROPPED_OUT
+  EXPELLED
+  DECEASED
+  CANCELLED_BEFORE_JOINING
+}
+
+
+// --- FROM: modules/admissions/admission.prisma ---
+
+/// One continuous spell of study at one branch.
+///
+/// The layer that neither Applicant nor Enrollment can be. Applicant dies at
+/// admission and Enrollment dies at promotion, so neither can hold *"this
+/// person joined this branch on this date, under this quota, at this level, and
+/// left on that date for that reason"* — which is precisely the record a
+/// Transfer Certificate is issued against.
+///
+/// ## No academic year, deliberately
+///
+/// An Admission spans years:
+///
+///     Admission #1 (2026)
+///       ├── Enrollment 2026
+///       ├── Enrollment 2027
+///       └── Enrollment 2028
+///
+/// So `academicYearId` here would be semantically wrong — it would name the
+/// year the spell *started* while looking like the year it belongs to. Applicant
+/// is branch+year scoped, Admission is branch scoped, Enrollment is branch+year
+/// scoped, and keeping those three different is what stops the model tangling.
+///
+/// ## Nothing writes to this table yet
+///
+/// Admission rows are created by `admit()`, branch transfer, readmission and the
+/// migration importer — all later phases. The model, its constraints and its
+/// service exist now so those operations compose rather than design.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §16.
+model Admission {
+  id String @id @default(uuid(7))
+
+  organizationId String
+
+  /// **Immutable.** The hinge of the whole design.
+  ///
+  /// An admission cannot span branches: `admissionNo` is branch-scoped and fee
+  /// structures are branch-scoped. A transfer closes this spell and opens
+  /// another at the new branch, which is why `Student.branchId` can move while
+  /// this cannot — the student is somewhere new, but the history of where they
+  /// studied does not change.
+  branchId String
+
+  studentId String
+
+  /// Human-facing, branch-scoped, allocated once from the central engine.
+  /// Never a foreign key — other rows reference `id`.
+  admissionNo String
+
+  admissionType AdmissionType
+
+  /// **The joining date.** Not the approval date, not the offer date, not the
+  /// seat-confirmation date, not the application date. Those are four different
+  /// facts about the application, and this is a fact about the study spell.
+  admissionDate DateTime
+
+  /// The programme and level actually entered.
+  ///
+  /// Distinct from `Applicant.programId`, which records what was applied *for*.
+  /// A lateral entrant applies to a degree and enters its second year; deriving
+  /// the entry level from a later Enrollment would lose that, because by then
+  /// the student has been promoted past it.
+  entryProgramId     String
+  entryAcademicUnitId String
+
+  quotaId           String?
+  admissionSourceId String?
+
+  status AdmissionStatus @default(ACTIVE)
+
+  /// Provenance, not a dependency. The application may be archived or corrected
+  /// later; this spell of study and everything hanging off it survives that.
+  sourceApplicantId String?
+
+  /// The spell this one continues from — a readmission after a break, or the
+  /// other half of a branch transfer.
+  previousAdmissionId String?
+
+  /// A closed admission carries both a date and a reason, enforced by CHECK:
+  /// a spell that ended for no recorded reason cannot produce a certificate.
+  exitDate    DateTime?
+  exitReason  AdmissionExitReason?
+  exitRemarks String?
+
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization      Organization  @relation(fields: [organizationId], references: [id])
+  branch            Branch        @relation(fields: [branchId], references: [id])
+  student           Student       @relation(fields: [studentId], references: [id])
+  entryProgram      Program       @relation(fields: [entryProgramId], references: [id])
+  entryAcademicUnit AcademicUnit  @relation(fields: [entryAcademicUnitId], references: [id])
+  quota             Quota?        @relation(fields: [quotaId], references: [id])
+  admissionSource   AdmissionSource? @relation(fields: [admissionSourceId], references: [id])
+  sourceApplicant   Applicant?    @relation(fields: [sourceApplicantId], references: [id], onDelete: SetNull)
+  previousAdmission Admission?    @relation("AdmissionChain", fields: [previousAdmissionId], references: [id])
+  nextAdmissions    Admission[]   @relation("AdmissionChain")
+
+  /// INV-ADM-003 — the human-facing reference is unique where it is issued.
+  @@unique([branchId, admissionNo])
+  /// Targets for the composite foreign key Enrollment will carry in Phase 4,
+  /// which makes "this enrollment's student is its admission's student" and
+  /// "…its branch is its admission's branch" unrepresentable rather than merely
+  /// checked.
+  @@unique([id, studentId])
+  @@unique([id, studentId, branchId])
+
+  @@index([studentId, status])
+  @@index([branchId, admissionDate])
+  @@index([organizationId])
+  @@index([sourceApplicantId])
+  @@index([previousAdmissionId])
+  // INV-ADM-002 (one ACTIVE admission per student) and the closed-admission
+  // CHECK are raw SQL in the migration — Prisma expresses neither.
 }
 
 
@@ -227,6 +412,20 @@ model Applicant {
   previousPercentage    Float?
   tcNumber              String?
 
+  // Identity linkage
+  //
+  /// The human behind this attempt. Null in DRAFT and required from SUBMITTED
+  /// onward — resolving a Person for every abandoned draft would pollute the
+  /// identity index with people who never applied.
+  personId              String?
+
+  /// The programme applied *for*.
+  ///
+  /// Distinct from `Admission.entryProgramId`, which records what was actually
+  /// entered. A lateral entrant applies to a degree and enters its second year,
+  /// and an allotment round can land an applicant on their third preference.
+  programId             String?
+
   // Admission Details
   admissionSourceId     String?
   quotaId               String?
@@ -240,10 +439,28 @@ model Applicant {
   hostelRequired        Boolean                  @default(false)
 
   // Workflow Timeline
+  //
+  // One nullable timestamp per terminal-ish transition rather than a single
+  // `statusChangedAt`: a report asking "when was the offer issued?" must not
+  // have to reconstruct it from history, and the offer window is a business
+  // deadline the expiry job reads directly.
   submittedAt           DateTime?
   approvedAt            DateTime?
+  /// When the offer was made and when it lapses. Written together at approval.
+  offerIssuedAt         DateTime?
+  offerExpiresAt        DateTime?
+  seatConfirmedAt       DateTime?
+  deferredAt            DateTime?
+  withdrawnAt           DateTime?
   rejectedAt            DateTime?
   cancelledAt           DateTime?
+
+  /// The deferred application this one replaces.
+  ///
+  /// Deferment does not keep an application alive into the next year — the old
+  /// row stays historical and a new attempt points back at it. Mutating the old
+  /// one would destroy the record of which year it was originally for.
+  deferredFromApplicantId String?
 
   // Extensibility Placeholders
   customFieldData       Json?
@@ -274,6 +491,13 @@ model Applicant {
   admissionSource       AdmissionSource?         @relation(fields: [admissionSourceId], references: [id])
   quota                 Quota?                   @relation(fields: [quotaId], references: [id])
 
+  person                Person?                  @relation(fields: [personId], references: [id])
+  program               Program?                 @relation(fields: [programId], references: [id])
+  deferredFrom          Applicant?               @relation("ApplicantDeferral", fields: [deferredFromApplicantId], references: [id])
+  deferredTo            Applicant[]              @relation("ApplicantDeferral")
+  preferences           ApplicantProgramPreference[]
+  admissions            Admission[]
+
   guardians             ApplicantGuardianMapping[]
   /// No longer `Enrollment?` — an applicant is not limited to one enrollment
   /// for life, and the link is provenance only. See §18.
@@ -291,6 +515,42 @@ model Applicant {
   @@index([aadhaarNo])
   @@index([applicationNo])
   @@index([admissionFormNo])
+  @@index([personId])
+  @@index([programId])
+  @@index([deferredFromApplicantId])
+  /// Drives the offer-expiry sweep: the job asks for approved offers past their
+  /// deadline, and without this it scans every applicant ever created.
+  @@index([admissionStatus, offerExpiresAt])
+}
+
+/// An ordered programme choice on one application.
+///
+/// Only institutions running an allotment round create these; a school creates
+/// zero rows and `Applicant.programId` is set directly. The order is meaningful
+/// and is never silently rewritten — an applicant who put BSc IT first and was
+/// allotted their third choice needs that visible.
+model ApplicantProgramPreference {
+  id          String @id @default(uuid(7))
+  applicantId String
+  programId   String
+
+  /// 1 is the first choice. Unique per applicant, enforced by index.
+  preferenceOrder Int
+  status          ProgramPreferenceStatus @default(PENDING)
+  remarks         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applicant Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  program   Program   @relation(fields: [programId], references: [id])
+
+  /// One position per applicant, and one row per programme — an applicant
+  /// cannot rank the same programme twice, and two programmes cannot share a
+  /// position.
+  @@unique([applicantId, preferenceOrder])
+  @@unique([applicantId, programId])
+  @@index([programId])
 }
 
 
@@ -616,6 +876,7 @@ model Quota {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  admissions     Admission[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -638,6 +899,7 @@ model AdmissionSource {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  admissions     Admission[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -1413,6 +1675,7 @@ model Person {
 
   sensitive       PersonSensitive?
   student         Student?
+  applicants      Applicant[]
   mergedInto      Person?  @relation("PersonMerge", fields: [mergedIntoPersonId], references: [id])
   mergedFrom      Person[] @relation("PersonMerge")
 
@@ -1682,6 +1945,8 @@ model Student {
   /// Leaving is a lifecycle status; deletion is not a lifecycle operation.
   deletedAt DateTime?
 
+  admissions     Admission[]
+
   organization   Organization @relation(fields: [organizationId], references: [id])
   branch         Branch       @relation(fields: [branchId], references: [id])
   person         Person       @relation(fields: [personId], references: [id])
@@ -1897,6 +2162,7 @@ model Branch {
   enrollments        Enrollment[]
   guardians          Guardian[]
   students           Student[]
+  admissions         Admission[]
 }
 
 
@@ -1950,6 +2216,7 @@ model Organization {
   enrollments      Enrollment[]
   guardians        Guardian[]
   students         Student[]
+  admissions       Admission[]
 }
 
 

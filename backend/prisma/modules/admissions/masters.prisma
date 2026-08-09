@@ -196,6 +196,7 @@ model Quota {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  admissions     Admission[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -218,6 +219,7 @@ model AdmissionSource {
   deletedAt      DateTime?
 
   applicants     Applicant[]
+  admissions     Admission[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])

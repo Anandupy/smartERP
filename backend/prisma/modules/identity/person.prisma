@@ -59,6 +59,7 @@ model Person {
 
   sensitive       PersonSensitive?
   student         Student?
+  applicants      Applicant[]
   mergedInto      Person?  @relation("PersonMerge", fields: [mergedIntoPersonId], references: [id])
   mergedFrom      Person[] @relation("PersonMerge")
 

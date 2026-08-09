@@ -52,6 +52,20 @@ model Applicant {
   previousPercentage    Float?
   tcNumber              String?
 
+  // Identity linkage
+  //
+  /// The human behind this attempt. Null in DRAFT and required from SUBMITTED
+  /// onward — resolving a Person for every abandoned draft would pollute the
+  /// identity index with people who never applied.
+  personId              String?
+
+  /// The programme applied *for*.
+  ///
+  /// Distinct from `Admission.entryProgramId`, which records what was actually
+  /// entered. A lateral entrant applies to a degree and enters its second year,
+  /// and an allotment round can land an applicant on their third preference.
+  programId             String?
+
   // Admission Details
   admissionSourceId     String?
   quotaId               String?
@@ -65,10 +79,28 @@ model Applicant {
   hostelRequired        Boolean                  @default(false)
 
   // Workflow Timeline
+  //
+  // One nullable timestamp per terminal-ish transition rather than a single
+  // `statusChangedAt`: a report asking "when was the offer issued?" must not
+  // have to reconstruct it from history, and the offer window is a business
+  // deadline the expiry job reads directly.
   submittedAt           DateTime?
   approvedAt            DateTime?
+  /// When the offer was made and when it lapses. Written together at approval.
+  offerIssuedAt         DateTime?
+  offerExpiresAt        DateTime?
+  seatConfirmedAt       DateTime?
+  deferredAt            DateTime?
+  withdrawnAt           DateTime?
   rejectedAt            DateTime?
   cancelledAt           DateTime?
+
+  /// The deferred application this one replaces.
+  ///
+  /// Deferment does not keep an application alive into the next year — the old
+  /// row stays historical and a new attempt points back at it. Mutating the old
+  /// one would destroy the record of which year it was originally for.
+  deferredFromApplicantId String?
 
   // Extensibility Placeholders
   customFieldData       Json?
@@ -99,6 +131,13 @@ model Applicant {
   admissionSource       AdmissionSource?         @relation(fields: [admissionSourceId], references: [id])
   quota                 Quota?                   @relation(fields: [quotaId], references: [id])
 
+  person                Person?                  @relation(fields: [personId], references: [id])
+  program               Program?                 @relation(fields: [programId], references: [id])
+  deferredFrom          Applicant?               @relation("ApplicantDeferral", fields: [deferredFromApplicantId], references: [id])
+  deferredTo            Applicant[]              @relation("ApplicantDeferral")
+  preferences           ApplicantProgramPreference[]
+  admissions            Admission[]
+
   guardians             ApplicantGuardianMapping[]
   /// No longer `Enrollment?` — an applicant is not limited to one enrollment
   /// for life, and the link is provenance only. See §18.
@@ -116,4 +155,40 @@ model Applicant {
   @@index([aadhaarNo])
   @@index([applicationNo])
   @@index([admissionFormNo])
+  @@index([personId])
+  @@index([programId])
+  @@index([deferredFromApplicantId])
+  /// Drives the offer-expiry sweep: the job asks for approved offers past their
+  /// deadline, and without this it scans every applicant ever created.
+  @@index([admissionStatus, offerExpiresAt])
+}
+
+/// An ordered programme choice on one application.
+///
+/// Only institutions running an allotment round create these; a school creates
+/// zero rows and `Applicant.programId` is set directly. The order is meaningful
+/// and is never silently rewritten — an applicant who put BSc IT first and was
+/// allotted their third choice needs that visible.
+model ApplicantProgramPreference {
+  id          String @id @default(uuid(7))
+  applicantId String
+  programId   String
+
+  /// 1 is the first choice. Unique per applicant, enforced by index.
+  preferenceOrder Int
+  status          ProgramPreferenceStatus @default(PENDING)
+  remarks         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applicant Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  program   Program   @relation(fields: [programId], references: [id])
+
+  /// One position per applicant, and one row per programme — an applicant
+  /// cannot rank the same programme twice, and two programmes cannot share a
+  /// position.
+  @@unique([applicantId, preferenceOrder])
+  @@unique([applicantId, programId])
+  @@index([programId])
 }

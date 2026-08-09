@@ -18,6 +18,9 @@ model Program {
   children      Program[] @relation("ProgramHierarchy")
   academicUnits AcademicUnit[]
   enrollments   Enrollment[]
+  applicants    Applicant[]
+  preferences   ApplicantProgramPreference[]
+  admissionEntries Admission[]
 
   @@index([branchId])
   @@index([parentId])

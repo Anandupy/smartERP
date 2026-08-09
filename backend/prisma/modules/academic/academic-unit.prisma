@@ -33,6 +33,7 @@ model AcademicUnit {
 
   parent            AcademicUnit? @relation("AcademicUnitHierarchy", fields: [parentId], references: [id])
   children          AcademicUnit[] @relation("AcademicUnitHierarchy")
+  admissionEntries Admission[]
   enrollments       Enrollment[]
 
   @@index([branchId])

@@ -1,0 +1,118 @@
+/// One continuous spell of study at one branch.
+///
+/// The layer that neither Applicant nor Enrollment can be. Applicant dies at
+/// admission and Enrollment dies at promotion, so neither can hold *"this
+/// person joined this branch on this date, under this quota, at this level, and
+/// left on that date for that reason"* — which is precisely the record a
+/// Transfer Certificate is issued against.
+///
+/// ## No academic year, deliberately
+///
+/// An Admission spans years:
+///
+///     Admission #1 (2026)
+///       ├── Enrollment 2026
+///       ├── Enrollment 2027
+///       └── Enrollment 2028
+///
+/// So `academicYearId` here would be semantically wrong — it would name the
+/// year the spell *started* while looking like the year it belongs to. Applicant
+/// is branch+year scoped, Admission is branch scoped, Enrollment is branch+year
+/// scoped, and keeping those three different is what stops the model tangling.
+///
+/// ## Nothing writes to this table yet
+///
+/// Admission rows are created by `admit()`, branch transfer, readmission and the
+/// migration importer — all later phases. The model, its constraints and its
+/// service exist now so those operations compose rather than design.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §16.
+model Admission {
+  id String @id @default(uuid(7))
+
+  organizationId String
+
+  /// **Immutable.** The hinge of the whole design.
+  ///
+  /// An admission cannot span branches: `admissionNo` is branch-scoped and fee
+  /// structures are branch-scoped. A transfer closes this spell and opens
+  /// another at the new branch, which is why `Student.branchId` can move while
+  /// this cannot — the student is somewhere new, but the history of where they
+  /// studied does not change.
+  branchId String
+
+  studentId String
+
+  /// Human-facing, branch-scoped, allocated once from the central engine.
+  /// Never a foreign key — other rows reference `id`.
+  admissionNo String
+
+  admissionType AdmissionType
+
+  /// **The joining date.** Not the approval date, not the offer date, not the
+  /// seat-confirmation date, not the application date. Those are four different
+  /// facts about the application, and this is a fact about the study spell.
+  admissionDate DateTime
+
+  /// The programme and level actually entered.
+  ///
+  /// Distinct from `Applicant.programId`, which records what was applied *for*.
+  /// A lateral entrant applies to a degree and enters its second year; deriving
+  /// the entry level from a later Enrollment would lose that, because by then
+  /// the student has been promoted past it.
+  entryProgramId     String
+  entryAcademicUnitId String
+
+  quotaId           String?
+  admissionSourceId String?
+
+  status AdmissionStatus @default(ACTIVE)
+
+  /// Provenance, not a dependency. The application may be archived or corrected
+  /// later; this spell of study and everything hanging off it survives that.
+  sourceApplicantId String?
+
+  /// The spell this one continues from — a readmission after a break, or the
+  /// other half of a branch transfer.
+  previousAdmissionId String?
+
+  /// A closed admission carries both a date and a reason, enforced by CHECK:
+  /// a spell that ended for no recorded reason cannot produce a certificate.
+  exitDate    DateTime?
+  exitReason  AdmissionExitReason?
+  exitRemarks String?
+
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization      Organization  @relation(fields: [organizationId], references: [id])
+  branch            Branch        @relation(fields: [branchId], references: [id])
+  student           Student       @relation(fields: [studentId], references: [id])
+  entryProgram      Program       @relation(fields: [entryProgramId], references: [id])
+  entryAcademicUnit AcademicUnit  @relation(fields: [entryAcademicUnitId], references: [id])
+  quota             Quota?        @relation(fields: [quotaId], references: [id])
+  admissionSource   AdmissionSource? @relation(fields: [admissionSourceId], references: [id])
+  sourceApplicant   Applicant?    @relation(fields: [sourceApplicantId], references: [id], onDelete: SetNull)
+  previousAdmission Admission?    @relation("AdmissionChain", fields: [previousAdmissionId], references: [id])
+  nextAdmissions    Admission[]   @relation("AdmissionChain")
+
+  /// INV-ADM-003 — the human-facing reference is unique where it is issued.
+  @@unique([branchId, admissionNo])
+  /// Targets for the composite foreign key Enrollment will carry in Phase 4,
+  /// which makes "this enrollment's student is its admission's student" and
+  /// "…its branch is its admission's branch" unrepresentable rather than merely
+  /// checked.
+  @@unique([id, studentId])
+  @@unique([id, studentId, branchId])
+
+  @@index([studentId, status])
+  @@index([branchId, admissionDate])
+  @@index([organizationId])
+  @@index([sourceApplicantId])
+  @@index([previousAdmissionId])
+  // INV-ADM-002 (one ACTIVE admission per student) and the closed-admission
+  // CHECK are raw SQL in the migration — Prisma expresses neither.
+}

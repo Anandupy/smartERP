@@ -32,4 +32,5 @@ model Branch {
   enrollments        Enrollment[]
   guardians          Guardian[]
   students           Student[]
+  admissions         Admission[]
 }

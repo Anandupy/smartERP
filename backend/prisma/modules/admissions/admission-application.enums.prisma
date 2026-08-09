@@ -24,3 +24,62 @@ enum AdmissionApplicationStatus {
   WITHDRAWN
   CANCELLED
 }
+
+/// Where a preference sits in the allotment process.
+///
+/// Only meaningful to institutions that run a preference round; a school
+/// creates zero preference rows and never sees these.
+enum ProgramPreferenceStatus {
+  PENDING
+  ALLOTTED
+  REJECTED
+  WITHDRAWN
+}
+
+/// The academic nature of an entry.
+///
+/// Distinct from `AdmissionSource`, which records where the applicant came
+/// from — an acquisition channel. A REGULAR admission acquired through a
+/// referral is both, and collapsing them loses one of the two.
+///
+/// Core vocabulary, not configuration: policy *around* a type varies by
+/// institution, but what "lateral entry" means does not.
+enum AdmissionType {
+  REGULAR
+  LATERAL_ENTRY
+  TRANSFER
+  MIGRATION
+  READMISSION
+  BRANCH_TRANSFER
+  RTE
+}
+
+/// The lifecycle of one spell of study.
+///
+/// Deliberately not the applicant's enum. `Applicant.CANCELLED` means the
+/// application ended without producing a student; `Admission.CANCELLED` means a
+/// student who had actually joined stopped being admitted — which triggers
+/// refunds and a transfer certificate. Collapsing them loses a distinction
+/// every fee report depends on.
+enum AdmissionStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+  TRANSFERRED_OUT
+}
+
+/// Why a spell of study ended.
+///
+/// An enum rather than free text because a Transfer Certificate is issued
+/// against it and government reporting counts it. "Dropped out" and "left for
+/// another branch" are different numbers on a return.
+enum AdmissionExitReason {
+  GRADUATED
+  TRANSFER_OUT
+  BRANCH_TRANSFER
+  DROPPED_OUT
+  EXPELLED
+  DECEASED
+  CANCELLED_BEFORE_JOINING
+}
