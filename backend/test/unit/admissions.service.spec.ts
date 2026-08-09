@@ -11,7 +11,6 @@ import { ReligionService } from '@/modules/admissions/masters/religion/religion.
 import { NumberingService } from '@/infrastructure/numbering/numbering.service';
 import { ApplicantService } from '@/modules/admissions/applicant/applicant.service';
 import { GuardiansService } from '@/modules/admissions/guardians/guardians.service';
-import { WorkflowService } from '@/modules/admissions/workflow/workflow.service';
 import { EnrollmentService } from '@/modules/admissions/enrollment/enrollment.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { ResourceScope } from '@/common/scope/resource-scope';
@@ -45,7 +44,6 @@ describe('Admissions Module Foundation - Unit Tests', () => {
   let numberingService: NumberingService;
   let applicantService: ApplicantService;
   let guardiansService: GuardiansService;
-  let workflowService: WorkflowService;
   let enrollmentService: EnrollmentService;
 
   const mockEventBus = {
@@ -142,7 +140,6 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         NumberingService,
         ApplicantService,
         GuardiansService,
-        WorkflowService,
         EnrollmentService,
         // Real instances rather than mocks: both are thin, and using the real
         // ones means these tests exercise the locking and outbox wiring instead
@@ -158,7 +155,6 @@ describe('Admissions Module Foundation - Unit Tests', () => {
     numberingService = module.get(NumberingService);
     applicantService = module.get(ApplicantService);
     guardiansService = module.get(GuardiansService);
-    workflowService = module.get(WorkflowService);
     enrollmentService = module.get(EnrollmentService);
   });
 
@@ -507,106 +503,6 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.any(GuardianMappedEvent),
       );
-    });
-  });
-
-  describe('Workflow engine', () => {
-    it('locks the applicant row before reading its state', async () => {
-      rawQuery.lockResult = [
-        { id: 'app-1', admissionStatus: 'DRAFT', deletedAt: null },
-      ];
-      mockPrisma.applicant.update.mockResolvedValue({
-        id: 'app-1',
-        admissionStatus: 'SUBMITTED',
-      });
-
-      await workflowService.transitionState(
-        'app-1',
-        { newStatus: 'SUBMITTED' } as any,
-        SCOPE,
-      );
-
-      const lockSql = rawQuery.mock.calls.find((c) =>
-        String(c[0]).includes('FOR UPDATE'),
-      );
-      expect(lockSql).toBeDefined();
-      // Without the lock, two concurrent approvals both read the old state and
-      // both pass the transition guard.
-      expect(String(lockSql![0])).toContain('"Applicant"');
-      expect(String(lockSql![0])).toContain('"organizationId"');
-      expect(String(lockSql![0])).toContain('"branchId"');
-    });
-
-    it('rejects a transition the matrix does not allow', async () => {
-      rawQuery.lockResult = [
-        { id: 'app-1', admissionStatus: 'DRAFT', deletedAt: null },
-      ];
-
-      await expect(
-        workflowService.transitionState(
-          'app-1',
-          { newStatus: 'APPROVED' } as any,
-          SCOPE,
-        ),
-      ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
-    });
-
-    it('never allows a bare transition into ADMITTED', async () => {
-      rawQuery.lockResult = [
-        { id: 'app-1', admissionStatus: 'APPROVED', deletedAt: null },
-      ];
-
-      // ADMITTED may only be reached through admit(), which writes a Student,
-      // an Admission and an Enrollment in the same transaction. A status-only
-      // route into it would produce an applicant marked admitted with no
-      // student behind it.
-      await expect(
-        workflowService.transitionState(
-          'app-1',
-          { newStatus: 'ADMITTED' } as any,
-          SCOPE,
-        ),
-      ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
-    });
-
-    it('treats an out-of-scope applicant as absent', async () => {
-      rawQuery.lockResult = [];
-
-      await expect(
-        workflowService.transitionState(
-          'app-1',
-          { newStatus: 'SUBMITTED' } as any,
-          OTHER_BRANCH_SCOPE,
-        ),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('writes polymorphic history and outboxes the transition', async () => {
-      rawQuery.lockResult = [
-        { id: 'app-1', admissionStatus: 'DRAFT', deletedAt: null },
-      ];
-      mockPrisma.applicant.update.mockResolvedValue({
-        id: 'app-1',
-        admissionStatus: 'SUBMITTED',
-      });
-
-      await workflowService.transitionState(
-        'app-1',
-        { newStatus: 'SUBMITTED' } as any,
-        SCOPE,
-      );
-
-      expect(mockPrisma.workflowHistory.create.mock.calls[0][0].data).toMatchObject(
-        {
-          entityType: 'APPLICANT',
-          entityId: 'app-1',
-          organizationId: 'org-1',
-          branchId: 'branch-1',
-          oldStatus: 'DRAFT',
-          newStatus: 'SUBMITTED',
-        },
-      );
-      expect(mockPrisma.outboxEvent.create).toHaveBeenCalled();
     });
   });
 

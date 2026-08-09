@@ -4,7 +4,9 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { AppModule } from '@/app.module';
 import { ApplicantService } from '@/modules/admissions/applicant/applicant.service';
 import { WorkflowService } from '@/modules/admissions/workflow/workflow.service';
+import { WorkflowAction } from '@/modules/admissions/workflow/workflow.transitions';
 import { EnrollmentService } from '@/modules/admissions/enrollment/enrollment.service';
+import { PersonService } from '@/modules/identity/person/person.service';
 import { NumberingService } from '@/infrastructure/numbering/numbering.service';
 import { ResourceScope } from '@/common/scope/resource-scope';
 
@@ -22,6 +24,7 @@ describe('Admissions Phase 0 (integration)', () => {
   let workflow: WorkflowService;
   let enrollment: EnrollmentService;
   let numbering: NumberingService;
+  let persons: PersonService;
 
   let orgId: string;
   let otherOrgId: string;
@@ -46,6 +49,7 @@ describe('Admissions Phase 0 (integration)', () => {
     workflow = moduleRef.get(WorkflowService);
     enrollment = moduleRef.get(EnrollmentService);
     numbering = moduleRef.get(NumberingService);
+    persons = moduleRef.get(PersonService);
 
     const org = await prisma.organization.create({
       data: {
@@ -155,6 +159,13 @@ describe('Admissions Phase 0 (integration)', () => {
     await prisma.enrollment.deleteMany({ where: { organizationId: orgId } });
     await prisma.workflowHistory.deleteMany({ where: { organizationId: orgId } });
     await prisma.applicant.deleteMany({ where: { organizationId: orgId } });
+    // Submission puts the applicant in the identity index, so these rows exist
+    // now even though nothing here creates a Person directly.
+    await prisma.personSensitive.deleteMany({
+      where: { person: { organizationId: orgId } },
+    });
+    await prisma.person.deleteMany({ where: { organizationId: orgId } });
+    await prisma.organizationDataKey.deleteMany({ where: { organizationId: orgId } });
     await prisma.numberSequenceCounter.deleteMany({
       where: { config: { organizationId: orgId } },
     });
@@ -168,13 +179,28 @@ describe('Admissions Phase 0 (integration)', () => {
     await moduleRef.close();
   });
 
-  async function createApplicant(scope: ResourceScope, first = 'Test') {
+  /**
+   * SUPER_ADMIN inherits the whole seeded catalogue without a user row, so this
+   * satisfies the per-transition permission check without these tests — which
+   * are about scope and locking — having to build a role and its grants.
+   */
+  const ADMIN = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    role: 'SUPER_ADMIN',
+  };
+
+  async function createApplicant(
+    scope: ResourceScope,
+    first = 'Test',
+    programId: string | undefined = scope === scopeA ? programAId : undefined,
+  ) {
     const { applicant } = await applicants.create(
       {
         firstName: first,
         lastName: 'Candidate',
         dob: '2020-01-01',
         genderId,
+        programId,
         primaryMobile: '99887' + Math.floor(10000 + Math.random() * 89999),
         currentAddressLine1: 'Road 1',
         city: 'Mumbai',
@@ -186,6 +212,32 @@ describe('Admissions Phase 0 (integration)', () => {
     );
     return applicant;
   }
+
+  /**
+   * Put an applicant in a state directly, bypassing the state machine.
+   *
+   * These fixtures are about enrollment scope, not about how an application got
+   * approved. Phase 3 added `applicant_person_from_submitted_check` and its
+   * programme twin, so a row can no longer leave DRAFT without an identity and
+   * a programme — a fixture that jumps the machine has to supply both. Each call
+   * resolves its own Person, so `applicant_one_active` never fires between
+   * unrelated fixtures.
+   */
+  async function forceStatus(applicantId: string, admissionStatus: 'APPROVED') {
+    forcedPersonSeq += 1;
+    const { personId } = await persons.resolve(orgId, {
+      firstName: 'Forced',
+      lastName: `Fixture${forcedPersonSeq}`,
+      dob: new Date('2020-01-01'),
+      phone: `97${String(forcedPersonSeq).padStart(8, '0')}`,
+    });
+
+    await prisma.applicant.update({
+      where: { id: applicantId },
+      data: { admissionStatus, personId, programId: programAId },
+    });
+  }
+  let forcedPersonSeq = 0;
 
   describe('tenant isolation', () => {
     it('hides another branch applicant from a read', async () => {
@@ -229,7 +281,12 @@ describe('Admissions Phase 0 (integration)', () => {
       const applicant = await createApplicant(scopeA);
 
       await expect(
-        workflow.transitionState(applicant.id, { newStatus: 'SUBMITTED' } as any, scopeB),
+        workflow.transition(
+          applicant.id,
+          { action: WorkflowAction.SUBMIT },
+          scopeB,
+          ADMIN,
+        ),
       ).rejects.toThrow(NotFoundException);
 
       const unchanged = await prisma.applicant.findUnique({
@@ -247,10 +304,7 @@ describe('Admissions Phase 0 (integration)', () => {
     it('refuses to enroll another branch applicant into the caller branch', async () => {
       const applicant = await createApplicant(scopeA);
 
-      await prisma.applicant.update({
-        where: { id: applicant.id },
-        data: { admissionStatus: 'APPROVED' },
-      });
+      await forceStatus(applicant.id, 'APPROVED');
 
       await expect(
         enrollment.createEnrollment(
@@ -268,10 +322,7 @@ describe('Admissions Phase 0 (integration)', () => {
 
     it('hides another branch enrollment from a read', async () => {
       const applicant = await createApplicant(scopeA);
-      await prisma.applicant.update({
-        where: { id: applicant.id },
-        data: { admissionStatus: 'APPROVED' },
-      });
+      await forceStatus(applicant.id, 'APPROVED');
       await enrollment.createEnrollment(
         applicant.id,
         { programId: programAId, academicUnitId: unitAId } as any,
@@ -375,8 +426,18 @@ describe('Admissions Phase 0 (integration)', () => {
       const applicant = await createApplicant(scopeA);
 
       const results = await Promise.allSettled([
-        workflow.transitionState(applicant.id, { newStatus: 'SUBMITTED' } as any, scopeA),
-        workflow.transitionState(applicant.id, { newStatus: 'SUBMITTED' } as any, scopeA),
+        workflow.transition(
+          applicant.id,
+          { action: WorkflowAction.SUBMIT },
+          scopeA,
+          ADMIN,
+        ),
+        workflow.transition(
+          applicant.id,
+          { action: WorkflowAction.SUBMIT },
+          scopeA,
+          ADMIN,
+        ),
       ]);
 
       const fulfilled = results.filter((r) => r.status === 'fulfilled');
@@ -394,10 +455,11 @@ describe('Admissions Phase 0 (integration)', () => {
 
     it('records history against the polymorphic key', async () => {
       const applicant = await createApplicant(scopeA);
-      await workflow.transitionState(
+      await workflow.transition(
         applicant.id,
-        { newStatus: 'SUBMITTED', actionType: 'SUBMIT' } as any,
+        { action: WorkflowAction.SUBMIT },
         scopeA,
+        ADMIN,
       );
 
       const history = await workflow.getHistory(applicant.id, scopeA);
@@ -416,10 +478,7 @@ describe('Admissions Phase 0 (integration)', () => {
   describe('academic structure validation', () => {
     it('refuses an academic unit from another branch', async () => {
       const applicant = await createApplicant(scopeA);
-      await prisma.applicant.update({
-        where: { id: applicant.id },
-        data: { admissionStatus: 'APPROVED' },
-      });
+      await forceStatus(applicant.id, 'APPROVED');
 
       const programB = await prisma.program.create({
         data: { branchId: branchBId, name: 'Std 1 B ' + suffix },
@@ -449,10 +508,7 @@ describe('Admissions Phase 0 (integration)', () => {
 
     it('refuses a write into a locked academic year', async () => {
       const applicant = await createApplicant(scopeA);
-      await prisma.applicant.update({
-        where: { id: applicant.id },
-        data: { admissionStatus: 'APPROVED' },
-      });
+      await forceStatus(applicant.id, 'APPROVED');
       await prisma.academicYear.update({
         where: { id: yearAId },
         data: { isLocked: true },
