@@ -72,6 +72,8 @@ export class AuditListener implements OnModuleInit {
     'person.government_id_attached',
     'person.match_reviewed',
     'person.sensitive_erased',
+    // Student — Phase 2.
+    'student.code_assigned',
   ]);
 
   constructor(

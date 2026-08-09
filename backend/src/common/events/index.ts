@@ -1,5 +1,4 @@
 export * from './domain-event.base';
-export * from './examples/student-created.event';
 export * from './examples/branch-created.event';
 export * from './examples/user-logged-in.event';
 export * from './organization.events';
@@ -15,3 +14,4 @@ export * from './authorization.events';
 export * from './communication.events';
 export * from './context.events';
 export * from './person.events';
+export * from './student.events';

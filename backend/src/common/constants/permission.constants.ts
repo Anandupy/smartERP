@@ -22,6 +22,12 @@ export const PERMISSIONS = {
   },
   Student: {
     View: 'student.view',
+    /// Search and resolve codes. Separate from View so a receptionist can find
+    /// a student without being able to read the full official record.
+    Search: 'student.search',
+    /// Look past the caller's branch. Out-of-branch matches come back as a
+    /// reduced summary — enough to answer "is this one of ours, and where?".
+    ViewOrganization: 'student.view.organization',
     Create: 'student.create',
     Update: 'student.update',
     Delete: 'student.delete',

@@ -185,6 +185,17 @@ export class SeederService implements OnApplicationBootstrap {
         description: 'View student details',
       },
       {
+        name: PERMISSIONS.Student.Search,
+        categoryCode: 'STUDENTS',
+        description: 'Search students and resolve student codes',
+      },
+      {
+        name: PERMISSIONS.Student.ViewOrganization,
+        categoryCode: 'STUDENTS',
+        description:
+          'Search students across every branch in the organization (reduced projection outside the caller branch)',
+      },
+      {
         name: PERMISSIONS.Student.Create,
         categoryCode: 'STUDENTS',
         description: 'Create new student',
