@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Prisma } from '@/generated/client';
 import { GovernmentIdType, MatchDecision } from '@/generated/client';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
@@ -164,6 +165,19 @@ export class PersonService {
    * The unique violation is an expected outcome under contention, not an error
    * condition — so it is handled here and never surfaces to the caller as a
    * database exception.
+   *
+   * ## Why the savepoint
+   *
+   * Catching the violation is only half of it. In Postgres a failed statement
+   * aborts the whole transaction: every later command returns *"current
+   * transaction is aborted"* until it ends. When `resolve()` runs on its own
+   * that does not show, because the failed insert *is* the transaction and the
+   * re-read starts a new one. Composed inside a caller's transaction — an
+   * applicant submission, say — the re-read lands in the aborted one and the
+   * caller gets a Prisma error instead of the winner's Person.
+   *
+   * A savepoint scopes the failure to the insert. Rolling back to it leaves the
+   * caller's transaction healthy and everything it had already written intact.
    */
   private async insertPerson(
     client: PrismaTransactionClient,
@@ -178,6 +192,16 @@ export class PersonService {
     identifiers: PersonIdentifiers,
     tx?: PrismaTransactionClient,
   ): Promise<Omit<ResolvedPerson, 'warnings'>> {
+    // Only meaningful inside a caller's transaction; standalone, the retry has
+    // a fresh connection anyway.
+    const savepoint =
+      tx && data.govtIdHash
+        ? `person_resolve_${randomUUID().replace(/-/g, '')}`
+        : null;
+    if (savepoint) {
+      await client.$executeRawUnsafe(`SAVEPOINT "${savepoint}"`);
+    }
+
     try {
       const person = await client.person.create({ data });
 
@@ -201,6 +225,10 @@ export class PersonService {
         client,
       );
 
+      if (savepoint) {
+        await client.$executeRawUnsafe(`RELEASE SAVEPOINT "${savepoint}"`);
+      }
+
       return {
         personId: person.id,
         created: true,
@@ -208,6 +236,10 @@ export class PersonService {
       };
     } catch (error) {
       if (!this.isUniqueViolation(error) || !data.govtIdHash) throw error;
+
+      if (savepoint) {
+        await client.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT "${savepoint}"`);
+      }
 
       // Someone else won the race. Their row is the answer.
       const winner = await client.person.findFirst({
