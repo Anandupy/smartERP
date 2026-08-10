@@ -11,7 +11,6 @@ import { ReligionService } from '@/modules/admissions/masters/religion/religion.
 import { NumberingService } from '@/infrastructure/numbering/numbering.service';
 import { ApplicantService } from '@/modules/admissions/applicant/applicant.service';
 import { GuardiansService } from '@/modules/admissions/guardians/guardians.service';
-import { EnrollmentService } from '@/modules/admissions/enrollment/enrollment.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { ResourceScope } from '@/common/scope/resource-scope';
 import {
@@ -44,7 +43,6 @@ describe('Admissions Module Foundation - Unit Tests', () => {
   let numberingService: NumberingService;
   let applicantService: ApplicantService;
   let guardiansService: GuardiansService;
-  let enrollmentService: EnrollmentService;
 
   const mockEventBus = {
     publish: jest.fn().mockResolvedValue(undefined),
@@ -140,7 +138,6 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         NumberingService,
         ApplicantService,
         GuardiansService,
-        EnrollmentService,
         // Real instances rather than mocks: both are thin, and using the real
         // ones means these tests exercise the locking and outbox wiring instead
         // of asserting against a stand-in that cannot be wrong.
@@ -155,7 +152,6 @@ describe('Admissions Module Foundation - Unit Tests', () => {
     numberingService = module.get(NumberingService);
     applicantService = module.get(ApplicantService);
     guardiansService = module.get(GuardiansService);
-    enrollmentService = module.get(EnrollmentService);
   });
 
   afterEach(() => {
@@ -506,145 +502,4 @@ describe('Admissions Module Foundation - Unit Tests', () => {
     });
   });
 
-  describe('Enrollment', () => {
-    const approvedApplicant = {
-      id: 'app-1',
-      organizationId: 'org-1',
-      branchId: 'branch-1',
-      academicYearId: 'year-1',
-      admissionStatus: 'APPROVED',
-    };
-
-    const enrollDto = { programId: 'prog-1', academicUnitId: 'unit-1' } as any;
-
-    beforeEach(() => {
-      mockPrisma.academicYear.findFirst.mockResolvedValue({
-        id: 'year-1',
-        isLocked: false,
-      });
-      mockPrisma.program.findFirst.mockResolvedValue({
-        id: 'prog-1',
-        branchId: 'branch-1',
-      });
-      mockPrisma.academicUnit.findFirst.mockResolvedValue({
-        id: 'unit-1',
-        branchId: 'branch-1',
-        programId: 'prog-1',
-        academicYearId: 'year-1',
-      });
-      mockPrisma.enrollment.findFirst.mockResolvedValue(null);
-    });
-
-    it('refuses an applicant that is not approved', async () => {
-      mockPrisma.applicant.findFirst.mockResolvedValue({
-        ...approvedApplicant,
-        admissionStatus: 'DRAFT',
-      });
-
-      await expect(
-        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
-      ).rejects.toMatchObject({
-        response: { error: 'APPLICANT_NOT_ELIGIBLE' },
-      });
-    });
-
-    it('treats another branch applicant as absent instead of enrolling them', async () => {
-      // The defect this replaces: the applicant was fetched by id with no scope
-      // check, then written with the caller's branch — a cross-branch write.
-      mockPrisma.applicant.findFirst.mockResolvedValue(null);
-
-      await expect(
-        enrollmentService.createEnrollment('app-1', enrollDto, OTHER_BRANCH_SCOPE),
-      ).rejects.toThrow(NotFoundException);
-
-      expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
-    });
-
-    it("writes the applicant's own scope, never the caller's", async () => {
-      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
-      mockPrisma.enrollment.create.mockResolvedValue({
-        id: 'enr-1',
-        applicantId: 'app-1',
-        programId: 'prog-1',
-        academicUnitId: 'unit-1',
-        rollNumber: 'R001',
-      });
-
-      await enrollmentService.createEnrollment(
-        'app-1',
-        { ...enrollDto, rollNumber: 'R001' },
-        SCOPE,
-      );
-
-      expect(mockPrisma.enrollment.create.mock.calls[0][0].data).toMatchObject({
-        organizationId: approvedApplicant.organizationId,
-        branchId: approvedApplicant.branchId,
-        academicYearId: approvedApplicant.academicYearId,
-      });
-      expect(mockPrisma.outboxEvent.create).toHaveBeenCalled();
-    });
-
-    it('refuses a locked academic year', async () => {
-      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
-      mockPrisma.academicYear.findFirst.mockResolvedValue({
-        id: 'year-1',
-        isLocked: true,
-      });
-
-      await expect(
-        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
-      ).rejects.toMatchObject({
-        response: { error: 'ACADEMIC_YEAR_LOCKED' },
-      });
-    });
-
-    it("refuses an academic unit from another branch", async () => {
-      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
-      mockPrisma.academicUnit.findFirst.mockResolvedValue({
-        id: 'unit-1',
-        branchId: 'branch-2',
-        programId: 'prog-1',
-        academicYearId: 'year-1',
-      });
-
-      await expect(
-        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
-      ).rejects.toMatchObject({
-        response: { error: 'ACADEMIC_UNIT_MISMATCH' },
-      });
-    });
-
-    it('refuses an academic unit that belongs to a different program', async () => {
-      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
-      mockPrisma.academicUnit.findFirst.mockResolvedValue({
-        id: 'unit-1',
-        branchId: 'branch-1',
-        programId: 'prog-OTHER',
-        academicYearId: 'year-1',
-      });
-
-      await expect(
-        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
-      ).rejects.toMatchObject({
-        response: { error: 'ACADEMIC_UNIT_MISMATCH' },
-      });
-    });
-
-    it('allows a second enrollment in a later year but not a duplicate in the same one', async () => {
-      mockPrisma.applicant.findFirst.mockResolvedValue(approvedApplicant);
-      mockPrisma.enrollment.findFirst.mockResolvedValue({ id: 'enr-existing' });
-
-      await expect(
-        enrollmentService.createEnrollment('app-1', enrollDto, SCOPE),
-      ).rejects.toMatchObject({
-        response: { error: 'ENROLLMENT_EXISTS_FOR_YEAR' },
-      });
-
-      // The duplicate check is now year-scoped rather than "one enrollment per
-      // applicant for life", which is what made promotion impossible.
-      expect(mockPrisma.enrollment.findFirst.mock.calls[0][0].where).toMatchObject(
-        { applicantId: 'app-1', academicYearId: 'year-1' },
-      );
-    });
-  });
 });

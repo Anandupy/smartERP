@@ -5,24 +5,23 @@ import { AppModule } from '@/app.module';
 import { ApplicantService } from '@/modules/admissions/applicant/applicant.service';
 import { WorkflowService } from '@/modules/admissions/workflow/workflow.service';
 import { WorkflowAction } from '@/modules/admissions/workflow/workflow.transitions';
-import { EnrollmentService } from '@/modules/admissions/enrollment/enrollment.service';
 import { PersonService } from '@/modules/identity/person/person.service';
 import { NumberingService } from '@/infrastructure/numbering/numbering.service';
 import { ResourceScope } from '@/common/scope/resource-scope';
 
 /**
- * Tenant isolation, academic history durability, and the transition race.
+ * Tenant isolation and the transition race.
  *
- * These exercise the three defects Phase 0 closes in the admissions services:
- * unscoped lookups, an enrollment that could not outlive its applicant, and a
- * state machine that took no lock before reading state.
+ * These exercise two of the defects Phase 0 closed in the admissions services:
+ * unscoped lookups, and a state machine that took no lock before reading state.
+ * The third — an enrolment that could not outlive its applicant — moved with
+ * the model to `test/integration/enrollment.integration-spec.ts` in Phase 4.
  */
 describe('Admissions Phase 0 (integration)', () => {
   let moduleRef: TestingModule;
   let prisma: PrismaService;
   let applicants: ApplicantService;
   let workflow: WorkflowService;
-  let enrollment: EnrollmentService;
   let numbering: NumberingService;
   let persons: PersonService;
 
@@ -47,7 +46,6 @@ describe('Admissions Phase 0 (integration)', () => {
     prisma = moduleRef.get(PrismaService);
     applicants = moduleRef.get(ApplicantService);
     workflow = moduleRef.get(WorkflowService);
-    enrollment = moduleRef.get(EnrollmentService);
     numbering = moduleRef.get(NumberingService);
     persons = moduleRef.get(PersonService);
 
@@ -294,131 +292,6 @@ describe('Admissions Phase 0 (integration)', () => {
       });
       expect(unchanged!.admissionStatus).toBe('DRAFT');
     });
-
-    /**
-     * The most serious of the seven vectors. The applicant was fetched by id
-     * with no scope check, and the enrollment was then written with the
-     * *caller's* organization, branch and year — fabricating a placement in a
-     * branch the applicant had never applied to.
-     */
-    it('refuses to enroll another branch applicant into the caller branch', async () => {
-      const applicant = await createApplicant(scopeA);
-
-      await forceStatus(applicant.id, 'APPROVED');
-
-      await expect(
-        enrollment.createEnrollment(
-          applicant.id,
-          { programId: programAId, academicUnitId: unitAId } as any,
-          scopeB,
-        ),
-      ).rejects.toThrow(NotFoundException);
-
-      const rows = await prisma.enrollment.findMany({
-        where: { applicantId: applicant.id },
-      });
-      expect(rows).toHaveLength(0);
-    });
-
-    it('hides another branch enrollment from a read', async () => {
-      const applicant = await createApplicant(scopeA);
-      await forceStatus(applicant.id, 'APPROVED');
-      await enrollment.createEnrollment(
-        applicant.id,
-        { programId: programAId, academicUnitId: unitAId } as any,
-        scopeA,
-      );
-
-      await expect(
-        enrollment.getEnrollment(applicant.id, scopeB),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('academic history durability', () => {
-    it('lets one applicant hold enrollments in more than one year', async () => {
-      const applicant = await createApplicant(scopeA);
-
-      const yearTwo = await prisma.academicYear.create({
-        data: {
-          branchId: branchAId,
-          name: '2027-28 ' + suffix,
-          startDate: new Date('2027-04-01'),
-          endDate: new Date('2028-03-31'),
-        },
-      });
-
-      // The unique constraint on applicantId made this impossible, which is
-      // what made promotion unrepresentable.
-      await prisma.enrollment.create({
-        data: {
-          organizationId: orgId,
-          branchId: branchAId,
-          academicYearId: yearAId,
-          programId: programAId,
-          academicUnitId: unitAId,
-          applicantId: applicant.id,
-          enrollmentStatus: 'PROMOTED',
-        },
-      });
-
-      const unitTwo = await prisma.academicUnit.create({
-        data: {
-          branchId: branchAId,
-          programId: programAId,
-          academicYearId: yearTwo.id,
-          name: 'Std 2-A',
-          unitType: 'SECTION',
-          level: 1,
-        },
-      });
-
-      await prisma.enrollment.create({
-        data: {
-          organizationId: orgId,
-          branchId: branchAId,
-          academicYearId: yearTwo.id,
-          programId: programAId,
-          academicUnitId: unitTwo.id,
-          applicantId: applicant.id,
-          enrollmentStatus: 'ACTIVE',
-        },
-      });
-
-      const rows = await prisma.enrollment.findMany({
-        where: { applicantId: applicant.id },
-      });
-      expect(rows).toHaveLength(2);
-    });
-
-    it('keeps the enrollment when the applicant row is deleted', async () => {
-      const applicant = await createApplicant(scopeA);
-
-      const created = await prisma.enrollment.create({
-        data: {
-          organizationId: orgId,
-          branchId: branchAId,
-          academicYearId: yearAId,
-          programId: programAId,
-          academicUnitId: unitAId,
-          applicantId: applicant.id,
-          enrollmentStatus: 'ACTIVE',
-        },
-      });
-
-      await prisma.workflowHistory.deleteMany({
-        where: { entityType: 'APPLICANT', entityId: applicant.id },
-      });
-      await prisma.applicant.delete({ where: { id: applicant.id } });
-
-      // The cascade previously destroyed the academic record along with the
-      // application it happened to originate from.
-      const survivor = await prisma.enrollment.findUnique({
-        where: { id: created.id },
-      });
-      expect(survivor).not.toBeNull();
-      expect(survivor!.applicantId).toBeNull();
-    });
   });
 
   describe('workflow concurrency', () => {
@@ -472,62 +345,6 @@ describe('Admissions Phase 0 (integration)', () => {
         oldStatus: 'DRAFT',
         newStatus: 'SUBMITTED',
       });
-    });
-  });
-
-  describe('academic structure validation', () => {
-    it('refuses an academic unit from another branch', async () => {
-      const applicant = await createApplicant(scopeA);
-      await forceStatus(applicant.id, 'APPROVED');
-
-      const programB = await prisma.program.create({
-        data: { branchId: branchBId, name: 'Std 1 B ' + suffix },
-      });
-      const yearB = await prisma.academicYear.findFirstOrThrow({
-        where: { branchId: branchBId },
-      });
-      const unitB = await prisma.academicUnit.create({
-        data: {
-          branchId: branchBId,
-          programId: programB.id,
-          academicYearId: yearB.id,
-          name: 'Std 1-B',
-          unitType: 'SECTION',
-          level: 1,
-        },
-      });
-
-      await expect(
-        enrollment.createEnrollment(
-          applicant.id,
-          { programId: programB.id, academicUnitId: unitB.id } as any,
-          scopeA,
-        ),
-      ).rejects.toMatchObject({ response: { error: 'ACADEMIC_UNIT_MISMATCH' } });
-    });
-
-    it('refuses a write into a locked academic year', async () => {
-      const applicant = await createApplicant(scopeA);
-      await forceStatus(applicant.id, 'APPROVED');
-      await prisma.academicYear.update({
-        where: { id: yearAId },
-        data: { isLocked: true },
-      });
-
-      try {
-        await expect(
-          enrollment.createEnrollment(
-            applicant.id,
-            { programId: programAId, academicUnitId: unitAId } as any,
-            scopeA,
-          ),
-        ).rejects.toMatchObject({ response: { error: 'ACADEMIC_YEAR_LOCKED' } });
-      } finally {
-        await prisma.academicYear.update({
-          where: { id: yearAId },
-          data: { isLocked: false },
-        });
-      }
     });
   });
 
