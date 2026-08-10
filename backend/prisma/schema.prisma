@@ -75,6 +75,15 @@ model AcademicUnit {
   @@index([parentId])
 
   @@unique([academicYearId, parentId, name])
+
+  /// The target for Enrollment's composite foreign key.
+  ///
+  /// Redundant as a uniqueness rule — `id` alone is already unique — and that is
+  /// the point: it lets a referencing row pin the branch, the programme and the
+  /// year of the unit it names, so "a Branch A student placed in a Branch B
+  /// class" stops being something a service has to remember to reject and
+  /// becomes something Postgres cannot store (§40.4, INV-ENR-010).
+  @@unique([id, branchId, programId, academicYearId])
 }
 
 
@@ -142,6 +151,10 @@ model Program {
   @@index([branchId])
   @@index([parentId])
   @@unique([branchId, name, medium, stream])
+
+  /// Composite-reference target, so an Enrollment's programme is pinned to the
+  /// Enrollment's branch by the foreign key rather than by a service check.
+  @@unique([id, branchId])
 }
 
 
@@ -336,6 +349,8 @@ model Admission {
   sourceApplicant   Applicant?    @relation(fields: [sourceApplicantId], references: [id], onDelete: SetNull)
   previousAdmission Admission?    @relation("AdmissionChain", fields: [previousAdmissionId], references: [id])
   nextAdmissions    Admission[]   @relation("AdmissionChain")
+  /// One spell of study, many years of placement.
+  enrollments       Enrollment[]
 
   /// INV-ADM-003 — the human-facing reference is unique where it is issued.
   @@unique([branchId, admissionNo])
@@ -551,58 +566,6 @@ model ApplicantProgramPreference {
   @@unique([applicantId, preferenceOrder])
   @@unique([applicantId, programId])
   @@index([programId])
-}
-
-
-// --- FROM: modules/admissions/enrollment.prisma ---
-
-/// One academic year of study.
-///
-/// PHASE 0 SHAPE. This is the de-risked form, not the final one: the fields
-/// that make placement history representable — `studentId`, `admissionId`,
-/// `originType`, `previousEnrollmentId`, `supersededById`, `changeReason`,
-/// `version`, and the composite foreign key to Admission — arrive in Phase 4,
-/// once Student and Admission exist to reference. See §18.
-///
-/// What changed here, and why it could not wait for Phase 4:
-///
-///   * `applicantId` was `@unique`, which meant **one enrollment per applicant
-///     for life**. A twelve-year school career was unrepresentable and
-///     promotion was impossible.
-///   * `applicantId` cascaded on delete, so removing an applicant destroyed the
-///     academic record. The database permitted exactly what the domain forbids.
-///   * `futureStudentId` was a placeholder column pointing at no table.
-model Enrollment {
-  id               String  @id @default(uuid(7))
-  organizationId   String
-  branchId         String
-  academicYearId   String
-  programId        String
-  academicUnitId   String
-  /// Provenance only, and nullable: an enrollment created by promotion has no
-  /// applicant. **No cascade** — an applicant's lifecycle must never reach the
-  /// academic record.
-  applicantId      String?
-  rollNumber       String?
-  enrollmentStatus String // ACTIVE, PROMOTED, COMPLETED, CANCELLED — becomes an enum in Phase 4
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  applicant    Applicant?   @relation(fields: [applicantId], references: [id], onDelete: SetNull)
-  organization Organization @relation(fields: [organizationId], references: [id])
-  branch       Branch       @relation(fields: [branchId], references: [id])
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
-  program      Program      @relation(fields: [programId], references: [id])
-  academicUnit AcademicUnit @relation(fields: [academicUnitId], references: [id])
-
-  @@index([organizationId])
-  @@index([branchId])
-  @@index([academicYearId])
-  @@index([programId])
-  @@index([academicUnitId])
-  @@index([applicantId])
 }
 
 
@@ -1459,6 +1422,239 @@ model ProviderConfig {
 }
 
 
+// --- FROM: modules/enrollment/enrollment.enums.prisma ---
+
+/// Whether this placement is the student's main one for the year.
+///
+/// `PRIMARY` is the only kind Phase 4 creates. `SECONDARY` exists for NEP
+/// multidisciplinary enrolment and `EXCHANGE` for visiting placements; both are
+/// declared now because the partial unique index that limits a student to one
+/// live `PRIMARY` per year has to name the kind it applies to, and a value added
+/// later would silently widen an index that already exists.
+enum EnrollmentKind {
+  PRIMARY
+  SECONDARY
+  EXCHANGE
+}
+
+/// The life of one academic-year placement.
+///
+/// Deliberately **without** `SUSPENDED`. Suspension is a property of the human,
+/// not of the placement: a suspended student still occupies their seat in 9-A,
+/// and duplicating the state here would leave two aggregates disagreeing about
+/// the same fact. A whole year away is `ON_BREAK` on the enrolment plus
+/// `ON_HOLD` on the admission.
+enum EnrollmentStatus {
+  /// Created, not yet in effect.
+  PENDING
+  /// The current placement.
+  ACTIVE
+  /// Paused for the year; the seat is retained.
+  ON_BREAK
+  /// Finished the year and moved up. Historical.
+  PROMOTED
+  /// Finished the year and repeats it. Historical.
+  DETAINED
+  /// Finished a terminal year. Historical.
+  COMPLETED
+  /// Placement moved elsewhere. Historical.
+  TRANSFERRED
+  /// The student left mid-year. Historical.
+  DROPPED_OUT
+  /// Voided. Historical.
+  CANCELLED
+  /// Replaced by a corrected row, which names this one. Historical.
+  SUPERSEDED
+}
+
+/// Why this placement row exists.
+///
+/// Recorded rather than inferred. Timestamps cannot tell a correction from a
+/// genuine mid-year move, and that is exactly the question asked when a
+/// registrar is challenged about a student appearing in two classes.
+enum EnrollmentOriginType {
+  /// The first placement, written by `admit()`.
+  ADMISSION
+  /// Next year, next level.
+  PROMOTION
+  /// Next year, same level.
+  REPEAT
+  /// An operator's mistake, put right.
+  CORRECTION
+  /// A real mid-year move within the branch.
+  TRANSFER
+  /// A new spell of study for a returning student.
+  READMISSION
+  /// Imported from a previous system.
+  MIGRATION
+}
+
+/// How the academic year ended for this placement.
+///
+/// **Enrollment owns the column; Examination owns the decision** (INV-ENR-013).
+/// Nothing in this module writes it, and there is no route that can.
+///
+/// Three values, not a grading vocabulary. The blueprint specifies the column
+/// but not its domain, so this carries only what the placement lifecycle itself
+/// already distinguishes — `PASS` leads to `PROMOTED` or `COMPLETED`, `FAIL` to
+/// `DETAINED`, and `WITHHELD` to neither yet. A richer result vocabulary
+/// (grades, divisions, subject-wise outcomes) belongs to Examination's own
+/// tables, not here.
+enum EnrollmentResultOutcome {
+  PASS
+  FAIL
+  WITHHELD
+}
+
+
+// --- FROM: modules/enrollment/enrollment.prisma ---
+
+/// One academic-year placement.
+///
+/// The spine of the academic year, and the row that attendance, examination,
+/// fees and the timetable will hang off. It answers exactly one question:
+/// *where is this learner placed, for this year?*
+///
+/// ## The test every field had to pass
+///
+/// *What does this fact vary with?* A fact that changes when the student is
+/// promoted belongs here. A fact true of the human for life belongs to Student
+/// or Person. A fact about the continuous spell of study belongs to Admission.
+/// Twelve years of school is one Person, one Student, one Admission and twelve
+/// thin Enrollment rows — with **zero** demographic fields copied into any of
+/// them (INV-ENR-012). If a change ever seems to need a name or a date of birth
+/// here, the design has broken.
+///
+/// ## Its own module, not part of admissions
+///
+/// Admissions is a three-month intake funnel; this is a twelve-year concern.
+/// Promotion, examination and corrections all write enrolments and none of them
+/// is an admission. The schema holds an `admissionId`; the TypeScript module
+/// holds no import of admissions, and the dependency runs one way only.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §18.
+model Enrollment {
+  id String @id @default(uuid(7))
+
+  /// Scope. All three earn their place: one year, one branch, one tenant.
+  /// `academicYearId` denormalizes `AcademicUnit.academicYearId` and is kept
+  /// honest by the composite foreign key below, not by a service remembering
+  /// to check (INV-ENR-010).
+  organizationId String
+  branchId       String
+  academicYearId String
+
+  /// The spell of study this year belongs to.
+  admissionId String
+
+  /// **Denormalized on purpose.** Every downstream module needs "this
+  /// student's rows" without a three-table join, and the composite key below
+  /// makes the denormalization impossible to get wrong.
+  studentId String
+
+  /// The placement, for this year only. A change to either **supersedes** the
+  /// row; it never edits it.
+  programId      String
+  academicUnitId String
+
+  /// Position in a class register. Mutable until the class list locks, and
+  /// never an identifier: it is not a foreign key anywhere, it is not allocated
+  /// by the numbering engine, and it commonly changes every year.
+  rollNumber String?
+
+  enrollmentKind   EnrollmentKind   @default(PRIMARY)
+  enrollmentStatus EnrollmentStatus @default(PENDING)
+
+  /// Same academic unit as the previous year.
+  isRepeat Boolean @default(false)
+
+  /// Written by Examination alone (INV-ENR-013). Owning the column is not
+  /// owning the decision.
+  resultOutcome EnrollmentResultOutcome?
+
+  originType EnrollmentOriginType
+
+  /// Provenance, in both directions, so a chain reads from either end without
+  /// either row being rewritten.
+  previousEnrollmentId String?
+  /// Unique: a replacement row is claimed by at most one predecessor, so a
+  /// concurrent double correction cannot produce two rows pointing at one
+  /// successor.
+  supersededById String? @unique
+  changeReason   String?
+
+  /// **Provenance only.** Nullable, non-unique, and no cascade — one applicant
+  /// may sit behind a whole school career, and an applicant's lifecycle must
+  /// never reach the academic record.
+  applicantId String?
+
+  exitDate   DateTime?
+  exitReason AdmissionExitReason?
+
+  /// Optimistic lock. A bulk promotion and an administrator editing the same
+  /// placement cannot both win; the second gets `STALE_ENROLLMENT_VERSION`.
+  version Int @default(1)
+
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  /// One foreign key, two invariants: this enrolment's student is always its
+  /// admission's student (INV-ENR-003) and its branch is always its admission's
+  /// branch (INV-ENR-004). Both become unrepresentable in Postgres rather than
+  /// merely checked in a service someone might forget to call.
+  admission Admission @relation(fields: [admissionId, studentId, branchId], references: [id, studentId, branchId])
+
+  /// The same trick for academic structure: the unit must belong to this
+  /// branch, this programme and this year (INV-ENR-010, §28.3). Service checks
+  /// still run so the caller gets a named error, but the database is what makes
+  /// the combination impossible.
+  academicUnit AcademicUnit @relation(fields: [academicUnitId, branchId, programId, academicYearId], references: [id, branchId, programId, academicYearId])
+
+  /// And the programme must belong to this branch.
+  program Program @relation(fields: [programId, branchId], references: [id, branchId])
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  branch       Branch       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  student      Student      @relation(fields: [studentId], references: [id])
+
+  /// `Restrict`, not `SetNull` and never `Cascade`: an application that a
+  /// student's whole school career descends from is not deletable, and quietly
+  /// nulling the pointer would erase the provenance instead of refusing the
+  /// deletion.
+  applicant Applicant? @relation(fields: [applicantId], references: [id], onDelete: Restrict)
+
+  previousEnrollment Enrollment?  @relation("EnrollmentChain", fields: [previousEnrollmentId], references: [id])
+  nextEnrollments    Enrollment[] @relation("EnrollmentChain")
+  supersededBy       Enrollment?  @relation("EnrollmentSupersede", fields: [supersededById], references: [id])
+  supersedes         Enrollment?  @relation("EnrollmentSupersede")
+
+  /// Propagated to Attendance, Marks and Fees, so a downstream row can never
+  /// name a student who is not in the enrolment it points at.
+  @@unique([id, studentId])
+
+  /// The current-enrolment probe — the hottest query in the system, and the
+  /// reason Student carries no `currentEnrollmentId`.
+  @@index([studentId, academicYearId, enrollmentStatus])
+  /// The class list — the second hottest, and what attendance, examination and
+  /// the timetable will all read.
+  @@index([academicUnitId, academicYearId, enrollmentStatus])
+  @@index([admissionId, academicYearId])
+  @@index([studentId, createdAt])
+  @@index([branchId, academicYearId, enrollmentStatus])
+  @@index([programId, academicYearId])
+  @@index([previousEnrollmentId])
+  @@index([organizationId])
+  @@index([applicantId])
+  // INV-ENR-002 (one live PRIMARY per admission per year), INV-ENR-007 (roll
+  // number unique in a class list) and the supersede/provenance CHECKs are raw
+  // SQL in the migration — Prisma expresses none of them.
+}
+
+
 // --- FROM: modules/identity/data-key.prisma ---
 
 /// One data-encryption key per organization, stored only in wrapped form.
@@ -1946,6 +2142,9 @@ model Student {
   deletedAt DateTime?
 
   admissions     Admission[]
+  /// Reachable through Admission too, but held directly so a downstream module
+  /// can ask "this student's placements" without a three-table join.
+  enrollments    Enrollment[]
 
   organization   Organization @relation(fields: [organizationId], references: [id])
   branch         Branch       @relation(fields: [branchId], references: [id])

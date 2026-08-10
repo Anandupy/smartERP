@@ -1,0 +1,81 @@
+/// Whether this placement is the student's main one for the year.
+///
+/// `PRIMARY` is the only kind Phase 4 creates. `SECONDARY` exists for NEP
+/// multidisciplinary enrolment and `EXCHANGE` for visiting placements; both are
+/// declared now because the partial unique index that limits a student to one
+/// live `PRIMARY` per year has to name the kind it applies to, and a value added
+/// later would silently widen an index that already exists.
+enum EnrollmentKind {
+  PRIMARY
+  SECONDARY
+  EXCHANGE
+}
+
+/// The life of one academic-year placement.
+///
+/// Deliberately **without** `SUSPENDED`. Suspension is a property of the human,
+/// not of the placement: a suspended student still occupies their seat in 9-A,
+/// and duplicating the state here would leave two aggregates disagreeing about
+/// the same fact. A whole year away is `ON_BREAK` on the enrolment plus
+/// `ON_HOLD` on the admission.
+enum EnrollmentStatus {
+  /// Created, not yet in effect.
+  PENDING
+  /// The current placement.
+  ACTIVE
+  /// Paused for the year; the seat is retained.
+  ON_BREAK
+  /// Finished the year and moved up. Historical.
+  PROMOTED
+  /// Finished the year and repeats it. Historical.
+  DETAINED
+  /// Finished a terminal year. Historical.
+  COMPLETED
+  /// Placement moved elsewhere. Historical.
+  TRANSFERRED
+  /// The student left mid-year. Historical.
+  DROPPED_OUT
+  /// Voided. Historical.
+  CANCELLED
+  /// Replaced by a corrected row, which names this one. Historical.
+  SUPERSEDED
+}
+
+/// Why this placement row exists.
+///
+/// Recorded rather than inferred. Timestamps cannot tell a correction from a
+/// genuine mid-year move, and that is exactly the question asked when a
+/// registrar is challenged about a student appearing in two classes.
+enum EnrollmentOriginType {
+  /// The first placement, written by `admit()`.
+  ADMISSION
+  /// Next year, next level.
+  PROMOTION
+  /// Next year, same level.
+  REPEAT
+  /// An operator's mistake, put right.
+  CORRECTION
+  /// A real mid-year move within the branch.
+  TRANSFER
+  /// A new spell of study for a returning student.
+  READMISSION
+  /// Imported from a previous system.
+  MIGRATION
+}
+
+/// How the academic year ended for this placement.
+///
+/// **Enrollment owns the column; Examination owns the decision** (INV-ENR-013).
+/// Nothing in this module writes it, and there is no route that can.
+///
+/// Three values, not a grading vocabulary. The blueprint specifies the column
+/// but not its domain, so this carries only what the placement lifecycle itself
+/// already distinguishes — `PASS` leads to `PROMOTED` or `COMPLETED`, `FAIL` to
+/// `DETAINED`, and `WITHHELD` to neither yet. A richer result vocabulary
+/// (grades, divisions, subject-wise outcomes) belongs to Examination's own
+/// tables, not here.
+enum EnrollmentResultOutcome {
+  PASS
+  FAIL
+  WITHHELD
+}

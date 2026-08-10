@@ -151,6 +151,9 @@ model Student {
   deletedAt DateTime?
 
   admissions     Admission[]
+  /// Reachable through Admission too, but held directly so a downstream module
+  /// can ask "this student's placements" without a three-table join.
+  enrollments    Enrollment[]
 
   organization   Organization @relation(fields: [organizationId], references: [id])
   branch         Branch       @relation(fields: [branchId], references: [id])

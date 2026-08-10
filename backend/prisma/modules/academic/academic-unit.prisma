@@ -42,4 +42,13 @@ model AcademicUnit {
   @@index([parentId])
 
   @@unique([academicYearId, parentId, name])
+
+  /// The target for Enrollment's composite foreign key.
+  ///
+  /// Redundant as a uniqueness rule — `id` alone is already unique — and that is
+  /// the point: it lets a referencing row pin the branch, the programme and the
+  /// year of the unit it names, so "a Branch A student placed in a Branch B
+  /// class" stops being something a service has to remember to reject and
+  /// becomes something Postgres cannot store (§40.4, INV-ENR-010).
+  @@unique([id, branchId, programId, academicYearId])
 }

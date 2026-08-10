@@ -98,6 +98,8 @@ model Admission {
   sourceApplicant   Applicant?    @relation(fields: [sourceApplicantId], references: [id], onDelete: SetNull)
   previousAdmission Admission?    @relation("AdmissionChain", fields: [previousAdmissionId], references: [id])
   nextAdmissions    Admission[]   @relation("AdmissionChain")
+  /// One spell of study, many years of placement.
+  enrollments       Enrollment[]
 
   /// INV-ADM-003 — the human-facing reference is unique where it is issued.
   @@unique([branchId, admissionNo])

@@ -1,0 +1,144 @@
+/// One academic-year placement.
+///
+/// The spine of the academic year, and the row that attendance, examination,
+/// fees and the timetable will hang off. It answers exactly one question:
+/// *where is this learner placed, for this year?*
+///
+/// ## The test every field had to pass
+///
+/// *What does this fact vary with?* A fact that changes when the student is
+/// promoted belongs here. A fact true of the human for life belongs to Student
+/// or Person. A fact about the continuous spell of study belongs to Admission.
+/// Twelve years of school is one Person, one Student, one Admission and twelve
+/// thin Enrollment rows — with **zero** demographic fields copied into any of
+/// them (INV-ENR-012). If a change ever seems to need a name or a date of birth
+/// here, the design has broken.
+///
+/// ## Its own module, not part of admissions
+///
+/// Admissions is a three-month intake funnel; this is a twelve-year concern.
+/// Promotion, examination and corrections all write enrolments and none of them
+/// is an admission. The schema holds an `admissionId`; the TypeScript module
+/// holds no import of admissions, and the dependency runs one way only.
+///
+/// See docs/planning/student-admission-enrollment-architecture.md §18.
+model Enrollment {
+  id String @id @default(uuid(7))
+
+  /// Scope. All three earn their place: one year, one branch, one tenant.
+  /// `academicYearId` denormalizes `AcademicUnit.academicYearId` and is kept
+  /// honest by the composite foreign key below, not by a service remembering
+  /// to check (INV-ENR-010).
+  organizationId String
+  branchId       String
+  academicYearId String
+
+  /// The spell of study this year belongs to.
+  admissionId String
+
+  /// **Denormalized on purpose.** Every downstream module needs "this
+  /// student's rows" without a three-table join, and the composite key below
+  /// makes the denormalization impossible to get wrong.
+  studentId String
+
+  /// The placement, for this year only. A change to either **supersedes** the
+  /// row; it never edits it.
+  programId      String
+  academicUnitId String
+
+  /// Position in a class register. Mutable until the class list locks, and
+  /// never an identifier: it is not a foreign key anywhere, it is not allocated
+  /// by the numbering engine, and it commonly changes every year.
+  rollNumber String?
+
+  enrollmentKind   EnrollmentKind   @default(PRIMARY)
+  enrollmentStatus EnrollmentStatus @default(PENDING)
+
+  /// Same academic unit as the previous year.
+  isRepeat Boolean @default(false)
+
+  /// Written by Examination alone (INV-ENR-013). Owning the column is not
+  /// owning the decision.
+  resultOutcome EnrollmentResultOutcome?
+
+  originType EnrollmentOriginType
+
+  /// Provenance, in both directions, so a chain reads from either end without
+  /// either row being rewritten.
+  previousEnrollmentId String?
+  /// Unique: a replacement row is claimed by at most one predecessor, so a
+  /// concurrent double correction cannot produce two rows pointing at one
+  /// successor.
+  supersededById String? @unique
+  changeReason   String?
+
+  /// **Provenance only.** Nullable, non-unique, and no cascade — one applicant
+  /// may sit behind a whole school career, and an applicant's lifecycle must
+  /// never reach the academic record.
+  applicantId String?
+
+  exitDate   DateTime?
+  exitReason AdmissionExitReason?
+
+  /// Optimistic lock. A bulk promotion and an administrator editing the same
+  /// placement cannot both win; the second gets `STALE_ENROLLMENT_VERSION`.
+  version Int @default(1)
+
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  /// One foreign key, two invariants: this enrolment's student is always its
+  /// admission's student (INV-ENR-003) and its branch is always its admission's
+  /// branch (INV-ENR-004). Both become unrepresentable in Postgres rather than
+  /// merely checked in a service someone might forget to call.
+  admission Admission @relation(fields: [admissionId, studentId, branchId], references: [id, studentId, branchId])
+
+  /// The same trick for academic structure: the unit must belong to this
+  /// branch, this programme and this year (INV-ENR-010, §28.3). Service checks
+  /// still run so the caller gets a named error, but the database is what makes
+  /// the combination impossible.
+  academicUnit AcademicUnit @relation(fields: [academicUnitId, branchId, programId, academicYearId], references: [id, branchId, programId, academicYearId])
+
+  /// And the programme must belong to this branch.
+  program Program @relation(fields: [programId, branchId], references: [id, branchId])
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  branch       Branch       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  student      Student      @relation(fields: [studentId], references: [id])
+
+  /// `Restrict`, not `SetNull` and never `Cascade`: an application that a
+  /// student's whole school career descends from is not deletable, and quietly
+  /// nulling the pointer would erase the provenance instead of refusing the
+  /// deletion.
+  applicant Applicant? @relation(fields: [applicantId], references: [id], onDelete: Restrict)
+
+  previousEnrollment Enrollment?  @relation("EnrollmentChain", fields: [previousEnrollmentId], references: [id])
+  nextEnrollments    Enrollment[] @relation("EnrollmentChain")
+  supersededBy       Enrollment?  @relation("EnrollmentSupersede", fields: [supersededById], references: [id])
+  supersedes         Enrollment?  @relation("EnrollmentSupersede")
+
+  /// Propagated to Attendance, Marks and Fees, so a downstream row can never
+  /// name a student who is not in the enrolment it points at.
+  @@unique([id, studentId])
+
+  /// The current-enrolment probe — the hottest query in the system, and the
+  /// reason Student carries no `currentEnrollmentId`.
+  @@index([studentId, academicYearId, enrollmentStatus])
+  /// The class list — the second hottest, and what attendance, examination and
+  /// the timetable will all read.
+  @@index([academicUnitId, academicYearId, enrollmentStatus])
+  @@index([admissionId, academicYearId])
+  @@index([studentId, createdAt])
+  @@index([branchId, academicYearId, enrollmentStatus])
+  @@index([programId, academicYearId])
+  @@index([previousEnrollmentId])
+  @@index([organizationId])
+  @@index([applicantId])
+  // INV-ENR-002 (one live PRIMARY per admission per year), INV-ENR-007 (roll
+  // number unique in a class list) and the supersede/provenance CHECKs are raw
+  // SQL in the migration — Prisma expresses none of them.
+}

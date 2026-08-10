@@ -25,4 +25,8 @@ model Program {
   @@index([branchId])
   @@index([parentId])
   @@unique([branchId, name, medium, stream])
+
+  /// Composite-reference target, so an Enrollment's programme is pinned to the
+  /// Enrollment's branch by the foreign key rather than by a service check.
+  @@unique([id, branchId])
 }
