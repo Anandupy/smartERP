@@ -39,6 +39,16 @@ export interface WorkflowActor {
 export interface TransitionRequest {
   action: WorkflowAction;
   remarks?: string | null;
+  /**
+   * Set only by the operation that owns an `orchestratedOnly` transition.
+   *
+   * Deliberately absent from every DTO, so there is no request body that can
+   * supply it. That is the whole mechanism: `admit` moves an applicant to
+   * `ADMITTED`, which is only true if a Student, an Admission and an Enrollment
+   * were written in the same transaction, and nothing reachable over HTTP can
+   * assert that on its own.
+   */
+  orchestrated?: boolean;
 }
 
 /**
@@ -81,16 +91,14 @@ export class WorkflowService {
     request: TransitionRequest,
     scope: ResourceScope,
     actor: WorkflowActor,
+    tx?: PrismaTransactionClient,
   ): Promise<Applicant> {
     const rule = findRule(request.action);
 
     if (!rule) {
       throw new BadRequestException({
         error: 'INVALID_TRANSITION',
-        message:
-          request.action === WorkflowAction.ADMIT
-            ? 'Admission is not a status change. It creates a student, an admission and an enrolment together, and is not yet available.'
-            : `Unknown workflow action '${String(request.action)}'.`,
+        message: `Unknown workflow action '${String(request.action)}'.`,
         action: request.action,
       });
     }
@@ -102,24 +110,52 @@ export class WorkflowService {
       });
     }
 
+    if (rule.orchestratedOnly && !request.orchestrated) {
+      // The status alone is not the operation. Admitting means a Student, an
+      // Admission and an Enrollment exist; flipping the column without them
+      // would record an outcome the rest of the database cannot support.
+      throw new BadRequestException({
+        error: 'ORCHESTRATED_TRANSITION',
+        message:
+          'Admission is not a status change. It creates a student, an admission and an enrolment together — use the admit operation.',
+        action: request.action,
+      });
+    }
+
     this.assertRemarks(rule, request.remarks);
     await this.assertPermitted(rule, actor);
 
     try {
-      return await this.runTransition(applicantId, request, rule, scope, actor);
+      return await this.runTransition(
+        applicantId,
+        request,
+        rule,
+        scope,
+        actor,
+        tx,
+      );
     } catch (error) {
       throw this.translateConstraint(error);
     }
   }
 
+  /**
+   * Join the caller's transaction, or open one.
+   *
+   * `admit()` owns a transaction that has already written three rows by the
+   * time it gets here; opening a second one would put the status change outside
+   * it, so a later failure would leave an applicant marked admitted with the
+   * student rolled back underneath them.
+   */
   private async runTransition(
     applicantId: string,
     request: TransitionRequest,
     rule: TransitionRule,
     scope: ResourceScope,
     actor: WorkflowActor,
+    tx?: PrismaTransactionClient,
   ): Promise<Applicant> {
-    return this.prisma.$transaction(async (tx) => {
+    const run = async (tx: PrismaTransactionClient) => {
       // Lock first, decide second. Under READ COMMITTED, FOR UPDATE re-reads the
       // row after a blocking transaction commits, so the loser of a race sees
       // the *new* state and fails the guard rather than overwriting the winner.
@@ -223,7 +259,9 @@ export class WorkflowService {
       );
 
       return updated;
-    });
+    };
+
+    return tx ? run(tx) : this.prisma.$transaction(run);
   }
 
   /** Transition history for one application, scoped. */

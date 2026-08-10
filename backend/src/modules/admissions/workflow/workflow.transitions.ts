@@ -37,13 +37,13 @@ export enum WorkflowAction {
   CANCEL = 'cancel',
   FORCE_REOPEN = 'forceReopen',
   /**
-   * Reserved for Phase 5.
+   * `SEAT_CONFIRMED → ADMITTED`, and the only orchestrated transition.
    *
-   * Declared so the action vocabulary is complete and the exhaustiveness test
-   * can see it, but it has **no transition row**: `SEAT_CONFIRMED → ADMITTED`
-   * writes a Student, an Admission and an Enrollment in the same transaction,
-   * and a status-only route into it would produce an applicant marked admitted
-   * with nothing behind them.
+   * It has a rule, but the rule is marked `orchestratedOnly`: the status change
+   * is the *last* step of a transaction that has already written a Student, an
+   * Admission and an Enrollment, and reaching it any other way would produce an
+   * applicant marked admitted with nothing behind them. The generic workflow
+   * endpoint therefore cannot invoke it — only `AdmissionConversionService` can.
    */
   ADMIT = 'admit',
 }
@@ -99,6 +99,16 @@ export interface TransitionRule {
    * human-facing action surface while still routing it through the engine.
    */
   systemOnly?: boolean;
+  /**
+   * Only the operation that owns this transition may invoke it, and never the
+   * generic workflow endpoint.
+   *
+   * Distinct from `systemOnly`, which is about *who* is acting. This is about
+   * *what else must already have happened*: the status change is the last step
+   * of a larger transaction, and on its own it would record an outcome the rest
+   * of the database does not support.
+   */
+  orchestratedOnly?: boolean;
 }
 
 /**
@@ -262,6 +272,23 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     event: 'applicant.cancelled',
   },
   {
+    // The last edge in the machine, and the only one that is not a status
+    // change at all. By the time it runs, a Student, an Admission and an
+    // Enrollment already exist in the same transaction; this records that the
+    // application has done its job. `orchestratedOnly` is what stops anyone
+    // reaching ADMITTED through `POST /workflow/transition` and creating an
+    // admitted applicant with nothing behind them.
+    action: WorkflowAction.ADMIT,
+    from: [S.SEAT_CONFIRMED],
+    to: S.ADMITTED,
+    // Both are required, and the orchestrator checks `student.create` itself:
+    // creating a learner identity is a bigger power than approving a form.
+    permission: PERMISSIONS.Admissions.Approve,
+    remarks: 'OPTIONAL',
+    event: 'applicant.admitted',
+    orchestratedOnly: true,
+  },
+  {
     // The single reopenable terminal state, and the only break-glass edge.
     // REJECTED, WITHDRAWN and ADMITTED stay closed: the first two are
     // decisions with consequences already communicated, and the third has a
@@ -291,7 +318,14 @@ export function findRule(action: WorkflowAction): TransitionRule | undefined {
   return BY_ACTION.get(action);
 }
 
-/** Every action legal from a state — what a UI enables, and nothing more. */
+/**
+ * Every action legal from a state — what a UI enables, and nothing more.
+ *
+ * Orchestrated actions are included: `admit` genuinely is what a registrar
+ * clicks from `SEAT_CONFIRMED`, and hiding it would make the one action they
+ * need invisible. What the flag governs is which *endpoint* may perform it, not
+ * whether it is offered.
+ */
 export function actionsFrom(state: S): WorkflowAction[] {
   return TRANSITIONS.filter((t) => t.from.includes(state) && !t.systemOnly).map(
     (t) => t.action,
