@@ -91,6 +91,13 @@ export class AuditListener implements OnModuleInit {
     'applicant.offer_expired',
     'applicant.cancelled',
     'applicant.force_reopened',
+    // `rejected` and `withdrawn` were declared by the transition table in
+    // Phase 3 and never registered here, so both bypassed audit silently —
+    // exactly the omission §35.3 warns about. `admitted` is new in Phase 5.
+    'applicant.rejected',
+    'applicant.withdrawn',
+    'applicant.admitted',
+    'admission.created',
   ]);
 
   constructor(

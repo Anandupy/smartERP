@@ -14,6 +14,8 @@ import {
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PrismaTransactionClient } from '@/infrastructure/database/prisma-transaction.types';
 import { NumberingService } from '@/infrastructure/numbering/numbering.service';
+import { OutboxPublisher } from '@/infrastructure/outbox/outbox.publisher';
+import { AdmissionCreatedEvent } from '@/common/events';
 import { ResourceScope } from '@/common/scope/resource-scope';
 
 const UNIQUE_VIOLATION = 'P2002';
@@ -43,6 +45,7 @@ export class AdmissionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly numbering: NumberingService,
+    private readonly outbox: OutboxPublisher,
   ) {}
 
   /**
@@ -92,7 +95,7 @@ export class AdmissionService {
     );
 
     try {
-      return await client.admission.create({
+      const admission = await client.admission.create({
         data: {
           organizationId: input.organizationId,
           branchId: input.branchId,
@@ -109,6 +112,28 @@ export class AdmissionService {
           createdBy: input.createdBy ?? null,
         },
       });
+
+      // Fees, certificates and statutory reporting start from here rather than
+      // from `student.created`: an identity can exist without currently
+      // studying anywhere, and billing a person for existing would be wrong.
+      await this.outbox.enqueue(
+        new AdmissionCreatedEvent({
+          admissionId: admission.id,
+          organizationId: admission.organizationId,
+          branchId: admission.branchId,
+          studentId: admission.studentId,
+          admissionNo: admission.admissionNo,
+          admissionType: admission.admissionType,
+          admissionDate: admission.admissionDate,
+          entryProgramId: admission.entryProgramId,
+          entryAcademicUnitId: admission.entryAcademicUnitId,
+          previousAdmissionId: admission.previousAdmissionId,
+          sourceApplicantId: admission.sourceApplicantId,
+        }),
+        client,
+      );
+
+      return admission;
     } catch (error) {
       throw this.translateConstraint(error, input.studentId);
     }

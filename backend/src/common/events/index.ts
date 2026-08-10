@@ -17,3 +17,4 @@ export * from './person.events';
 export * from './student.events';
 export * from './applicant-workflow.events';
 export * from './enrollment.events';
+export * from './admission.events';
