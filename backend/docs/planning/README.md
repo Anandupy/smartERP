@@ -46,6 +46,7 @@ into the specs.
 | **P2** | Student identity | `implemented` ✅ 2026-08-10 | blueprint §11, §13, §39, §41 |
 | **P3** | Admission domain & applicant state machine | `implemented` ✅ 2026-08-11 ⚠️ 2 CHECK constraints `NOT VALID` pending one legacy row | blueprint §15–§17, §31, §33, §40 |
 | **P4** | Enrollment — academic placement | `implemented` ✅ 2026-08-12 ⚠️ class-list lock derives from the year until F2 | blueprint §18, §28, §40, §41 |
+| **P5** | `admit()` — applicant → student conversion | `implemented` ✅ 2026-08-13 ⚠️ an existing Student is refused, not readmitted | blueprint §31.1, §33, §35, §38 |
 | **F1** | Data protection & key custody | `planned` ⚠️ 1 legal question + backup-retention prerequisite | [`00-foundation/01-data-protection.md`](00-foundation/01-data-protection.md) |
 | **F2** | Configuration engine | `planned` ⚠️ 2 open questions | [`00-foundation/02-configuration.md`](00-foundation/02-configuration.md) |
 | **F3** | Numbering & identity engine | `planned` ⚠️ 2 open questions | [`00-foundation/03-numbering.md`](00-foundation/03-numbering.md) |
@@ -102,18 +103,18 @@ Dependency-ordered, not preference-ordered:
 
 ## Where the admission pipeline stops today
 
-Phase 3 built the funnel and deliberately stopped at its end. An application can
-reach `SEAT_CONFIRMED`; nothing past that exists yet.
+Phase 3 built the funnel and stopped at its end; Phase 5 carries it the rest of
+the way. An application now reaches `ADMITTED` — but only through `admit()`.
 
 | Reached by the workflow | Not built |
 | :--- | :--- |
-| `Applicant` through thirteen states, `ApplicantProgramPreference`, `Admission` (model, invariants and service), `WorkflowHistory`, the offer window and its expiry sweep | `admit()`, `Enrollment` from an application, `Student` creation from an application, lifecycle transitions, transfer, readmission, promotion |
+| `Applicant` through thirteen states, `ApplicantProgramPreference`, `Admission`, `Enrollment`, `WorkflowHistory`, the offer window and its expiry sweep, and `admit()` — the full Applicant → Student → Admission → Enrollment conversion | Student lifecycle transitions, branch transfer, readmission, promotion, repeat, bulk jobs |
 
-`AdmissionApplicationStatus.ADMITTED` has **no transition rule at all**, so it is
-currently unreachable. That is intentional: reaching it means a Student, an
-Admission and an Enrollment were written in one transaction, and a status-only
-edge would produce an applicant marked admitted with nothing behind them. Phase 5
-adds the operation, not the edge.
+`AdmissionApplicationStatus.ADMITTED` is reachable by exactly one edge, marked
+`orchestratedOnly`, which the generic workflow endpoint cannot invoke. Reaching
+it means a Student, an Admission and an Enrollment were written in the same
+transaction; a status-only route would produce an applicant marked admitted with
+nothing behind them. See the `admit()` section below.
 
 Two CHECK constraints — `applicant_person_from_submitted_check` and
 `applicant_program_from_submitted_check` — are `NOT VALID`. They are enforced on
@@ -184,6 +185,72 @@ Two deliberate deviations, both recorded rather than hidden:
   which is coarser than the eventual rule and never weaker. F2 is the blocking
   dependency, along with the roll-number policy (§50 Q7), which defaults to
   `MANUAL`.
+
+## `admit()` — the keystone transaction
+
+`POST /v1/admissions/applicants/:applicantId/admit`. The only place a learner
+identity is born from an application, and the one operation where a partial
+result would be unrecoverable by hand.
+
+**The contract.** The caller supplies the academic unit — the section — and
+nothing else that matters. Everything else comes from the applicant's own
+lineage: the organization, the branch, the academic year, the programme, the
+quota and the admission source. `programId` in particular is *not* an input: it
+was offered and confirmed earlier in the funnel and is not the caller's to change
+at this moment. The academic unit is an input because nothing earlier records
+one — an applicant applies to "Std 1"; which section they join is the decision
+being made now.
+
+**One transaction, six participants.** `AdmissionConversionService` writes
+nothing itself. It locks the applicant as the first statement, then composes
+`PersonService`, `StudentService`, `AdmissionService`, `EnrollmentService` and
+`WorkflowService` on a single client:
+
+```
+admit()
+  └── $transaction(tx)              READ COMMITTED, 15 s
+       ├── SELECT … FOR UPDATE      the applicant, first
+       ├── re-assert SEAT_CONFIRMED under the lock
+       ├── PersonService.resolve(…, tx)
+       ├── refuse if a Student already exists for this Person
+       ├── StudentService.createControlled(…, tx)      + STUDENT_CODE
+       ├── AdmissionService.createControlled(…, tx)    + ADMISSION_NO
+       ├── EnrollmentService.createInitialEnrollment(…, tx)
+       └── WorkflowService.transition(ADMIT, …, tx)    last
+```
+
+Validation that cannot change underneath the operation — scope, permissions,
+the academic unit, the year's lock, numbering provisioning — runs *before* the
+transaction, so none of it extends the lock hold.
+
+**The status change is last, and it is guarded.** `SEAT_CONFIRMED → ADMITTED` is
+the only `orchestratedOnly` edge in the state machine: it exists in the table,
+but `POST /workflow/transition` cannot invoke it. Reaching `ADMITTED` means a
+Student, an Admission and an Enrollment exist, and no request body can assert
+that — there is no DTO field that sets the flag.
+
+**Failure.** Anything at all rolls the whole thing back and leaves the applicant
+`SEAT_CONFIRMED` with no student, no admission, no enrolment, no history row and
+no outbox row. A `MONOTONIC` number may be burned, which is a gap and acceptable
+by definition. Verified by injecting a failure at each of the six steps and
+after the last one.
+
+**Concurrency.** Twenty simultaneous requests for one applicant produce one
+student, one admission, one enrolment, one code and nineteen conflicts naming
+what exists. The row lock serialises the normal case; `Student.sourceApplicantId`
+and `@@unique([organizationId, personId])` are what catch the rest — including
+the same child seat-confirmed at two branches and admitted at once, where the
+government identifier resolves both to one Person and the second admission is
+refused rather than splitting the record.
+
+**The readmission boundary.** §31.1 step 5b says an existing Student is reused
+and a second Admission opened. That *is* readmission, and readmission closes the
+previous spell of study, needs an elevated permission for an expelled student
+and records a mandatory reason. Rather than ship a partial version of it under
+another name, an existing Student produces `STUDENT_ALREADY_EXISTS` naming the
+`studentId` and `studentCode`, and the application is left untouched so it can be
+readmitted properly once that operation exists. **This is the one deliberate
+deviation from §31.1 and it is the Phase 6 entry point.**
 
 ## Background — reasoning archive
 
