@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AdmissionMasterDto } from '../../masters/dto/master-response.dto';
-import { EnrollmentDto } from '../../enrollment/dto/enrollment-response.dto';
 import { MappedGuardianDto } from '../../guardians/dto/guardian-response.dto';
 
 /**
@@ -302,12 +301,11 @@ export class ApplicantDetailDto extends ApplicantDto {
   })
   guardians!: MappedGuardianDto[];
 
-  @ApiProperty({
-    description: 'Null until the applicant is placed.',
-    type: EnrollmentDto,
-    nullable: true,
-  })
-  enrollment!: EnrollmentDto | null;
+  // There is deliberately no `enrollment` here. It was declared singular while
+  // the query returned an array, so the documented field never existed in a
+  // response; and an applicant is an intake record, not a placement. Placements
+  // are read from `/enrollments`, which is also what keeps the intake funnel
+  // from carrying a twelve-year concern in its payload.
 }
 
 /** One of the applicants a duplicate check matched. */

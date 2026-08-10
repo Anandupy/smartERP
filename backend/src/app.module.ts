@@ -24,6 +24,7 @@ import { AcademicUnitModule } from '@/modules/academic-unit/academic-unit.module
 import { SecurityModule } from '@/common/services/security.module';
 import { IdentityModule } from '@/modules/identity/identity.module';
 import { AdmissionsModule } from '@/modules/admissions/admissions.module';
+import { EnrollmentModule } from '@/modules/enrollment/enrollment.module';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { BranchGuard } from '@/common/guards/branch.guard';
@@ -76,6 +77,7 @@ import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-thro
     AcademicUnitModule,
     IdentityModule,
     AdmissionsModule,
+    EnrollmentModule,
     MaintenanceModule,
     CommunicationModule,
   ],

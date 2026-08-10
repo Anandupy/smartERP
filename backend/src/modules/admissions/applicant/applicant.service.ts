@@ -214,7 +214,6 @@ export class ApplicantService {
         admissionSource: true,
         quota: true,
         guardians: { include: { guardian: true, relationType: true } },
-        enrollments: true,
       },
     });
 

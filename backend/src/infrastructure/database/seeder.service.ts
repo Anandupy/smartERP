@@ -221,6 +221,44 @@ export class SeederService implements OnApplicationBootstrap {
         description: 'Print student profiles',
       },
 
+      // Enrollment — academic placement
+      {
+        name: PERMISSIONS.Enrollment.View,
+        categoryCode: 'STUDENTS',
+        description: 'View academic placements and class lists',
+      },
+      {
+        name: PERMISSIONS.Enrollment.Create,
+        categoryCode: 'STUDENTS',
+        description: 'Place a student for an academic year',
+      },
+      {
+        name: PERMISSIONS.Enrollment.Promote,
+        categoryCode: 'STUDENTS',
+        description: 'Promote or detain a student into the next academic year',
+      },
+      {
+        name: PERMISSIONS.Enrollment.Correct,
+        categoryCode: 'STUDENTS',
+        description:
+          'Correct a placement or move a student mid-year within the branch (reason mandatory)',
+      },
+      {
+        name: PERMISSIONS.Enrollment.Cancel,
+        categoryCode: 'STUDENTS',
+        description: 'Cancel an academic placement (reason mandatory)',
+      },
+      {
+        name: PERMISSIONS.Enrollment.RollNumberManage,
+        categoryCode: 'STUDENTS',
+        description: 'Assign and regenerate class-register roll numbers',
+      },
+      {
+        name: PERMISSIONS.Enrollment.Export,
+        categoryCode: 'STUDENTS',
+        description: 'Export class lists and placement records',
+      },
+
       // Admissions
       {
         name: PERMISSIONS.Admissions.View,

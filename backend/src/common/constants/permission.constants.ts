@@ -34,6 +34,29 @@ export const PERMISSIONS = {
     Export: 'student.export',
     Print: 'student.print',
   },
+  /**
+   * Academic placement.
+   *
+   * Split by *operation*, not by CRUD verb, because the operations differ in
+   * consequence: assigning a roll number reshuffles a printed list and belongs
+   * to office staff, while correcting a placement rewrites where a child is
+   * recorded as studying and does not.
+   *
+   * There is no `enrollment.delete`. Academic history is cancelled or
+   * superseded, never removed.
+   */
+  Enrollment: {
+    View: 'enrollment.view',
+    /** Placement at admission or readmission. */
+    Create: 'enrollment.create',
+    /** Individual and bulk promotion. */
+    Promote: 'enrollment.promote',
+    /** Correction and mid-year transfer — reason mandatory for both. */
+    Correct: 'enrollment.correct',
+    Cancel: 'enrollment.cancel',
+    RollNumberManage: 'enrollment.rollnumber.manage',
+    Export: 'enrollment.export',
+  },
   Admissions: {
     View: 'admissions.view',
     Create: 'admissions.create',
