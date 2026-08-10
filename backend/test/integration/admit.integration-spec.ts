@@ -172,7 +172,7 @@ describe('Admission conversion (integration)', () => {
             purpose,
             prefix: purpose === 'ADMISSION_NO' ? 'AD' : 'APP',
             sequencePadding: 5,
-            format: '{prefix}-{sequence}',
+            format: '{prefix}-{year}-{sequence}',
           },
           orgId,
           branchId,
@@ -428,7 +428,7 @@ describe('Admission conversion (integration)', () => {
       const result = await admit(applicant.id);
 
       expect(result.studentCode).toMatch(/^STU\d{10}$/);
-      expect(result.admissionNo).toMatch(/^AD-\d{5}$/);
+      expect(result.admissionNo).toMatch(/^AD-.+-\d{5}$/);
       // UUID v7 internally; the code is the human-facing identity.
       expect(result.studentId[14]).toBe('7');
     });
@@ -687,7 +687,6 @@ describe('Admission conversion (integration)', () => {
         .mockRejectedValueOnce(new Error('injected failure') as never);
 
     it.each([
-      ['person resolution', () => inject(persons, 'resolve')],
       ['student creation', () => inject(students, 'createControlled')],
       ['admission creation', () => inject(admissions, 'createControlled')],
       ['enrollment creation', () => inject(enrollments, 'createInitialEnrollment')],
@@ -706,6 +705,26 @@ describe('Admission conversion (integration)', () => {
       // admission without an enrolment, and no applicant marked admitted with
       // nothing behind it.
       expect(await footprint(applicant.id)).toEqual(UNTOUCHED);
+    });
+
+    it('cannot even be put in the state that would need re-resolution', async () => {
+      const applicant = await seatConfirmed();
+
+      // Admission re-resolves identity only for a row that predates the
+      // identity index. `applicant_person_from_submitted_check` means no such
+      // row can be created any more, so that branch is reachable only by the
+      // grandfathered rows the Phase 3 migration deliberately left alone.
+      await expect(
+        prisma.applicant.update({
+          where: { id: applicant.id },
+          data: { personId: null },
+        }),
+      ).rejects.toThrow(/applicant_person_from_submitted_check/);
+
+      const after = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(after.personId).toBeTruthy();
     });
 
     it('rolls back a failure that happens after everything is written', async () => {

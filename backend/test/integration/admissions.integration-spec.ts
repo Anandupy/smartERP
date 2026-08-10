@@ -140,7 +140,7 @@ describe('Admissions Phase 0 (integration)', () => {
             purpose,
             prefix: purpose === 'ADMISSION_FORM' ? 'ADM' : 'APP',
             sequencePadding: 4,
-            format: '{prefix}-{sequence}',
+            format: '{prefix}-{year}-{sequence}',
           },
           orgId,
           branchId,

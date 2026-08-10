@@ -165,7 +165,7 @@ describe('Admission conversion (e2e)', () => {
           purpose,
           prefix: purpose === 'ADMISSION_NO' ? 'AD' : 'APP',
           sequencePadding: 5,
-          format: '{prefix}-{sequence}',
+          format: '{prefix}-{year}-{sequence}',
         },
         orgId,
         branchId,
@@ -312,7 +312,7 @@ describe('Admission conversion (e2e)', () => {
       studentId: expect.any(String),
       studentCode: expect.stringMatching(/^STU\d{10}$/),
       admissionId: expect.any(String),
-      admissionNo: expect.stringMatching(/^AD-\d{5}$/),
+      admissionNo: expect.stringMatching(/^AD-.+-\d{5}$/),
       enrollmentId: expect.any(String),
       applicantId: applicant.id,
     });

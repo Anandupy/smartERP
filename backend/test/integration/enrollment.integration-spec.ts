@@ -168,7 +168,7 @@ describe('Enrollment (integration)', () => {
           purpose: 'ADMISSION_NO',
           prefix: 'AD',
           sequencePadding: 5,
-          format: '{prefix}-{sequence}',
+          format: '{prefix}-{year}-{sequence}',
         },
         orgId,
         branchId,

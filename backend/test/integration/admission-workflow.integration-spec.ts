@@ -200,7 +200,7 @@ describe('Admission workflow (integration)', () => {
             purpose,
             prefix: purpose === 'ADMISSION_NO' ? 'AD' : 'APP',
             sequencePadding: 5,
-            format: '{prefix}-{sequence}',
+            format: '{prefix}-{year}-{sequence}',
           },
           orgId,
           branchId,
@@ -714,7 +714,7 @@ describe('Admission workflow (integration)', () => {
         studentId: student.id,
       });
 
-      expect(admission.admissionNo).toMatch(/^AD-\d{5}$/);
+      expect(admission.admissionNo).toMatch(/^AD-.+-\d{5}$/);
       expect(admission.status).toBe('ACTIVE');
       expect(admission.id[14]).toBe('7');
     });
