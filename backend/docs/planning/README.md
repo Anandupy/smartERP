@@ -45,6 +45,7 @@ into the specs.
 | **P1** | Identity foundation — Person, crypto, blind index | `implemented` ✅ 2026-08-09 ⚠️ recovery custody ceremony outstanding | [`../core/key-custody.md`](../core/key-custody.md) |
 | **P2** | Student identity | `implemented` ✅ 2026-08-10 | blueprint §11, §13, §39, §41 |
 | **P3** | Admission domain & applicant state machine | `implemented` ✅ 2026-08-11 ⚠️ 2 CHECK constraints `NOT VALID` pending one legacy row | blueprint §15–§17, §31, §33, §40 |
+| **P4** | Enrollment — academic placement | `implemented` ✅ 2026-08-12 ⚠️ class-list lock derives from the year until F2 | blueprint §18, §28, §40, §41 |
 | **F1** | Data protection & key custody | `planned` ⚠️ 1 legal question + backup-retention prerequisite | [`00-foundation/01-data-protection.md`](00-foundation/01-data-protection.md) |
 | **F2** | Configuration engine | `planned` ⚠️ 2 open questions | [`00-foundation/02-configuration.md`](00-foundation/02-configuration.md) |
 | **F3** | Numbering & identity engine | `planned` ⚠️ 2 open questions | [`00-foundation/03-numbering.md`](00-foundation/03-numbering.md) |
@@ -121,6 +122,68 @@ every insert and update; the initial scan is skipped so that one pre-existing
 Enrollment to derive one from, is grandfathered rather than invented. The
 migration carries the two-line `VALIDATE CONSTRAINT` script to run once that row
 is resolved.
+
+## Enrollment — the placement contract downstream modules consume
+
+Phase 4 moved Enrollment out of `admissions/` into `src/modules/enrollment/` and
+rebuilt it as the academic-placement spine. The dependency runs one way:
+`enrollment → identity` and `enrollment → academic structure`, and **never**
+`enrollment → admissions`. The schema holds an `admissionId`; the module holds no
+import.
+
+**Which id a future module should reference**, and this is the whole point of
+keeping the three layers apart:
+
+| The fact varies with | Reference | Examples |
+| :--- | :--- | :--- |
+| The academic year | **`enrollmentId`** | Attendance, examination, timetable, year-scoped fees |
+| The human, for life | **`studentId`** | Library membership, guardian links, profile, long-term history |
+| One spell of study | **`admissionId`** | Transfer certificate, admission register, branch admission history |
+
+**What Enrollment owns and what it does not.** It owns placement — programme,
+academic unit, roll number, status and provenance. It owns the `resultOutcome`
+*column* and not the decision, which belongs to Examination (INV-ENR-013);
+nothing in the module writes it and no route can. It holds no demographic field
+at all (INV-ENR-012): twelve years of school is one Person, one Student, one
+Admission and twelve thin rows.
+
+**Placement is immutable.** Branch, year, admission, student, programme, unit,
+kind and origin are fixed at write time. A wrong placement is not edited — it is
+**superseded**: the original closes as `SUPERSEDED` naming its successor and its
+reason, and a replacement is written carrying `previousEnrollmentId` and an
+`originType` that distinguishes an operator's `CORRECTION` from a genuine
+mid-year `TRANSFER`. One helper does this for correction and transfer today, and
+for promotion and repeat in Phase 6, so provenance cannot be forgotten by
+whoever writes the fourth caller.
+
+**There is no `POST /enrollments` and no `DELETE`.** Every placement has an
+origin operation behind it, and academic history is cancelled or superseded
+rather than removed. `createInitialEnrollment` is reachable only from code, takes
+an optional transaction client and opens none of its own when given one — which
+is what lets Phase 5's `admit()` write Student, Admission and Enrollment
+atomically.
+
+Three things are enforced by the database rather than by a service that could be
+bypassed: one composite foreign key makes an enrolment's student and branch
+always match its admission's; a second makes its unit belong to its branch,
+programme and year; and a partial unique index allows exactly one live `PRIMARY`
+placement per admission per year — excluding `SUPERSEDED` and `CANCELLED`, which
+is what makes correction possible at all.
+
+Two deliberate deviations, both recorded rather than hidden:
+
+- The two self-referencing foreign keys are `DEFERRABLE INITIALLY DEFERRED`.
+  With immediate checking there is no order that works: inserting the
+  replacement first trips the one-live-placement index, and closing the original
+  first trips the supersede CHECK that demands a successor which does not exist
+  yet. Prisma does not model deferrability, and it introduces no drift.
+- **There is no class-list lock column anywhere in the schema**, and Phase 4 did
+  not invent one — a second lock competing with `AcademicYear.isLocked` is
+  exactly the conflicting model to avoid. Until F2 provides a per-class-list
+  lock, `EnrollmentConfigProvider.classListLocked()` derives it from the year,
+  which is coarser than the eventual rule and never weaker. F2 is the blocking
+  dependency, along with the roll-number policy (§50 Q7), which defaults to
+  `MANUAL`.
 
 ## Background — reasoning archive
 
