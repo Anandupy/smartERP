@@ -210,28 +210,39 @@ export class AdmissionConversionService {
       throw await this.explainIneligible(tx, applicant.id, current);
     }
 
-    // 3. Identity. Delegated entirely — admissions does no matching of its own,
-    //    and the government identifier travels through the Person abstraction
-    //    rather than being read, logged or copied here.
-    const resolved = await this.persons.resolve(
-      applicant.organizationId,
-      {
-        firstName: applicant.firstName,
-        middleName: applicant.middleName,
-        lastName: applicant.lastName,
-        dob: applicant.dob,
-        phone: applicant.primaryMobile,
-        governmentId: applicant.aadhaarNo,
-      },
-      tx,
-    );
+    // 3. Identity.
+    //
+    //    The application was placed in the identity index at submission, and
+    //    that Person is the answer — re-resolving here would ask the same
+    //    question twice and get a different answer for anyone without a
+    //    government identifier, because demographic matching deliberately never
+    //    merges (twins share every demographic signal). The result would be two
+    //    Person rows for one human, with the Applicant pointing at the first and
+    //    the Student at the second.
+    //
+    //    Resolution therefore runs only for a row that predates the identity
+    //    index, and is delegated entirely when it does: admissions does no
+    //    matching of its own, and the government identifier travels through the
+    //    Person abstraction rather than being read, logged or copied here.
+    const personId =
+      (locked.personId as string | null) ??
+      (
+        await this.persons.resolve(
+          applicant.organizationId,
+          {
+            firstName: applicant.firstName,
+            middleName: applicant.middleName,
+            lastName: applicant.lastName,
+            dob: applicant.dob,
+            phone: applicant.primaryMobile,
+            governmentId: applicant.aadhaarNo,
+          },
+          tx,
+        )
+      ).personId;
 
     // 4. An existing Student for this Person is readmission, not admission.
-    await this.assertNoExistingStudent(
-      tx,
-      applicant.organizationId,
-      resolved.personId,
-    );
+    await this.assertNoExistingStudent(tx, applicant.organizationId, personId);
 
     // 5. Student. The code is allocated inside `createControlled`, from the
     //    organization's MONOTONIC sequence.
@@ -239,7 +250,7 @@ export class AdmissionConversionService {
       {
         organizationId: applicant.organizationId,
         branchId: applicant.branchId,
-        personId: resolved.personId,
+        personId,
         firstName: applicant.firstName,
         middleName: applicant.middleName,
         lastName: applicant.lastName,

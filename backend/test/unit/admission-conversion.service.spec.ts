@@ -165,11 +165,10 @@ describe('Admission conversion', () => {
       });
     });
 
-    it('composes the five services in dependency order', async () => {
+    it('composes the services in dependency order', async () => {
       await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
 
       const order = [
-        resolvePerson.mock.invocationCallOrder[0],
         createStudent.mock.invocationCallOrder[0],
         createAdmission.mock.invocationCallOrder[0],
         createEnrollment.mock.invocationCallOrder[0],
@@ -178,11 +177,11 @@ describe('Admission conversion', () => {
       expect(order).toEqual([...order].sort((a, b) => a - b));
     });
 
-    it('locks the applicant before it resolves anything', async () => {
+    it('locks the applicant before it does anything else', async () => {
       await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
 
       const lock = rawQuery.mock.invocationCallOrder[0];
-      expect(lock).toBeLessThan(resolvePerson.mock.invocationCallOrder[0]);
+      expect(lock).toBeLessThan(createStudent.mock.invocationCallOrder[0]);
 
       const sql = String(rawQuery.mock.calls[0][0]);
       expect(sql).toContain('"Applicant"');
@@ -196,7 +195,6 @@ describe('Admission conversion', () => {
       await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
 
       const clients = [
-        resolvePerson.mock.calls[0][2],
         createStudent.mock.calls[0][1],
         createAdmission.mock.calls[0][1],
         createEnrollment.mock.calls[0][1],
@@ -565,9 +563,49 @@ describe('Admission conversion', () => {
   // ---------------------------------------------------------------------------
 
   describe('identity', () => {
-    it('passes the government identifier through the Person abstraction', async () => {
+    /**
+     * The regression this section exists for.
+     *
+     * Submission places the applicant in the identity index. Asking again here
+     * asks the same question twice, and for anyone without a government
+     * identifier the second answer differs — demographic matching deliberately
+     * never merges, because twins share every demographic signal. The result
+     * was two Person rows for one human, the Applicant pointing at the first
+     * and the Student at the second.
+     */
+    it('reuses the Person the application already resolved', async () => {
       await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
 
+      expect(resolvePerson).not.toHaveBeenCalled();
+      expect(createStudent.mock.calls[0][0].personId).toBe('person-1');
+      expect(mockPrisma.student.findFirst.mock.calls[0][0].where).toEqual({
+        organizationId: 'org-1',
+        personId: 'person-1',
+      });
+    });
+
+    it('reads the person from the locked row, not the earlier read', async () => {
+      // The pre-transaction read is a guess; submission may have committed a
+      // person between it and the lock.
+      mockPrisma.applicant.findFirst.mockResolvedValue({
+        ...APPLICANT,
+        personId: null,
+      });
+      lockedAs('SEAT_CONFIRMED', { personId: 'person-committed-late' });
+
+      await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
+
+      expect(resolvePerson).not.toHaveBeenCalled();
+      expect(createStudent.mock.calls[0][0].personId).toBe('person-committed-late');
+    });
+
+    it('resolves only for a row that predates the identity index', async () => {
+      lockedAs('SEAT_CONFIRMED', { personId: null });
+
+      await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
+
+      // The grandfathered case: an applicant that reached SUBMITTED before
+      // Person existed. Resolution is delegated, government identifier and all.
       expect(resolvePerson).toHaveBeenCalledWith(
         'org-1',
         expect.objectContaining({
@@ -577,6 +615,17 @@ describe('Admission conversion', () => {
         }),
         mockPrisma,
       );
+      expect(createStudent.mock.calls[0][0].personId).toBe('person-1');
+    });
+
+    it('propagates a failure resolving a legacy row', async () => {
+      lockedAs('SEAT_CONFIRMED', { personId: null });
+      resolvePerson.mockRejectedValueOnce(new Error('injected failure'));
+
+      await expect(
+        conversion.admit('app-1', REQUEST, SCOPE, ACTOR),
+      ).rejects.toThrow('injected failure');
+      expect(createStudent).not.toHaveBeenCalled();
     });
 
     it('does no matching of its own', async () => {
@@ -584,10 +633,6 @@ describe('Admission conversion', () => {
 
       // Admissions never queries Person directly. A second implementation of
       // "same human" would drift from the one that decides it.
-      expect(mockPrisma.student.findFirst.mock.calls[0][0].where).toEqual({
-        organizationId: 'org-1',
-        personId: 'person-1',
-      });
       expect(Object.keys(mockPrisma)).not.toContain('person');
     });
 
@@ -607,11 +652,12 @@ describe('Admission conversion', () => {
       }
     });
 
-    it('admits an applicant with no government identifier', async () => {
+    it('admits a legacy applicant with no government identifier', async () => {
       mockPrisma.applicant.findFirst.mockResolvedValue({
         ...APPLICANT,
         aadhaarNo: null,
       });
+      lockedAs('SEAT_CONFIRMED', { personId: null });
 
       await expect(
         conversion.admit('app-1', REQUEST, SCOPE, ACTOR),
@@ -694,7 +740,6 @@ describe('Admission conversion', () => {
 
   describe('failure rolls everything back', () => {
     const steps: Array<[string, jest.Mock]> = [
-      ['person resolution', resolvePerson],
       ['student creation', createStudent],
       ['admission creation', createAdmission],
       ['enrollment creation', createEnrollment],
