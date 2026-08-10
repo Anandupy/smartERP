@@ -135,8 +135,9 @@ describe('Applicant workflow', () => {
 
     it('leaves exactly four states with no way out', () => {
       // REJECTED and WITHDRAWN because a decision already communicated to the
-      // candidate is not quietly reversible; ADMITTED because Phase 5 has not
-      // built the only edge into it. DEFERRED is terminal for *this*
+      // candidate is not quietly reversible; ADMITTED because a student, an
+      // admission and an enrolment now exist behind it. DEFERRED is terminal
+      // for *this*
       // application by design — deferring to the next cycle produces a new
       // Applicant carrying `deferredFromApplicantId`, not a reopening of this
       // one, so the original stays as evidence of what was decided when.
@@ -148,12 +149,26 @@ describe('Applicant workflow', () => {
       expect(TERMINAL_STATES).not.toContain(S.DEFERRED);
     });
 
-    it('has no rule producing ADMITTED', () => {
-      // The single most important absence in the table: ADMITTED means a
-      // Student, an Admission and an Enrolment exist, and a status-only edge
-      // would produce it without any of them.
-      expect(TRANSITIONS.filter((t) => t.to === S.ADMITTED)).toHaveLength(0);
-      expect(findRule(WorkflowAction.ADMIT)).toBeUndefined();
+    it('lets nothing but the orchestrator produce ADMITTED', () => {
+      const intoAdmitted = TRANSITIONS.filter((t) => t.to === S.ADMITTED);
+
+      // Exactly one edge, and it is unreachable through the generic endpoint.
+      // ADMITTED means a Student, an Admission and an Enrolment exist; a
+      // status-only route into it would produce the outcome without any of
+      // them, which is what `orchestratedOnly` prevents.
+      expect(intoAdmitted).toHaveLength(1);
+      expect(intoAdmitted[0]).toMatchObject({
+        action: WorkflowAction.ADMIT,
+        from: [S.SEAT_CONFIRMED],
+        orchestratedOnly: true,
+      });
+      expect(findRule(WorkflowAction.ADMIT)).toBeDefined();
+    });
+
+    it('marks only the admit edge as orchestrated', () => {
+      expect(
+        TRANSITIONS.filter((t) => t.orchestratedOnly).map((t) => t.action),
+      ).toEqual([WorkflowAction.ADMIT]);
     });
 
     it('gives every rule a permission and an event', () => {
@@ -299,6 +314,9 @@ describe('Applicant workflow', () => {
     it('refuses a bare request to admit', async () => {
       inState(S.SEAT_CONFIRMED);
 
+      // The state is right and the actor is permitted; what is missing is the
+      // rest of the transaction. Nothing a client can put in a request body
+      // sets `orchestrated`, so this is the only answer the endpoint can give.
       await expect(
         workflow.transition(
           'app-1',
@@ -306,7 +324,63 @@ describe('Applicant workflow', () => {
           SCOPE,
           ACTOR,
         ),
+      ).rejects.toMatchObject({ response: { error: 'ORCHESTRATED_TRANSITION' } });
+
+      expect(mockPrisma.applicant.update).not.toHaveBeenCalled();
+    });
+
+    it('admits when the orchestrator asks, from SEAT_CONFIRMED only', async () => {
+      inState(S.SEAT_CONFIRMED);
+
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.ADMIT, orchestrated: true },
+          SCOPE,
+          ACTOR,
+        ),
+      ).resolves.toBeDefined();
+      expect(mockPrisma.applicant.update.mock.calls[0][0].data.admissionStatus).toBe(
+        S.ADMITTED,
+      );
+
+      jest.clearAllMocks();
+      hasPermission.mockResolvedValue(true);
+      inState(S.APPROVED);
+
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.ADMIT, orchestrated: true },
+          SCOPE,
+          ACTOR,
+        ),
       ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
+    });
+
+    it('joins a caller transaction instead of opening its own', async () => {
+      inState(S.SEAT_CONFIRMED);
+      const tx: any = {
+        applicant: { update: jest.fn().mockResolvedValue({ id: 'app-1' }) },
+        workflowHistory: { create: jest.fn().mockResolvedValue({}) },
+        outboxEvent: { create: jest.fn().mockResolvedValue({}) },
+        $queryRawUnsafe: rawQuery,
+      };
+
+      await workflow.transition(
+        'app-1',
+        { action: WorkflowAction.ADMIT, orchestrated: true },
+        SCOPE,
+        ACTOR,
+        tx,
+      );
+
+      // A second transaction here would put the status change outside the one
+      // that wrote the student, so a later failure would leave an applicant
+      // marked admitted with nothing behind them.
+      expect(tx.applicant.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.applicant.update).not.toHaveBeenCalled();
     });
   });
 

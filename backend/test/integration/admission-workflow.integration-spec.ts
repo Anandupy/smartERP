@@ -986,7 +986,7 @@ describe('Admission workflow (integration)', () => {
       ).rejects.toMatchObject({ response: { error: 'OFFER_EXPIRED' } });
     });
 
-    /** The pipeline ends here. Phase 5 owns everything past it. */
+    /** The funnel ends here. Everything past it belongs to the conversion. */
     it('stops at SEAT_CONFIRMED without creating a student', async () => {
       const applicant = await approved();
       const confirmed = await act(applicant.id, WorkflowAction.CONFIRM_SEAT);
@@ -1003,10 +1003,13 @@ describe('Admission workflow (integration)', () => {
         await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
       ).toBe(0);
 
-      // And there is no route onward: ADMITTED has no rule at all.
+      // The workflow endpoint still cannot get there. Admission has an edge as
+      // of Phase 5, but it is orchestrated: reaching ADMITTED means a student,
+      // an admission and an enrolment were written in the same transaction,
+      // and no request body can assert that.
       await expect(
         act(applicant.id, WorkflowAction.ADMIT),
-      ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
+      ).rejects.toMatchObject({ response: { error: 'ORCHESTRATED_TRANSITION' } });
     });
   });
 
