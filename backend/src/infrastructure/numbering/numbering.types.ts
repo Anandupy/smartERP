@@ -103,3 +103,18 @@ export const NULL_ACADEMIC_YEAR_SENTINEL =
 
 /** A format that renders no counter renders the same value every time. */
 export const SEQUENCE_PLACEHOLDER = '{sequence}';
+
+/**
+ * A format that renders no year cannot survive a yearly reset.
+ *
+ * The counter restarts at 1 each academic year, so `AD-00001` is issued again
+ * in the following one. Where the destination's uniqueness rule includes the
+ * year — `Applicant`'s does — that is harmless. Where it does not, and
+ * `Admission @@unique([branchId, admissionNo])` does not, the second year's
+ * first admission collides with the first year's and the branch simply stops
+ * being able to admit.
+ *
+ * Rendering the year is what makes a restarting counter produce distinct
+ * values, and it is also what an admission register conventionally looks like.
+ */
+export const YEAR_PLACEHOLDER = '{year}';

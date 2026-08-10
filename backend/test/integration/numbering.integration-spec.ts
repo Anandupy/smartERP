@@ -189,13 +189,52 @@ describe('Numbering engine (integration)', () => {
     expect(next).toBe('STU0000000003');
   });
 
+  it('refuses a yearly sequence whose format renders no year', async () => {
+    // The counter restarts every April. Without a year in the value, the
+    // second year reissues the first year's numbers — and `Admission` is
+    // unique on `(branchId, admissionNo)` with no year in it, so the branch
+    // would simply stop being able to admit twelve months in.
+    await expect(
+      numbering.createConfig(
+        {
+          purpose: 'ADMISSION_NO',
+          prefix: 'AD',
+          sequencePadding: 5,
+          format: '{prefix}-{sequence}',
+        },
+        orgId,
+        branchId,
+      ),
+    ).rejects.toMatchObject({
+      response: { error: 'NUMBERING_FORMAT_MISSING_YEAR' },
+    });
+  });
+
+  it('allows a never-resetting sequence to omit the year', async () => {
+    // STUDENT_CODE never restarts, so a year in it would be noise — and worse,
+    // would imply the code says something about when the student joined.
+    const config = await numbering.createConfig(
+      {
+        purpose: 'EMPLOYEE_CODE',
+        prefix: 'EMP',
+        sequencePadding: 6,
+        format: '{prefix}{sequence}',
+      },
+      orgId,
+      null,
+    );
+    createdConfigIds.push(config.id);
+    expect(config.resetStrategy).toBe('NEVER');
+  });
+
   it('rolls the counter back with a GAPLESS caller, leaving no hole', async () => {
     const config = await numbering.createConfig(
       {
         purpose: 'RECEIPT',
         prefix: 'RCP',
         sequencePadding: 6,
-        format: '{prefix}-{sequence}',
+        // RECEIPT resets yearly, so the format has to carry the year.
+        format: '{prefix}-{year}-{sequence}',
       },
       orgId,
       branchId,
@@ -226,9 +265,11 @@ describe('Numbering engine (integration)', () => {
       ),
     );
 
-    expect(first).toBe('RCP-000001');
+    // The year renders because the format asks for it — a yearly sequence that
+    // did not carry its year would reissue these numbers next April.
+    expect(first).toMatch(/^RCP-.+-000001$/);
     // A receipt series an auditor checks for continuity must not skip.
-    expect(second).toBe('RCP-000002');
+    expect(second).toMatch(/^RCP-.+-000002$/);
   });
 
   it('expresses an organization-scoped sequence at all', async () => {

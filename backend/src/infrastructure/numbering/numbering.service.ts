@@ -15,7 +15,9 @@ import {
   AllocateNumberParams,
   NULL_ACADEMIC_YEAR_SENTINEL,
   SEQUENCE_PLACEHOLDER,
+  YEAR_PLACEHOLDER,
   SEQUENCE_PURPOSE_RULES,
+  ResetStrategy,
   SequencePurpose,
 } from './numbering.types';
 import {
@@ -78,9 +80,15 @@ export class NumberingService {
     const branchCode = config.includeBranchCode
       ? await this.resolveBranchCode(params.branchId)
       : '';
-    const yearName = config.includeAcademicYear
-      ? await this.resolveAcademicYearName(params.academicYearId)
-      : '';
+    // The format is the authority on what gets rendered. `includeAcademicYear`
+    // is a second knob governing the same outcome, and when the two disagree
+    // the format silently loses: `{year}` renders as an empty string, the
+    // separators collapse, and a yearly sequence emits the same value every
+    // year with nothing to indicate why. Asking for the year is enough.
+    const yearName =
+      config.includeAcademicYear || config.format.includes(YEAR_PLACEHOLDER)
+        ? await this.resolveAcademicYearName(params.academicYearId)
+        : '';
 
     const counterYearId =
       config.resetStrategy === 'YEARLY'
@@ -227,6 +235,11 @@ export class NumberingService {
   ) {
     const rules = SEQUENCE_PURPOSE_RULES[dto.purpose];
     this.assertFormatRendersSequence(dto.format);
+    this.assertYearlyFormatRendersYear(
+      dto.format,
+      rules.resetStrategy,
+      dto.purpose,
+    );
 
     const scopedBranchId = rules.scope === 'BRANCH' ? branchId : null;
 
@@ -310,6 +323,11 @@ export class NumberingService {
 
     if (dto.format !== undefined) {
       this.assertFormatRendersSequence(dto.format);
+      this.assertYearlyFormatRendersYear(
+        dto.format,
+        config.resetStrategy,
+        config.purpose,
+      );
     }
 
     if (config.resetStrategy === 'NEVER') {
@@ -413,6 +431,33 @@ export class NumberingService {
         message: `A sequence format must contain ${SEQUENCE_PLACEHOLDER}; without it every generated value is identical.`,
       });
     }
+  }
+
+  /**
+   * A restarting counter must render the year it restarted in.
+   *
+   * The same species of validation as the one above, one step along: a format
+   * of `{prefix}-{sequence}` on a `YEARLY` sequence issues `AD-00001` again
+   * every April. `Applicant` survives that because its uniqueness rule carries
+   * the academic year; `Admission @@unique([branchId, admissionNo])` does not,
+   * so the branch's second year of admissions would fail on the first one.
+   *
+   * Caught at provisioning, where it is a one-line correction, rather than
+   * twelve months later as a constraint violation nobody can explain.
+   */
+  private assertYearlyFormatRendersYear(
+    format: string,
+    resetStrategy: ResetStrategy,
+    purpose: SequencePurpose,
+  ): void {
+    if (resetStrategy !== 'YEARLY') return;
+    if (format.includes(YEAR_PLACEHOLDER)) return;
+
+    throw new BadRequestException({
+      error: 'NUMBERING_FORMAT_MISSING_YEAR',
+      message: `Sequence '${purpose}' restarts every academic year, so its format must contain ${YEAR_PLACEHOLDER}. Without it the counter reissues the same values next year.`,
+      purpose,
+    });
   }
 
   /** The purposes and their fixed scope/reset/mode, for provisioning UIs. */
