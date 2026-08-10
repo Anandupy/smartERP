@@ -47,6 +47,7 @@ into the specs.
 | **P3** | Admission domain & applicant state machine | `implemented` ✅ 2026-08-11 ⚠️ 2 CHECK constraints `NOT VALID` pending one legacy row | blueprint §15–§17, §31, §33, §40 |
 | **P4** | Enrollment — academic placement | `implemented` ✅ 2026-08-12 ⚠️ class-list lock derives from the year until F2 | blueprint §18, §28, §40, §41 |
 | **P5** | `admit()` — applicant → student conversion | `implemented` ✅ 2026-08-13 ⚠️ an existing Student is refused, not readmitted | blueprint §31.1, §33, §35, §38 |
+| **P5.5** | Pipeline verification & hardening | `verified` ✅ 2026-08-13 ⚠️ 2 carry-forward items | this document, *Pipeline verification* |
 | **F1** | Data protection & key custody | `planned` ⚠️ 1 legal question + backup-retention prerequisite | [`00-foundation/01-data-protection.md`](00-foundation/01-data-protection.md) |
 | **F2** | Configuration engine | `planned` ⚠️ 2 open questions | [`00-foundation/02-configuration.md`](00-foundation/02-configuration.md) |
 | **F3** | Numbering & identity engine | `planned` ⚠️ 2 open questions | [`00-foundation/03-numbering.md`](00-foundation/03-numbering.md) |
@@ -251,6 +252,68 @@ another name, an existing Student produces `STUDENT_ALREADY_EXISTS` naming the
 `studentId` and `studentCode`, and the application is left untouched so it can be
 readmitted properly once that operation exists. **This is the one deliberate
 deviation from §31.1 and it is the Phase 6 entry point.**
+
+## Pipeline verification — what composing the five phases found
+
+Each phase passed inside its own boundary. Composing them surfaced two defects
+that no single phase could have seen, both now fixed.
+
+**A student could be attached to the wrong identity.** Submission places an
+applicant in the identity index; `admit()` asked again. For an applicant with a
+government identifier the second answer matched, which is why every earlier test
+passed — the fixtures all supplied one. For an applicant *without* one,
+resolution deliberately never merges on demographics alone (twins share every
+signal), so it minted a **second Person**. The Applicant pointed at the first and
+the Student at the second, and `@@unique([organizationId, personId])` was being
+enforced against a row nothing else referenced. Admission now reuses the
+applicant's own `personId` and resolves only for rows that predate the identity
+index — a state the database no longer permits anything to enter.
+
+**A branch would have stopped admitting in its second year.** `ADMISSION_NO`
+restarts each academic year, but `Admission @@unique([branchId, admissionNo])`
+carries no year, so the second year's first admission collided with the first
+year's. Two things were wrong: the engine accepted a yearly-resetting format with
+no year in it, and `{year}` rendered as an empty string unless a *second* flag
+was also set, so a format that asked for the year could silently not get it.
+Provisioning now refuses a yearly sequence whose format renders no year, and the
+format alone decides what is rendered.
+
+Neither was reachable from the phase suites, and both were found by walking the
+chain end to end. That walk is now
+[`test/integration/pipeline.integration-spec.ts`](../../test/integration/pipeline.integration-spec.ts),
+which asserts the composed invariants rather than repeating the phase suites:
+one of each row per admission, traceability in both directions with no
+demographic search, the record surviving its sources, the layers staying
+separate, and the shapes promotion, readmission and branch transfer will need.
+
+### Which count answers which question
+
+Four tables, four different questions, and conflating them is the most likely
+reporting error:
+
+| Question | Count | Why not the others |
+| :--- | :--- | :--- |
+| How many applied? | `Applicant` | Includes everyone rejected, withdrawn and cancelled |
+| How many people do we teach? | `Student` | A readmitted student is one person, not two |
+| How many did we admit this year? | `Admission` | A readmission is a second admission for the same student |
+| How many are placed in a class? | `Enrollment` | One per student per year, and the only year-scoped count |
+
+### Carried forward
+
+- **`applicant_person_from_submitted_check` and `applicant_program_from_submitted_check`
+  remain `NOT VALID`.** The development database still holds the single
+  grandfathered row they were written around — `019f8f56-ece4-71d0-8b71-054cd7e234ea`,
+  `SUBMITTED` since 2026-07-23 with no person and no programme. The test database
+  has zero violations and could be validated today; validating one environment
+  and not the other would be a divergence waiting to surprise a deploy, so both
+  stay as they are. Both constraints are enforced on every insert and update
+  regardless — verified by test. To finish: resolve or delete that row, then run
+  the two `VALIDATE CONSTRAINT` statements in the Phase 3 migration.
+- **Legacy plaintext `aadhaarNo` on `Applicant` and `Guardian`.** Still present
+  and still read only through `PersonService`. `Student`, `Admission` and
+  `Enrollment` have no such column and no event or audit payload carries the
+  value — asserted by test. Migrating the columns out belongs with the Guardian
+  work, which needs `Guardian → Person` first.
 
 ## Background — reasoning archive
 
