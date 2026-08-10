@@ -10,7 +10,11 @@ import { PrismaTransactionClient } from './prisma-transaction.types';
  *
  * Phases add to this list as their tables land.
  */
-export const LOCKABLE_TABLES = ['Applicant', 'Enrollment'] as const;
+export const LOCKABLE_TABLES = [
+  'Applicant',
+  'Enrollment',
+  'AcademicYear',
+] as const;
 
 export type LockableTable = (typeof LOCKABLE_TABLES)[number];
 
@@ -39,6 +43,17 @@ export interface LockRowOptions<TColumn extends string> {
    * cannot wait usually wants a queue rather than an error.
    */
   noWait?: boolean;
+  /**
+   * `FOR SHARE` instead of `FOR UPDATE`.
+   *
+   * For a row the caller must *read consistently* but has no intention of
+   * changing — the academic year during an enrolment write being the case this
+   * exists for. A share lock blocks anyone trying to lock the year for update
+   * (which is what setting `isLocked` does) while letting every other enrolment
+   * in the same year proceed in parallel. `FOR UPDATE` there would serialise
+   * every write in the year behind one row for no benefit.
+   */
+  mode?: 'UPDATE' | 'SHARE';
 }
 
 const IDENTIFIER = /^[A-Za-z][A-Za-z0-9_]*$/;
@@ -77,7 +92,7 @@ export class RowLockService {
     tx: PrismaTransactionClient,
     options: LockRowOptions<TColumn>,
   ): Promise<(Record<TColumn, unknown> & { id: string }) | null> {
-    const { table, id, scope, columns, noWait } = options;
+    const { table, id, scope, columns, noWait, mode } = options;
 
     if (!LOCKABLE_TABLES.includes(table)) {
       throw new Error(
@@ -115,7 +130,7 @@ export class RowLockService {
     const sql =
       `SELECT ${selected} FROM "${table}" ` +
       `WHERE ${conditions.join(' AND ')} ` +
-      `FOR UPDATE${noWait ? ' NOWAIT' : ''}`;
+      `FOR ${mode === 'SHARE' ? 'SHARE' : 'UPDATE'}${noWait ? ' NOWAIT' : ''}`;
 
     const rows = await tx.$queryRawUnsafe<
       Array<Record<TColumn, unknown> & { id: string }>

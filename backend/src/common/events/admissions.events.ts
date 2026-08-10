@@ -206,34 +206,6 @@ export class AdmissionWorkflowTransitionedEvent extends DomainEvent {
   }
 }
 
-export class EnrollmentCompletedEvent extends DomainEvent {
-  static readonly EVENT_NAME = 'enrollment.completed';
-  readonly payload: {
-    applicantId: string;
-    programId: string;
-    academicUnitId: string;
-    rollNumber?: string;
-  };
-
-  constructor(
-    payload: {
-      applicantId: string;
-      programId: string;
-      academicUnitId: string;
-      rollNumber?: string;
-    },
-    metadata?: Record<string, any>,
-  ) {
-    super({
-      eventName: EnrollmentCompletedEvent.EVENT_NAME,
-      aggregateId: payload.applicantId,
-      aggregateType: 'Applicant',
-      metadata,
-    });
-    this.payload = payload;
-  }
-}
-
 export class NumberingConfigCreatedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'numbering_config.created';
   readonly payload: {
