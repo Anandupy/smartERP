@@ -58,12 +58,22 @@
       "enabled": true
     },
     {
+      "key": "studentId",
+      "value": "",
+      "enabled": true
+    },
+    {
       "key": "applicantId",
       "value": "",
       "enabled": true
     },
     {
       "key": "guardianId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "enrollmentId",
       "value": "",
       "enabled": true
     },
@@ -138,17 +148,57 @@
       "enabled": true
     },
     {
-      "key": "relationTypeId",
+      "key": "personId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "mergedIntoPersonId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "personAId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "personBId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "apaarId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "abcId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "saralId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "udiseStudentId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "photoDocumentId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "sourceApplicantId",
       "value": "",
       "enabled": true
     },
     {
       "key": "genderId",
-      "value": "",
-      "enabled": true
-    },
-    {
-      "key": "photoFileId",
       "value": "",
       "enabled": true
     },
@@ -178,7 +228,12 @@
       "enabled": true
     },
     {
-      "key": "apaarId",
+      "key": "relationTypeId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "photoFileId",
       "value": "",
       "enabled": true
     },
@@ -198,17 +253,32 @@
       "enabled": true
     },
     {
+      "key": "entityId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "admissionId",
+      "value": "",
+      "enabled": true
+    },
+    {
       "key": "academicUnitId",
       "value": "",
       "enabled": true
     },
     {
-      "key": "futureStudentId",
+      "key": "previousEnrollmentId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "supersededById",
       "value": "",
       "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",
-  "_postman_exported_at": "2026-08-05T15:56:42.601Z",
+  "_postman_exported_at": "2026-08-10T16:03:34.419Z",
   "_postman_exported_using": "CampusFlow ERP Generator v2"
 }
