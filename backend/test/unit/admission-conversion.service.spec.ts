@@ -82,15 +82,26 @@ describe('Admission conversion', () => {
     $queryRawUnsafe: rawQuery,
   };
 
-  const lockedAs = (admissionStatus: string, extra: Record<string, unknown> = {}) => {
+  const lockedAs = (
+    admissionStatus: string,
+    extra: Record<string, unknown> = {},
+  ) => {
     rawQuery.locked = [
-      { id: 'app-1', admissionStatus, deletedAt: null, personId: 'person-1', ...extra },
+      {
+        id: 'app-1',
+        admissionStatus,
+        deletedAt: null,
+        personId: 'person-1',
+        ...extra,
+      },
     ];
   };
 
   beforeEach(async () => {
     rawQuery.mockImplementation((sql: string) =>
-      Promise.resolve(String(sql).includes('FOR UPDATE') ? rawQuery.locked : []),
+      Promise.resolve(
+        String(sql).includes('FOR UPDATE') ? rawQuery.locked : [],
+      ),
     );
 
     mockPrisma.applicant.findFirst.mockResolvedValue({ ...APPLICANT });
@@ -127,8 +138,14 @@ describe('Admission conversion', () => {
         RowLockService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: PersonService, useValue: { resolve: resolvePerson } },
-        { provide: StudentService, useValue: { createControlled: createStudent } },
-        { provide: AdmissionService, useValue: { createControlled: createAdmission } },
+        {
+          provide: StudentService,
+          useValue: { createControlled: createStudent },
+        },
+        {
+          provide: AdmissionService,
+          useValue: { createControlled: createAdmission },
+        },
         {
           provide: EnrollmentService,
           useValue: { createInitialEnrollment: createEnrollment },
@@ -299,7 +316,12 @@ describe('Admission conversion', () => {
 
       // The orchestrator reads and locks. Every write goes through the service
       // that owns the rules for it.
-      for (const model of ['applicant', 'academicUnit', 'academicYear', 'student']) {
+      for (const model of [
+        'applicant',
+        'academicUnit',
+        'academicYear',
+        'student',
+      ]) {
         const calls = Object.keys(mockPrisma[model]);
         expect(calls).not.toContain('create');
         expect(calls).not.toContain('update');
@@ -369,7 +391,9 @@ describe('Admission conversion', () => {
       expect(errorCode(caught)).toBe('APPLICANT_ALREADY_ADMITTED');
       // Enough for a client to treat the conflict as the completed operation
       // it is, and nothing about the person behind it.
-      expect((caught as { response: Record<string, unknown> }).response).toMatchObject({
+      expect(
+        (caught as { response: Record<string, unknown> }).response,
+      ).toMatchObject({
         studentId: 'stu-winner',
         studentCode: 'STU0000000999',
       });
@@ -382,7 +406,10 @@ describe('Admission conversion', () => {
       await expect(
         conversion.admit('app-1', REQUEST, SCOPE, ACTOR),
       ).rejects.toMatchObject({
-        response: { error: 'APPLICANT_NOT_SEAT_CONFIRMED', currentStatus: 'CANCELLED' },
+        response: {
+          error: 'APPLICANT_NOT_SEAT_CONFIRMED',
+          currentStatus: 'CANCELLED',
+        },
       });
       expect(createStudent).not.toHaveBeenCalled();
     });
@@ -413,7 +440,9 @@ describe('Admission conversion', () => {
       // permission for an expelled student and records a mandatory reason.
       // A partial version of it under another name would be worse than none.
       expect(errorCode(caught)).toBe('STUDENT_ALREADY_EXISTS');
-      expect((caught as { response: Record<string, unknown> }).response).toMatchObject({
+      expect(
+        (caught as { response: Record<string, unknown> }).response,
+      ).toMatchObject({
         studentId: 'stu-existing',
         studentCode: 'STU0000000042',
       });
@@ -451,7 +480,9 @@ describe('Admission conversion', () => {
             ACTOR,
           ),
         ).resolves.toBeDefined();
-        expect(createAdmission.mock.calls[0][0].admissionType).toBe(admissionType);
+        expect(createAdmission.mock.calls[0][0].admissionType).toBe(
+          admissionType,
+        );
       },
     );
   });
@@ -485,7 +516,9 @@ describe('Admission conversion', () => {
 
       await expect(
         conversion.admit('app-1', REQUEST, SCOPE, ACTOR),
-      ).rejects.toMatchObject({ response: { error: 'ACADEMIC_UNIT_MISMATCH' } });
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_MISMATCH' },
+      });
 
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
@@ -498,7 +531,9 @@ describe('Admission conversion', () => {
 
       await expect(
         conversion.admit('app-1', REQUEST, SCOPE, ACTOR),
-      ).rejects.toMatchObject({ response: { error: 'ACADEMIC_UNIT_INACTIVE' } });
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_INACTIVE' },
+      });
     });
 
     it('refuses a unit that does not exist', async () => {
@@ -540,24 +575,27 @@ describe('Admission conversion', () => {
       [['ADMISSION_NO'], ['STUDENT_CODE']],
       [['STUDENT_CODE'], ['ADMISSION_NO']],
       [[], ['STUDENT_CODE', 'ADMISSION_NO']],
-    ])('refuses when %s is the only sequence configured', async (present, missing) => {
-      mockPrisma.numberSequenceConfig.findMany.mockResolvedValue(
-        present.map((purpose) => ({ purpose })),
-      );
+    ])(
+      'refuses when %s is the only sequence configured',
+      async (present, missing) => {
+        mockPrisma.numberSequenceConfig.findMany.mockResolvedValue(
+          present.map((purpose) => ({ purpose })),
+        );
 
-      const caught = await conversion
-        .admit('app-1', REQUEST, SCOPE, ACTOR)
-        .catch((e: unknown) => e);
+        const caught = await conversion
+          .admit('app-1', REQUEST, SCOPE, ACTOR)
+          .catch((e: unknown) => e);
 
-      // A missing sequence is a tenant-onboarding failure. Minting a code from
-      // an invented default puts a permanent identifier in the wrong format on
-      // an ID card before anyone notices.
-      expect(errorCode(caught)).toBe('NUMBERING_NOT_PROVISIONED');
-      expect((caught as { response: { missing: string[] } }).response.missing).toEqual(
-        missing,
-      );
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
-    });
+        // A missing sequence is a tenant-onboarding failure. Minting a code from
+        // an invented default puts a permanent identifier in the wrong format on
+        // an ID card before anyone notices.
+        expect(errorCode(caught)).toBe('NUMBERING_NOT_PROVISIONED');
+        expect(
+          (caught as { response: { missing: string[] } }).response.missing,
+        ).toEqual(missing);
+        expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -596,7 +634,9 @@ describe('Admission conversion', () => {
       await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
 
       expect(resolvePerson).not.toHaveBeenCalled();
-      expect(createStudent.mock.calls[0][0].personId).toBe('person-committed-late');
+      expect(createStudent.mock.calls[0][0].personId).toBe(
+        'person-committed-late',
+      );
     });
 
     it('resolves only for a row that predates the identity index', async () => {
@@ -680,7 +720,9 @@ describe('Admission conversion', () => {
     it('scopes the lookup by organization and branch', async () => {
       await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
 
-      expect(mockPrisma.applicant.findFirst.mock.calls[0][0].where).toMatchObject({
+      expect(
+        mockPrisma.applicant.findFirst.mock.calls[0][0].where,
+      ).toMatchObject({
         id: 'app-1',
         organizationId: 'org-1',
         branchId: 'branch-1',
@@ -788,7 +830,9 @@ describe('Admission conversion', () => {
 
       expect(
         errorCode(
-          await conversion.admit('app-1', REQUEST, SCOPE, ACTOR).catch((e) => e),
+          await conversion
+            .admit('app-1', REQUEST, SCOPE, ACTOR)
+            .catch((e) => e),
         ),
       ).toBe('STUDENT_ALREADY_EXISTS');
     });

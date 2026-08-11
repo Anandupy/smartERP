@@ -32,14 +32,14 @@ describe('EventBus Infrastructure', () => {
     eventBus.subscribe(StudentCreatedEvent.EVENT_NAME, handler);
 
     const event = new StudentCreatedEvent({
-        studentId: 'stud-1',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
+      studentId: 'stud-1',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
 
     await eventBus.publish(event);
 
@@ -99,13 +99,21 @@ describe('EventBus Infrastructure', () => {
     let subscriber1Count = 0;
     let subscriber2Count = 0;
 
-    const sub1 = () => { subscriber1Count++; };
-    const sub2 = () => { subscriber2Count++; };
+    const sub1 = () => {
+      subscriber1Count++;
+    };
+    const sub2 = () => {
+      subscriber2Count++;
+    };
 
     eventBus.subscribe('test.multiple', sub1);
     eventBus.subscribe('test.multiple', sub2);
 
-    const event = new BranchCreatedEvent({ branchId: 'b1', name: 'Branch 1', code: 'B1' });
+    const event = new BranchCreatedEvent({
+      branchId: 'b1',
+      name: 'Branch 1',
+      code: 'B1',
+    });
     Object.defineProperty(event, 'eventName', { value: 'test.multiple' });
 
     await eventBus.publish(event);
@@ -131,15 +139,17 @@ describe('EventBus Infrastructure', () => {
     eventBus.subscribe('test.error.isolation', healthySub);
 
     const event = new StudentCreatedEvent({
-        studentId: 's1',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
-    Object.defineProperty(event, 'eventName', { value: 'test.error.isolation' });
+      studentId: 's1',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
+    Object.defineProperty(event, 'eventName', {
+      value: 'test.error.isolation',
+    });
 
     await expect(eventBus.publish(event)).resolves.not.toThrow();
     expect(sub2Executed).toBe(true);
@@ -153,12 +163,18 @@ describe('EventBus Infrastructure', () => {
     const branchEventsReceived: BranchCreatedEvent[] = [];
     const userEventsReceived: UserLoggedInEvent[] = [];
 
-    eventBus.subscribe<StudentCreatedEvent>(StudentCreatedEvent.EVENT_NAME, (e) => {
-      studentEventsReceived.push(e);
-    });
-    eventBus.subscribe<BranchCreatedEvent>(BranchCreatedEvent.EVENT_NAME, (e) => {
-      branchEventsReceived.push(e);
-    });
+    eventBus.subscribe<StudentCreatedEvent>(
+      StudentCreatedEvent.EVENT_NAME,
+      (e) => {
+        studentEventsReceived.push(e);
+      },
+    );
+    eventBus.subscribe<BranchCreatedEvent>(
+      BranchCreatedEvent.EVENT_NAME,
+      (e) => {
+        branchEventsReceived.push(e);
+      },
+    );
     eventBus.subscribe<UserLoggedInEvent>(UserLoggedInEvent.EVENT_NAME, (e) => {
       userEventsReceived.push(e);
     });
@@ -207,25 +223,29 @@ describe('EventBus Infrastructure', () => {
     expect(userEventsReceived).toHaveLength(20);
 
     // Verify all IDs are unique (no duplicates)
-    const studentIds = new Set(studentEventsReceived.map((e) => e.payload.studentId));
+    const studentIds = new Set(
+      studentEventsReceived.map((e) => e.payload.studentId),
+    );
     expect(studentIds.size).toBe(20);
   });
 
   it('should correctly unsubscribe handlers and clean up listeners', async () => {
     let callCount = 0;
-    const handler = () => { callCount++; };
+    const handler = () => {
+      callCount++;
+    };
 
     eventBus.subscribe('test.cleanup', handler);
 
     const event = new StudentCreatedEvent({
-        studentId: 's1',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
+      studentId: 's1',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
     Object.defineProperty(event, 'eventName', { value: 'test.cleanup' });
 
     await eventBus.publish(event);

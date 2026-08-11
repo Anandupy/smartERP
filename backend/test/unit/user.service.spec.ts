@@ -42,14 +42,16 @@ describe('UserService', () => {
 
   it('should throw ConflictException if user already exists', async () => {
     mockPrisma.user.findFirst.mockResolvedValue({ email: 'test@test.com' });
-    
-    await expect(service.createUser({
-      fullName: 'Test',
-      username: 'test',
-      email: 'test@test.com',
-      phone: '123',
-      password: 'password',
-      role: 'STAFF' as any
-    })).rejects.toThrow(ConflictException);
+
+    await expect(
+      service.createUser({
+        fullName: 'Test',
+        username: 'test',
+        email: 'test@test.com',
+        phone: '123',
+        password: 'password',
+        role: 'STAFF' as any,
+      }),
+    ).rejects.toThrow(ConflictException);
   });
 });

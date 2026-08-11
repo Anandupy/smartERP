@@ -61,7 +61,9 @@ describe('Enrollment (integration)', () => {
   };
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -158,7 +160,11 @@ describe('Enrollment (integration)', () => {
 
     genderId = (
       await prisma.gender.create({
-        data: { organizationId: orgId, code: `P4G_${suffix}`, name: `G ${suffix}` },
+        data: {
+          organizationId: orgId,
+          code: `P4G_${suffix}`,
+          name: `G ${suffix}`,
+        },
       })
     ).id;
 
@@ -185,15 +191,25 @@ describe('Enrollment (integration)', () => {
       null,
     );
 
-    scopeA = { organizationId: orgId, branchId: branchAId, academicYearId: yearAId };
-    scopeB = { organizationId: orgId, branchId: branchBId, academicYearId: yearBId };
+    scopeA = {
+      organizationId: orgId,
+      branchId: branchAId,
+      academicYearId: yearAId,
+    };
+    scopeB = {
+      organizationId: orgId,
+      branchId: branchBId,
+      academicYearId: yearBId,
+    };
   });
 
   afterAll(async () => {
     for (const org of [orgId, otherOrgId]) {
       await prisma.auditLog.deleteMany({ where: { organizationId: org } });
       await prisma.outboxEvent.deleteMany({ where: { organizationId: org } });
-      await prisma.workflowHistory.deleteMany({ where: { organizationId: org } });
+      await prisma.workflowHistory.deleteMany({
+        where: { organizationId: org },
+      });
       // Enrolments chain to each other, so break the links before deleting —
       // and every CHECK has to hold on the way out. CANCELLED is the one
       // status that satisfies all of them at once: the supersede rule wants a
@@ -225,15 +241,21 @@ describe('Enrollment (integration)', () => {
         where: { person: { organizationId: org } },
       });
       await prisma.person.deleteMany({ where: { organizationId: org } });
-      await prisma.organizationDataKey.deleteMany({ where: { organizationId: org } });
+      await prisma.organizationDataKey.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.numberSequenceCounter.deleteMany({
         where: { config: { organizationId: org } },
       });
-      await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: org } });
+      await prisma.numberSequenceConfig.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.academicUnit.deleteMany({
         where: { branch: { organizationId: org } },
       });
-      await prisma.program.deleteMany({ where: { branch: { organizationId: org } } });
+      await prisma.program.deleteMany({
+        where: { branch: { organizationId: org } },
+      });
       await prisma.academicYear.deleteMany({
         where: { branch: { organizationId: org } },
       });
@@ -307,13 +329,16 @@ describe('Enrollment (integration)', () => {
       organizationId: orgId,
       branchId,
       academicYearId:
-        overrides.academicYearId ?? (branchId === branchAId ? yearAId : yearBId),
+        overrides.academicYearId ??
+        (branchId === branchAId ? yearAId : yearBId),
       admissionId: admission.id,
       studentId: student.id,
       programId:
-        overrides.programId ?? (branchId === branchAId ? programAId : programBId),
+        overrides.programId ??
+        (branchId === branchAId ? programAId : programBId),
       academicUnitId:
-        overrides.academicUnitId ?? (branchId === branchAId ? unitA1Id : unitBId),
+        overrides.academicUnitId ??
+        (branchId === branchAId ? unitA1Id : unitBId),
       rollNumber: overrides.rollNumber ?? null,
     });
 
@@ -480,7 +505,9 @@ describe('Enrollment (integration)', () => {
         where: { admissionId: enrollment.admissionId },
       });
       expect(rows).toHaveLength(2);
-      expect(rows.filter((r) => r.enrollmentStatus === 'ACTIVE')).toHaveLength(1);
+      expect(rows.filter((r) => r.enrollmentStatus === 'ACTIVE')).toHaveLength(
+        1,
+      );
     });
 
     it('rejects a duplicate roll number within one class and year', async () => {
@@ -791,7 +818,10 @@ describe('Enrollment (integration)', () => {
       expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
 
       const active = await prisma.enrollment.findMany({
-        where: { admissionId: enrollment.admissionId, enrollmentStatus: 'ACTIVE' },
+        where: {
+          admissionId: enrollment.admissionId,
+          enrollmentStatus: 'ACTIVE',
+        },
       });
       expect(active).toHaveLength(1);
       expect(active[0].academicUnitId).toBe(unitA2Id);
@@ -829,7 +859,9 @@ describe('Enrollment (integration)', () => {
       const rows = await prisma.enrollment.findMany({
         where: { admissionId: enrollment.admissionId },
       });
-      expect(rows.filter((r) => r.enrollmentStatus === 'ACTIVE').length).toBeLessThanOrEqual(1);
+      expect(
+        rows.filter((r) => r.enrollmentStatus === 'ACTIVE').length,
+      ).toBeLessThanOrEqual(1);
 
       const original = rows.find((r) => r.id === enrollment.id)!;
       expect(['CANCELLED', 'SUPERSEDED']).toContain(original.enrollmentStatus);
@@ -869,7 +901,11 @@ describe('Enrollment (integration)', () => {
       expect(errorCode(loser?.reason)).toBe('ROLL_NUMBER_TAKEN');
 
       const taken = await prisma.enrollment.findMany({
-        where: { academicUnitId: unitA1Id, academicYearId: yearAId, rollNumber: '21' },
+        where: {
+          academicUnitId: unitA1Id,
+          academicYearId: yearAId,
+          rollNumber: '21',
+        },
       });
       expect(taken).toHaveLength(1);
     });
@@ -1056,9 +1092,9 @@ describe('Enrollment (integration)', () => {
       await expect(enrollments.findById(enrollment.id, scopeB)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(enrollments.getHistory(enrollment.id, scopeB)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        enrollments.getHistory(enrollment.id, scopeB),
+      ).rejects.toThrow(NotFoundException);
       await expect(
         enrollments.correctPlacement(
           enrollment.id,
@@ -1238,7 +1274,11 @@ describe('Enrollment (integration)', () => {
     it('returns at most one row per student and year', async () => {
       const { student, enrollment } = await placed();
 
-      const current = await enrollments.findCurrent(student.id, yearAId, scopeA);
+      const current = await enrollments.findCurrent(
+        student.id,
+        yearAId,
+        scopeA,
+      );
       expect(current?.id).toBe(enrollment.id);
 
       await enrollments.correctPlacement(
@@ -1266,7 +1306,9 @@ describe('Enrollment (integration)', () => {
         ADMIN,
       );
 
-      expect(await enrollments.findCurrent(student.id, yearAId, scopeA)).toBeNull();
+      expect(
+        await enrollments.findCurrent(student.id, yearAId, scopeA),
+      ).toBeNull();
     });
   });
 
@@ -1338,10 +1380,10 @@ describe('Enrollment (integration)', () => {
         }),
       ).rejects.toThrow('admit() failed after the enrolment');
 
-      expect(
-        await prisma.enrollment.count({ where: { admissionId } }),
-      ).toBe(0);
-      expect(await prisma.admission.count({ where: { id: admissionId } })).toBe(0);
+      expect(await prisma.enrollment.count({ where: { admissionId } })).toBe(0);
+      expect(await prisma.admission.count({ where: { id: admissionId } })).toBe(
+        0,
+      );
       expect(await prisma.student.count({ where: { id: studentId } })).toBe(0);
     });
 
@@ -1431,8 +1473,12 @@ describe('Enrollment (integration)', () => {
       });
 
       expect(rows).toHaveLength(2);
-      expect(await prisma.student.count({ where: { personId: student.personId } })).toBe(1);
-      expect(await prisma.admission.count({ where: { studentId: student.id } })).toBe(1);
+      expect(
+        await prisma.student.count({ where: { personId: student.personId } }),
+      ).toBe(1);
+      expect(
+        await prisma.admission.count({ where: { studentId: student.id } }),
+      ).toBe(1);
 
       // The core test of the architecture: zero demographic copies. If a
       // column here ever needs a name or a date of birth, the design broke.

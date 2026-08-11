@@ -40,7 +40,10 @@ describe('ContextDiscoveryService', () => {
     prisma.branch.findMany.mockResolvedValue([]);
     prisma.academicYear.findMany.mockResolvedValue([]);
 
-    const res = await discovery.discoverContexts('user-sa', RoleType.SUPER_ADMIN);
+    const res = await discovery.discoverContexts(
+      'user-sa',
+      RoleType.SUPER_ADMIN,
+    );
     expect(res.availableOrganizations).toHaveLength(2);
     expect(prisma.organization.findMany).toHaveBeenCalled();
   });
@@ -53,11 +56,22 @@ describe('ContextDiscoveryService', () => {
       status: 'ACTIVE',
     });
     prisma.branch.findMany.mockResolvedValue([
-      { id: 'branch-1', organizationId: 'org-1', name: 'B1', code: 'B1', institutionType: 'K12', isActive: true },
+      {
+        id: 'branch-1',
+        organizationId: 'org-1',
+        name: 'B1',
+        code: 'B1',
+        institutionType: 'K12',
+        isActive: true,
+      },
     ]);
     prisma.academicYear.findMany.mockResolvedValue([]);
 
-    const res = await discovery.discoverContexts('user-oa', RoleType.ORG_ADMIN, 'org-1');
+    const res = await discovery.discoverContexts(
+      'user-oa',
+      RoleType.ORG_ADMIN,
+      'org-1',
+    );
     expect(res.availableOrganizations).toHaveLength(1);
     expect(res.availableBranches).toHaveLength(1);
   });

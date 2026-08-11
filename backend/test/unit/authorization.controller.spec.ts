@@ -35,7 +35,10 @@ describe('AuthorizationController', () => {
       providers: [
         { provide: AuthorizationService, useValue: mockAuthorizationService },
         { provide: PermissionCatalogService, useValue: mockCatalogService },
-        { provide: PermissionAssignmentService, useValue: mockAssignmentService },
+        {
+          provide: PermissionAssignmentService,
+          useValue: mockAssignmentService,
+        },
       ],
     }).compile();
 
@@ -99,6 +102,8 @@ describe('AuthorizationController', () => {
 
   it('should throw ForbiddenException for /me/effective-permissions if unauthenticated', async () => {
     const req = {};
-    await expect(controller.getMyEffectivePermissions(req)).rejects.toThrow(ForbiddenException);
+    await expect(controller.getMyEffectivePermissions(req)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 });

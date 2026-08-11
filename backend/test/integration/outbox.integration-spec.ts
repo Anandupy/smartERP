@@ -58,7 +58,9 @@ describe('Transactional outbox (integration)', () => {
   const aggregateIds: string[] = [];
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -108,7 +110,10 @@ describe('Transactional outbox (integration)', () => {
     await prisma
       .$transaction(async (tx) => {
         await outbox.enqueue(
-          new ProbeEvent({ applicantId: aggregateId, displayName: 'Rolled back' }),
+          new ProbeEvent({
+            applicantId: aggregateId,
+            displayName: 'Rolled back',
+          }),
           tx,
         );
         throw new Error('rollback');
@@ -148,7 +153,9 @@ describe('Transactional outbox (integration)', () => {
       await relay.drain();
 
       expect(received).toHaveLength(1);
-      const row = await prisma.outboxEvent.findFirst({ where: { aggregateId } });
+      const row = await prisma.outboxEvent.findFirst({
+        where: { aggregateId },
+      });
       expect(row!.status).toBe('PUBLISHED');
       expect(row!.publishedAt).not.toBeNull();
     } finally {
@@ -162,7 +169,10 @@ describe('Transactional outbox (integration)', () => {
     await RequestContextService.run(contextFor(), async () => {
       await prisma.$transaction(async (tx) => {
         await outbox.enqueue(
-          new ProbeEvent({ applicantId: aggregateId, displayName: 'Attributed' }),
+          new ProbeEvent({
+            applicantId: aggregateId,
+            displayName: 'Attributed',
+          }),
           tx,
         );
       });

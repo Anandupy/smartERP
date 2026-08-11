@@ -41,14 +41,14 @@ describe('AuditListener', () => {
 
   it('should automatically subscribe to registered domain events and persist audit logs when published', async () => {
     const event = new StudentCreatedEvent({
-        studentId: 'stud-999',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
+      studentId: 'stud-999',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
 
     await eventBus.publish(event);
 
@@ -86,14 +86,14 @@ describe('AuditListener', () => {
     listener.listenToEvent(customEventName);
 
     const customEvent = new StudentCreatedEvent({
-        studentId: 'stud-1',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
+      studentId: 'stud-1',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
     Object.defineProperty(customEvent, 'eventName', { value: customEventName });
 
     await eventBus.publish(customEvent);

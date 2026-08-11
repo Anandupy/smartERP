@@ -79,7 +79,10 @@ describe('AuditRepository', () => {
   it('should query audit logs using filters', async () => {
     mockPrisma.auditLog.findMany.mockResolvedValue([]);
 
-    await repository.findAuditLogs({ module: 'ADMISSIONS', aggregateId: 'stud-101' });
+    await repository.findAuditLogs({
+      module: 'ADMISSIONS',
+      aggregateId: 'stud-101',
+    });
 
     expect(mockPrisma.auditLog.findMany).toHaveBeenCalledWith({
       where: {
@@ -207,9 +210,16 @@ describe('AuditRepository', () => {
             OR: [
               { eventName: { contains: 'auditKeyword', mode: 'insensitive' } },
               { module: { contains: 'auditKeyword', mode: 'insensitive' } },
-              { aggregateType: { contains: 'auditKeyword', mode: 'insensitive' } },
+              {
+                aggregateType: {
+                  contains: 'auditKeyword',
+                  mode: 'insensitive',
+                },
+              },
               { userEmail: { contains: 'auditKeyword', mode: 'insensitive' } },
-              { aggregateId: { contains: 'auditKeyword', mode: 'insensitive' } },
+              {
+                aggregateId: { contains: 'auditKeyword', mode: 'insensitive' },
+              },
             ],
           }),
         }),
@@ -258,10 +268,16 @@ describe('AuditRepository', () => {
         .mockResolvedValueOnce([{ severity: 'INFO', _count: { _all: 9 } }]) // bySeverity
         .mockResolvedValueOnce([{ status: 'SUCCESS', _count: { _all: 10 } }]); // byStatus
 
-      const summary = await repository.getAuditSummary({ role: 'SUPER_ADMIN' }, {});
+      const summary = await repository.getAuditSummary(
+        { role: 'SUPER_ADMIN' },
+        {},
+      );
 
       expect(summary.totalCount).toBe(10);
-      expect(summary.byModule).toContainEqual({ module: 'ADMISSIONS', count: 6 });
+      expect(summary.byModule).toContainEqual({
+        module: 'ADMISSIONS',
+        count: 6,
+      });
       expect(summary.byAction).toContainEqual({ action: 'CREATE', count: 5 });
       expect(summary.bySeverity).toContainEqual({ severity: 'INFO', count: 9 });
       expect(summary.byStatus).toContainEqual({ status: 'SUCCESS', count: 10 });
@@ -278,7 +294,10 @@ describe('AuditRepository', () => {
         .mockResolvedValueOnce([log1, log2, log3]) // first call: select timestamps
         .mockResolvedValueOnce([{ id: 'log-1', eventName: 'login' }]); // second call: recent events
 
-      const timeline = await repository.getAuditTimeline({ role: 'SUPER_ADMIN' }, {});
+      const timeline = await repository.getAuditTimeline(
+        { role: 'SUPER_ADMIN' },
+        {},
+      );
 
       expect(timeline.dailyActivity).toEqual([
         { date: '2026-07-25', count: 2 },
@@ -299,43 +318,64 @@ describe('AuditRepository', () => {
 
     it('SUPER_ADMIN should be granted access to any log', async () => {
       mockPrisma.auditLog.findFirst.mockResolvedValueOnce(logData);
-      const res = await repository.getAuditLogById({ role: 'SUPER_ADMIN' }, 'log-id');
+      const res = await repository.getAuditLogById(
+        { role: 'SUPER_ADMIN' },
+        'log-id',
+      );
       expect(res).toEqual(logData);
     });
 
     it('ORG_ADMIN should be granted access if organizationId matches', async () => {
       mockPrisma.auditLog.findFirst.mockResolvedValueOnce(logData);
-      const res = await repository.getAuditLogById({ role: 'ORG_ADMIN', organizationId: 'org-abc' }, 'log-id');
+      const res = await repository.getAuditLogById(
+        { role: 'ORG_ADMIN', organizationId: 'org-abc' },
+        'log-id',
+      );
       expect(res).toEqual(logData);
     });
 
     it('ORG_ADMIN should be denied access if organizationId mismatches', async () => {
       mockPrisma.auditLog.findFirst.mockResolvedValueOnce(logData);
-      const res = await repository.getAuditLogById({ role: 'ORG_ADMIN', organizationId: 'other-org' }, 'log-id');
+      const res = await repository.getAuditLogById(
+        { role: 'ORG_ADMIN', organizationId: 'other-org' },
+        'log-id',
+      );
       expect(res).toBe('FORBIDDEN');
     });
 
     it('BRANCH_ADMIN should be granted access if branchId matches', async () => {
       mockPrisma.auditLog.findFirst.mockResolvedValueOnce(logData);
-      const res = await repository.getAuditLogById({ role: 'BRANCH_ADMIN', branchId: 'branch-xyz' }, 'log-id');
+      const res = await repository.getAuditLogById(
+        { role: 'BRANCH_ADMIN', branchId: 'branch-xyz' },
+        'log-id',
+      );
       expect(res).toEqual(logData);
     });
 
     it('BRANCH_ADMIN should be denied access if branchId mismatches', async () => {
       mockPrisma.auditLog.findFirst.mockResolvedValueOnce(logData);
-      const res = await repository.getAuditLogById({ role: 'BRANCH_ADMIN', branchId: 'other-branch' }, 'log-id');
+      const res = await repository.getAuditLogById(
+        { role: 'BRANCH_ADMIN', branchId: 'other-branch' },
+        'log-id',
+      );
       expect(res).toBe('FORBIDDEN');
     });
 
     it('STAFF should be granted access to their own log', async () => {
       mockPrisma.auditLog.findFirst.mockResolvedValueOnce(logData);
-      const res = await repository.getAuditLogById({ id: 'user-staff', role: 'STAFF' }, 'log-id');
+      const res = await repository.getAuditLogById(
+        { id: 'user-staff', role: 'STAFF' },
+        'log-id',
+      );
       expect(res).toEqual(logData);
     });
 
     it('STAFF should be denied access to another user log', async () => {
       mockPrisma.auditLog.findFirst.mockResolvedValueOnce(logData);
-      const res = await repository.getAuditLogById({ id: 'user-other', role: 'STAFF' }, 'log-id');
+      const res = await repository.getAuditLogById(
+        { id: 'user-other', role: 'STAFF' },
+        'log-id',
+      );
       expect(res).toBe('FORBIDDEN');
     });
   });

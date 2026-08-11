@@ -70,7 +70,9 @@ describe('Admission workflow (integration)', () => {
   let seq = 0;
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -180,7 +182,11 @@ describe('Admission workflow (integration)', () => {
 
     genderId = (
       await prisma.gender.create({
-        data: { organizationId: orgId, code: `P3G_${suffix}`, name: `G ${suffix}` },
+        data: {
+          organizationId: orgId,
+          code: `P3G_${suffix}`,
+          name: `G ${suffix}`,
+        },
       })
     ).id;
     otherGenderId = (
@@ -194,7 +200,11 @@ describe('Admission workflow (integration)', () => {
     ).id;
 
     for (const branchId of [branchAId, branchBId]) {
-      for (const purpose of ['ADMISSION_FORM', 'APPLICATION', 'ADMISSION_NO'] as const) {
+      for (const purpose of [
+        'ADMISSION_FORM',
+        'APPLICATION',
+        'ADMISSION_NO',
+      ] as const) {
         await numbering.createConfig(
           {
             purpose,
@@ -218,9 +228,21 @@ describe('Admission workflow (integration)', () => {
       null,
     );
 
-    scopeA = { organizationId: orgId, branchId: branchAId, academicYearId: yearAId };
-    scopeA2 = { organizationId: orgId, branchId: branchAId, academicYearId: yearA2Id };
-    scopeB = { organizationId: orgId, branchId: branchBId, academicYearId: yearBId };
+    scopeA = {
+      organizationId: orgId,
+      branchId: branchAId,
+      academicYearId: yearAId,
+    };
+    scopeA2 = {
+      organizationId: orgId,
+      branchId: branchAId,
+      academicYearId: yearA2Id,
+    };
+    scopeB = {
+      organizationId: orgId,
+      branchId: branchBId,
+      academicYearId: yearBId,
+    };
   });
 
   afterAll(async () => {
@@ -229,7 +251,9 @@ describe('Admission workflow (integration)', () => {
       await prisma.outboxEvent.deleteMany({ where: { organizationId: org } });
       await prisma.admission.deleteMany({ where: { organizationId: org } });
       await prisma.enrollment.deleteMany({ where: { organizationId: org } });
-      await prisma.workflowHistory.deleteMany({ where: { organizationId: org } });
+      await prisma.workflowHistory.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.applicantProgramPreference.deleteMany({
         where: { applicant: { organizationId: org } },
       });
@@ -239,13 +263,21 @@ describe('Admission workflow (integration)', () => {
         where: { person: { organizationId: org } },
       });
       await prisma.person.deleteMany({ where: { organizationId: org } });
-      await prisma.organizationDataKey.deleteMany({ where: { organizationId: org } });
+      await prisma.organizationDataKey.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.numberSequenceCounter.deleteMany({
         where: { config: { organizationId: org } },
       });
-      await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: org } });
-      await prisma.academicUnit.deleteMany({ where: { branch: { organizationId: org } } });
-      await prisma.program.deleteMany({ where: { branch: { organizationId: org } } });
+      await prisma.numberSequenceConfig.deleteMany({
+        where: { organizationId: org },
+      });
+      await prisma.academicUnit.deleteMany({
+        where: { branch: { organizationId: org } },
+      });
+      await prisma.program.deleteMany({
+        where: { branch: { organizationId: org } },
+      });
       await prisma.academicYear.deleteMany({
         where: { branch: { organizationId: org } },
       });
@@ -315,7 +347,8 @@ describe('Admission workflow (integration)', () => {
   /** Stable ten digits per identity, so the same identity matches itself. */
   function phoneFor(identity: string): string {
     let hash = 0;
-    for (const ch of identity) hash = (hash * 31 + ch.charCodeAt(0)) % 100000000;
+    for (const ch of identity)
+      hash = (hash * 31 + ch.charCodeAt(0)) % 100000000;
     return `9${String(hash).padStart(9, '0')}`;
   }
 
@@ -410,7 +443,10 @@ describe('Admission workflow (integration)', () => {
       expect(history).toHaveLength(1);
 
       const events = await prisma.outboxEvent.findMany({
-        where: { aggregateId: applicant.id, eventName: 'applicant.offer_issued' },
+        where: {
+          aggregateId: applicant.id,
+          eventName: 'applicant.offer_issued',
+        },
       });
       expect(events).toHaveLength(1);
     });
@@ -448,7 +484,9 @@ describe('Admission workflow (integration)', () => {
       const history = await prisma.workflowHistory.findMany({
         where: { entityId: applicant.id },
       });
-      expect(history.filter((h) => h.oldStatus === 'UNDER_REVIEW')).toHaveLength(1);
+      expect(
+        history.filter((h) => h.oldStatus === 'UNDER_REVIEW'),
+      ).toHaveLength(1);
     });
 
     it('never interleaves two concurrent transitions', async () => {
@@ -513,7 +551,10 @@ describe('Admission workflow (integration)', () => {
       expect(errorCode(loser?.reason)).toBe('DUPLICATE_ACTIVE_APPLICATION');
 
       const submitted = await prisma.applicant.findMany({
-        where: { id: { in: [first.id, second.id] }, admissionStatus: 'SUBMITTED' },
+        where: {
+          id: { in: [first.id, second.id] },
+          admissionStatus: 'SUBMITTED',
+        },
       });
       expect(submitted).toHaveLength(1);
 
@@ -587,22 +628,31 @@ describe('Admission workflow (integration)', () => {
       await act(first.id, WorkflowAction.SUBMIT);
 
       const second = await newApplicant(scopeA, { aadhaarNo: govtId });
-      await expect(act(second.id, WorkflowAction.SUBMIT)).rejects.toMatchObject({
-        response: { error: 'DUPLICATE_ACTIVE_APPLICATION' },
-      });
+      await expect(act(second.id, WorkflowAction.SUBMIT)).rejects.toMatchObject(
+        {
+          response: { error: 'DUPLICATE_ACTIVE_APPLICATION' },
+        },
+      );
     });
 
     it('lets a rejected candidate apply again in the same year', async () => {
       const govtId = aadhaar();
       const first = await newApplicant(scopeA, { aadhaarNo: govtId });
       await act(first.id, WorkflowAction.SUBMIT);
-      await act(first.id, WorkflowAction.REJECT, scopeA, 'documents incomplete');
+      await act(
+        first.id,
+        WorkflowAction.REJECT,
+        scopeA,
+        'documents incomplete',
+      );
 
       // The rule is "one *live* application", not "one application ever". A
       // rejected candidate reapplying is ordinary, and a rule that blocked it
       // would be a bug reported every admission season.
       const second = await newApplicant(scopeA, { aadhaarNo: govtId });
-      await expect(act(second.id, WorkflowAction.SUBMIT)).resolves.toMatchObject({
+      await expect(
+        act(second.id, WorkflowAction.SUBMIT),
+      ).resolves.toMatchObject({
         admissionStatus: 'SUBMITTED',
       });
     });
@@ -690,7 +740,11 @@ describe('Admission workflow (integration)', () => {
 
       await expect(
         prisma.applicantProgramPreference.create({
-          data: { applicantId: applicant.id, programId: programAId, preferenceOrder: 0 },
+          data: {
+            applicantId: applicant.id,
+            programId: programAId,
+            preferenceOrder: 0,
+          },
         }),
       ).rejects.toThrow(/preference_order_positive_check/);
     });
@@ -861,7 +915,9 @@ describe('Admission workflow (integration)', () => {
           entryProgramId: programA2Id,
           entryAcademicUnitId: unitAId,
         }),
-      ).rejects.toMatchObject({ response: { error: 'ACADEMIC_UNIT_MISMATCH' } });
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_MISMATCH' },
+      });
     });
 
     it('refuses a quota belonging to another organization', async () => {
@@ -895,9 +951,9 @@ describe('Admission workflow (integration)', () => {
       await expect(admissions.findById(admission.id, scopeB)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(admissions.findById(admission.id, scopeA)).resolves.toMatchObject(
-        { id: admission.id },
-      );
+      await expect(
+        admissions.findById(admission.id, scopeA),
+      ).resolves.toMatchObject({ id: admission.id });
     });
   });
 
@@ -915,7 +971,8 @@ describe('Admission workflow (integration)', () => {
         branchId: branchAId,
       });
       expect(
-        applicant.offerExpiresAt!.getTime() - applicant.offerIssuedAt!.getTime(),
+        applicant.offerExpiresAt!.getTime() -
+          applicant.offerIssuedAt!.getTime(),
       ).toBe(days * 24 * 60 * 60 * 1000);
     });
 
@@ -936,7 +993,10 @@ describe('Admission workflow (integration)', () => {
       expect(final.cancelledAt).not.toBeNull();
 
       const history = await prisma.workflowHistory.findFirstOrThrow({
-        where: { entityId: applicant.id, actionType: WorkflowAction.EXPIRE_OFFER },
+        where: {
+          entityId: applicant.id,
+          actionType: WorkflowAction.EXPIRE_OFFER,
+        },
       });
       expect(history).toMatchObject({
         oldStatus: 'APPROVED',
@@ -972,7 +1032,10 @@ describe('Admission workflow (integration)', () => {
       expect(second.failed).toBe(0);
 
       const history = await prisma.workflowHistory.findMany({
-        where: { entityId: applicant.id, actionType: WorkflowAction.EXPIRE_OFFER },
+        where: {
+          entityId: applicant.id,
+          actionType: WorkflowAction.EXPIRE_OFFER,
+        },
       });
       expect(history).toHaveLength(1);
     });
@@ -994,13 +1057,17 @@ describe('Admission workflow (integration)', () => {
       expect(confirmed.admissionStatus).toBe('SEAT_CONFIRMED');
 
       expect(
-        await prisma.admission.count({ where: { sourceApplicantId: applicant.id } }),
+        await prisma.admission.count({
+          where: { sourceApplicantId: applicant.id },
+        }),
       ).toBe(0);
       expect(
         await prisma.enrollment.count({ where: { applicantId: applicant.id } }),
       ).toBe(0);
       expect(
-        await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+        await prisma.student.count({
+          where: { sourceApplicantId: applicant.id },
+        }),
       ).toBe(0);
 
       // The workflow endpoint still cannot get there. Admission has an edge as
@@ -1009,7 +1076,9 @@ describe('Admission workflow (integration)', () => {
       // and no request body can assert that.
       await expect(
         act(applicant.id, WorkflowAction.ADMIT),
-      ).rejects.toMatchObject({ response: { error: 'ORCHESTRATED_TRANSITION' } });
+      ).rejects.toMatchObject({
+        response: { error: 'ORCHESTRATED_TRANSITION' },
+      });
     });
   });
 
@@ -1049,7 +1118,10 @@ describe('Admission workflow (integration)', () => {
       // keeps two rows from ever sharing a position, which a sequence of
       // independent updates could not avoid.
       expect(saved).toHaveLength(1);
-      expect(saved[0]).toMatchObject({ preferenceOrder: 1, programId: programA2Id });
+      expect(saved[0]).toMatchObject({
+        preferenceOrder: 1,
+        programId: programA2Id,
+      });
     });
 
     it('refuses the same programme twice', async () => {
@@ -1070,7 +1142,11 @@ describe('Admission workflow (integration)', () => {
       const applicant = await newApplicant();
 
       await expect(
-        preferences.replaceAll(applicant.id, [{ programId: programBId }], scopeA),
+        preferences.replaceAll(
+          applicant.id,
+          [{ programId: programBId }],
+          scopeA,
+        ),
       ).rejects.toMatchObject({ response: { error: 'PROGRAM_OUT_OF_SCOPE' } });
     });
 
@@ -1086,13 +1162,21 @@ describe('Admission workflow (integration)', () => {
       const applicant = await approved();
 
       await expect(
-        preferences.replaceAll(applicant.id, [{ programId: programAId }], scopeA),
+        preferences.replaceAll(
+          applicant.id,
+          [{ programId: programAId }],
+          scopeA,
+        ),
       ).rejects.toMatchObject({ response: { error: 'APPLICANT_FROZEN' } });
     });
 
     it('goes with the application when it is deleted', async () => {
       const applicant = await newApplicant();
-      await preferences.replaceAll(applicant.id, [{ programId: programAId }], scopeA);
+      await preferences.replaceAll(
+        applicant.id,
+        [{ programId: programAId }],
+        scopeA,
+      );
 
       await prisma.applicant.delete({ where: { id: applicant.id } });
 
@@ -1122,7 +1206,11 @@ describe('Admission workflow (integration)', () => {
         NotFoundException,
       );
       await expect(
-        preferences.replaceAll(applicant.id, [{ programId: programBId }], scopeB),
+        preferences.replaceAll(
+          applicant.id,
+          [{ programId: programBId }],
+          scopeB,
+        ),
       ).rejects.toThrow(NotFoundException);
 
       const unchanged = await prisma.applicant.findUniqueOrThrow({
@@ -1157,7 +1245,10 @@ describe('Admission workflow (integration)', () => {
       await act(applicant.id, WorkflowAction.START_REVIEW);
       await act(applicant.id, WorkflowAction.APPROVE);
 
-      const rows = await drainUntilAudited(applicant.id, 'applicant.offer_issued');
+      const rows = await drainUntilAudited(
+        applicant.id,
+        'applicant.offer_issued',
+      );
       const names = rows.map((r) => r.eventName);
 
       // Each transition is named for what it was. A generic `applicant.updated`
@@ -1174,11 +1265,24 @@ describe('Admission workflow (integration)', () => {
     it('records a force-reopen at raised severity', async () => {
       const applicant = await newApplicant();
       await act(applicant.id, WorkflowAction.SUBMIT);
-      await act(applicant.id, WorkflowAction.CANCEL, scopeA, 'created in error');
-      await act(applicant.id, WorkflowAction.FORCE_REOPEN, scopeA, 'cancelled in error');
+      await act(
+        applicant.id,
+        WorkflowAction.CANCEL,
+        scopeA,
+        'created in error',
+      );
+      await act(
+        applicant.id,
+        WorkflowAction.FORCE_REOPEN,
+        scopeA,
+        'cancelled in error',
+      );
 
       const event = await prisma.outboxEvent.findFirstOrThrow({
-        where: { aggregateId: applicant.id, eventName: 'applicant.force_reopened' },
+        where: {
+          aggregateId: applicant.id,
+          eventName: 'applicant.force_reopened',
+        },
       });
       expect(event.metadata).toMatchObject({ severity: 'WARN' });
     });
@@ -1187,7 +1291,12 @@ describe('Admission workflow (integration)', () => {
       const applicant = await newApplicant();
       await act(applicant.id, WorkflowAction.SUBMIT);
       await act(applicant.id, WorkflowAction.START_REVIEW);
-      await act(applicant.id, WorkflowAction.REQUEST_DOCUMENTS, scopeA, 'need the TC');
+      await act(
+        applicant.id,
+        WorkflowAction.REQUEST_DOCUMENTS,
+        scopeA,
+        'need the TC',
+      );
       await act(applicant.id, WorkflowAction.DOCUMENTS_RECEIVED);
 
       const history = await prisma.workflowHistory.findMany({
@@ -1211,7 +1320,12 @@ describe('Admission workflow (integration)', () => {
     it('keeps a reason on every transition that demanded one', async () => {
       const applicant = await newApplicant();
       await act(applicant.id, WorkflowAction.SUBMIT);
-      await act(applicant.id, WorkflowAction.REJECT, scopeA, '  marks below the cutoff  ');
+      await act(
+        applicant.id,
+        WorkflowAction.REJECT,
+        scopeA,
+        '  marks below the cutoff  ',
+      );
 
       const rejection = await prisma.workflowHistory.findFirstOrThrow({
         where: { entityId: applicant.id, actionType: WorkflowAction.REJECT },
@@ -1254,7 +1368,9 @@ describe('Admission workflow (integration)', () => {
     it('refuses to submit an application with no programme', async () => {
       const applicant = await newApplicant(scopeA, { programId: null });
 
-      await expect(act(applicant.id, WorkflowAction.SUBMIT)).rejects.toMatchObject({
+      await expect(
+        act(applicant.id, WorkflowAction.SUBMIT),
+      ).rejects.toMatchObject({
         response: { error: 'PROGRAM_REQUIRED' },
       });
 

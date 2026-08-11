@@ -49,7 +49,10 @@ describe('Applicant workflow', () => {
       findFirstOrThrow: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
     },
-    workflowHistory: { create: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    workflowHistory: {
+      create: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     outboxEvent: { create: jest.fn().mockResolvedValue({ id: 'ob-1' }) },
     $transaction: jest.fn((cb: any) => cb(mockPrisma)),
     $queryRawUnsafe: rawQuery,
@@ -239,9 +242,9 @@ describe('Applicant workflow', () => {
         ACTOR,
       );
 
-      expect(mockPrisma.applicant.update.mock.calls[0][0].data.admissionStatus).toBe(
-        to,
-      );
+      expect(
+        mockPrisma.applicant.update.mock.calls[0][0].data.admissionStatus,
+      ).toBe(to);
     });
 
     it('allows deferment only when configuration enables it', async () => {
@@ -302,7 +305,12 @@ describe('Applicant workflow', () => {
       inState(from);
 
       await expect(
-        workflow.transition('app-1', { action, remarks: 'attempt' }, SCOPE, ACTOR),
+        workflow.transition(
+          'app-1',
+          { action, remarks: 'attempt' },
+          SCOPE,
+          ACTOR,
+        ),
       ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
 
       // Refused before anything is written.
@@ -324,7 +332,9 @@ describe('Applicant workflow', () => {
           SCOPE,
           ACTOR,
         ),
-      ).rejects.toMatchObject({ response: { error: 'ORCHESTRATED_TRANSITION' } });
+      ).rejects.toMatchObject({
+        response: { error: 'ORCHESTRATED_TRANSITION' },
+      });
 
       expect(mockPrisma.applicant.update).not.toHaveBeenCalled();
     });
@@ -340,9 +350,9 @@ describe('Applicant workflow', () => {
           ACTOR,
         ),
       ).resolves.toBeDefined();
-      expect(mockPrisma.applicant.update.mock.calls[0][0].data.admissionStatus).toBe(
-        S.ADMITTED,
-      );
+      expect(
+        mockPrisma.applicant.update.mock.calls[0][0].data.admissionStatus,
+      ).toBe(S.ADMITTED);
 
       jest.clearAllMocks();
       hasPermission.mockResolvedValue(true);
@@ -480,12 +490,10 @@ describe('Applicant workflow', () => {
     it('refuses an anonymous caller', async () => {
       inState(S.DRAFT);
       await expect(
-        workflow.transition(
-          'app-1',
-          { action: WorkflowAction.SUBMIT },
-          SCOPE,
-          { userId: null, role: null },
-        ),
+        workflow.transition('app-1', { action: WorkflowAction.SUBMIT }, SCOPE, {
+          userId: null,
+          role: null,
+        }),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -513,9 +521,9 @@ describe('Applicant workflow', () => {
       );
 
       expect(hasPermission).not.toHaveBeenCalled();
-      expect(mockPrisma.workflowHistory.create.mock.calls[0][0].data.actionBy).toBe(
-        'SYSTEM',
-      );
+      expect(
+        mockPrisma.workflowHistory.create.mock.calls[0][0].data.actionBy,
+      ).toBe('SYSTEM');
     });
   });
 
@@ -574,9 +582,9 @@ describe('Applicant workflow', () => {
         SCOPE,
         ACTOR,
       );
-      expect(mockPrisma.workflowHistory.create.mock.calls[0][0].data.remarks).toBe(
-        'incomplete documents',
-      );
+      expect(
+        mockPrisma.workflowHistory.create.mock.calls[0][0].data.remarks,
+      ).toBe('incomplete documents');
     });
   });
 
@@ -758,7 +766,11 @@ describe('Applicant workflow', () => {
         created: true,
         matchedByGovernmentId: false,
         warnings: [
-          { personId: 'person-9', confidence: 'MEDIUM', matchedOn: ['phone+dob'] },
+          {
+            personId: 'person-9',
+            confidence: 'MEDIUM',
+            matchedOn: ['phone+dob'],
+          },
         ],
       });
 
@@ -786,7 +798,9 @@ describe('Applicant workflow', () => {
       );
 
       expect(mockPrisma.workflowHistory.create).toHaveBeenCalledTimes(1);
-      expect(mockPrisma.workflowHistory.create.mock.calls[0][0].data).toMatchObject({
+      expect(
+        mockPrisma.workflowHistory.create.mock.calls[0][0].data,
+      ).toMatchObject({
         entityType: 'APPLICANT',
         entityId: 'app-1',
         organizationId: 'org-1',
@@ -805,9 +819,9 @@ describe('Applicant workflow', () => {
         SCOPE,
         ACTOR,
       );
-      expect(mockPrisma.outboxEvent.create.mock.calls[0][0].data.eventName).toBe(
-        'applicant.offer_issued',
-      );
+      expect(
+        mockPrisma.outboxEvent.create.mock.calls[0][0].data.eventName,
+      ).toBe('applicant.offer_issued');
 
       jest.clearAllMocks();
       inState(S.SUBMITTED);
@@ -819,9 +833,9 @@ describe('Applicant workflow', () => {
       );
       // A report can separate these two without reading field diffs, which a
       // generic `applicant.updated` would have forced.
-      expect(mockPrisma.outboxEvent.create.mock.calls[0][0].data.eventName).toBe(
-        'applicant.rejected',
-      );
+      expect(
+        mockPrisma.outboxEvent.create.mock.calls[0][0].data.eventName,
+      ).toBe('applicant.rejected');
     });
 
     it('raises the audit severity of a force-reopen', async () => {
@@ -846,9 +860,17 @@ describe('Applicant workflow', () => {
         ACTOR,
       );
 
-      const payload = mockPrisma.outboxEvent.create.mock.calls[0][0].data.payload;
+      const payload =
+        mockPrisma.outboxEvent.create.mock.calls[0][0].data.payload;
       expect(Object.keys(payload).sort()).toEqual(
-        ['action', 'applicantId', 'branchId', 'fromStatus', 'organizationId', 'toStatus'].sort(),
+        [
+          'action',
+          'applicantId',
+          'branchId',
+          'fromStatus',
+          'organizationId',
+          'toStatus',
+        ].sort(),
       );
     });
   });

@@ -110,7 +110,10 @@ describe('StudentService', () => {
     });
 
     it('derives the display name rather than accepting one', async () => {
-      mockPrisma.student.create.mockResolvedValue({ id: 's-1', studentCode: 'X' });
+      mockPrisma.student.create.mockResolvedValue({
+        id: 's-1',
+        studentCode: 'X',
+      });
 
       await students.createControlled({
         ...baseInput,
@@ -123,7 +126,10 @@ describe('StudentService', () => {
     });
 
     it('normalises the mobile so search can use an index', async () => {
-      mockPrisma.student.create.mockResolvedValue({ id: 's-1', studentCode: 'X' });
+      mockPrisma.student.create.mockResolvedValue({
+        id: 's-1',
+        studentCode: 'X',
+      });
 
       await students.createControlled({
         ...baseInput,
@@ -169,7 +175,10 @@ describe('StudentService', () => {
 
     it('rejects an implausible date of birth before allocating', async () => {
       await expect(
-        students.createControlled({ ...baseInput, dob: new Date('2199-01-01') }),
+        students.createControlled({
+          ...baseInput,
+          dob: new Date('2199-01-01'),
+        }),
       ).rejects.toThrow(BadRequestException);
       expect(allocate).not.toHaveBeenCalled();
     });
@@ -228,11 +237,13 @@ describe('StudentService', () => {
         NotFoundException,
       );
 
-      expect(mockPrisma.student.findFirst.mock.calls[0][0].where).toMatchObject({
-        id: 's-1',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-      });
+      expect(mockPrisma.student.findFirst.mock.calls[0][0].where).toMatchObject(
+        {
+          id: 's-1',
+          organizationId: 'org-1',
+          branchId: 'branch-1',
+        },
+      );
     });
 
     it('drops the branch predicate only when widened', async () => {
@@ -251,9 +262,9 @@ describe('StudentService', () => {
 
       await students.findByCode(' stu0000000123 ', SCOPE);
 
-      expect(mockPrisma.student.findFirst.mock.calls[0][0].where.studentCode).toBe(
-        'STU0000000123',
-      );
+      expect(
+        mockPrisma.student.findFirst.mock.calls[0][0].where.studentCode,
+      ).toBe('STU0000000123');
     });
   });
 
@@ -320,7 +331,9 @@ describe('StudentService', () => {
     it('re-asserts the scope on the write, not only on the read', async () => {
       await students.correctDemographics('s-1', { firstName: 'Riyaa' }, SCOPE);
 
-      expect(mockPrisma.student.updateMany.mock.calls[0][0].where).toMatchObject({
+      expect(
+        mockPrisma.student.updateMany.mock.calls[0][0].where,
+      ).toMatchObject({
         id: 's-1',
         organizationId: 'org-1',
         branchId: 'branch-1',
@@ -329,9 +342,9 @@ describe('StudentService', () => {
 
     it('rebuilds the derived name from its sources', async () => {
       await students.correctDemographics('s-1', { firstName: 'Riyaa' }, SCOPE);
-      expect(mockPrisma.student.updateMany.mock.calls[0][0].data.displayName).toBe(
-        'Riyaa Sharma',
-      );
+      expect(
+        mockPrisma.student.updateMany.mock.calls[0][0].data.displayName,
+      ).toBe('Riyaa Sharma');
     });
 
     it('emits a field-level diff, not just "something changed"', async () => {
@@ -389,31 +402,29 @@ describe('StudentService', () => {
       };
 
       for (const key of Object.keys(attempt)) {
-        expect(
-          [
-            'firstName',
-            'middleName',
-            'lastName',
-            'dob',
-            'genderId',
-            'religionId',
-            'casteId',
-            'categoryId',
-            'motherTongueId',
-            'bloodGroupId',
-            'disabilityStatus',
-            'disabilityTypeId',
-            'disabilityNotes',
-            'primaryMobile',
-            'primaryEmail',
-            'apaarId',
-            'abcId',
-            'penNo',
-            'saralId',
-            'udiseStudentId',
-            'photoDocumentId',
-          ],
-        ).not.toContain(key);
+        expect([
+          'firstName',
+          'middleName',
+          'lastName',
+          'dob',
+          'genderId',
+          'religionId',
+          'casteId',
+          'categoryId',
+          'motherTongueId',
+          'bloodGroupId',
+          'disabilityStatus',
+          'disabilityTypeId',
+          'disabilityNotes',
+          'primaryMobile',
+          'primaryEmail',
+          'apaarId',
+          'abcId',
+          'penNo',
+          'saralId',
+          'udiseStudentId',
+          'photoDocumentId',
+        ]).not.toContain(key);
       }
     });
   });

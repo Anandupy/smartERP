@@ -54,8 +54,16 @@ describe('AuthorizationService Façade', () => {
       effectivePermissions: new Set(['student.view']),
     });
 
-    const hasView = await service.hasPermission('user-1', RoleType.STAFF, 'student.view');
-    const hasCreate = await service.hasPermission('user-1', RoleType.STAFF, 'student.create');
+    const hasView = await service.hasPermission(
+      'user-1',
+      RoleType.STAFF,
+      'student.view',
+    );
+    const hasCreate = await service.hasPermission(
+      'user-1',
+      RoleType.STAFF,
+      'student.create',
+    );
 
     expect(hasView).toBe(true);
     expect(hasCreate).toBe(false);
@@ -66,8 +74,13 @@ describe('AuthorizationService Façade', () => {
       effectivePermissions: new Set(['student.view']),
     });
 
-    const res1 = await service.hasAnyPermission('user-1', RoleType.STAFF, ['student.view', 'student.create']);
-    const res2 = await service.hasAnyPermission('user-1', RoleType.STAFF, ['fees.collect']);
+    const res1 = await service.hasAnyPermission('user-1', RoleType.STAFF, [
+      'student.view',
+      'student.create',
+    ]);
+    const res2 = await service.hasAnyPermission('user-1', RoleType.STAFF, [
+      'fees.collect',
+    ]);
 
     expect(res1).toBe(true);
     expect(res2).toBe(false);
@@ -78,8 +91,14 @@ describe('AuthorizationService Façade', () => {
       effectivePermissions: new Set(['student.view', 'student.create']),
     });
 
-    const res1 = await service.hasAllPermissions('user-1', RoleType.STAFF, ['student.view', 'student.create']);
-    const res2 = await service.hasAllPermissions('user-1', RoleType.STAFF, ['student.view', 'student.delete']);
+    const res1 = await service.hasAllPermissions('user-1', RoleType.STAFF, [
+      'student.view',
+      'student.create',
+    ]);
+    const res2 = await service.hasAllPermissions('user-1', RoleType.STAFF, [
+      'student.view',
+      'student.delete',
+    ]);
 
     expect(res1).toBe(true);
     expect(res2).toBe(false);
@@ -90,7 +109,12 @@ describe('AuthorizationService Façade', () => {
       effectivePermissions: new Set(['student.view', 'student.create']),
     });
 
-    const res = await service.canUserAccess('user-1', RoleType.STAFF, ['student.view', 'student.create'], 'ALL');
+    const res = await service.canUserAccess(
+      'user-1',
+      RoleType.STAFF,
+      ['student.view', 'student.create'],
+      'ALL',
+    );
 
     expect(res.allowed).toBe(true);
     expect(res.missingPermissions).toEqual([]);
@@ -126,7 +150,10 @@ describe('AuthorizationService Façade', () => {
       resolutionDurationMs: 2.5,
     });
 
-    const res = await service.getUserEffectivePermissions('user-1', RoleType.STAFF);
+    const res = await service.getUserEffectivePermissions(
+      'user-1',
+      RoleType.STAFF,
+    );
 
     expect(res.userId).toBe('user-1');
     expect(res.effectivePermissions).toEqual(['student.view']);

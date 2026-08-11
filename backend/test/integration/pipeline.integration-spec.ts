@@ -69,7 +69,9 @@ describe('Admission pipeline (composition)', () => {
   };
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -172,12 +174,20 @@ describe('Admission pipeline (composition)', () => {
 
     genderA = (
       await prisma.gender.create({
-        data: { organizationId: orgA, code: `PLG_${suffix}`, name: `G ${suffix}` },
+        data: {
+          organizationId: orgA,
+          code: `PLG_${suffix}`,
+          name: `G ${suffix}`,
+        },
       })
     ).id;
     genderB = (
       await prisma.gender.create({
-        data: { organizationId: orgB, code: `PLGB_${suffix}`, name: `GB ${suffix}` },
+        data: {
+          organizationId: orgB,
+          code: `PLGB_${suffix}`,
+          name: `GB ${suffix}`,
+        },
       })
     ).id;
 
@@ -186,7 +196,11 @@ describe('Admission pipeline (composition)', () => {
       [orgA, pune],
       [orgB, branchB],
     ] as const) {
-      for (const purpose of ['ADMISSION_FORM', 'APPLICATION', 'ADMISSION_NO'] as const) {
+      for (const purpose of [
+        'ADMISSION_FORM',
+        'APPLICATION',
+        'ADMISSION_NO',
+      ] as const) {
         await numbering.createConfig(
           {
             purpose,
@@ -212,8 +226,16 @@ describe('Admission pipeline (composition)', () => {
       );
     }
 
-    scopeMumbai = { organizationId: orgA, branchId: mumbai, academicYearId: year2026 };
-    scopePune = { organizationId: orgA, branchId: pune, academicYearId: puneYear };
+    scopeMumbai = {
+      organizationId: orgA,
+      branchId: mumbai,
+      academicYearId: year2026,
+    };
+    scopePune = {
+      organizationId: orgA,
+      branchId: pune,
+      academicYearId: puneYear,
+    };
     scopeOrgB = {
       organizationId: orgB,
       branchId: branchB,
@@ -225,7 +247,9 @@ describe('Admission pipeline (composition)', () => {
     for (const org of [orgA, orgB]) {
       await prisma.auditLog.deleteMany({ where: { organizationId: org } });
       await prisma.outboxEvent.deleteMany({ where: { organizationId: org } });
-      await prisma.workflowHistory.deleteMany({ where: { organizationId: org } });
+      await prisma.workflowHistory.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.enrollment.updateMany({
         where: { organizationId: org },
         data: {
@@ -254,15 +278,21 @@ describe('Admission pipeline (composition)', () => {
         where: { person: { organizationId: org } },
       });
       await prisma.person.deleteMany({ where: { organizationId: org } });
-      await prisma.organizationDataKey.deleteMany({ where: { organizationId: org } });
+      await prisma.organizationDataKey.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.numberSequenceCounter.deleteMany({
         where: { config: { organizationId: org } },
       });
-      await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: org } });
+      await prisma.numberSequenceConfig.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.academicUnit.deleteMany({
         where: { branch: { organizationId: org } },
       });
-      await prisma.program.deleteMany({ where: { branch: { organizationId: org } } });
+      await prisma.program.deleteMany({
+        where: { branch: { organizationId: org } },
+      });
       await prisma.academicYear.deleteMany({
         where: { branch: { organizationId: org } },
       });
@@ -330,8 +360,7 @@ describe('Admission pipeline (composition)', () => {
     applicantId: string,
     academicUnitId = std1A,
     scope: ResourceScope = scopeMumbai,
-  ) =>
-    conversion.admit(applicantId, { academicUnitId } as never, scope, ADMIN);
+  ) => conversion.admit(applicantId, { academicUnitId } as never, scope, ADMIN);
 
   // ---------------------------------------------------------------------------
 
@@ -412,14 +441,16 @@ describe('Admission pipeline (composition)', () => {
 
       expect(student.personId).toBe(before.personId);
       // And no second identity was minted along the way.
-      expect(await prisma.person.count({ where: { organizationId: orgA } })).toBe(
-        personsBefore,
-      );
+      expect(
+        await prisma.person.count({ where: { organizationId: orgA } }),
+      ).toBe(personsBefore);
     });
 
     it('links the student to the same person when a government id is present', async () => {
       const govtId = aadhaar();
-      const applicant = await applyAndConfirm(scopeMumbai, { aadhaarNo: govtId });
+      const applicant = await applyAndConfirm(scopeMumbai, {
+        aadhaarNo: govtId,
+      });
       const before = await prisma.applicant.findUniqueOrThrow({
         where: { id: applicant.id },
       });
@@ -467,7 +498,9 @@ describe('Admission pipeline (composition)', () => {
       expect(found.sourceApplicantId).toBe(applicant.id);
       expect(found.admissions).toHaveLength(1);
       expect(found.admissions[0].enrollments).toHaveLength(1);
-      expect(found.admissions[0].enrollments[0].academicUnit.name).toBe('Std 1-A');
+      expect(found.admissions[0].enrollments[0].academicUnit.name).toBe(
+        'Std 1-A',
+      );
     });
 
     it('records the transition once, with its actor', async () => {
@@ -479,7 +512,9 @@ describe('Admission pipeline (composition)', () => {
         orderBy: { timestamp: 'asc' },
       });
 
-      const admitRows = history.filter((h) => h.actionType === WorkflowAction.ADMIT);
+      const admitRows = history.filter(
+        (h) => h.actionType === WorkflowAction.ADMIT,
+      );
       expect(admitRows).toHaveLength(1);
       expect(admitRows[0]).toMatchObject({
         oldStatus: 'SEAT_CONFIRMED',
@@ -503,7 +538,11 @@ describe('Admission pipeline (composition)', () => {
   describe('the student code', () => {
     it('is unique, org-scoped and unrelated to the branch', async () => {
       const first = await admit((await applyAndConfirm()).id);
-      const second = await admit((await applyAndConfirm(scopePune)).id, puneUnit, scopePune);
+      const second = await admit(
+        (await applyAndConfirm(scopePune)).id,
+        puneUnit,
+        scopePune,
+      );
 
       expect(first.studentCode).toMatch(/^STU\d{10}$/);
       expect(second.studentCode).toMatch(/^STU\d{10}$/);
@@ -705,7 +744,9 @@ describe('Admission pipeline (composition)', () => {
 
     it('keeps identity cryptography inside the person boundary', async () => {
       const govtId = aadhaar();
-      const applicant = await applyAndConfirm(scopeMumbai, { aadhaarNo: govtId });
+      const applicant = await applyAndConfirm(scopeMumbai, {
+        aadhaarNo: govtId,
+      });
       const result = await admit(applicant.id);
 
       const student = await prisma.student.findUniqueOrThrow({
@@ -722,7 +763,9 @@ describe('Admission pipeline (composition)', () => {
       // holds it, hashes it, or holds anything derived from it.
       const downstream = JSON.stringify([student, admission, enrollment]);
       expect(downstream).not.toContain(govtId);
-      expect(downstream).not.toMatch(/aadhaar|govtIdHash|phoneHash|ciphertext/i);
+      expect(downstream).not.toMatch(
+        /aadhaar|govtIdHash|phoneHash|ciphertext/i,
+      );
 
       const person = await prisma.person.findUniqueOrThrow({
         where: { id: student.personId },
@@ -760,10 +803,15 @@ describe('Admission pipeline (composition)', () => {
         orderBy: { createdAt: 'asc' },
       });
 
-      expect(spellYears.map((e) => e.academicYearId)).toEqual([year2026, year2027]);
+      expect(spellYears.map((e) => e.academicYearId)).toEqual([
+        year2026,
+        year2027,
+      ]);
       expect(student.studentCode).toBe(result.studentCode);
       expect(
-        await prisma.admission.count({ where: { studentId: result.studentId } }),
+        await prisma.admission.count({
+          where: { studentId: result.studentId },
+        }),
       ).toBe(1);
       expect(nextYear.originType).toBe('PROMOTION');
     });
@@ -803,7 +851,9 @@ describe('Admission pipeline (composition)', () => {
       expect(student.studentCode).toBe(result.studentCode);
       expect(second.previousAdmissionId).toBe(result.admissionId);
       expect(
-        await prisma.admission.count({ where: { studentId: result.studentId } }),
+        await prisma.admission.count({
+          where: { studentId: result.studentId },
+        }),
       ).toBe(2);
     });
 
@@ -894,10 +944,18 @@ describe('Admission pipeline (composition)', () => {
 
     it('keeps the four reporting counts distinct', async () => {
       const before = {
-        applicants: await prisma.applicant.count({ where: { organizationId: orgA } }),
-        students: await prisma.student.count({ where: { organizationId: orgA } }),
-        admissions: await prisma.admission.count({ where: { organizationId: orgA } }),
-        enrollments: await prisma.enrollment.count({ where: { organizationId: orgA } }),
+        applicants: await prisma.applicant.count({
+          where: { organizationId: orgA },
+        }),
+        students: await prisma.student.count({
+          where: { organizationId: orgA },
+        }),
+        admissions: await prisma.admission.count({
+          where: { organizationId: orgA },
+        }),
+        enrollments: await prisma.enrollment.count({
+          where: { organizationId: orgA },
+        }),
       };
 
       const applicant = await applyAndConfirm();
@@ -911,10 +969,18 @@ describe('Admission pipeline (composition)', () => {
       const result = await admit(applicant.id);
 
       const after = {
-        applicants: await prisma.applicant.count({ where: { organizationId: orgA } }),
-        students: await prisma.student.count({ where: { organizationId: orgA } }),
-        admissions: await prisma.admission.count({ where: { organizationId: orgA } }),
-        enrollments: await prisma.enrollment.count({ where: { organizationId: orgA } }),
+        applicants: await prisma.applicant.count({
+          where: { organizationId: orgA },
+        }),
+        students: await prisma.student.count({
+          where: { organizationId: orgA },
+        }),
+        admissions: await prisma.admission.count({
+          where: { organizationId: orgA },
+        }),
+        enrollments: await prisma.enrollment.count({
+          where: { organizationId: orgA },
+        }),
       };
 
       // Two applications, one student. "How many did we admit?" is a count of
@@ -942,8 +1008,12 @@ describe('Admission pipeline (composition)', () => {
 
       const rowsFor = async (organizationId: string) => ({
         students: await prisma.student.findMany({ where: { organizationId } }),
-        admissions: await prisma.admission.findMany({ where: { organizationId } }),
-        enrollments: await prisma.enrollment.findMany({ where: { organizationId } }),
+        admissions: await prisma.admission.findMany({
+          where: { organizationId },
+        }),
+        enrollments: await prisma.enrollment.findMany({
+          where: { organizationId },
+        }),
         persons: await prisma.person.findMany({ where: { organizationId } }),
       });
 
@@ -981,7 +1051,9 @@ describe('Admission pipeline (composition)', () => {
       ).rejects.toMatchObject({ status: 404 });
 
       expect(
-        await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+        await prisma.student.count({
+          where: { sourceApplicantId: applicant.id },
+        }),
       ).toBe(0);
     });
 
@@ -994,20 +1066,27 @@ describe('Admission pipeline (composition)', () => {
         puneUnit, // right organization, wrong branch
         branchBUnit, // wrong organization entirely
       ]) {
-        await expect(admit(applicant.id, academicUnitId)).rejects.toMatchObject({
-          response: { error: 'ACADEMIC_UNIT_MISMATCH' },
-        });
+        await expect(admit(applicant.id, academicUnitId)).rejects.toMatchObject(
+          {
+            response: { error: 'ACADEMIC_UNIT_MISMATCH' },
+          },
+        );
       }
 
       expect(
-        await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+        await prisma.student.count({
+          where: { sourceApplicantId: applicant.id },
+        }),
       ).toBe(0);
     });
 
     it('keeps numbering series apart between organizations', async () => {
       const counters = await prisma.numberSequenceCounter.findMany({
         where: {
-          config: { purpose: 'STUDENT_CODE', organizationId: { in: [orgA, orgB] } },
+          config: {
+            purpose: 'STUDENT_CODE',
+            organizationId: { in: [orgA, orgB] },
+          },
         },
         include: { config: { select: { organizationId: true } } },
       });
@@ -1075,7 +1154,10 @@ describe('Admission pipeline (composition)', () => {
         });
         // Exactly one, after three drains: at-least-once delivery is only safe
         // because `AuditLog.eventId` is unique.
-        expect({ eventName, count: rows.length }).toEqual({ eventName, count: 1 });
+        expect({ eventName, count: rows.length }).toEqual({
+          eventName,
+          count: 1,
+        });
         expect(rows[0].organizationId).toBe(orgA);
       }
     });

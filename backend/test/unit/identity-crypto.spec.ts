@@ -41,7 +41,9 @@ describe('Identity crypto', () => {
 
     it('rejects a passphrase that merely happens to be long', () => {
       // 43 characters, no encoding — the shape a length check would wave through.
-      expect(deriveKeyMaterial('correct horse battery staple correct horse!')).toBeNull();
+      expect(
+        deriveKeyMaterial('correct horse battery staple correct horse!'),
+      ).toBeNull();
     });
 
     it('rejects the wrong number of bytes', () => {
@@ -55,7 +57,9 @@ describe('Identity crypto', () => {
 
     it('round-trips a value', () => {
       const plaintext = Buffer.from('987654321012', 'utf8');
-      expect(aesGcmDecrypt(key, aesGcmEncrypt(key, plaintext))).toEqual(plaintext);
+      expect(aesGcmDecrypt(key, aesGcmEncrypt(key, plaintext))).toEqual(
+        plaintext,
+      );
     });
 
     it('produces different ciphertext for the same plaintext', () => {
@@ -121,9 +125,9 @@ describe('Identity crypto', () => {
       const dek = randomBytes(32);
       const wrapped = await provider.wrap(dek);
       expect(wrapped.kekVersion).toBe(provider.currentVersion());
-      expect(await provider.unwrap(wrapped.wrapped, wrapped.kekVersion)).toEqual(
-        dek,
-      );
+      expect(
+        await provider.unwrap(wrapped.wrapped, wrapped.kekVersion),
+      ).toEqual(dek);
     });
 
     it('refuses a key version it does not hold', async () => {
@@ -157,7 +161,9 @@ describe('Identity crypto', () => {
 
     it('rejects a private key supplied where the public half belongs', () => {
       const { generateKeyPairSync } = require('crypto');
-      const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+      const { privateKey } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+      });
       const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
 
       const provider = new EnvRecoveryKeyProvider(
@@ -195,15 +201,30 @@ describe('Identity crypto', () => {
 
 describe('Government identifier normalization', () => {
   it('canonicalises the same identifier written differently', () => {
-    const spaced = normalizeGovernmentId(GovernmentIdType.AADHAAR, '9876 5432 1012');
-    const dashed = normalizeGovernmentId(GovernmentIdType.AADHAAR, '9876-5432-1012');
-    const plain = normalizeGovernmentId(GovernmentIdType.AADHAAR, '987654321012');
+    const spaced = normalizeGovernmentId(
+      GovernmentIdType.AADHAAR,
+      '9876 5432 1012',
+    );
+    const dashed = normalizeGovernmentId(
+      GovernmentIdType.AADHAAR,
+      '9876-5432-1012',
+    );
+    const plain = normalizeGovernmentId(
+      GovernmentIdType.AADHAAR,
+      '987654321012',
+    );
     expect(spaced).toBe(plain);
     expect(dashed).toBe(plain);
   });
 
   it('rejects malformed input rather than normalising garbage', () => {
-    for (const bad of ['', '12345', '98765432101', '9876543210123', 'abcd12345678']) {
+    for (const bad of [
+      '',
+      '12345',
+      '98765432101',
+      '9876543210123',
+      'abcd12345678',
+    ]) {
       expect(() =>
         normalizeGovernmentId(GovernmentIdType.AADHAAR, bad),
       ).toThrow();
@@ -255,16 +276,32 @@ describe('Blind index', () => {
 
   it('is stable for the same organization and canonical value', () => {
     const svc = hashes(PEPPER);
-    const a = svc.governmentIdIndex('org-1', GovernmentIdType.AADHAAR, '9876 5432 1012');
-    const b = svc.governmentIdIndex('org-1', GovernmentIdType.AADHAAR, '987654321012');
+    const a = svc.governmentIdIndex(
+      'org-1',
+      GovernmentIdType.AADHAAR,
+      '9876 5432 1012',
+    );
+    const b = svc.governmentIdIndex(
+      'org-1',
+      GovernmentIdType.AADHAAR,
+      '987654321012',
+    );
     // Determinism is the point: a per-record salt would make lookup impossible.
     expect(a.blindIndex).toBe(b.blindIndex);
   });
 
   it('differs across organizations for the same identifier', () => {
     const svc = hashes(PEPPER);
-    const a = svc.governmentIdIndex('org-1', GovernmentIdType.AADHAAR, '987654321012');
-    const b = svc.governmentIdIndex('org-2', GovernmentIdType.AADHAAR, '987654321012');
+    const a = svc.governmentIdIndex(
+      'org-1',
+      GovernmentIdType.AADHAAR,
+      '987654321012',
+    );
+    const b = svc.governmentIdIndex(
+      'org-2',
+      GovernmentIdType.AADHAAR,
+      '987654321012',
+    );
     // The organization is inside the HMAC message, not merely the query scope,
     // so holding both databases still reveals no correlation.
     expect(a.blindIndex).not.toBe(b.blindIndex);
@@ -272,7 +309,11 @@ describe('Blind index', () => {
 
   it('separates domains so a phone cannot collide with an identifier', () => {
     const svc = hashes(PEPPER);
-    const asId = svc.governmentIdIndex('org-1', GovernmentIdType.AADHAAR, '987654321012');
+    const asId = svc.governmentIdIndex(
+      'org-1',
+      GovernmentIdType.AADHAAR,
+      '987654321012',
+    );
     const asPhone = svc.phoneIndex('org-1', '987654321012');
     expect(asId.blindIndex).not.toBe(asPhone);
   });

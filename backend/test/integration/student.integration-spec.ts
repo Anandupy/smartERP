@@ -39,7 +39,9 @@ describe('Student identity (integration)', () => {
   let scopeB: ResourceScope;
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -87,12 +89,20 @@ describe('Student identity (integration)', () => {
 
     genderA = (
       await prisma.gender.create({
-        data: { organizationId: orgA, code: `G_${suffix}`, name: `Gender ${suffix}` },
+        data: {
+          organizationId: orgA,
+          code: `G_${suffix}`,
+          name: `Gender ${suffix}`,
+        },
       })
     ).id;
     genderB = (
       await prisma.gender.create({
-        data: { organizationId: orgB, code: `GB_${suffix}`, name: `GenderB ${suffix}` },
+        data: {
+          organizationId: orgB,
+          code: `GB_${suffix}`,
+          name: `GenderB ${suffix}`,
+        },
       })
     ).id;
 
@@ -112,8 +122,16 @@ describe('Student identity (integration)', () => {
       );
     }
 
-    scopeMumbai = { organizationId: orgA, branchId: branchMumbai, academicYearId: null };
-    scopePune = { organizationId: orgA, branchId: branchPune, academicYearId: null };
+    scopeMumbai = {
+      organizationId: orgA,
+      branchId: branchMumbai,
+      academicYearId: null,
+    };
+    scopePune = {
+      organizationId: orgA,
+      branchId: branchPune,
+      academicYearId: null,
+    };
     scopeB = { organizationId: orgB, branchId: branchB, academicYearId: null };
   });
 
@@ -122,12 +140,16 @@ describe('Student identity (integration)', () => {
       await prisma.outboxEvent.deleteMany({ where: { organizationId: org } });
       await prisma.auditLog.deleteMany({ where: { organizationId: org } });
       await prisma.student.deleteMany({ where: { organizationId: org } });
-      await prisma.personSensitive.deleteMany({ where: { organizationId: org } });
+      await prisma.personSensitive.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.person.deleteMany({ where: { organizationId: org } });
       await prisma.numberSequenceCounter.deleteMany({
         where: { config: { organizationId: org } },
       });
-      await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: org } });
+      await prisma.numberSequenceConfig.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.gender.deleteMany({ where: { organizationId: org } });
       await prisma.branch.deleteMany({ where: { organizationId: org } });
       await prisma.organization.deleteMany({ where: { id: org } });
@@ -138,7 +160,9 @@ describe('Student identity (integration)', () => {
   afterEach(async () => {
     for (const org of [orgA, orgB]) {
       await prisma.student.deleteMany({ where: { organizationId: org } });
-      await prisma.personSensitive.deleteMany({ where: { organizationId: org } });
+      await prisma.personSensitive.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.person.deleteMany({ where: { organizationId: org } });
     }
   });
@@ -172,7 +196,8 @@ describe('Student identity (integration)', () => {
   }
 
   function studentInput(
-    over: Partial<CreateStudentInput> & Pick<CreateStudentInput, 'organizationId' | 'branchId' | 'personId'>,
+    over: Partial<CreateStudentInput> &
+      Pick<CreateStudentInput, 'organizationId' | 'branchId' | 'personId'>,
   ): CreateStudentInput {
     return {
       firstName: 'Riya',
@@ -188,7 +213,11 @@ describe('Student identity (integration)', () => {
     it('renders from the organization configuration', async () => {
       const personId = await newPerson(orgA, '1');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       expect(student.studentCode).toBe('STU0000000001');
@@ -200,7 +229,11 @@ describe('Student identity (integration)', () => {
     it('is not recomputed when the numbering format later changes', async () => {
       const personId = await newPerson(orgA, '2');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
       const original = student.studentCode;
 
@@ -229,7 +262,11 @@ describe('Student identity (integration)', () => {
     it('freezes the format once a code has been issued', async () => {
       const personId = await newPerson(orgA, '3');
       await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       const config = await prisma.numberSequenceConfig.findFirstOrThrow({
@@ -240,11 +277,15 @@ describe('Student identity (integration)', () => {
       // every downstream pattern match.
       await expect(
         numbering.updateConfig(config.id, { sequencePadding: 6 }, orgA),
-      ).rejects.toMatchObject({ response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' } });
+      ).rejects.toMatchObject({
+        response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' },
+      });
 
       await expect(
         numbering.updateConfig(config.id, { prefix: 'STD' }, orgA),
-      ).rejects.toMatchObject({ response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' } });
+      ).rejects.toMatchObject({
+        response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' },
+      });
     });
 
     it('refuses to mint a student for an unprovisioned organization', async () => {
@@ -289,7 +330,11 @@ describe('Student identity (integration)', () => {
       const created = await Promise.all(
         personIds.map((personId) =>
           students.createControlled(
-            studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+            studentInput({
+              organizationId: orgA,
+              branchId: branchMumbai,
+              personId,
+            }),
           ),
         ),
       );
@@ -308,7 +353,11 @@ describe('Student identity (integration)', () => {
       const outcomes = await Promise.allSettled(
         Array.from({ length: 20 }, () =>
           students.createControlled(
-            studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+            studentInput({
+              organizationId: orgA,
+              branchId: branchMumbai,
+              personId,
+            }),
           ),
         ),
       );
@@ -326,7 +375,9 @@ describe('Student identity (integration)', () => {
 
       // A controlled business conflict, never a raw Prisma violation.
       for (const r of rejected) {
-        expect((r.reason as any)?.response?.error).toBe('STUDENT_ALREADY_EXISTS');
+        expect((r.reason as any)?.response?.error).toBe(
+          'STUDENT_ALREADY_EXISTS',
+        );
       }
     });
 
@@ -360,11 +411,15 @@ describe('Student identity (integration)', () => {
       expect(fulfilled).toHaveLength(1);
       expect(rejected).toHaveLength(19);
 
-      const rows = await prisma.student.findMany({ where: { sourceApplicantId } });
+      const rows = await prisma.student.findMany({
+        where: { sourceApplicantId },
+      });
       expect(rows).toHaveLength(1);
 
       for (const r of rejected) {
-        expect((r.reason as any)?.response?.error).toBe('APPLICANT_ALREADY_ADMITTED');
+        expect((r.reason as any)?.response?.error).toBe(
+          'APPLICANT_ALREADY_ADMITTED',
+        );
       }
     });
 
@@ -375,10 +430,18 @@ describe('Student identity (integration)', () => {
 
       const [a, b] = await Promise.all([
         students.createControlled(
-          studentInput({ organizationId: orgA, branchId: branchMumbai, personId: personA }),
+          studentInput({
+            organizationId: orgA,
+            branchId: branchMumbai,
+            personId: personA,
+          }),
         ),
         students.createControlled(
-          studentInput({ organizationId: orgB, branchId: branchB, personId: personB }),
+          studentInput({
+            organizationId: orgB,
+            branchId: branchB,
+            personId: personB,
+          }),
         ),
       ]);
 
@@ -398,7 +461,10 @@ describe('Student identity (integration)', () => {
 
       const counters = await prisma.numberSequenceCounter.findMany({
         where: {
-          config: { purpose: 'STUDENT_CODE', organizationId: { in: [orgA, orgB] } },
+          config: {
+            purpose: 'STUDENT_CODE',
+            organizationId: { in: [orgA, orgB] },
+          },
         },
       });
       expect(counters).toHaveLength(2);
@@ -409,7 +475,11 @@ describe('Student identity (integration)', () => {
     it('hides another organization student from a read', async () => {
       const personId = await newPerson(orgA, 'iso1');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       await expect(students.findById(student.id, scopeB)).rejects.toThrow(
@@ -423,7 +493,11 @@ describe('Student identity (integration)', () => {
     it('hides another branch student rather than refusing', async () => {
       const personId = await newPerson(orgA, 'iso2');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       // 404, not 403: a refusal would confirm the id exists to a caller who is
@@ -436,7 +510,11 @@ describe('Student identity (integration)', () => {
     it('returns an empty search rather than an error across branches', async () => {
       const personId = await newPerson(orgA, 'iso3');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       const fromPune = await students.search(
@@ -455,7 +533,11 @@ describe('Student identity (integration)', () => {
     it('widens to the organization only when asked', async () => {
       const personId = await newPerson(orgA, 'iso4');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       const widened = await students.search(
@@ -468,7 +550,11 @@ describe('Student identity (integration)', () => {
     it('never widens past the organization', async () => {
       const personId = await newPerson(orgA, 'iso5');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       const fromOtherOrg = await students.search(
@@ -481,7 +567,11 @@ describe('Student identity (integration)', () => {
     it('scopes a code lookup', async () => {
       const personId = await newPerson(orgA, 'iso6');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       await expect(
@@ -517,12 +607,18 @@ describe('Student identity (integration)', () => {
     });
 
     it('finds by lower-case code', async () => {
-      const result = await students.search({ q: code.toLowerCase() }, scopeMumbai);
+      const result = await students.search(
+        { q: code.toLowerCase() },
+        scopeMumbai,
+      );
       expect(result.items.map((s) => s.id)).toEqual([studentId]);
     });
 
     it('finds by code prefix', async () => {
-      const result = await students.search({ q: code.slice(0, 8) }, scopeMumbai);
+      const result = await students.search(
+        { q: code.slice(0, 8) },
+        scopeMumbai,
+      );
       expect(result.items.map((s) => s.id)).toContain(studentId);
     });
 
@@ -559,7 +655,9 @@ describe('Student identity (integration)', () => {
         data: { status: 'ARCHIVED' },
       });
 
-      expect((await students.search({ q: code }, scopeMumbai)).items).toHaveLength(0);
+      expect(
+        (await students.search({ q: code }, scopeMumbai)).items,
+      ).toHaveLength(0);
 
       // Archival is a write lock, not a disappearance.
       const withInactive = await students.search(
@@ -613,7 +711,11 @@ describe('Student identity (integration)', () => {
     it('updates the current record and rebuilds the derived name', async () => {
       const personId = await newPerson(orgA, 'corr1');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       const updated = await students.correctDemographics(
@@ -634,7 +736,11 @@ describe('Student identity (integration)', () => {
     it('renormalises the mobile so search keeps working', async () => {
       const personId = await newPerson(orgA, 'corr2');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       await students.correctDemographics(
@@ -650,11 +756,19 @@ describe('Student identity (integration)', () => {
     it('refuses a correction from another branch', async () => {
       const personId = await newPerson(orgA, 'corr3');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       await expect(
-        students.correctDemographics(student.id, { firstName: 'Hijack' }, scopePune),
+        students.correctDemographics(
+          student.id,
+          { firstName: 'Hijack' },
+          scopePune,
+        ),
       ).rejects.toThrow(NotFoundException);
 
       const unchanged = await prisma.student.findUniqueOrThrow({
@@ -666,7 +780,11 @@ describe('Student identity (integration)', () => {
     it('refuses to correct an archived record', async () => {
       const personId = await newPerson(orgA, 'corr4');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
       await prisma.student.update({
         where: { id: student.id },
@@ -674,14 +792,22 @@ describe('Student identity (integration)', () => {
       });
 
       await expect(
-        students.correctDemographics(student.id, { firstName: 'X' }, scopeMumbai),
+        students.correctDemographics(
+          student.id,
+          { firstName: 'X' },
+          scopeMumbai,
+        ),
       ).rejects.toMatchObject({ response: { error: 'STUDENT_ARCHIVED' } });
     });
 
     it('rejects an implausible date of birth', async () => {
       const personId = await newPerson(orgA, 'corr5');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       await expect(
@@ -698,7 +824,11 @@ describe('Student identity (integration)', () => {
     async function seedOne(seed: string) {
       const personId = await newPerson(orgA, seed);
       return students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
     }
 
@@ -778,7 +908,9 @@ describe('Student identity (integration)', () => {
       // migration import a whole school at once.
       await seedOne('inv4a');
       await seedOne('inv4b');
-      const rows = await prisma.student.count({ where: { organizationId: orgA } });
+      const rows = await prisma.student.count({
+        where: { organizationId: orgA },
+      });
       expect(rows).toBe(2);
     });
 
@@ -841,7 +973,11 @@ describe('Student identity (integration)', () => {
     it('outboxes creation rather than publishing and hoping', async () => {
       const personId = await newPerson(orgA, 'ev1');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       const events = await prisma.outboxEvent.findMany({
@@ -854,10 +990,19 @@ describe('Student identity (integration)', () => {
 
     it('carries no sensitive identity into an event', async () => {
       const personId = await newPerson(orgA, 'ev2');
-      await persons.attachGovernmentId(orgA, personId, 'AADHAAR', '987654321012');
+      await persons.attachGovernmentId(
+        orgA,
+        personId,
+        'AADHAAR',
+        '987654321012',
+      );
 
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       const events = await prisma.outboxEvent.findMany({
@@ -875,7 +1020,11 @@ describe('Student identity (integration)', () => {
     it('reaches the audit log with a field-level diff', async () => {
       const personId = await newPerson(orgA, 'ev3');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
       await students.correctDemographics(
         student.id,
@@ -898,10 +1047,19 @@ describe('Student identity (integration)', () => {
   describe('the identity boundary', () => {
     it('exposes no government identifier on the student record', async () => {
       const personId = await newPerson(orgA, 'b1');
-      await persons.attachGovernmentId(orgA, personId, 'AADHAAR', '912345678901');
+      await persons.attachGovernmentId(
+        orgA,
+        personId,
+        'AADHAAR',
+        '912345678901',
+      );
 
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
       const row = await prisma.student.findUniqueOrThrow({
         where: { id: student.id },
@@ -915,7 +1073,11 @@ describe('Student identity (integration)', () => {
     it('holds no placement, no account and no current-enrollment pointer', async () => {
       const personId = await newPerson(orgA, 'b2');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
       const columns = Object.keys(
         await prisma.student.findUniqueOrThrow({ where: { id: student.id } }),
@@ -939,7 +1101,11 @@ describe('Student identity (integration)', () => {
     it('survives the branch pointer moving, code unchanged', async () => {
       const personId = await newPerson(orgA, 'b3');
       const student = await students.createControlled(
-        studentInput({ organizationId: orgA, branchId: branchMumbai, personId }),
+        studentInput({
+          organizationId: orgA,
+          branchId: branchMumbai,
+          personId,
+        }),
       );
 
       // Phase 6 owns the transfer operation; this only asserts the model does

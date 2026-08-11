@@ -58,14 +58,14 @@ describe('DomainEvent Foundation', () => {
 
   it('should not contain context fields (userId, requestId, branchId, orgId) in base event attributes', () => {
     const event = new StudentCreatedEvent({
-        studentId: 'stud-101',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
+      studentId: 'stud-101',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
 
     const keys = Object.keys(event);
 

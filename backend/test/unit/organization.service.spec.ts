@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrganizationService } from '@/modules/organization/organization.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
-import { OrganizationCreatedEvent, OrganizationUpdatedEvent, OrganizationDeletedEvent } from '@/common/events';
+import {
+  OrganizationCreatedEvent,
+  OrganizationUpdatedEvent,
+  OrganizationDeletedEvent,
+} from '@/common/events';
 
 describe('OrganizationService (Unit)', () => {
   let service: OrganizationService;

@@ -145,7 +145,8 @@ describe('validateEnv', () => {
       expect(() =>
         validateEnv({
           ...productionBase,
-          DATABASE_URL: 'postgresql://u:p@localhost:5432/erp_test?schema=public',
+          DATABASE_URL:
+            'postgresql://u:p@localhost:5432/erp_test?schema=public',
         }),
       ).toThrow(/points at a _test database/);
     });

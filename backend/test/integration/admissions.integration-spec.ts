@@ -40,7 +40,9 @@ describe('Admissions Phase 0 (integration)', () => {
   const suffix = Date.now().toString();
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -83,12 +85,22 @@ describe('Admissions Phase 0 (integration)', () => {
     };
 
     const branchA = await prisma.branch.create({
-      data: { organizationId: orgId, name: 'Branch A', code: 'P0A_' + suffix, ...branchDefaults },
+      data: {
+        organizationId: orgId,
+        name: 'Branch A',
+        code: 'P0A_' + suffix,
+        ...branchDefaults,
+      },
     });
     branchAId = branchA.id;
 
     const branchB = await prisma.branch.create({
-      data: { organizationId: orgId, name: 'Branch B', code: 'P0B_' + suffix, ...branchDefaults },
+      data: {
+        organizationId: orgId,
+        name: 'Branch B',
+        code: 'P0B_' + suffix,
+        ...branchDefaults,
+      },
     });
     branchBId = branchB.id;
 
@@ -129,7 +141,11 @@ describe('Admissions Phase 0 (integration)', () => {
     unitAId = unitA.id;
 
     const gender = await prisma.gender.create({
-      data: { organizationId: orgId, code: 'P0G_' + suffix, name: 'Gender ' + suffix },
+      data: {
+        organizationId: orgId,
+        code: 'P0G_' + suffix,
+        name: 'Gender ' + suffix,
+      },
     });
     genderId = gender.id;
 
@@ -148,14 +164,24 @@ describe('Admissions Phase 0 (integration)', () => {
       }
     }
 
-    scopeA = { organizationId: orgId, branchId: branchAId, academicYearId: yearAId };
-    scopeB = { organizationId: orgId, branchId: branchBId, academicYearId: yearB.id };
+    scopeA = {
+      organizationId: orgId,
+      branchId: branchAId,
+      academicYearId: yearAId,
+    };
+    scopeB = {
+      organizationId: orgId,
+      branchId: branchBId,
+      academicYearId: yearB.id,
+    };
   });
 
   afterAll(async () => {
     await prisma.outboxEvent.deleteMany({ where: { organizationId: orgId } });
     await prisma.enrollment.deleteMany({ where: { organizationId: orgId } });
-    await prisma.workflowHistory.deleteMany({ where: { organizationId: orgId } });
+    await prisma.workflowHistory.deleteMany({
+      where: { organizationId: orgId },
+    });
     await prisma.applicant.deleteMany({ where: { organizationId: orgId } });
     // Submission puts the applicant in the identity index, so these rows exist
     // now even though nothing here creates a Person directly.
@@ -163,17 +189,29 @@ describe('Admissions Phase 0 (integration)', () => {
       where: { person: { organizationId: orgId } },
     });
     await prisma.person.deleteMany({ where: { organizationId: orgId } });
-    await prisma.organizationDataKey.deleteMany({ where: { organizationId: orgId } });
+    await prisma.organizationDataKey.deleteMany({
+      where: { organizationId: orgId },
+    });
     await prisma.numberSequenceCounter.deleteMany({
       where: { config: { organizationId: orgId } },
     });
-    await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: orgId } });
-    await prisma.academicUnit.deleteMany({ where: { branchId: { in: [branchAId, branchBId] } } });
-    await prisma.program.deleteMany({ where: { branchId: { in: [branchAId, branchBId] } } });
-    await prisma.academicYear.deleteMany({ where: { branchId: { in: [branchAId, branchBId] } } });
+    await prisma.numberSequenceConfig.deleteMany({
+      where: { organizationId: orgId },
+    });
+    await prisma.academicUnit.deleteMany({
+      where: { branchId: { in: [branchAId, branchBId] } },
+    });
+    await prisma.program.deleteMany({
+      where: { branchId: { in: [branchAId, branchBId] } },
+    });
+    await prisma.academicYear.deleteMany({
+      where: { branchId: { in: [branchAId, branchBId] } },
+    });
     await prisma.gender.deleteMany({ where: { organizationId: orgId } });
     await prisma.branch.deleteMany({ where: { organizationId: orgId } });
-    await prisma.organization.deleteMany({ where: { id: { in: [orgId, otherOrgId] } } });
+    await prisma.organization.deleteMany({
+      where: { id: { in: [orgId, otherOrgId] } },
+    });
     await moduleRef.close();
   });
 
@@ -244,16 +282,20 @@ describe('Admissions Phase 0 (integration)', () => {
       await expect(applicants.findOne(applicant.id, scopeB)).rejects.toThrow(
         NotFoundException,
       );
-      await expect(applicants.findOne(applicant.id, scopeA)).resolves.toMatchObject(
-        { id: applicant.id },
-      );
+      await expect(
+        applicants.findOne(applicant.id, scopeA),
+      ).resolves.toMatchObject({ id: applicant.id });
     });
 
     it('refuses a cross-branch update', async () => {
       const applicant = await createApplicant(scopeA);
 
       await expect(
-        applicants.update(applicant.id, { firstName: 'Hijacked' } as any, scopeB),
+        applicants.update(
+          applicant.id,
+          { firstName: 'Hijacked' } as any,
+          scopeB,
+        ),
       ).rejects.toThrow(NotFoundException);
 
       const unchanged = await prisma.applicant.findUnique({

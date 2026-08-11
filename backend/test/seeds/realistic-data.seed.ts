@@ -11,8 +11,10 @@ export async function seedRealisticData(prisma: PrismaClient) {
       channel: 'EMAIL',
       category: 'AUTHENTICATION',
       subject: 'Reset Your Password',
-      bodyHtml: '<h2>Hello {{userName}},</h2><p>You requested a password reset. Please click the link below to reset your password:</p><p><a href="{{resetLink}}">Reset Password</a></p><p>Or use OTP: <strong>{{otp}}</strong></p><p>This link/OTP will expire in {{minutes}} minutes.</p>',
-      bodyText: 'Hello {{userName}},\n\nYou requested a password reset. Please reset your password by opening the link:\n{{resetLink}}\n\nOr use OTP: {{otp}}\n\nThis will expire in {{minutes}} minutes.',
+      bodyHtml:
+        '<h2>Hello {{userName}},</h2><p>You requested a password reset. Please click the link below to reset your password:</p><p><a href="{{resetLink}}">Reset Password</a></p><p>Or use OTP: <strong>{{otp}}</strong></p><p>This link/OTP will expire in {{minutes}} minutes.</p>',
+      bodyText:
+        'Hello {{userName}},\n\nYou requested a password reset. Please reset your password by opening the link:\n{{resetLink}}\n\nOr use OTP: {{otp}}\n\nThis will expire in {{minutes}} minutes.',
       variables: ['userName', 'resetLink', 'otp', 'minutes'],
       language: 'en',
       version: 1,
@@ -25,8 +27,10 @@ export async function seedRealisticData(prisma: PrismaClient) {
       channel: 'EMAIL',
       category: 'AUTHENTICATION',
       subject: 'Security Alert: Password Changed',
-      bodyHtml: '<h2>Hello {{userName}},</h2><p>Your password was successfully changed. If you did not make this change, please contact support immediately.</p>',
-      bodyText: 'Hello {{userName}},\n\nYour password was successfully changed. If you did not make this change, please contact support immediately.',
+      bodyHtml:
+        '<h2>Hello {{userName}},</h2><p>Your password was successfully changed. If you did not make this change, please contact support immediately.</p>',
+      bodyText:
+        'Hello {{userName}},\n\nYour password was successfully changed. If you did not make this change, please contact support immediately.',
       variables: ['userName'],
       language: 'en',
       version: 1,
@@ -39,8 +43,10 @@ export async function seedRealisticData(prisma: PrismaClient) {
       channel: 'EMAIL',
       category: 'AUTHENTICATION',
       subject: 'Verify Your Email Address',
-      bodyHtml: '<h2>Hello,</h2><p>Please verify your email address by entering the following OTP: <strong>{{otp}}</strong></p>',
-      bodyText: 'Hello,\n\nPlease verify your email address by entering the following OTP: {{otp}}',
+      bodyHtml:
+        '<h2>Hello,</h2><p>Please verify your email address by entering the following OTP: <strong>{{otp}}</strong></p>',
+      bodyText:
+        'Hello,\n\nPlease verify your email address by entering the following OTP: {{otp}}',
       variables: ['otp'],
       language: 'en',
       version: 1,
@@ -53,7 +59,8 @@ export async function seedRealisticData(prisma: PrismaClient) {
       channel: 'EMAIL',
       category: 'AUTHENTICATION',
       subject: 'Your One-Time Password (OTP)',
-      bodyHtml: '<h2>Hello,</h2><p>Your OTP for verification is: <strong>{{otp}}</strong></p>',
+      bodyHtml:
+        '<h2>Hello,</h2><p>Your OTP for verification is: <strong>{{otp}}</strong></p>',
       bodyText: 'Hello,\n\nYour OTP for verification is: {{otp}}',
       variables: ['otp'],
       language: 'en',
@@ -321,7 +328,6 @@ export async function seedRealisticData(prisma: PrismaClient) {
         branchId: horizonMumbai.id,
       },
     });
-
   } catch (error) {
     if ((error as { code?: string })?.code === 'P2002') {
       console.log(

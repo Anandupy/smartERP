@@ -63,7 +63,9 @@ describe('Admission conversion (integration)', () => {
   };
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -161,12 +163,20 @@ describe('Admission conversion (integration)', () => {
 
     genderId = (
       await prisma.gender.create({
-        data: { organizationId: orgId, code: `P5G_${suffix}`, name: `G ${suffix}` },
+        data: {
+          organizationId: orgId,
+          code: `P5G_${suffix}`,
+          name: `G ${suffix}`,
+        },
       })
     ).id;
 
     for (const branchId of [branchAId, branchBId]) {
-      for (const purpose of ['ADMISSION_FORM', 'APPLICATION', 'ADMISSION_NO'] as const) {
+      for (const purpose of [
+        'ADMISSION_FORM',
+        'APPLICATION',
+        'ADMISSION_NO',
+      ] as const) {
         await numbering.createConfig(
           {
             purpose,
@@ -190,15 +200,25 @@ describe('Admission conversion (integration)', () => {
       null,
     );
 
-    scopeA = { organizationId: orgId, branchId: branchAId, academicYearId: yearAId };
-    scopeB = { organizationId: orgId, branchId: branchBId, academicYearId: yearBId };
+    scopeA = {
+      organizationId: orgId,
+      branchId: branchAId,
+      academicYearId: yearAId,
+    };
+    scopeB = {
+      organizationId: orgId,
+      branchId: branchBId,
+      academicYearId: yearBId,
+    };
   });
 
   afterAll(async () => {
     for (const org of [orgId, otherOrgId]) {
       await prisma.auditLog.deleteMany({ where: { organizationId: org } });
       await prisma.outboxEvent.deleteMany({ where: { organizationId: org } });
-      await prisma.workflowHistory.deleteMany({ where: { organizationId: org } });
+      await prisma.workflowHistory.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.enrollment.updateMany({
         where: { organizationId: org },
         data: {
@@ -229,15 +249,21 @@ describe('Admission conversion (integration)', () => {
         where: { person: { organizationId: org } },
       });
       await prisma.person.deleteMany({ where: { organizationId: org } });
-      await prisma.organizationDataKey.deleteMany({ where: { organizationId: org } });
+      await prisma.organizationDataKey.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.numberSequenceCounter.deleteMany({
         where: { config: { organizationId: org } },
       });
-      await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: org } });
+      await prisma.numberSequenceConfig.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.academicUnit.deleteMany({
         where: { branch: { organizationId: org } },
       });
-      await prisma.program.deleteMany({ where: { branch: { organizationId: org } } });
+      await prisma.program.deleteMany({
+        where: { branch: { organizationId: org } },
+      });
       await prisma.academicYear.deleteMany({
         where: { branch: { organizationId: org } },
       });
@@ -282,7 +308,8 @@ describe('Admission conversion (integration)', () => {
     const scope = options.scope ?? scopeA;
     const identity = options.identity ?? `p5x${suffix}${seq}`;
     const programId =
-      options.programId ?? (scope.branchId === branchAId ? programAId : programBId);
+      options.programId ??
+      (scope.branchId === branchAId ? programAId : programBId);
 
     const { applicant } = await applicants.create(
       {
@@ -291,7 +318,10 @@ describe('Admission conversion (integration)', () => {
         dob: '2015-04-12',
         genderId,
         programId,
-        aadhaarNo: options.aadhaarNo === null ? undefined : (options.aadhaarNo ?? aadhaar()),
+        aadhaarNo:
+          options.aadhaarNo === null
+            ? undefined
+            : (options.aadhaarNo ?? aadhaar()),
         primaryMobile: `9${String(seq).padStart(9, '0')}`,
         currentAddressLine1: 'Road 1',
         city: 'Mumbai',
@@ -327,19 +357,25 @@ describe('Admission conversion (integration)', () => {
 
   /** Everything the conversion could have written, counted. */
   async function footprint(applicantId: string) {
-    const [applicant, students, admissionRows, enrollmentRows, history, events] =
-      await Promise.all([
-        prisma.applicant.findUniqueOrThrow({ where: { id: applicantId } }),
-        prisma.student.count({ where: { sourceApplicantId: applicantId } }),
-        prisma.admission.count({ where: { sourceApplicantId: applicantId } }),
-        prisma.enrollment.count({ where: { applicantId } }),
-        prisma.workflowHistory.count({
-          where: { entityId: applicantId, actionType: WorkflowAction.ADMIT },
-        }),
-        prisma.outboxEvent.count({
-          where: { aggregateId: applicantId, eventName: 'applicant.admitted' },
-        }),
-      ]);
+    const [
+      applicant,
+      students,
+      admissionRows,
+      enrollmentRows,
+      history,
+      events,
+    ] = await Promise.all([
+      prisma.applicant.findUniqueOrThrow({ where: { id: applicantId } }),
+      prisma.student.count({ where: { sourceApplicantId: applicantId } }),
+      prisma.admission.count({ where: { sourceApplicantId: applicantId } }),
+      prisma.enrollment.count({ where: { applicantId } }),
+      prisma.workflowHistory.count({
+        where: { entityId: applicantId, actionType: WorkflowAction.ADMIT },
+      }),
+      prisma.outboxEvent.count({
+        where: { aggregateId: applicantId, eventName: 'applicant.admitted' },
+      }),
+    ]);
 
     return {
       status: applicant.admissionStatus,
@@ -488,7 +524,9 @@ describe('Admission conversion (integration)', () => {
 
     it('records a lateral entry when told to', async () => {
       const applicant = await seatConfirmed();
-      const result = await admit(applicant.id, { admissionType: 'LATERAL_ENTRY' });
+      const result = await admit(applicant.id, {
+        admissionType: 'LATERAL_ENTRY',
+      });
 
       const admission = await prisma.admission.findUniqueOrThrow({
         where: { id: result.admissionId },
@@ -592,7 +630,10 @@ describe('Admission conversion (integration)', () => {
 
     it('gives one student to two applications for the same human', async () => {
       const shared = aadhaar();
-      const first = await seatConfirmed({ aadhaarNo: shared, identity: `twinA${suffix}` });
+      const first = await seatConfirmed({
+        aadhaarNo: shared,
+        identity: `twinA${suffix}`,
+      });
       // The one-live-application index bites on the second submission, so the
       // second application is raised in the other branch — the case §33 calls
       // "the same child seat-confirmed at two branches".
@@ -614,7 +655,9 @@ describe('Admission conversion (integration)', () => {
 
       expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
 
-      const people = await prisma.person.findMany({ where: { organizationId: orgId } });
+      const people = await prisma.person.findMany({
+        where: { organizationId: orgId },
+      });
       const studentsForPeople = await prisma.student.findMany({
         where: { personId: { in: people.map((p) => p.id) } },
       });
@@ -624,7 +667,10 @@ describe('Admission conversion (integration)', () => {
       // Two identities for one child would split their record for life.
       const byPerson = new Map<string, number>();
       for (const student of studentsForPeople) {
-        byPerson.set(student.personId, (byPerson.get(student.personId) ?? 0) + 1);
+        byPerson.set(
+          student.personId,
+          (byPerson.get(student.personId) ?? 0) + 1,
+        );
       }
       for (const count of byPerson.values()) {
         expect(count).toBe(1);
@@ -643,7 +689,10 @@ describe('Admission conversion (integration)', () => {
         admit(applicant.id),
         workflow.transition(
           applicant.id,
-          { action: WorkflowAction.CANCEL, remarks: 'withdrawn at the counter' },
+          {
+            action: WorkflowAction.CANCEL,
+            remarks: 'withdrawn at the counter',
+          },
           scopeA,
           ADMIN,
         ),
@@ -654,10 +703,18 @@ describe('Admission conversion (integration)', () => {
 
       const after = await footprint(applicant.id);
       if (after.status === 'ADMITTED') {
-        expect(after).toMatchObject({ students: 1, admissions: 1, enrollments: 1 });
+        expect(after).toMatchObject({
+          students: 1,
+          admissions: 1,
+          enrollments: 1,
+        });
       } else {
         expect(after.status).toBe('CANCELLED');
-        expect(after).toMatchObject({ students: 0, admissions: 0, enrollments: 0 });
+        expect(after).toMatchObject({
+          students: 0,
+          admissions: 0,
+          enrollments: 0,
+        });
       }
     });
 
@@ -689,7 +746,10 @@ describe('Admission conversion (integration)', () => {
     it.each([
       ['student creation', () => inject(students, 'createControlled')],
       ['admission creation', () => inject(admissions, 'createControlled')],
-      ['enrollment creation', () => inject(enrollments, 'createInitialEnrollment')],
+      [
+        'enrollment creation',
+        () => inject(enrollments, 'createInitialEnrollment'),
+      ],
       ['the applicant transition', () => inject(workflow, 'transition')],
       [
         'the outbox write',
@@ -765,7 +825,9 @@ describe('Admission conversion (integration)', () => {
       const applicant = await seatConfirmed();
 
       for (const academicUnitId of [unitA3Id, unitBId]) {
-        await expect(admit(applicant.id, { academicUnitId })).rejects.toMatchObject({
+        await expect(
+          admit(applicant.id, { academicUnitId }),
+        ).rejects.toMatchObject({
           response: { error: 'ACADEMIC_UNIT_MISMATCH' },
         });
       }
@@ -831,7 +893,9 @@ describe('Admission conversion (integration)', () => {
       });
       expect(after.admissionStatus).toBe('SUBMITTED');
       expect(
-        await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+        await prisma.student.count({
+          where: { sourceApplicantId: applicant.id },
+        }),
       ).toBe(0);
     });
   });
@@ -841,7 +905,10 @@ describe('Admission conversion (integration)', () => {
   describe('the readmission boundary', () => {
     it('refuses a second admission for a person who is already a student', async () => {
       const shared = aadhaar();
-      const first = await seatConfirmed({ aadhaarNo: shared, identity: `readA${suffix}` });
+      const first = await seatConfirmed({
+        aadhaarNo: shared,
+        identity: `readA${suffix}`,
+      });
       await admit(first.id);
 
       const second = await seatConfirmed({
@@ -855,8 +922,9 @@ describe('Admission conversion (integration)', () => {
         .catch((e: unknown) => e);
 
       expect(errorCode(caught)).toBe('STUDENT_ALREADY_EXISTS');
-      expect((caught as { response: Record<string, unknown> }).response.studentCode)
-        .toMatch(/^STU\d{10}$/);
+      expect(
+        (caught as { response: Record<string, unknown> }).response.studentCode,
+      ).toMatch(/^STU\d{10}$/);
 
       // The second application is untouched and can be readmitted properly
       // once that operation exists.
@@ -895,7 +963,11 @@ describe('Admission conversion (integration)', () => {
         conversion.admit(
           applicant.id,
           { academicUnitId: unitA1Id } as never,
-          { organizationId: otherOrgId, branchId: branchAId, academicYearId: yearAId },
+          {
+            organizationId: otherOrgId,
+            branchId: branchAId,
+            academicYearId: yearAId,
+          },
           ADMIN,
         ),
       ).rejects.toThrow(NotFoundException);
@@ -918,10 +990,15 @@ describe('Admission conversion (integration)', () => {
       const applicant = await seatConfirmed();
 
       await expect(
-        conversion.admit(applicant.id, { academicUnitId: unitA1Id } as never, scopeA, {
-          userId: '00000000-0000-4000-8000-0000000000f2',
-          role: 'STUDENT',
-        }),
+        conversion.admit(
+          applicant.id,
+          { academicUnitId: unitA1Id } as never,
+          scopeA,
+          {
+            userId: '00000000-0000-4000-8000-0000000000f2',
+            role: 'STUDENT',
+          },
+        ),
       ).rejects.toThrow(ForbiddenException);
 
       expect(await footprint(applicant.id)).toEqual(UNTOUCHED);
@@ -937,7 +1014,9 @@ describe('Admission conversion (integration)', () => {
           scopeA,
           ADMIN,
         ),
-      ).rejects.toMatchObject({ response: { error: 'ORCHESTRATED_TRANSITION' } });
+      ).rejects.toMatchObject({
+        response: { error: 'ORCHESTRATED_TRANSITION' },
+      });
 
       // The status is unchanged and, crucially, no student exists — which is
       // the outcome the guard is there to prevent.
@@ -955,7 +1034,12 @@ describe('Admission conversion (integration)', () => {
       const events = await prisma.outboxEvent.findMany({
         where: {
           aggregateId: {
-            in: [applicant.id, result.studentId, result.admissionId, result.enrollmentId],
+            in: [
+              applicant.id,
+              result.studentId,
+              result.admissionId,
+              result.enrollmentId,
+            ],
           },
         },
         orderBy: { occurredAt: 'asc' },
@@ -1034,7 +1118,11 @@ describe('Admission conversion (integration)', () => {
         await prisma.auditLog.count({
           where: {
             eventName: {
-              in: ['student.created', 'admission.created', 'enrollment.created'],
+              in: [
+                'student.created',
+                'admission.created',
+                'enrollment.created',
+              ],
             },
             timestamp: { gte: since },
           },
@@ -1075,7 +1163,12 @@ describe('Admission conversion (integration)', () => {
       const events = await prisma.outboxEvent.findMany({
         where: {
           aggregateId: {
-            in: [applicant.id, result.studentId, result.admissionId, result.enrollmentId],
+            in: [
+              applicant.id,
+              result.studentId,
+              result.admissionId,
+              result.enrollmentId,
+            ],
           },
         },
       });

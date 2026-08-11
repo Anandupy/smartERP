@@ -17,9 +17,7 @@ describe('AuditController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuditController],
-      providers: [
-        { provide: AuditRepository, useValue: mockAuditRepository },
-      ],
+      providers: [{ provide: AuditRepository, useValue: mockAuditRepository }],
     }).compile();
 
     controller = module.get<AuditController>(AuditController);
@@ -33,7 +31,10 @@ describe('AuditController', () => {
   it('should get audit logs', async () => {
     const mockUser = { role: 'SUPER_ADMIN' };
     const mockQuery = { page: 1, limit: 10 };
-    mockAuditRepository.queryAuditLogs.mockResolvedValue({ items: [], meta: {} });
+    mockAuditRepository.queryAuditLogs.mockResolvedValue({
+      items: [],
+      meta: {},
+    });
 
     const req = { user: mockUser };
     const res = await controller.getAuditLogs(mockQuery, req);
@@ -80,7 +81,9 @@ describe('AuditController', () => {
     mockAuditRepository.getAuditLogById.mockResolvedValue(null);
 
     const req = { user: mockUser };
-    await expect(controller.getAuditLogById('log-123', req)).rejects.toThrow(NotFoundException);
+    await expect(controller.getAuditLogById('log-123', req)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('should throw ForbiddenException if access is forbidden', async () => {
@@ -88,6 +91,8 @@ describe('AuditController', () => {
     mockAuditRepository.getAuditLogById.mockResolvedValue('FORBIDDEN');
 
     const req = { user: mockUser };
-    await expect(controller.getAuditLogById('log-123', req)).rejects.toThrow(ForbiddenException);
+    await expect(controller.getAuditLogById('log-123', req)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 });

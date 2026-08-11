@@ -17,7 +17,10 @@ describe('Auth /me Endpoint Context Integration', () => {
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [
-        ConfigModule.forRoot({ isGlobal: true, load: [envConfig, databaseConfig] }),
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [envConfig, databaseConfig],
+        }),
         SecurityModule,
         MaintenanceModule,
         ContextModule,

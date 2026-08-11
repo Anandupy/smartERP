@@ -18,7 +18,10 @@ describe('Execution Context Pipeline Integration', () => {
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [
-        ConfigModule.forRoot({ isGlobal: true, load: [envConfig, databaseConfig] }),
+        ConfigModule.forRoot({
+          isGlobal: true,
+          load: [envConfig, databaseConfig],
+        }),
         SecurityModule,
         ContextModule,
       ],

@@ -75,7 +75,12 @@ describe('Admissions Module Foundation - Unit Tests', () => {
   };
 
   const mockPrisma: any = {
-    religion: { findFirst: jest.fn(), create: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+    religion: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+    },
     gender: { findFirst: jest.fn() },
     caste: { findFirst: jest.fn() },
     category: { findFirst: jest.fn() },
@@ -121,7 +126,11 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       findUnique: jest.fn(),
       delete: jest.fn(),
     },
-    enrollment: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn() },
+    enrollment: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    },
     workflowHistory: { create: jest.fn(), findMany: jest.fn() },
     outboxEvent: { create: jest.fn().mockResolvedValue({ id: 'outbox-1' }) },
     $transaction: jest.fn((cb: any) => cb(mockPrisma)),
@@ -163,7 +172,11 @@ describe('Admissions Module Foundation - Unit Tests', () => {
     it('rejects a master whose code already exists in scope', async () => {
       mockPrisma.religion.findFirst.mockResolvedValueOnce({ id: 'existing' });
       await expect(
-        religionService.create({ code: 'HIND', name: 'Hindu' }, 'org-1', 'branch-1'),
+        religionService.create(
+          { code: 'HIND', name: 'Hindu' },
+          'org-1',
+          'branch-1',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -172,7 +185,11 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ id: 'existing' });
       await expect(
-        religionService.create({ code: 'HIND', name: 'Hindu' }, 'org-1', 'branch-1'),
+        religionService.create(
+          { code: 'HIND', name: 'Hindu' },
+          'org-1',
+          'branch-1',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -428,7 +445,9 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         NotFoundException,
       );
 
-      expect(mockPrisma.applicant.findFirst.mock.calls[0][0].where).toMatchObject({
+      expect(
+        mockPrisma.applicant.findFirst.mock.calls[0][0].where,
+      ).toMatchObject({
         id: 'app-1',
         organizationId: 'org-1',
         branchId: 'branch-1',
@@ -450,9 +469,15 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         displayName: 'Johnny Doe',
       });
 
-      await applicantService.update('app-1', { firstName: 'Johnny' } as any, SCOPE);
+      await applicantService.update(
+        'app-1',
+        { firstName: 'Johnny' } as any,
+        SCOPE,
+      );
 
-      expect(mockPrisma.applicant.updateMany.mock.calls[0][0].where).toMatchObject({
+      expect(
+        mockPrisma.applicant.updateMany.mock.calls[0][0].where,
+      ).toMatchObject({
         id: 'app-1',
         organizationId: 'org-1',
         branchId: 'branch-1',
@@ -492,7 +517,9 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         isPrimary: true,
       });
 
-      expect(mockPrisma.applicantGuardianMapping.updateMany).toHaveBeenCalledWith({
+      expect(
+        mockPrisma.applicantGuardianMapping.updateMany,
+      ).toHaveBeenCalledWith({
         where: { applicantId: 'app-1', isPrimary: true },
         data: { isPrimary: false },
       });
@@ -501,5 +528,4 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       );
     });
   });
-
 });

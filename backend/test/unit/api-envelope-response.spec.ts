@@ -29,10 +29,10 @@ const responsesOf = (
 
   decorate(Controller.prototype, 'handle', descriptor);
 
-  return Reflect.getMetadata(
-    'swagger/apiResponse',
-    descriptor.value,
-  ) as Record<string, any>;
+  return Reflect.getMetadata('swagger/apiResponse', descriptor.value) as Record<
+    string,
+    any
+  >;
 };
 
 describe('ApiEnvelopeResponse decorators', () => {
@@ -65,8 +65,9 @@ describe('ApiEnvelopeResponse decorators', () => {
   });
 
   it('documents arrays as an array of the DTO', () => {
-    const schema = responsesOf(ApiOkEnvelope(ThingDto, { isArray: true }))['200']
-      .schema;
+    const schema = responsesOf(ApiOkEnvelope(ThingDto, { isArray: true }))[
+      '200'
+    ].schema;
 
     expect(schema.properties.data).toEqual({
       type: 'array',

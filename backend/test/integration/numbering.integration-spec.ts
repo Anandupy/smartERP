@@ -22,7 +22,9 @@ describe('Numbering engine (integration)', () => {
   const createdConfigIds: string[] = [];
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -71,7 +73,9 @@ describe('Numbering engine (integration)', () => {
     await prisma.numberSequenceCounter.deleteMany({
       where: { configId: { in: createdConfigIds } },
     });
-    await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: orgId } });
+    await prisma.numberSequenceConfig.deleteMany({
+      where: { organizationId: orgId },
+    });
     await prisma.academicYear.deleteMany({ where: { branchId } });
     await prisma.branch.deleteMany({ where: { organizationId: orgId } });
     await prisma.organization.deleteMany({ where: { id: orgId } });
@@ -121,7 +125,9 @@ describe('Numbering engine (integration)', () => {
     expect(counters[0].currentValue).toBe(iterations);
     expect(new Set(values).size).toBe(iterations);
     expect(values[0]).toBe('STU0000000001');
-    expect(values[iterations - 1]).toBe(`STU${String(iterations).padStart(10, '0')}`);
+    expect(values[iterations - 1]).toBe(
+      `STU${String(iterations).padStart(10, '0')}`,
+    );
   });
 
   /**
@@ -134,7 +140,10 @@ describe('Numbering engine (integration)', () => {
     await provisionStudentCode();
 
     const value = await prisma.$transaction(async (tx) =>
-      numbering.allocate({ purpose: 'STUDENT_CODE', organizationId: orgId }, tx),
+      numbering.allocate(
+        { purpose: 'STUDENT_CODE', organizationId: orgId },
+        tx,
+      ),
     );
 
     expect(value).toBe('STU0000000001');
@@ -251,7 +260,12 @@ describe('Numbering engine (integration)', () => {
     await prisma
       .$transaction(async (tx) => {
         await numbering.allocate(
-          { purpose: 'RECEIPT', organizationId: orgId, branchId, academicYearId },
+          {
+            purpose: 'RECEIPT',
+            organizationId: orgId,
+            branchId,
+            academicYearId,
+          },
           tx,
         );
         throw new Error('rollback');
@@ -337,7 +351,9 @@ describe('Numbering engine (integration)', () => {
       await prisma.numberSequenceCounter.deleteMany({
         where: { configId: otherConfig.id },
       });
-      await prisma.numberSequenceConfig.delete({ where: { id: otherConfig.id } });
+      await prisma.numberSequenceConfig.delete({
+        where: { id: otherConfig.id },
+      });
     } finally {
       await prisma.organization.delete({ where: { id: otherOrg.id } });
     }
@@ -380,11 +396,15 @@ describe('Numbering engine (integration)', () => {
 
     await expect(
       numbering.updateConfig(config.id, { sequencePadding: 6 }, orgId),
-    ).rejects.toMatchObject({ response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' } });
+    ).rejects.toMatchObject({
+      response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' },
+    });
 
     await expect(
       numbering.updateConfig(config.id, { prefix: 'STD' }, orgId),
-    ).rejects.toMatchObject({ response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' } });
+    ).rejects.toMatchObject({
+      response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' },
+    });
 
     // A suffix does not change the counter's rendered width, so it stays open.
     await expect(
@@ -395,7 +415,11 @@ describe('Numbering engine (integration)', () => {
   it('previews a format without consuming a value', async () => {
     const config = await provisionStudentCode();
 
-    const preview = await numbering.preview(config.id, { sampleValue: 42 }, orgId);
+    const preview = await numbering.preview(
+      config.id,
+      { sampleValue: 42 },
+      orgId,
+    );
     expect(preview.rendered).toBe('STU0000000042');
 
     const counters = await prisma.numberSequenceCounter.findMany({

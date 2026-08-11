@@ -195,7 +195,10 @@ describe('Authorization Platform Phase 3 Integration Test', () => {
     });
 
     mockPrisma.userPermissionOverride.findMany.mockResolvedValue([
-      { type: OverrideType.DENY, permission: { name: PERMISSIONS.Admissions.View, isActive: true } },
+      {
+        type: OverrideType.DENY,
+        permission: { name: PERMISSIONS.Admissions.View, isActive: true },
+      },
     ]);
     mockPrisma.rolePermission.findMany.mockResolvedValue([
       { permission: { name: PERMISSIONS.Admissions.View, isActive: true } },
@@ -213,7 +216,10 @@ describe('Authorization Platform Phase 3 Integration Test', () => {
     });
 
     mockPrisma.userPermissionOverride.findMany.mockResolvedValue([
-      { type: OverrideType.GRANT, permission: { name: PERMISSIONS.Fees.Collect, isActive: true } },
+      {
+        type: OverrideType.GRANT,
+        permission: { name: PERMISSIONS.Fees.Collect, isActive: true },
+      },
     ]);
     mockPrisma.rolePermission.findMany.mockResolvedValue([
       { permission: { name: PERMISSIONS.Admissions.View, isActive: true } },
@@ -236,7 +242,10 @@ describe('Authorization Platform Phase 3 Integration Test', () => {
       { name: PERMISSIONS.System.Manage },
     ]);
 
-    const ctx = createMockContext({ id: 'superadmin-1', role: RoleType.SUPER_ADMIN });
+    const ctx = createMockContext({
+      id: 'superadmin-1',
+      role: RoleType.SUPER_ADMIN,
+    });
     const result = await guard.canActivate(ctx);
 
     expect(result).toBe(true);
@@ -244,7 +253,8 @@ describe('Authorization Platform Phase 3 Integration Test', () => {
 
   it('should support ANY permission mode', async () => {
     mockReflector.getAllAndOverride.mockImplementation((key) => {
-      if (key === 'permissions') return [PERMISSIONS.Admissions.View, PERMISSIONS.Admissions.Delete];
+      if (key === 'permissions')
+        return [PERMISSIONS.Admissions.View, PERMISSIONS.Admissions.Delete];
       if (key === 'permission_mode') return 'ANY';
       return null;
     });

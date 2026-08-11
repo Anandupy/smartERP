@@ -155,11 +155,19 @@ describe('Admission conversion (e2e)', () => {
 
     genderId = (
       await prisma.gender.create({
-        data: { organizationId: orgId, code: `AG_${stamp}`, name: `G ${stamp}` },
+        data: {
+          organizationId: orgId,
+          code: `AG_${stamp}`,
+          name: `G ${stamp}`,
+        },
       })
     ).id;
 
-    for (const purpose of ['ADMISSION_FORM', 'APPLICATION', 'ADMISSION_NO'] as const) {
+    for (const purpose of [
+      'ADMISSION_FORM',
+      'APPLICATION',
+      'ADMISSION_NO',
+    ] as const) {
       await numbering.createConfig(
         {
           purpose,
@@ -213,7 +221,9 @@ describe('Admission conversion (e2e)', () => {
     for (const org of [orgId, otherOrgId]) {
       await prisma.auditLog.deleteMany({ where: { organizationId: org } });
       await prisma.outboxEvent.deleteMany({ where: { organizationId: org } });
-      await prisma.workflowHistory.deleteMany({ where: { organizationId: org } });
+      await prisma.workflowHistory.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.enrollment.updateMany({
         where: { organizationId: org },
         data: {
@@ -238,15 +248,21 @@ describe('Admission conversion (e2e)', () => {
         where: { person: { organizationId: org } },
       });
       await prisma.person.deleteMany({ where: { organizationId: org } });
-      await prisma.organizationDataKey.deleteMany({ where: { organizationId: org } });
+      await prisma.organizationDataKey.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.numberSequenceCounter.deleteMany({
         where: { config: { organizationId: org } },
       });
-      await prisma.numberSequenceConfig.deleteMany({ where: { organizationId: org } });
+      await prisma.numberSequenceConfig.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.academicUnit.deleteMany({
         where: { branch: { organizationId: org } },
       });
-      await prisma.program.deleteMany({ where: { branch: { organizationId: org } } });
+      await prisma.program.deleteMany({
+        where: { branch: { organizationId: org } },
+      });
       await prisma.academicYear.deleteMany({
         where: { branch: { organizationId: org } },
       });
@@ -280,7 +296,10 @@ describe('Admission conversion (e2e)', () => {
       scope,
     );
 
-    const actor = { userId: '00000000-0000-4000-8000-00000000e2e1', role: 'SUPER_ADMIN' };
+    const actor = {
+      userId: '00000000-0000-4000-8000-00000000e2e1',
+      role: 'SUPER_ADMIN',
+    };
     for (const action of [
       WorkflowAction.SUBMIT,
       WorkflowAction.START_REVIEW,
@@ -365,7 +384,9 @@ describe('Admission conversion (e2e)', () => {
       .expect(409);
 
     expect(
-      await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+      await prisma.student.count({
+        where: { sourceApplicantId: applicant.id },
+      }),
     ).toBe(0);
   });
 
@@ -379,7 +400,9 @@ describe('Admission conversion (e2e)', () => {
       .expect(404);
 
     expect(
-      await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+      await prisma.student.count({
+        where: { sourceApplicantId: applicant.id },
+      }),
     ).toBe(0);
   });
 
@@ -391,7 +414,9 @@ describe('Admission conversion (e2e)', () => {
       .expect(403);
 
     expect(
-      await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+      await prisma.student.count({
+        where: { sourceApplicantId: applicant.id },
+      }),
     ).toBe(0);
   });
 
@@ -423,7 +448,9 @@ describe('Admission conversion (e2e)', () => {
     }
 
     expect(
-      await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+      await prisma.student.count({
+        where: { sourceApplicantId: applicant.id },
+      }),
     ).toBe(0);
   });
 
@@ -444,7 +471,9 @@ describe('Admission conversion (e2e)', () => {
       .expect(400);
 
     expect(
-      await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+      await prisma.student.count({
+        where: { sourceApplicantId: applicant.id },
+      }),
     ).toBe(0);
   });
 
@@ -465,7 +494,9 @@ describe('Admission conversion (e2e)', () => {
     });
     expect(after.admissionStatus).toBe('SEAT_CONFIRMED');
     expect(
-      await prisma.student.count({ where: { sourceApplicantId: applicant.id } }),
+      await prisma.student.count({
+        where: { sourceApplicantId: applicant.id },
+      }),
     ).toBe(0);
   });
 });

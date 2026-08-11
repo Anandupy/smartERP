@@ -14,14 +14,14 @@ describe('AuditEventMapper', () => {
 
   it('should map StudentCreatedEvent into AuditLog payload with inferred action and module', () => {
     const event = new StudentCreatedEvent({
-        studentId: 'stud-55',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
+      studentId: 'stud-55',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
 
     const auditData = mapper.mapToAuditLog(event);
 
@@ -66,14 +66,14 @@ describe('AuditEventMapper', () => {
 
   it('should enrich audit payload with RequestContext parameters when provided', () => {
     const event = new StudentCreatedEvent({
-        studentId: 'stud-100',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
+      studentId: 'stud-100',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
 
     const mockContext: RequestContext = buildRequestContext({
       requestId: 'req-uuid-777',
@@ -113,14 +113,14 @@ describe('AuditEventMapper', () => {
 
   it('records every field a security investigation needs', () => {
     const event = new StudentCreatedEvent({
-        studentId: 'stud-1',
-        organizationId: 'org-1',
-        branchId: 'branch-1',
-        personId: 'person-1',
-        studentCode: 'STU0000000001',
-        createdVia: 'ADMISSION',
-        sourceApplicantId: 'app-1',
-      });
+      studentId: 'stud-1',
+      organizationId: 'org-1',
+      branchId: 'branch-1',
+      personId: 'person-1',
+      studentCode: 'STU0000000001',
+      createdVia: 'ADMISSION',
+      sourceApplicantId: 'app-1',
+    });
 
     const auditData = mapper.mapToAuditLog(
       event,

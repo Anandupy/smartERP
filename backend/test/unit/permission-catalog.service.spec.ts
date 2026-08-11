@@ -59,12 +59,19 @@ describe('PermissionCatalogService', () => {
     expect(mockPrisma.permission.findMany).toHaveBeenCalledWith({
       where: { isActive: true, categoryId: 'cat-1' },
       include: { category: true },
-      orderBy: [{ category: { displayOrder: 'asc' } }, { displayOrder: 'asc' }, { name: 'asc' }],
+      orderBy: [
+        { category: { displayOrder: 'asc' } },
+        { displayOrder: 'asc' },
+        { name: 'asc' },
+      ],
     });
   });
 
   it('should get permission by ID', async () => {
-    mockPrisma.permission.findUnique.mockResolvedValue({ id: 'perm-1', name: 'student.view' });
+    mockPrisma.permission.findUnique.mockResolvedValue({
+      id: 'perm-1',
+      name: 'student.view',
+    });
 
     const res = await service.getPermissionById('perm-1');
     expect(res.name).toBe('student.view');
@@ -73,7 +80,9 @@ describe('PermissionCatalogService', () => {
   it('should throw NotFoundException for non-existent permission ID', async () => {
     mockPrisma.permission.findUnique.mockResolvedValue(null);
 
-    await expect(service.getPermissionById('invalid-id')).rejects.toThrow(NotFoundException);
+    await expect(service.getPermissionById('invalid-id')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('should retrieve permission metadata', async () => {

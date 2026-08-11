@@ -176,7 +176,9 @@ describe('AuditController (e2e)', () => {
         status: 'SUCCESS',
       });
       // A date is serialized as an ISO string, which is what the client parses.
-      expect(() => new Date(row!.timestamp as string).toISOString()).not.toThrow();
+      expect(() =>
+        new Date(row!.timestamp as string).toISOString(),
+      ).not.toThrow();
     });
 
     it('omits metadata and changes unless includeDetails is set', async () => {
@@ -205,9 +207,9 @@ describe('AuditController (e2e)', () => {
         `?organizationId=${organizationId}&sortBy=timestamp&sortOrder=asc&limit=3`,
       );
 
-      const stamps = (
-        response.body.data.items as { timestamp: string }[]
-      ).map((item) => new Date(item.timestamp).getTime());
+      const stamps = (response.body.data.items as { timestamp: string }[]).map(
+        (item) => new Date(item.timestamp).getTime(),
+      );
       expect(stamps).toEqual([...stamps].sort((a, b) => a - b));
     });
 

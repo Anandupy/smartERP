@@ -63,7 +63,10 @@ describe('Enrollment', () => {
       findMany: jest.fn().mockResolvedValue([]),
       count: jest.fn().mockResolvedValue(0),
     },
-    workflowHistory: { create: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    workflowHistory: {
+      create: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     outboxEvent: { create: jest.fn().mockResolvedValue({ id: 'ob-1' }) },
     $transaction: jest.fn((cb: any) => cb(mockPrisma)),
     $queryRawUnsafe: rawQuery,
@@ -97,7 +100,9 @@ describe('Enrollment', () => {
     rawQuery.mockImplementation((sql: string) => {
       if (!String(sql).includes('FOR ')) return Promise.resolve([]);
       return Promise.resolve(
-        String(sql).includes('"AcademicYear"') ? rawQuery.year : rawQuery.enrollment,
+        String(sql).includes('"AcademicYear"')
+          ? rawQuery.year
+          : rawQuery.enrollment,
       );
     });
 
@@ -162,7 +167,9 @@ describe('Enrollment', () => {
     });
 
     it('leaves exactly the historical statuses with no way out', () => {
-      expect(statusesWithNoExit().sort()).toEqual([...TERMINAL_STATUSES].sort());
+      expect(statusesWithNoExit().sort()).toEqual(
+        [...TERMINAL_STATUSES].sort(),
+      );
     });
 
     it('never reopens a closed placement', () => {
@@ -209,9 +216,9 @@ describe('Enrollment', () => {
       });
 
       expect(mockPrisma.outboxEvent.create).toHaveBeenCalledTimes(1);
-      expect(mockPrisma.outboxEvent.create.mock.calls[0][0].data.eventName).toBe(
-        'enrollment.created',
-      );
+      expect(
+        mockPrisma.outboxEvent.create.mock.calls[0][0].data.eventName,
+      ).toBe('enrollment.created');
     });
 
     /**
@@ -221,7 +228,9 @@ describe('Enrollment', () => {
      */
     it('uses the caller transaction and opens none of its own', async () => {
       const tx: any = {
-        enrollment: { create: jest.fn().mockResolvedValue({ id: 'enr-tx', ...PLACEMENT }) },
+        enrollment: {
+          create: jest.fn().mockResolvedValue({ id: 'enr-tx', ...PLACEMENT }),
+        },
         outboxEvent: { create: jest.fn().mockResolvedValue({}) },
         $queryRawUnsafe: rawQuery,
       };
@@ -288,7 +297,9 @@ describe('Enrollment', () => {
     it('stores no demographic field', async () => {
       await enrollments.createInitialEnrollment({ ...PLACEMENT });
 
-      const written = Object.keys(mockPrisma.enrollment.create.mock.calls[0][0].data);
+      const written = Object.keys(
+        mockPrisma.enrollment.create.mock.calls[0][0].data,
+      );
       for (const forbidden of [
         'firstName',
         'lastName',
@@ -324,7 +335,8 @@ describe('Enrollment', () => {
       // already superseded leaves an orphan that satisfies every constraint
       // and means nothing.
       const lockOrder = rawQuery.mock.invocationCallOrder[0];
-      const createOrder = mockPrisma.enrollment.create.mock.invocationCallOrder[0];
+      const createOrder =
+        mockPrisma.enrollment.create.mock.invocationCallOrder[0];
       expect(lockOrder).toBeLessThan(createOrder);
     });
 
@@ -412,12 +424,12 @@ describe('Enrollment', () => {
       // under a different admission — and it is not excluded from the
       // one-live-placement index, so using it here would make the replacement
       // unwritable. What tells a mistake from a real move is `originType`.
-      expect(mockPrisma.enrollment.update.mock.calls[0][0].data.enrollmentStatus).toBe(
-        'SUPERSEDED',
-      );
-      expect(mockPrisma.enrollment.create.mock.calls[0][0].data.originType).toBe(
-        'TRANSFER',
-      );
+      expect(
+        mockPrisma.enrollment.update.mock.calls[0][0].data.enrollmentStatus,
+      ).toBe('SUPERSEDED');
+      expect(
+        mockPrisma.enrollment.create.mock.calls[0][0].data.originType,
+      ).toBe('TRANSFER');
     });
 
     it('writes one history row per side and two events', async () => {
@@ -431,7 +443,8 @@ describe('Enrollment', () => {
       );
 
       expect(mockPrisma.workflowHistory.create).toHaveBeenCalledTimes(2);
-      const replacementId = mockPrisma.enrollment.create.mock.calls[0][0].data.id;
+      const replacementId =
+        mockPrisma.enrollment.create.mock.calls[0][0].data.id;
       expect(
         mockPrisma.workflowHistory.create.mock.calls.map(
           (c: any) => c[0].data.entityId,
@@ -458,7 +471,9 @@ describe('Enrollment', () => {
             SCOPE,
             ACTOR,
           ),
-        ).rejects.toMatchObject({ response: { error: 'CHANGE_REASON_REQUIRED' } });
+        ).rejects.toMatchObject({
+          response: { error: 'CHANGE_REASON_REQUIRED' },
+        });
 
         expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
       },
@@ -474,26 +489,29 @@ describe('Enrollment', () => {
         ACTOR,
       );
 
-      expect(mockPrisma.enrollment.create.mock.calls[0][0].data.changeReason).toBe(
-        'wrong class',
-      );
+      expect(
+        mockPrisma.enrollment.create.mock.calls[0][0].data.changeReason,
+      ).toBe('wrong class');
     });
 
-    it.each(TERMINAL_STATUSES)('refuses to replace a %s placement', async (status) => {
-      inState(status);
+    it.each(TERMINAL_STATUSES)(
+      'refuses to replace a %s placement',
+      async (status) => {
+        inState(status);
 
-      await expect(
-        enrollments.correctPlacement(
-          'enr-1',
-          { academicUnitId: 'unit-2', reason: 'too late' },
-          SCOPE,
-          ACTOR,
-        ),
-      ).rejects.toMatchObject({ response: { error: 'ENROLLMENT_CLOSED' } });
+        await expect(
+          enrollments.correctPlacement(
+            'enr-1',
+            { academicUnitId: 'unit-2', reason: 'too late' },
+            SCOPE,
+            ACTOR,
+          ),
+        ).rejects.toMatchObject({ response: { error: 'ENROLLMENT_CLOSED' } });
 
-      expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
-      expect(mockPrisma.enrollment.update).not.toHaveBeenCalled();
-    });
+        expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
+        expect(mockPrisma.enrollment.update).not.toHaveBeenCalled();
+      },
+    );
 
     it('refuses a correction that changes nothing', async () => {
       inState(S.ACTIVE);
@@ -501,7 +519,11 @@ describe('Enrollment', () => {
       await expect(
         enrollments.correctPlacement(
           'enr-1',
-          { programId: 'prog-1', academicUnitId: 'unit-1', reason: 'no change' },
+          {
+            programId: 'prog-1',
+            academicUnitId: 'unit-1',
+            reason: 'no change',
+          },
           SCOPE,
           ACTOR,
         ),
@@ -548,7 +570,11 @@ describe('Enrollment', () => {
       await expect(
         enrollments.correctPlacement(
           'enr-1',
-          { academicUnitId: 'unit-2', reason: 'wrong class', expectedVersion: 3 },
+          {
+            academicUnitId: 'unit-2',
+            reason: 'wrong class',
+            expectedVersion: 3,
+          },
           SCOPE,
           ACTOR,
         ),
@@ -567,7 +593,9 @@ describe('Enrollment', () => {
         ACTOR,
       );
 
-      expect(mockPrisma.enrollment.update.mock.calls[0][0].data.version).toEqual({
+      expect(
+        mockPrisma.enrollment.update.mock.calls[0][0].data.version,
+      ).toEqual({
         increment: 1,
       });
     });
@@ -596,12 +624,17 @@ describe('Enrollment', () => {
     it('emits a status change, not a creation', async () => {
       inState(S.ACTIVE);
 
-      await enrollments.cancelEnrollment('enr-1', { reason: 'void' }, SCOPE, ACTOR);
+      await enrollments.cancelEnrollment(
+        'enr-1',
+        { reason: 'void' },
+        SCOPE,
+        ACTOR,
+      );
 
       expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
-      expect(mockPrisma.outboxEvent.create.mock.calls[0][0].data.eventName).toBe(
-        'enrollment.status_changed',
-      );
+      expect(
+        mockPrisma.outboxEvent.create.mock.calls[0][0].data.eventName,
+      ).toBe('enrollment.status_changed');
     });
 
     it('refuses once a result has been recorded', async () => {
@@ -614,20 +647,30 @@ describe('Enrollment', () => {
       ).rejects.toMatchObject({ response: { error: 'ENROLLMENT_HAS_RESULT' } });
     });
 
-    it.each(TERMINAL_STATUSES)('refuses to cancel a %s placement', async (status) => {
-      inState(status);
+    it.each(TERMINAL_STATUSES)(
+      'refuses to cancel a %s placement',
+      async (status) => {
+        inState(status);
 
-      await expect(
-        enrollments.cancelEnrollment('enr-1', { reason: 'void' }, SCOPE, ACTOR),
-      ).rejects.toMatchObject({ response: { error: 'ENROLLMENT_CLOSED' } });
-    });
+        await expect(
+          enrollments.cancelEnrollment(
+            'enr-1',
+            { reason: 'void' },
+            SCOPE,
+            ACTOR,
+          ),
+        ).rejects.toMatchObject({ response: { error: 'ENROLLMENT_CLOSED' } });
+      },
+    );
 
     it('requires a reason', async () => {
       inState(S.ACTIVE);
 
       await expect(
         enrollments.cancelEnrollment('enr-1', { reason: '  ' }, SCOPE, ACTOR),
-      ).rejects.toMatchObject({ response: { error: 'CHANGE_REASON_REQUIRED' } });
+      ).rejects.toMatchObject({
+        response: { error: 'CHANGE_REASON_REQUIRED' },
+      });
     });
 
     it('refuses inside a locked year', async () => {
@@ -666,16 +709,28 @@ describe('Enrollment', () => {
     it('clears the position when told to', async () => {
       inState(S.ACTIVE, { rollNumber: '4' });
 
-      await enrollments.assignRollNumber('enr-1', { rollNumber: null }, SCOPE, ACTOR);
+      await enrollments.assignRollNumber(
+        'enr-1',
+        { rollNumber: null },
+        SCOPE,
+        ACTOR,
+      );
 
-      expect(mockPrisma.enrollment.update.mock.calls[0][0].data.rollNumber).toBeNull();
+      expect(
+        mockPrisma.enrollment.update.mock.calls[0][0].data.rollNumber,
+      ).toBeNull();
     });
 
     it('refuses a blank position', async () => {
       inState(S.ACTIVE);
 
       await expect(
-        enrollments.assignRollNumber('enr-1', { rollNumber: '   ' }, SCOPE, ACTOR),
+        enrollments.assignRollNumber(
+          'enr-1',
+          { rollNumber: '   ' },
+          SCOPE,
+          ACTOR,
+        ),
       ).rejects.toMatchObject({ response: { error: 'ROLL_NUMBER_INVALID' } });
     });
 
@@ -687,18 +742,26 @@ describe('Enrollment', () => {
       // the eventual per-unit rule and never weaker, so nothing that should be
       // refused gets through.
       await expect(
-        enrollments.assignRollNumber('enr-1', { rollNumber: '17' }, SCOPE, ACTOR),
+        enrollments.assignRollNumber(
+          'enr-1',
+          { rollNumber: '17' },
+          SCOPE,
+          ACTOR,
+        ),
       ).rejects.toMatchObject({ response: { error: 'CLASS_LIST_LOCKED' } });
     });
 
     it('asks the policy provider, not the year directly', async () => {
       inState(S.ACTIVE);
-      const spy = jest
-        .spyOn(config, 'classListLocked')
-        .mockReturnValue(true);
+      const spy = jest.spyOn(config, 'classListLocked').mockReturnValue(true);
 
       await expect(
-        enrollments.assignRollNumber('enr-1', { rollNumber: '17' }, SCOPE, ACTOR),
+        enrollments.assignRollNumber(
+          'enr-1',
+          { rollNumber: '17' },
+          SCOPE,
+          ACTOR,
+        ),
       ).rejects.toMatchObject({ response: { error: 'CLASS_LIST_LOCKED' } });
 
       expect(spy).toHaveBeenCalledWith(
@@ -711,7 +774,12 @@ describe('Enrollment', () => {
     it('emits its own event', async () => {
       inState(S.ACTIVE, { rollNumber: '4' });
 
-      await enrollments.assignRollNumber('enr-1', { rollNumber: '17' }, SCOPE, ACTOR);
+      await enrollments.assignRollNumber(
+        'enr-1',
+        { rollNumber: '17' },
+        SCOPE,
+        ACTOR,
+      );
 
       const event = mockPrisma.outboxEvent.create.mock.calls[0][0].data;
       expect(event.eventName).toBe('enrollment.roll_number_changed');
@@ -724,7 +792,12 @@ describe('Enrollment', () => {
         inState(status, { rollNumber: '4' });
 
         await expect(
-          enrollments.assignRollNumber('enr-1', { rollNumber: '17' }, SCOPE, ACTOR),
+          enrollments.assignRollNumber(
+            'enr-1',
+            { rollNumber: '17' },
+            SCOPE,
+            ACTOR,
+          ),
         ).rejects.toMatchObject({ response: { error: 'ENROLLMENT_CLOSED' } });
       },
     );
@@ -802,7 +875,12 @@ describe('Enrollment', () => {
       jest.clearAllMocks();
       hasPermission.mockResolvedValue(true);
       inState(S.ACTIVE);
-      await enrollments.cancelEnrollment('enr-1', { reason: 'void' }, SCOPE, ACTOR);
+      await enrollments.cancelEnrollment(
+        'enr-1',
+        { reason: 'void' },
+        SCOPE,
+        ACTOR,
+      );
       expect(hasPermission).toHaveBeenCalledWith(
         'user-1',
         'BRANCH_ADMIN',
@@ -812,7 +890,12 @@ describe('Enrollment', () => {
       jest.clearAllMocks();
       hasPermission.mockResolvedValue(true);
       inState(S.ACTIVE);
-      await enrollments.assignRollNumber('enr-1', { rollNumber: '3' }, SCOPE, ACTOR);
+      await enrollments.assignRollNumber(
+        'enr-1',
+        { rollNumber: '3' },
+        SCOPE,
+        ACTOR,
+      );
       expect(hasPermission).toHaveBeenCalledWith(
         'user-1',
         'BRANCH_ADMIN',
@@ -860,9 +943,9 @@ describe('Enrollment', () => {
       );
 
       expect(hasPermission).not.toHaveBeenCalled();
-      expect(mockPrisma.workflowHistory.create.mock.calls[0][0].data.actionBy).toBe(
-        'SYSTEM',
-      );
+      expect(
+        mockPrisma.workflowHistory.create.mock.calls[0][0].data.actionBy,
+      ).toBe('SYSTEM');
     });
   });
 
@@ -874,7 +957,9 @@ describe('Enrollment', () => {
 
       await enrollments.findById('enr-1', SCOPE);
 
-      expect(mockPrisma.enrollment.findFirst.mock.calls[0][0].where).toMatchObject({
+      expect(
+        mockPrisma.enrollment.findFirst.mock.calls[0][0].where,
+      ).toMatchObject({
         id: 'enr-1',
         organizationId: 'org-1',
         branchId: 'branch-1',
@@ -897,7 +982,9 @@ describe('Enrollment', () => {
 
       // The query the partial unique index guarantees returns at most one row,
       // and the reason Student carries no currentEnrollmentId.
-      expect(mockPrisma.enrollment.findFirst.mock.calls[0][0].where).toMatchObject({
+      expect(
+        mockPrisma.enrollment.findFirst.mock.calls[0][0].where,
+      ).toMatchObject({
         studentId: 'stu-1',
         academicYearId: 'year-1',
         enrollmentKind: 'PRIMARY',
@@ -935,14 +1022,21 @@ describe('Enrollment', () => {
 
   describe('what the service refuses to expose', () => {
     it('has no generic update', () => {
-      expect((enrollments as never as Record<string, unknown>).update).toBeUndefined();
+      expect(
+        (enrollments as never as Record<string, unknown>).update,
+      ).toBeUndefined();
       expect(
         (enrollments as never as Record<string, unknown>).updateEnrollment,
       ).toBeUndefined();
     });
 
     it('has no delete of any kind', () => {
-      for (const name of ['delete', 'remove', 'deleteEnrollment', 'hardDelete']) {
+      for (const name of [
+        'delete',
+        'remove',
+        'deleteEnrollment',
+        'hardDelete',
+      ]) {
         expect(
           (enrollments as never as Record<string, unknown>)[name],
         ).toBeUndefined();
@@ -959,7 +1053,12 @@ describe('Enrollment', () => {
         SCOPE,
         ACTOR,
       );
-      await enrollments.cancelEnrollment('enr-1', { reason: 'void' }, SCOPE, ACTOR);
+      await enrollments.cancelEnrollment(
+        'enr-1',
+        { reason: 'void' },
+        SCOPE,
+        ACTOR,
+      );
 
       // Enrollment owns the column; Examination owns the decision.
       const writes = [
@@ -998,9 +1097,9 @@ describe('Enrollment', () => {
       // name tells them nothing and leaks a schema detail the API never
       // promised.
       expect(errorCode(caught)).toBe(expected);
-      expect(JSON.stringify((caught as { response?: unknown }).response)).not.toContain(
-        'P2002',
-      );
+      expect(
+        JSON.stringify((caught as { response?: unknown }).response),
+      ).not.toContain('P2002');
     });
 
     it('translates a composite-key violation into a named mismatch', async () => {
@@ -1009,7 +1108,9 @@ describe('Enrollment', () => {
         new Prisma.PrismaClientKnownRequestError('fk violation', {
           code: 'P2003',
           clientVersion: 'test',
-          meta: { field_name: 'Enrollment_academicUnitId_branchId_programId_fkey' },
+          meta: {
+            field_name: 'Enrollment_academicUnitId_branchId_programId_fkey',
+          },
         }),
       );
 

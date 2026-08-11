@@ -59,7 +59,8 @@ describe('PermissionGuard', () => {
 
     guard = module.get<PermissionGuard>(PermissionGuard);
     reflector = module.get<Reflector>(Reflector);
-    authorizationService = module.get<AuthorizationService>(AuthorizationService);
+    authorizationService =
+      module.get<AuthorizationService>(AuthorizationService);
   });
 
   it('should pass through if no permissions metadata required', async () => {

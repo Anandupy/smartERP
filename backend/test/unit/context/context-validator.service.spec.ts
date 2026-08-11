@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ContextValidatorService } from '@/modules/context/services/context-validator.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { RoleType, OrganizationStatus } from '@/generated/client';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 describe('ContextValidatorService', () => {
   let validator: ContextValidatorService;
@@ -63,14 +67,22 @@ describe('ContextValidatorService', () => {
   describe('validateOrganization', () => {
     it('should validate active organization for super admin', async () => {
       prisma.organization.findUnique.mockResolvedValue(mockOrg);
-      const res = await validator.validateOrganization('org-1', 'user-1', RoleType.SUPER_ADMIN);
+      const res = await validator.validateOrganization(
+        'org-1',
+        'user-1',
+        RoleType.SUPER_ADMIN,
+      );
       expect(res).toEqual(mockOrg);
     });
 
     it('should throw NotFoundException when org does not exist', async () => {
       prisma.organization.findUnique.mockResolvedValue(null);
       await expect(
-        validator.validateOrganization('org-99', 'user-1', RoleType.SUPER_ADMIN),
+        validator.validateOrganization(
+          'org-99',
+          'user-1',
+          RoleType.SUPER_ADMIN,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -87,7 +99,12 @@ describe('ContextValidatorService', () => {
     it('should throw ForbiddenException when non-Super Admin tries cross-org access', async () => {
       prisma.organization.findUnique.mockResolvedValue(mockOrg);
       await expect(
-        validator.validateOrganization('org-1', 'user-1', RoleType.ORG_ADMIN, 'org-2'),
+        validator.validateOrganization(
+          'org-1',
+          'user-1',
+          RoleType.ORG_ADMIN,
+          'org-2',
+        ),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -95,28 +112,50 @@ describe('ContextValidatorService', () => {
   describe('validateBranch', () => {
     it('should validate branch belonging to organization', async () => {
       prisma.branch.findUnique.mockResolvedValue(mockBranch);
-      const res = await validator.validateBranch('branch-1', 'org-1', 'user-1', RoleType.ORG_ADMIN, 'org-1');
+      const res = await validator.validateBranch(
+        'branch-1',
+        'org-1',
+        'user-1',
+        RoleType.ORG_ADMIN,
+        'org-1',
+      );
       expect(res).toEqual(mockBranch);
     });
 
     it('should throw NotFoundException when branch not found or deleted', async () => {
       prisma.branch.findUnique.mockResolvedValue(null);
       await expect(
-        validator.validateBranch('branch-99', 'org-1', 'user-1', RoleType.ORG_ADMIN),
+        validator.validateBranch(
+          'branch-99',
+          'org-1',
+          'user-1',
+          RoleType.ORG_ADMIN,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException when branch does not belong to org', async () => {
       prisma.branch.findUnique.mockResolvedValue(mockBranch);
       await expect(
-        validator.validateBranch('branch-1', 'org-2', 'user-1', RoleType.SUPER_ADMIN),
+        validator.validateBranch(
+          'branch-1',
+          'org-2',
+          'user-1',
+          RoleType.SUPER_ADMIN,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw ForbiddenException when restricted user accesses unauthorized branch', async () => {
       prisma.branch.findUnique.mockResolvedValue(mockBranch);
       await expect(
-        validator.validateBranch('branch-1', 'org-1', 'user-1', RoleType.STAFF, 'branch-2'),
+        validator.validateBranch(
+          'branch-1',
+          'org-1',
+          'user-1',
+          RoleType.STAFF,
+          'branch-2',
+        ),
       ).rejects.toThrow(ForbiddenException);
     });
   });

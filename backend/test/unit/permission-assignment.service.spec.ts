@@ -65,7 +65,9 @@ describe('PermissionAssignmentService', () => {
       ],
     }).compile();
 
-    service = module.get<PermissionAssignmentService>(PermissionAssignmentService);
+    service = module.get<PermissionAssignmentService>(
+      PermissionAssignmentService,
+    );
   });
 
   it('should list role permissions', async () => {
@@ -92,7 +94,11 @@ describe('PermissionAssignmentService', () => {
       { id: p2, name: 'student.create' },
     ]);
 
-    const res = await service.assignPermissionsToRole(RoleType.STAFF, [p2], 'admin-1');
+    const res = await service.assignPermissionsToRole(
+      RoleType.STAFF,
+      [p2],
+      'admin-1',
+    );
 
     expect(res.role).toBe(RoleType.STAFF);
     expect(res.count).toBe(1);
@@ -106,14 +112,21 @@ describe('PermissionAssignmentService', () => {
     mockPrisma.permission.findMany.mockResolvedValue([]);
 
     await expect(
-      service.assignPermissionsToRole(RoleType.STAFF, ['invalid-id'], 'admin-1'),
+      service.assignPermissionsToRole(
+        RoleType.STAFF,
+        ['invalid-id'],
+        'admin-1',
+      ),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('should grant user permission override', async () => {
     const p1 = '019183ab-1234-7111-a111-111111111111';
     mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
-    mockPrisma.permission.findUnique.mockResolvedValue({ id: p1, name: 'fees.collect' });
+    mockPrisma.permission.findUnique.mockResolvedValue({
+      id: p1,
+      name: 'fees.collect',
+    });
     mockPrisma.userPermissionOverride.findUnique.mockResolvedValue(null);
     mockPrisma.userPermissionOverride.upsert.mockResolvedValue({
       userId: 'user-1',
@@ -121,7 +134,12 @@ describe('PermissionAssignmentService', () => {
       type: OverrideType.GRANT,
     });
 
-    const res = await service.grantUserOverride('user-1', p1, 'audit prep', 'admin-1');
+    const res = await service.grantUserOverride(
+      'user-1',
+      p1,
+      'audit prep',
+      'admin-1',
+    );
 
     expect(res.type).toBe(OverrideType.GRANT);
     expect(mockEventBus.publish).toHaveBeenCalled();
@@ -130,7 +148,10 @@ describe('PermissionAssignmentService', () => {
   it('should deny user permission override', async () => {
     const p1 = '019183ab-1234-7111-a111-111111111111';
     mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
-    mockPrisma.permission.findUnique.mockResolvedValue({ id: p1, name: 'student.delete' });
+    mockPrisma.permission.findUnique.mockResolvedValue({
+      id: p1,
+      name: 'student.delete',
+    });
     mockPrisma.userPermissionOverride.findUnique.mockResolvedValue(null);
     mockPrisma.userPermissionOverride.upsert.mockResolvedValue({
       userId: 'user-1',
@@ -138,7 +159,12 @@ describe('PermissionAssignmentService', () => {
       type: OverrideType.DENY,
     });
 
-    const res = await service.denyUserOverride('user-1', p1, 'security lock', 'admin-1');
+    const res = await service.denyUserOverride(
+      'user-1',
+      p1,
+      'security lock',
+      'admin-1',
+    );
 
     expect(res.type).toBe(OverrideType.DENY);
     expect(mockEventBus.publish).toHaveBeenCalled();

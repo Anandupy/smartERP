@@ -27,7 +27,9 @@ describe('Person identity foundation (integration)', () => {
   const AADHAAR = '987654321012';
 
   beforeAll(async () => {
-    moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     await moduleRef.init();
 
     prisma = moduleRef.get(PrismaService);
@@ -56,10 +58,16 @@ describe('Person identity foundation (integration)', () => {
     for (const org of [orgA, orgB]) {
       await prisma.outboxEvent.deleteMany({ where: { organizationId: org } });
       await prisma.auditLog.deleteMany({ where: { organizationId: org } });
-      await prisma.personMatchDecision.deleteMany({ where: { organizationId: org } });
-      await prisma.personSensitive.deleteMany({ where: { organizationId: org } });
+      await prisma.personMatchDecision.deleteMany({
+        where: { organizationId: org },
+      });
+      await prisma.personSensitive.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.person.deleteMany({ where: { organizationId: org } });
-      await prisma.organizationDataKey.deleteMany({ where: { organizationId: org } });
+      await prisma.organizationDataKey.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.organization.deleteMany({ where: { id: org } });
     }
     await moduleRef.close();
@@ -67,8 +75,12 @@ describe('Person identity foundation (integration)', () => {
 
   afterEach(async () => {
     for (const org of [orgA, orgB]) {
-      await prisma.personMatchDecision.deleteMany({ where: { organizationId: org } });
-      await prisma.personSensitive.deleteMany({ where: { organizationId: org } });
+      await prisma.personMatchDecision.deleteMany({
+        where: { organizationId: org },
+      });
+      await prisma.personSensitive.deleteMany({
+        where: { organizationId: org },
+      });
       await prisma.person.deleteMany({ where: { organizationId: org } });
     }
   });
@@ -97,7 +109,9 @@ describe('Person identity foundation (integration)', () => {
       const ids = new Set(results.map((r) => r.personId));
       expect(ids.size).toBe(1);
 
-      const rows = await prisma.person.findMany({ where: { organizationId: orgA } });
+      const rows = await prisma.person.findMany({
+        where: { organizationId: orgA },
+      });
       expect(rows).toHaveLength(1);
 
       // Exactly one caller created it; the rest matched deterministically.
@@ -119,8 +133,12 @@ describe('Person identity foundation (integration)', () => {
 
       expect(a.personId).not.toBe(b.personId);
 
-      const rowA = await prisma.person.findUniqueOrThrow({ where: { id: a.personId } });
-      const rowB = await prisma.person.findUniqueOrThrow({ where: { id: b.personId } });
+      const rowA = await prisma.person.findUniqueOrThrow({
+        where: { id: a.personId },
+      });
+      const rowB = await prisma.person.findUniqueOrThrow({
+        where: { id: b.personId },
+      });
 
       expect(rowA.organizationId).toBe(orgA);
       expect(rowB.organizationId).toBe(orgB);
@@ -136,8 +154,12 @@ describe('Person identity foundation (integration)', () => {
         ...Array.from({ length: 20 }, () => persons.resolve(orgB, identity())),
       ]);
 
-      expect(await prisma.person.count({ where: { organizationId: orgA } })).toBe(1);
-      expect(await prisma.person.count({ where: { organizationId: orgB } })).toBe(1);
+      expect(
+        await prisma.person.count({ where: { organizationId: orgA } }),
+      ).toBe(1);
+      expect(
+        await prisma.person.count({ where: { organizationId: orgB } }),
+      ).toBe(1);
     });
   });
 
@@ -200,7 +222,9 @@ describe('Person identity foundation (integration)', () => {
     it('stores ciphertext and a blind index, never the identifier', async () => {
       const { personId } = await persons.resolve(orgA, identity());
 
-      const person = await prisma.person.findUniqueOrThrow({ where: { id: personId } });
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: personId },
+      });
       const sensitive = await prisma.personSensitive.findUniqueOrThrow({
         where: { personId },
       });
@@ -240,7 +264,11 @@ describe('Person identity foundation (integration)', () => {
       await persons.resolve(orgB, identity({ governmentId: '912345678901' }));
 
       await expect(
-        crypto.decrypt(orgB, Buffer.from(sensitive.aadhaarEnc!), sensitive.keyVersion),
+        crypto.decrypt(
+          orgB,
+          Buffer.from(sensitive.aadhaarEnc!),
+          sensitive.keyVersion,
+        ),
       ).rejects.toMatchObject({
         response: { error: 'SENSITIVE_DECRYPT_FAILED' },
       });
@@ -248,11 +276,15 @@ describe('Person identity foundation (integration)', () => {
 
     it('leaves the identity standing after crypto-erasure', async () => {
       const { personId } = await persons.resolve(orgA, identity());
-      const before = await prisma.person.findUniqueOrThrow({ where: { id: personId } });
+      const before = await prisma.person.findUniqueOrThrow({
+        where: { id: personId },
+      });
 
       await crypto.cryptoEraseSubject(personId, 'operator-1');
 
-      const person = await prisma.person.findUniqueOrThrow({ where: { id: personId } });
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: personId },
+      });
       const sensitive = await prisma.personSensitive.findUniqueOrThrow({
         where: { personId },
       });
@@ -273,7 +305,10 @@ describe('Person identity foundation (integration)', () => {
 
   describe('attaching an identifier', () => {
     it('binds a late-arriving identifier to an existing identity', async () => {
-      const created = await persons.resolve(orgA, identity({ governmentId: null }));
+      const created = await persons.resolve(
+        orgA,
+        identity({ governmentId: null }),
+      );
       expect(created.created).toBe(true);
 
       const result = await persons.attachGovernmentId(
@@ -294,11 +329,19 @@ describe('Person identity foundation (integration)', () => {
     it('gives one owner under 20 concurrent attempts on two identities', async () => {
       const a = await persons.resolve(
         orgA,
-        identity({ firstName: 'Ravi', governmentId: null, phone: '9000000001' }),
+        identity({
+          firstName: 'Ravi',
+          governmentId: null,
+          phone: '9000000001',
+        }),
       );
       const b = await persons.resolve(
         orgA,
-        identity({ firstName: 'Kiran', governmentId: null, phone: '9000000002' }),
+        identity({
+          firstName: 'Kiran',
+          governmentId: null,
+          phone: '9000000002',
+        }),
       );
 
       const outcomes = await Promise.allSettled(
@@ -339,7 +382,10 @@ describe('Person identity foundation (integration)', () => {
     });
 
     it('rejects an invalid identifier before anything is stored', async () => {
-      const created = await persons.resolve(orgA, identity({ governmentId: null }));
+      const created = await persons.resolve(
+        orgA,
+        identity({ governmentId: null }),
+      );
 
       await expect(
         persons.attachGovernmentId(
@@ -436,7 +482,9 @@ describe('Person identity foundation (integration)', () => {
   describe('database invariants', () => {
     it('refuses two identities with one identifier in one organization', async () => {
       const { personId } = await persons.resolve(orgA, identity());
-      const person = await prisma.person.findUniqueOrThrow({ where: { id: personId } });
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: personId },
+      });
 
       await expect(
         prisma.person.create({
@@ -462,7 +510,9 @@ describe('Person identity foundation (integration)', () => {
           },
         });
       }
-      expect(await prisma.person.count({ where: { organizationId: orgA } })).toBe(3);
+      expect(
+        await prisma.person.count({ where: { organizationId: orgA } }),
+      ).toBe(3);
     });
 
     it('rejects an implausible date of birth', async () => {
@@ -540,15 +590,17 @@ describe('Person identity foundation (integration)', () => {
       expect(serialised).not.toContain(AADHAAR);
       // Not even a derived form: the blind index is a stable per-tenant handle
       // for a value the consumer is not entitled to.
-      const person = await prisma.person.findUniqueOrThrow({ where: { id: personId } });
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: personId },
+      });
       expect(serialised).not.toContain(person.govtIdHash!);
     });
 
     it('carries no identifier into the audit log', async () => {
       const { personId } = await persons.resolve(orgA, identity());
-      await moduleRef.get(
-        (await import('@/infrastructure/outbox/outbox.relay')).OutboxRelay,
-      ).drain();
+      await moduleRef
+        .get((await import('@/infrastructure/outbox/outbox.relay')).OutboxRelay)
+        .drain();
 
       const rows = await prisma.auditLog.findMany({
         where: { aggregateId: personId },
