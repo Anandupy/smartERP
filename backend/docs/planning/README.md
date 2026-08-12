@@ -36,11 +36,48 @@ tenants the first time `admit()` runs. Where it and a module spec conflict, it
 states which is correct and why; Appendix B lists the corrections to fold back
 into the specs.
 
+## The operational reference
+
+Once Phases 0–5.5 landed, the blueprint became a *plan that has been carried
+out*. What it does not do is describe the system that now exists as one
+lifecycle.
+
+[`core-admission-lifecycle-specification.md`](core-admission-lifecycle-specification.md)
+does. It is the **single operational reference for the complete
+Person → Applicant → Guardian → Workflow → Admission → Student → Enrollment
+lifecycle**: every field with its owner and its rule, every workflow edge, every
+constraint, every error code, every event, the ID survival map, the field
+ownership matrix, a form-stage reference detailed enough to build a frontend
+from, and thirty-six edge cases with their expected business result.
+
+It is a **reconciliation, not a redesign**. Every statement carries a status —
+`IMPLEMENTED` · `VERIFIED` · `DECIDED` · `RECOMMENDED` · `PROPOSED` ·
+`DEFERRED` · `REQUIRES BUSINESS DECISION` · `REQUIRES R&D` — and where a spec
+and the code disagree, both are stated and one is named correct rather than one
+being quietly corrected.
+
+**Its verdict is `NOT READY TO FREEZE`, narrowly and on one axis.** The
+Person/Student/Admission/Enrollment core is sound and verified end to end. The
+**guardian boundary is not**: the architecture states in three places that
+guardianship is a Person↔Person relationship and that this is *why* `admit()`
+need do nothing about guardians — and it is not implemented that way. `Guardian`
+is a branch-scoped table holding its own plaintext Aadhaar and address, linked
+to `Applicant`, so **a student admitted today has no guardian**, and a migrated
+student can never have one. Alongside that sit three further defects: a
+non-transactional primary-guardian toggle that can leave a child with *no*
+primary guardian, absent financial-guardian exclusivity, and **no tenant scoping
+or permission on any guardian route** — which today returns a full plaintext
+government identifier cross-tenant.
+
+Read §8, §46 and §47 first if you are picking up that work; §33 if you are
+building the frontend; §41 if you are building a module on top.
+
 ## Status
 
 | # | Module | Status | Document |
 | :--- | :--- | :--- | :--- |
 | **★** | **Admission → Enrollment → Student — build blueprint** | `planned` ⚠️ 12 open questions, 12 Phase-0 blockers | [`student-admission-enrollment-architecture.md`](student-admission-enrollment-architecture.md) |
+| **★★** | **Core admission lifecycle — operational reference** | `reconciled` ⛔ **NOT READY TO FREEZE** — 4 blocking guardian issues | [`core-admission-lifecycle-specification.md`](core-admission-lifecycle-specification.md) |
 | **P0** | Foundation blockers *(numbering, BOLA, outbox, row locks)* | `implemented` ✅ 2026-08-09 | blueprint §47 Phase 0 |
 | **P1** | Identity foundation — Person, crypto, blind index | `implemented` ✅ 2026-08-09 ⚠️ recovery custody ceremony outstanding | [`../core/key-custody.md`](../core/key-custody.md) |
 | **P2** | Student identity | `implemented` ✅ 2026-08-10 | blueprint §11, §13, §39, §41 |
@@ -55,7 +92,7 @@ into the specs.
 | **I1** | Person | `planned` ⚠️ 2 open questions | [`01-identity-core/01-person.md`](01-identity-core/01-person.md) |
 | **I2** | Applicant *(exists — needs changes)* | `planned` ⚠️ 2 open questions | [`01-identity-core/02-applicant.md`](01-identity-core/02-applicant.md) |
 | **I3+I4+I5** | Admission, Student, Enrollment *(one unit)* | `planned` ⚠️ 3 open questions | [`01-identity-core/03-05-admission-student-enrollment.md`](01-identity-core/03-05-admission-student-enrollment.md) |
-| **S1** | Guardian & family *(partially exists)* | `planned` ⚠️ 2 open questions | [`02-guardian-family/01-guardian.md`](02-guardian-family/01-guardian.md) |
+| **S1** | Guardian & family *(partially exists)* | `planned` ⛔ **blocks the core freeze** — 4 defects, see the reference §8 | [`02-guardian-family/01-guardian.md`](02-guardian-family/01-guardian.md) |
 | **S2** | Address | `planned` ⚠️ 2 open questions | [`03-address/01-address.md`](03-address/01-address.md) |
 | **S3** | Document | `planned` ⚠️ 3 open questions | [`04-documents/01-document.md`](04-documents/01-document.md) |
 | **S4** | Employee / staff | `planned` ⚠️ 3 open questions | [`05-employee/01-employee.md`](05-employee/01-employee.md) |
@@ -309,6 +346,14 @@ reporting error:
   stay as they are. Both constraints are enforced on every insert and update
   regardless — verified by test. To finish: resolve or delete that row, then run
   the two `VALIDATE CONSTRAINT` statements in the Phase 3 migration.
+- **The guardian boundary.** Reconciling the whole lifecycle end to end found
+  that guardianship is still `Applicant`-scoped rather than Person↔Person, so it
+  does **not** survive `admit()` — and that no guardian route carries tenant
+  scoping or a permission, which leaks a plaintext government identifier across
+  tenants today. Four blocking issues, detailed in
+  [`core-admission-lifecycle-specification.md`](core-admission-lifecycle-specification.md)
+  §8, §46 and §47. The scoping fix (§47 R2) is contained and should ship on its
+  own, ahead of the model change (R1).
 - **Legacy plaintext `aadhaarNo` on `Applicant` and `Guardian`.** Still present
   and still read only through `PersonService`. `Student`, `Admission` and
   `Enrollment` have no such column and no event or audit payload carries the
