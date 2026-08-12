@@ -7,6 +7,7 @@ import {
   GuardianMappedEvent,
   GuardianUnmappedEvent,
 } from '@/common/events';
+import { ResourceScope, scopedWhere } from '@/common/scope/resource-scope';
 import {
   CreateGuardianDto,
   UpdateGuardianDto,
@@ -20,12 +21,12 @@ export class GuardiansService {
     private readonly eventBus: EventBus,
   ) {}
 
-  async create(dto: CreateGuardianDto, orgId: string, branchId: string) {
+  async create(dto: CreateGuardianDto, scope: ResourceScope) {
     const guardian = await this.prisma.guardian.create({
       data: {
         ...dto,
-        organizationId: orgId,
-        branchId,
+        organizationId: scope.organizationId,
+        branchId: scope.branchId,
       },
     });
 
@@ -41,9 +42,15 @@ export class GuardiansService {
     return guardian;
   }
 
-  async findOne(id: string) {
+  /**
+   * Read one guardian **within the caller's scope**.
+   *
+   * A row belonging to another organization or branch is simply not found —
+   * the caller cannot distinguish that from an id that does not exist.
+   */
+  async findOne(id: string, scope: ResourceScope) {
     const guardian = await this.prisma.guardian.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, ...scopedWhere(scope), deletedAt: null },
     });
     if (!guardian) {
       throw new NotFoundException('Guardian not found');
@@ -51,11 +58,25 @@ export class GuardiansService {
     return guardian;
   }
 
-  async update(id: string, dto: UpdateGuardianDto) {
-    await this.findOne(id);
-    const updated = await this.prisma.guardian.update({
-      where: { id },
+  /**
+   * The write re-asserts scope in its own `WHERE` rather than trusting the
+   * preceding read, so a read-then-write-by-id can never drift into a
+   * cross-tenant write.
+   */
+  async update(id: string, dto: UpdateGuardianDto, scope: ResourceScope) {
+    await this.findOne(id, scope);
+
+    const result = await this.prisma.guardian.updateMany({
+      where: { id, ...scopedWhere(scope), deletedAt: null },
       data: dto,
+    });
+
+    if (result.count !== 1) {
+      throw new NotFoundException('Guardian not found');
+    }
+
+    const updated = await this.prisma.guardian.findFirstOrThrow({
+      where: { id },
     });
 
     await this.eventBus.publish(
@@ -67,14 +88,14 @@ export class GuardiansService {
     return updated;
   }
 
-  async search(searchTerm: string, branchId: string) {
+  async search(searchTerm: string, scope: ResourceScope) {
     if (!searchTerm) {
       return [];
     }
 
     return this.prisma.guardian.findMany({
       where: {
-        branchId,
+        ...scopedWhere(scope),
         deletedAt: null,
         OR: [
           { mobilePrimary: { contains: searchTerm } },
@@ -87,17 +108,29 @@ export class GuardiansService {
     });
   }
 
-  async mapGuardianToApplicant(applicantId: string, dto: MapGuardianDto) {
-    // 1. Verify applicant exists
+  private async findApplicantInScope(
+    applicantId: string,
+    scope: ResourceScope,
+  ) {
     const applicant = await this.prisma.applicant.findFirst({
-      where: { id: applicantId, deletedAt: null },
+      where: { id: applicantId, ...scopedWhere(scope), deletedAt: null },
     });
     if (!applicant) {
       throw new NotFoundException('Applicant not found');
     }
+    return applicant;
+  }
 
-    // 2. Verify guardian exists
-    await this.findOne(dto.guardianId);
+  async mapGuardianToApplicant(
+    applicantId: string,
+    dto: MapGuardianDto,
+    scope: ResourceScope,
+  ) {
+    // 1. Verify applicant exists in scope
+    await this.findApplicantInScope(applicantId, scope);
+
+    // 2. Verify guardian exists in scope
+    await this.findOne(dto.guardianId, scope);
 
     // 3. Verify relationType exists
     const relType = await this.prisma.relationType.findFirst({
@@ -155,7 +188,9 @@ export class GuardiansService {
     return mapping;
   }
 
-  async getMappedGuardians(applicantId: string) {
+  async getMappedGuardians(applicantId: string, scope: ResourceScope) {
+    await this.findApplicantInScope(applicantId, scope);
+
     return this.prisma.applicantGuardianMapping.findMany({
       where: { applicantId },
       include: {
@@ -166,7 +201,14 @@ export class GuardiansService {
     });
   }
 
-  async removeMapping(applicantId: string, guardianId: string) {
+  async removeMapping(
+    applicantId: string,
+    guardianId: string,
+    scope: ResourceScope,
+  ) {
+    await this.findApplicantInScope(applicantId, scope);
+    await this.findOne(guardianId, scope);
+
     const mapping = await this.prisma.applicantGuardianMapping.findUnique({
       where: {
         applicantId_guardianId: { applicantId, guardianId },

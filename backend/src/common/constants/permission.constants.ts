@@ -66,6 +66,21 @@ export const PERMISSIONS = {
     Reject: 'admissions.reject',
     Export: 'admissions.export',
   },
+  /**
+   * Guardian records and their mapping to an applicant.
+   *
+   * Split from `Admissions` because a guardian record carries its own
+   * sensitive fields (Aadhaar, address, income) independent of any one
+   * application, and `Map`/`Unmap` are link operations rather than a create
+   * or update of the guardian record itself.
+   */
+  Guardian: {
+    View: 'guardian.view',
+    Create: 'guardian.create',
+    Update: 'guardian.update',
+    Map: 'guardian.map',
+    Unmap: 'guardian.unmap',
+  },
   Fees: {
     View: 'fees.view',
     Collect: 'fees.collect',

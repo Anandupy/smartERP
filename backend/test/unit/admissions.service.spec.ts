@@ -501,8 +501,14 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       mockPrisma.applicant.findFirst.mockResolvedValue({
         id: 'app-1',
         admissionStatus: 'DRAFT',
+        organizationId: SCOPE.organizationId,
+        branchId: SCOPE.branchId,
       });
-      mockPrisma.guardian.findFirst.mockResolvedValue({ id: 'guard-1' });
+      mockPrisma.guardian.findFirst.mockResolvedValue({
+        id: 'guard-1',
+        organizationId: SCOPE.organizationId,
+        branchId: SCOPE.branchId,
+      });
       mockPrisma.relationType.findFirst.mockResolvedValue({ id: 'rel-1' });
       mockPrisma.applicantGuardianMapping.upsert.mockResolvedValue({
         applicantId: 'app-1',
@@ -511,11 +517,15 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         isPrimary: true,
       });
 
-      await guardiansService.mapGuardianToApplicant('app-1', {
-        guardianId: 'guard-1',
-        relationTypeId: 'rel-1',
-        isPrimary: true,
-      });
+      await guardiansService.mapGuardianToApplicant(
+        'app-1',
+        {
+          guardianId: 'guard-1',
+          relationTypeId: 'rel-1',
+          isPrimary: true,
+        },
+        SCOPE,
+      );
 
       expect(
         mockPrisma.applicantGuardianMapping.updateMany,
@@ -526,6 +536,27 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       expect(mockEventBus.publish).toHaveBeenCalledWith(
         expect.any(GuardianMappedEvent),
       );
+    });
+
+    it('rejects mapping a guardian from another tenant with 404, not the cross-tenant row', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue({
+        id: 'app-1',
+        admissionStatus: 'DRAFT',
+        organizationId: SCOPE.organizationId,
+        branchId: SCOPE.branchId,
+      });
+      // Scoped findFirst would return null for a guardian outside this scope.
+      mockPrisma.guardian.findFirst.mockResolvedValue(null);
+
+      await expect(
+        guardiansService.mapGuardianToApplicant(
+          'app-1',
+          { guardianId: 'guard-other-tenant', relationTypeId: 'rel-1' },
+          SCOPE,
+        ),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(mockPrisma.applicantGuardianMapping.upsert).not.toHaveBeenCalled();
     });
   });
 });

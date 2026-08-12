@@ -296,6 +296,33 @@ export class SeederService implements OnApplicationBootstrap {
         description: 'Export admissions data',
       },
 
+      // Guardian
+      {
+        name: PERMISSIONS.Guardian.View,
+        categoryCode: 'ADMISSIONS',
+        description: 'View guardian records and applicant mappings',
+      },
+      {
+        name: PERMISSIONS.Guardian.Create,
+        categoryCode: 'ADMISSIONS',
+        description: 'Create a guardian record',
+      },
+      {
+        name: PERMISSIONS.Guardian.Update,
+        categoryCode: 'ADMISSIONS',
+        description: 'Update a guardian record',
+      },
+      {
+        name: PERMISSIONS.Guardian.Map,
+        categoryCode: 'ADMISSIONS',
+        description: 'Map a guardian to an applicant',
+      },
+      {
+        name: PERMISSIONS.Guardian.Unmap,
+        categoryCode: 'ADMISSIONS',
+        description: 'Remove a guardian mapping from an applicant',
+      },
+
       // Fees
       {
         name: PERMISSIONS.Fees.View,
@@ -441,6 +468,11 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Admissions.Approve,
       PERMISSIONS.Admissions.Reject,
       PERMISSIONS.Admissions.Export,
+      PERMISSIONS.Guardian.View,
+      PERMISSIONS.Guardian.Create,
+      PERMISSIONS.Guardian.Update,
+      PERMISSIONS.Guardian.Map,
+      PERMISSIONS.Guardian.Unmap,
       PERMISSIONS.Fees.View,
       PERMISSIONS.Fees.Collect,
       PERMISSIONS.Fees.Refund,
@@ -470,6 +502,11 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Admissions.Update,
       PERMISSIONS.Admissions.Approve,
       PERMISSIONS.Admissions.Reject,
+      PERMISSIONS.Guardian.View,
+      PERMISSIONS.Guardian.Create,
+      PERMISSIONS.Guardian.Update,
+      PERMISSIONS.Guardian.Map,
+      PERMISSIONS.Guardian.Unmap,
       PERMISSIONS.Fees.View,
       PERMISSIONS.Fees.Collect,
       PERMISSIONS.Fees.Report,
@@ -488,6 +525,7 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Admissions.View,
       PERMISSIONS.Admissions.Create,
       PERMISSIONS.Admissions.Update,
+      PERMISSIONS.Guardian.View,
       PERMISSIONS.Fees.View,
       PERMISSIONS.Fees.Collect,
       PERMISSIONS.Attendance.View,
