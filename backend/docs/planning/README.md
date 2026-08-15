@@ -72,6 +72,18 @@ government identifier cross-tenant.
 Read §8, §46 and §47 first if you are picking up that work; §33 if you are
 building the frontend; §41 if you are building a module on top.
 
+## Core domain freeze
+
+[`core-domain-freeze-v1-audit.md`](core-domain-freeze-v1-audit.md) (2026-08-15)
+is the final hardening/freeze audit of the whole
+Person → Applicant → Guardian → Address → Documents → Admission Workflow →
+Student → Admission → Enrollment core. **Verdict: READY TO FREEZE** — zero
+BLOCKING defects found; every previously-known carry-forward item was
+re-verified against current code (one, Applicant master-reference
+validation, turned out already closed and was removed from the open list);
+Fees/roll-number/capacity compatibility all PASS. No code changed as part of
+this audit — see the document for the full carry-forward classification.
+
 ## Status
 
 | # | Module | Status | Document |
