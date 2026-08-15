@@ -126,6 +126,60 @@ export class IdentityCryptoService {
   }
 
   /**
+   * Encrypt raw bytes under the organization's data key.
+   *
+   * Same envelope, same DEK, same production/recovery-custody rules as
+   * {@link encrypt} — the only difference is that the plaintext is not
+   * assumed to be UTF-8 text. `DocumentService` uses this for file content
+   * rather than duplicating the envelope-encryption implementation.
+   */
+  async encryptBuffer(
+    organizationId: string,
+    plaintext: Buffer,
+    tx?: PrismaTransactionClient,
+  ): Promise<EncryptedValue> {
+    const { dek, keyVersion } = await this.resolveDek(organizationId, tx);
+    return { ciphertext: aesGcmEncrypt(dek, plaintext), keyVersion };
+  }
+
+  /** The buffer counterpart of {@link decrypt} — see its documentation. */
+  async decryptBuffer(
+    organizationId: string,
+    ciphertext: Buffer,
+    keyVersion: number,
+    tx?: PrismaTransactionClient,
+  ): Promise<Buffer> {
+    const { dek, keyVersion: current } = await this.resolveDek(
+      organizationId,
+      tx,
+    );
+
+    if (keyVersion !== current) {
+      this.logger.error(
+        `Ciphertext for organization ${organizationId} names key version ${keyVersion}; current is ${current}`,
+      );
+      throw new InternalServerErrorException({
+        error: 'SENSITIVE_DECRYPT_FAILED',
+        message: 'The stored value could not be read.',
+      });
+    }
+
+    try {
+      return aesGcmDecrypt(dek, ciphertext);
+    } catch (error) {
+      this.logger.error(
+        `Authenticated decryption failed for organization ${organizationId}: ${
+          error instanceof Error ? error.message : 'unknown'
+        }`,
+      );
+      throw new InternalServerErrorException({
+        error: 'SENSITIVE_DECRYPT_FAILED',
+        message: 'The stored value could not be read.',
+      });
+    }
+  }
+
+  /**
    * Whether this deployment can encrypt at all.
    *
    * Callers use it to fail with a configuration error rather than a crypto one.

@@ -8,6 +8,7 @@ import { PersonService } from '@/modules/identity/person/person.service';
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { WorkflowService } from '@/modules/admissions/workflow/workflow.service';
 import { AdmissionConfigProvider } from '@/modules/admissions/admission-config.provider';
+import { ChecklistService } from '@/modules/documents/checklist.service';
 import {
   actionsFrom,
   findRule,
@@ -41,6 +42,9 @@ describe('Applicant workflow', () => {
     warnings: [],
   });
   const hasPermission = jest.fn().mockResolvedValue(true);
+  const isChecklistSatisfied = jest
+    .fn()
+    .mockResolvedValue({ satisfied: true, missing: [] });
 
   const mockPrisma: any = {
     applicant: {
@@ -98,6 +102,10 @@ describe('Applicant workflow', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: PersonService, useValue: { resolve: resolvePerson } },
         { provide: AuthorizationService, useValue: { hasPermission } },
+        {
+          provide: ChecklistService,
+          useValue: { isSatisfied: isChecklistSatisfied },
+        },
       ],
     }).compile();
 
@@ -626,7 +634,75 @@ describe('Applicant workflow', () => {
           (data.offerIssuedAt as Date).getTime(),
       ).toBe(7 * 24 * 60 * 60 * 1000);
     });
+  });
 
+  describe('the document checklist guard (R5)', () => {
+    it('refuses to approve when the checklist reports missing documents', async () => {
+      inState(S.UNDER_REVIEW);
+      isChecklistSatisfied.mockResolvedValueOnce({
+        satisfied: false,
+        missing: [
+          {
+            documentTypeId: 'dt-1',
+            code: 'BIRTH_CERTIFICATE',
+            name: 'Birth Certificate',
+          },
+        ],
+      });
+
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.APPROVE },
+          SCOPE,
+          ACTOR,
+        ),
+      ).rejects.toMatchObject({ response: { error: 'DOCUMENTS_INCOMPLETE' } });
+    });
+
+    it("passes the applicant's programId/quotaId/categoryId and both stages to the checklist", async () => {
+      inState(S.UNDER_REVIEW, { quotaId: 'quota-1', categoryId: 'cat-1' });
+
+      await workflow.transition(
+        'app-1',
+        { action: WorkflowAction.APPROVE },
+        SCOPE,
+        ACTOR,
+      );
+
+      expect(isChecklistSatisfied).toHaveBeenCalledWith(
+        expect.objectContaining({
+          applicantId: 'app-1',
+          personId: 'person-1',
+          programId: 'prog-1',
+          quotaId: 'quota-1',
+          categoryId: 'cat-1',
+        }),
+        [S.UNDER_REVIEW, S.APPROVED],
+        SCOPE.organizationId,
+        expect.anything(),
+      );
+    });
+
+    it('allows the transition once the checklist is satisfied', async () => {
+      inState(S.UNDER_REVIEW);
+      isChecklistSatisfied.mockResolvedValueOnce({
+        satisfied: true,
+        missing: [],
+      });
+
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.APPROVE },
+          SCOPE,
+          ACTOR,
+        ),
+      ).resolves.toBeDefined();
+    });
+  });
+
+  describe('seat confirmation and the offer window', () => {
     it('refuses to confirm a lapsed offer', async () => {
       inState(S.APPROVED, { offerExpiresAt: new Date(Date.now() - 60_000) });
 

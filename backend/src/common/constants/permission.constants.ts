@@ -98,6 +98,25 @@ export const PERMISSIONS = {
     Map: 'guardian.map',
     Unmap: 'guardian.unmap',
   },
+  /**
+   * Document Management (S3). Split by operation rather than CRUD: verify
+   * and reject are decisions a reviewer makes, not data entry, and download
+   * is its own capability because a sensitive document's access rule is
+   * stricter than the ability to see that it exists.
+   */
+  Documents: {
+    View: 'documents.view',
+    Upload: 'documents.upload',
+    Download: 'documents.download',
+    Verify: 'documents.verify',
+    Reject: 'documents.reject',
+    Replace: 'documents.replace',
+    Archive: 'documents.archive',
+  },
+  /** DocumentType and DocumentRequirement configuration — an institution's own admission-document policy. */
+  DocumentRequirements: {
+    Manage: 'documents.requirements.manage',
+  },
   Fees: {
     View: 'fees.view',
     Collect: 'fees.collect',

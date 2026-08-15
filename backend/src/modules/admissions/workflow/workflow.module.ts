@@ -5,16 +5,20 @@ import { OfferExpiryJob } from './offer-expiry.job';
 import { AdmissionConfigProvider } from '../admission-config.provider';
 import { IdentityModule } from '@/modules/identity/identity.module';
 import { AuthorizationModule } from '@/modules/authorization/authorization.module';
+import { DocumentsModule } from '@/modules/documents/documents.module';
 
 /**
  * The applicant state machine and the sweep that closes lapsed offers.
  *
  * Imports Identity for `PersonService.resolve()` at submission — Admissions
- * does no identity matching of its own — and Authorization to check the
- * per-transition permission the table declares.
+ * does no identity matching of its own — Authorization to check the
+ * per-transition permission the table declares, and Documents for
+ * `ChecklistService`, which gives the `DOCUMENT_CHECKLIST_SATISFIED` guard
+ * its real answer (§11.6). The edge runs one way, `admissions -> documents`;
+ * Documents has no import back.
  */
 @Module({
-  imports: [IdentityModule, AuthorizationModule],
+  imports: [IdentityModule, AuthorizationModule, DocumentsModule],
   controllers: [WorkflowController],
   providers: [WorkflowService, OfferExpiryJob, AdmissionConfigProvider],
   exports: [WorkflowService, OfferExpiryJob, AdmissionConfigProvider],

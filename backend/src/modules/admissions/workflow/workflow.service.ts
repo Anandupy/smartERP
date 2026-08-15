@@ -20,6 +20,7 @@ import { PersonService } from '@/modules/identity/person/person.service';
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { ApplicantWorkflowEvent } from '@/common/events';
 import { ResourceScope, scopedWhere } from '@/common/scope/resource-scope';
+import { ChecklistService } from '@/modules/documents/checklist.service';
 import { AdmissionConfigProvider } from '../admission-config.provider';
 import {
   findRule,
@@ -76,6 +77,7 @@ export class WorkflowService {
     private readonly persons: PersonService,
     private readonly authorization: AuthorizationService,
     private readonly config: AdmissionConfigProvider,
+    private readonly checklist: ChecklistService,
   ) {}
 
   /**
@@ -171,6 +173,8 @@ export class WorkflowService {
           'deletedAt',
           'personId',
           'programId',
+          'quotaId',
+          'categoryId',
           'offerExpiresAt',
           'academicYearId',
         ],
@@ -193,7 +197,7 @@ export class WorkflowService {
         });
       }
 
-      await this.assertGuards(rule, locked, scope);
+      await this.assertGuards(rule, locked, scope, tx);
 
       const data: Record<string, unknown> = {
         admissionStatus: rule.to,
@@ -370,16 +374,19 @@ export class WorkflowService {
     rule: TransitionRule,
     locked: Record<string, unknown>,
     scope: ResourceScope,
+    tx: PrismaTransactionClient,
   ): Promise<void> {
     for (const guard of rule.guards ?? []) {
-      await this.evaluateGuard(guard, locked, scope);
+      await this.evaluateGuard(guard, rule, locked, scope, tx);
     }
   }
 
   private async evaluateGuard(
     guard: TransitionGuard,
+    rule: TransitionRule,
     locked: Record<string, unknown>,
     scope: ResourceScope,
+    tx: PrismaTransactionClient,
   ): Promise<void> {
     const expiresAt = locked.offerExpiresAt as Date | null;
 
@@ -421,13 +428,35 @@ export class WorkflowService {
         }
         return;
 
-      case 'DOCUMENT_CHECKLIST_SATISFIED':
-        // The Document module (S3) does not exist. The blueprint's rule is to
-        // enforce the checklist *if* the requirement system is present and not
-        // to invent one otherwise — a fabricated check would pass every time
-        // while looking like a control. The guard is wired so S3 satisfies it
-        // by supplying the service, changing nothing here.
+      case 'DOCUMENT_CHECKLIST_SATISFIED': {
+        // R5 supplies the service; this is the only change the guard ever
+        // needed. "Which stage" is the transition's own — the applicant's
+        // current status and the state it is about to enter — never an
+        // invented ordering over the whole state graph, which stays owned
+        // by workflow.transitions.ts, not the Documents module.
+        const current = locked.admissionStatus as AdmissionApplicationStatus;
+        const { satisfied, missing } = await this.checklist.isSatisfied(
+          {
+            applicantId: locked.id as string,
+            personId: (locked.personId as string | null) ?? null,
+            programId: (locked.programId as string | null) ?? null,
+            quotaId: (locked.quotaId as string | null) ?? null,
+            categoryId: (locked.categoryId as string | null) ?? null,
+          },
+          [current, rule.to],
+          scope.organizationId,
+          tx,
+        );
+        if (!satisfied) {
+          throw new ConflictException({
+            error: 'DOCUMENTS_INCOMPLETE',
+            message:
+              'One or more mandatory documents are missing or unverified.',
+            missing,
+          });
+        }
         return;
+      }
 
       default: {
         const exhaustive: never = guard;

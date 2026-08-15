@@ -127,6 +127,7 @@ export class SeederService implements OnApplicationBootstrap {
       { code: 'AUDIT', name: 'Audit', displayOrder: 11 },
       { code: 'COMMUNICATION', name: 'Communication', displayOrder: 12 },
       { code: 'IDENTITY', name: 'Identity', displayOrder: 13 },
+      { code: 'DOCUMENTS', name: 'Documents', displayOrder: 14 },
     ];
 
     const categoryMap = new Map<string, string>();
@@ -351,6 +352,49 @@ export class SeederService implements OnApplicationBootstrap {
         description: 'Remove a guardian mapping from an applicant',
       },
 
+      // Documents (S3)
+      {
+        name: PERMISSIONS.Documents.View,
+        categoryCode: 'DOCUMENTS',
+        description: 'View document metadata and version history',
+      },
+      {
+        name: PERMISSIONS.Documents.Upload,
+        categoryCode: 'DOCUMENTS',
+        description: 'Upload a new document for an owner',
+      },
+      {
+        name: PERMISSIONS.Documents.Download,
+        categoryCode: 'DOCUMENTS',
+        description: 'Download a clean, scanned document version',
+      },
+      {
+        name: PERMISSIONS.Documents.Verify,
+        categoryCode: 'DOCUMENTS',
+        description: "Verify a document's current version",
+      },
+      {
+        name: PERMISSIONS.Documents.Reject,
+        categoryCode: 'DOCUMENTS',
+        description: "Reject a document's current version",
+      },
+      {
+        name: PERMISSIONS.Documents.Replace,
+        categoryCode: 'DOCUMENTS',
+        description: 'Replace a document with a new version',
+      },
+      {
+        name: PERMISSIONS.Documents.Archive,
+        categoryCode: 'DOCUMENTS',
+        description: 'Archive a document without deleting it',
+      },
+      {
+        name: PERMISSIONS.DocumentRequirements.Manage,
+        categoryCode: 'DOCUMENTS',
+        description:
+          'Configure document types and admission document requirements',
+      },
+
       // Fees
       {
         name: PERMISSIONS.Fees.View,
@@ -506,6 +550,14 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Guardian.Update,
       PERMISSIONS.Guardian.Map,
       PERMISSIONS.Guardian.Unmap,
+      PERMISSIONS.Documents.View,
+      PERMISSIONS.Documents.Upload,
+      PERMISSIONS.Documents.Download,
+      PERMISSIONS.Documents.Verify,
+      PERMISSIONS.Documents.Reject,
+      PERMISSIONS.Documents.Replace,
+      PERMISSIONS.Documents.Archive,
+      PERMISSIONS.DocumentRequirements.Manage,
       PERMISSIONS.Fees.View,
       PERMISSIONS.Fees.Collect,
       PERMISSIONS.Fees.Refund,
@@ -545,6 +597,14 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Guardian.Update,
       PERMISSIONS.Guardian.Map,
       PERMISSIONS.Guardian.Unmap,
+      PERMISSIONS.Documents.View,
+      PERMISSIONS.Documents.Upload,
+      PERMISSIONS.Documents.Download,
+      PERMISSIONS.Documents.Verify,
+      PERMISSIONS.Documents.Reject,
+      PERMISSIONS.Documents.Replace,
+      PERMISSIONS.Documents.Archive,
+      PERMISSIONS.DocumentRequirements.Manage,
       PERMISSIONS.Fees.View,
       PERMISSIONS.Fees.Collect,
       PERMISSIONS.Fees.Report,
@@ -565,6 +625,10 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Admissions.Update,
       PERMISSIONS.AdmissionsMasters.View,
       PERMISSIONS.Guardian.View,
+      PERMISSIONS.Documents.View,
+      PERMISSIONS.Documents.Upload,
+      PERMISSIONS.Documents.Download,
+      PERMISSIONS.Documents.Replace,
       PERMISSIONS.Fees.View,
       PERMISSIONS.Fees.Collect,
       PERMISSIONS.Attendance.View,

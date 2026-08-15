@@ -260,6 +260,23 @@ export class EnvironmentVariables {
   @IsString()
   @IsOptional()
   LOG_DIR?: string;
+
+  // --- Document storage (S3/R5) --------------------------------------------
+
+  /**
+   * Which `StoragePort` adapter to bind. Only `local` (development
+   * filesystem) is implemented; anything else fails at boot naming exactly
+   * what is missing rather than falling back silently. See
+   * `StorageModule` and docs/planning/document-management-specification.md.
+   */
+  @IsString()
+  @IsOptional()
+  DOCUMENT_STORAGE_PROVIDER?: string;
+
+  /** Root directory for the `local` storage adapter. Defaults to `./storage/documents`. */
+  @IsString()
+  @IsOptional()
+  DOCUMENT_STORAGE_LOCAL_ROOT?: string;
 }
 
 /**

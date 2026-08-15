@@ -10,6 +10,8 @@ import { AuditModule } from '@/infrastructure/audit/audit.module';
 import { OutboxModule } from '@/infrastructure/outbox/outbox.module';
 import { NumberingModule } from '@/infrastructure/numbering/numbering.module';
 import { CryptoModule } from '@/infrastructure/crypto/crypto.module';
+import { StorageModule } from '@/infrastructure/storage/storage.module';
+import { ScanModule } from '@/infrastructure/scan/scan.module';
 import { LoggerModule } from '@/common/logger/logger.module';
 import { RequestContextMiddleware } from '@/common/logger/request-context.middleware';
 
@@ -25,6 +27,7 @@ import { SecurityModule } from '@/common/services/security.module';
 import { IdentityModule } from '@/modules/identity/identity.module';
 import { AdmissionsModule } from '@/modules/admissions/admissions.module';
 import { EnrollmentModule } from '@/modules/enrollment/enrollment.module';
+import { DocumentsModule } from '@/modules/documents/documents.module';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { BranchGuard } from '@/common/guards/branch.guard';
@@ -62,6 +65,8 @@ import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-thro
     AuditModule,
     NumberingModule,
     CryptoModule,
+    StorageModule,
+    ScanModule,
     SecurityModule,
     AuthModule,
     UserModule,
@@ -78,6 +83,7 @@ import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-thro
     IdentityModule,
     AdmissionsModule,
     EnrollmentModule,
+    DocumentsModule,
     MaintenanceModule,
     CommunicationModule,
   ],

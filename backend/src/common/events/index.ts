@@ -19,3 +19,4 @@ export * from './student.events';
 export * from './applicant-workflow.events';
 export * from './enrollment.events';
 export * from './admission.events';
+export * from './document.events';
