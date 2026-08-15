@@ -7,6 +7,7 @@ import {
   Landmark,
   Layers,
   LayoutDashboard,
+  MessageSquare,
   School,
   ScrollText,
   Settings,
@@ -94,6 +95,13 @@ export const NAV_SECTIONS: readonly NavSection[] = Object.freeze([
         icon: ScrollText,
         description: "Activity trail",
       },
+      {
+        id: "communication",
+        label: "Communication",
+        href: ROUTES.app.communication.root,
+        icon: MessageSquare,
+        description: "Templates, delivery logs and settings",
+      },
     ],
   },
   {
@@ -178,6 +186,13 @@ export const BREADCRUMB_LABELS: Readonly<Record<string, string>> =
     [ROUTES.app.academicUnits.directory]: "Directory",
     [ROUTES.app.academicUnits.tree]: "Hierarchy",
     [ROUTES.app.academicUnits.create]: "New academic unit",
+    [ROUTES.app.communication.root]: "Communication",
+    [ROUTES.app.communication.templates.root]: "Templates",
+    [ROUTES.app.communication.templates.create]: "New template",
+    [ROUTES.app.communication.deliveryLogs]: "Delivery Logs",
+    [ROUTES.app.communication.analytics]: "Analytics",
+    [ROUTES.app.communication.settings]: "Settings",
+    [ROUTES.app.communication.sendNotification]: "Send Notification",
   });
 
 /** Placeholder copy for the header affordances that are not wired yet. */

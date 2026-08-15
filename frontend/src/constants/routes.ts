@@ -157,6 +157,28 @@ export const ROUTES = Object.freeze({
       detail: (id: string) => `/app/academic-units/${id}`,
       edit: (id: string) => `/app/academic-units/${id}/edit`,
     },
+    /**
+     * Communication — templates, delivery logs, analytics and settings.
+     *
+     * `root` is the overview. Every read here is scoped to the active
+     * organization and branch (`useCommunicationScope`); none of these paths
+     * carry a scope segment. Templates are the only sub-resource with its own
+     * record screens — delivery logs and settings are singleton-per-scope
+     * views with no id in the URL.
+     */
+    communication: {
+      root: "/app/communication",
+      templates: {
+        root: "/app/communication/templates",
+        create: "/app/communication/templates/new",
+        detail: (id: string) => `/app/communication/templates/${id}`,
+        edit: (id: string) => `/app/communication/templates/${id}/edit`,
+      },
+      deliveryLogs: "/app/communication/delivery-logs",
+      analytics: "/app/communication/analytics",
+      settings: "/app/communication/settings",
+      sendNotification: "/app/communication/notifications/new",
+    },
   },
 });
 
