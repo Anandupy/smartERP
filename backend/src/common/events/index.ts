@@ -14,6 +14,7 @@ export * from './authorization.events';
 export * from './communication.events';
 export * from './context.events';
 export * from './person.events';
+export * from './address.events';
 export * from './student.events';
 export * from './applicant-workflow.events';
 export * from './enrollment.events';

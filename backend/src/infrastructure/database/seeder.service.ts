@@ -177,6 +177,11 @@ export class SeederService implements OnApplicationBootstrap {
         categoryCode: 'IDENTITY',
         description: 'Bind a government identifier to an identity',
       },
+      {
+        name: PERMISSIONS.Person.AttachAddress,
+        categoryCode: 'IDENTITY',
+        description: 'Attach or replace an address for an identity',
+      },
 
       // Student
       {
@@ -495,6 +500,7 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.AdmissionsMasters.Create,
       PERMISSIONS.AdmissionsMasters.Update,
       PERMISSIONS.AdmissionsMasters.Delete,
+      PERMISSIONS.Person.AttachAddress,
       PERMISSIONS.Guardian.View,
       PERMISSIONS.Guardian.Create,
       PERMISSIONS.Guardian.Update,
@@ -533,6 +539,7 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.AdmissionsMasters.Create,
       PERMISSIONS.AdmissionsMasters.Update,
       PERMISSIONS.AdmissionsMasters.Delete,
+      PERMISSIONS.Person.AttachAddress,
       PERMISSIONS.Guardian.View,
       PERMISSIONS.Guardian.Create,
       PERMISSIONS.Guardian.Update,

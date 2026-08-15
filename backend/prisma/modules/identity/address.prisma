@@ -1,0 +1,109 @@
+/// The four address purposes S2 resolves. See
+/// docs/planning/core-admission-lifecycle-specification.md §10.4.
+///
+/// COMMUNICATION falls back to CURRENT when unset. BILLING resolves through
+/// the ward's financial guardian, then their CURRENT — that step depends on
+/// Guardian being linked to Person, which has not happened yet (Guardian has
+/// no personId), so BILLING resolution here stops at direct/CURRENT fallback
+/// until that migration lands.
+enum AddressType {
+  PERMANENT
+  CURRENT
+  COMMUNICATION
+  BILLING
+}
+
+/// Whether a PersonAddress link has been confirmed. `REQUIRES BUSINESS
+/// DECISION` (§10.7 A2) on whether a portal-submitted change should take
+/// effect immediately or propose-then-approve; there is no portal write path
+/// yet, so every row today is written by staff and verified immediately.
+enum AddressVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+/// Immutable value object — a physical location, never a person's current
+/// truth. Sharing and de-duplication both fall out of immutability: a family
+/// of four at one address is one `Address` row and four `PersonAddress`
+/// links, de-duplicated on `normalizedHash`.
+///
+/// Never updated after creation — no `updatedAt`, no update path anywhere in
+/// the service layer. A move creates a new `Address` and closes/opens
+/// `PersonAddress` links; editing this row in place would retroactively
+/// change every certificate that ever printed it.
+///
+/// See docs/planning/core-admission-lifecycle-specification.md §10.3, §10.6.
+model Address {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  line1       String
+  line2       String?
+  landmark    String?
+  city        String
+  district    String?
+  state       String
+  countryCode String  @default("IN")
+  pincode     String
+
+  latitude  Float?
+  longitude Float?
+
+  /// SHA-256 hex digest of the canonicalized fields (trimmed, case-folded,
+  /// whitespace-collapsed line1/line2/landmark/city/district/state/
+  /// countryCode/pincode). A comparison/dedup key only — never rendered.
+  normalizedHash String
+
+  createdAt DateTime @default(now())
+
+  personAddresses PersonAddress[]
+
+  @@unique([organizationId, normalizedHash])
+  @@index([organizationId])
+}
+
+/// Append-only link between a Person and an Address, carrying the semantic
+/// type and validity window. History survives because the Address itself is
+/// immutable and this link is never edited in place — only closed (`validTo`)
+/// and a new one opened. Two people sharing a home are two links to one
+/// Address row; a move is one new Address and one new link per affected
+/// person.
+///
+/// See docs/planning/core-admission-lifecycle-specification.md §10.3, §10.5,
+/// §10.6.
+model PersonAddress {
+  id             String @id @default(uuid(7))
+  organizationId String
+  personId       String
+  addressId      String
+
+  addressType AddressType
+
+  validFrom DateTime  @default(now())
+  validTo   DateTime?
+
+  verificationStatus AddressVerificationStatus @default(PENDING)
+  verifiedBy         String?
+  verifiedAt         DateTime?
+
+  /// No FK — Documents (S3) does not exist yet. Same precedent as
+  /// Student.photoDocumentId: the column compiles and migrates whether or
+  /// not S3 exists, and gains a foreign key only once it does.
+  proofDocumentId String?
+
+  /// Free-text, human-written. The system cannot distinguish a corrected typo
+  /// from a genuine relocation after the fact — both produce a new Address
+  /// and a new link — so this is the only place that distinction lives.
+  changeReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  person  Person  @relation(fields: [personId], references: [id])
+  address Address @relation(fields: [addressId], references: [id])
+
+  @@index([personId])
+  @@index([organizationId])
+  @@index([addressId])
+}

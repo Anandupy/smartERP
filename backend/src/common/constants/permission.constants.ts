@@ -19,6 +19,10 @@ export const PERMISSIONS = {
     Search: 'person.search',
     Correct: 'person.correct',
     AttachGovernmentId: 'person.attach_government_id',
+    /// Attaching an address is not gated behind View/Update: an address is
+    /// its own sensitive value with its own write path, the same reasoning
+    /// that keeps AttachGovernmentId separate from a generic update.
+    AttachAddress: 'person.attach_address',
   },
   Student: {
     View: 'student.view',
