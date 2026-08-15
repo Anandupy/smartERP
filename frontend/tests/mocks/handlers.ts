@@ -5,6 +5,7 @@ import { apiConfig } from "@/config";
 import { successEnvelope } from "@tests/fixtures/api";
 import { adminHandlers } from "./admin-handlers";
 import { authHandlers } from "./auth-handlers";
+import { communicationHandlers } from "./communication-handlers";
 import { workspaceHandlers } from "./workspace-handlers";
 
 /**
@@ -18,6 +19,7 @@ export const handlers = [
   ...authHandlers,
   ...workspaceHandlers,
   ...adminHandlers,
+  ...communicationHandlers,
   http.get(`${base}/health`, () =>
     HttpResponse.json(successEnvelope({ status: "ok" })),
   ),
