@@ -94,7 +94,7 @@ building the frontend; §41 if you are building a module on top.
 | **I3+I4+I5** | Admission, Student, Enrollment *(one unit)* | `planned` ⚠️ 3 open questions | [`01-identity-core/03-05-admission-student-enrollment.md`](01-identity-core/03-05-admission-student-enrollment.md) |
 | **S1** | Guardian & family | `implemented` ✅ 2026-08-16 — `Guardian.personId` (nullable) + `Guardianship`, Defects 1/2/4/5/6 fixed; DOB backfill for pre-existing Guardian rows and `BILLING` financial-guardian resolution `DEFERRED`, see the reference §8.7 | [`02-guardian-family/01-guardian.md`](02-guardian-family/01-guardian.md) |
 | **S2** | Address | `implemented` ✅ 2026-08-15 — `Address` + `PersonAddress`, no `Household` (§9.2 DECIDED); see the reference §10 | [`03-address/01-address.md`](03-address/01-address.md) |
-| **S3** | Document | `planned` ⚠️ 3 open questions | [`04-documents/01-document.md`](04-documents/01-document.md) |
+| **S3** | Document | `implemented` ✅ 2026-08-17 — foundation only: `DocumentType`/`DocumentRequirement`/`Document`/`DocumentVersion`, storage+scan ports, `DOCUMENT_CHECKLIST_SATISFIED` wired for real. Real virus scanning, cloud storage and direct parent upload `DEFERRED`, see the spec | [`document-management-specification.md`](document-management-specification.md) |
 | **S4** | Employee / staff | `planned` ⚠️ 3 open questions | [`05-employee/01-employee.md`](05-employee/01-employee.md) |
 | **A1** | Program & academic unit *(exists)* | `not started` | `06-academic-structure/` |
 | **A2** | Academic year & calendar *(exists, calendar missing)* | `not started` | `06-academic-structure/` |

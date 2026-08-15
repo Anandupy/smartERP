@@ -1481,6 +1481,34 @@ so supplying the service is the only change needed.
 | DQ2 | Where are blobs stored? | `REQUIRES BUSINESS DECISION` — depends on the undecided deployment model. Recommendation: one S3-compatible contract everywhere (MinIO on-premise), to avoid two backup stories. |
 | DQ3 | Do parents upload directly? | `REQUIRES BUSINESS DECISION` — recommendation: **staff-only in v1**; parent upload once the portal is scoped and rate limiting designed. |
 
+## 11.8 R5 — what actually shipped, 2026-08-17
+
+`IMPLEMENTED` (foundation only). Full detail, including the ownership table,
+storage/scan port contracts, database invariants and everything deferred, is
+[`document-management-specification.md`](document-management-specification.md)
+— this subsection is the reconciliation pointer, not a duplicate of it.
+
+`DocumentType`, `DocumentRequirement`, `Document` and `DocumentVersion` now
+exist, matching §11.1–§11.6 above with one recorded discrepancy: §11.2's
+requirement formula names an `admissionType` axis that `Applicant` has no
+column for, so it is not implemented (§8 of the spec doc). `DOCUMENT_PENDING`
+and `DOCUMENT_CHECKLIST_SATISFIED` now mean exactly what §11.6 says they
+should — the guard in `WorkflowService` calls a real `ChecklistService`
+rather than returning unconditionally.
+
+**What is real:** ownership resolution and tenant scoping, versioning with
+enforced re-verification, envelope encryption under the organization's DEK
+(reusing `IdentityCryptoService`, not duplicating it), the "infected/unscanned
+is never current" guarantee, and the checklist guard.
+
+**What is not:** virus scanning (DQ1) and cloud storage (DQ2) remain
+unresolved business decisions — a development-only scanner and a
+local-filesystem storage adapter ship in their place, both explicit and both
+fail loudly rather than fabricate a result. Direct parent upload (DQ3) is
+still staff-only, as recommended. `Applicant.photoFileId` is still
+`RECOMMENDED: drop` and still not dropped — that is an Applicant/I2 change,
+outside this phase's boundary.
+
 ---
 
 # 12. Academic selection
