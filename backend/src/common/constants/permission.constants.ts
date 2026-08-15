@@ -67,6 +67,19 @@ export const PERMISSIONS = {
     Export: 'admissions.export',
   },
   /**
+   * Reference data consumed by admissions: Religion, Caste, Category,
+   * Gender, BloodGroup, Language, Disability, RelationType, Quota,
+   * AdmissionSource. Split from `Admissions` because these are configuration
+   * records, not application records — a receptionist who can create an
+   * application should not necessarily be able to redefine what a "Quota" is.
+   */
+  AdmissionsMasters: {
+    View: 'admissions.masters.view',
+    Create: 'admissions.masters.create',
+    Update: 'admissions.masters.update',
+    Delete: 'admissions.masters.delete',
+  },
+  /**
    * Guardian records and their mapping to an applicant.
    *
    * Split from `Admissions` because a guardian record carries its own

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -172,12 +172,8 @@ describe('Admissions Module Foundation - Unit Tests', () => {
     it('rejects a master whose code already exists in scope', async () => {
       mockPrisma.religion.findFirst.mockResolvedValueOnce({ id: 'existing' });
       await expect(
-        religionService.create(
-          { code: 'HIND', name: 'Hindu' },
-          'org-1',
-          'branch-1',
-        ),
-      ).rejects.toThrow(BadRequestException);
+        religionService.create({ code: 'HIND', name: 'Hindu' }, SCOPE),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('rejects a master whose name already exists in scope', async () => {
@@ -185,12 +181,8 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ id: 'existing' });
       await expect(
-        religionService.create(
-          { code: 'HIND', name: 'Hindu' },
-          'org-1',
-          'branch-1',
-        ),
-      ).rejects.toThrow(BadRequestException);
+        religionService.create({ code: 'HIND', name: 'Hindu' }, SCOPE),
+      ).rejects.toThrow(ConflictException);
     });
   });
 

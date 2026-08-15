@@ -5,6 +5,6 @@ import { BaseMasterService } from '../base-master.service';
 @Injectable()
 export class RelationTypeService extends BaseMasterService {
   constructor(prisma: PrismaService) {
-    super(prisma, 'relationType');
+    super(prisma, 'relationType', ['mappings']);
   }
 }

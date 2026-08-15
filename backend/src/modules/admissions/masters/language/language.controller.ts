@@ -18,6 +18,8 @@ import {
 import { LanguageService } from './language.service';
 import { CreateMasterDto, UpdateMasterDto } from '../dto/master.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 import {
   ApiCreatedEnvelope,
   ApiEmptyEnvelope,
@@ -27,6 +29,8 @@ import {
 import { AdmissionMasterDto } from '../dto/master-response.dto';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { UserRole } from '@/common/enums/role.enum';
+import { resourceScopeOf } from '@/common/scope/resource-scope';
+import { AuthenticatedRequest } from '@/common/logger/request-context.types';
 
 @ApiTags('Admissions Masters: Language')
 @ApiBearerAuth()
@@ -42,13 +46,13 @@ export class LanguageController {
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.AdmissionsMasters.Create)
   @ApiOperation({ summary: 'Create a language' })
   @ApiCreatedEnvelope(AdmissionMasterDto)
   @ApiStandardErrors()
-  async create(@Body() dto: CreateMasterDto, @Req() req: any) {
-    const orgId = req.context?.organizationId || null;
-    const branchId = req.context?.branchId || null;
-    const data = await this.service.create(dto, orgId, branchId);
+  async create(@Body() dto: CreateMasterDto, @Req() req: AuthenticatedRequest) {
+    const scope = resourceScopeOf(req.context);
+    const data = await this.service.create(dto, scope);
     return { data, message: 'Language created successfully' };
   }
 
@@ -59,16 +63,16 @@ export class LanguageController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.AdmissionsMasters.View)
   @ApiOperation({ summary: 'Get all languages' })
   @ApiOkEnvelope(AdmissionMasterDto, { isArray: true })
   @ApiStandardErrors()
   async findAll(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('includeInactive') includeInactive?: boolean,
   ) {
-    const orgId = req.context?.organizationId || null;
-    const branchId = req.context?.branchId || null;
-    const data = await this.service.findAll(orgId, branchId, includeInactive);
+    const scope = resourceScopeOf(req.context);
+    const data = await this.service.findAll(scope, includeInactive);
     return { data, message: 'Languages retrieved successfully' };
   }
 
@@ -79,37 +83,39 @@ export class LanguageController {
     UserRole.BRANCH_ADMIN,
     UserRole.STAFF,
   )
+  @RequirePermission(PERMISSIONS.AdmissionsMasters.View)
   @ApiOperation({ summary: 'Get language by ID' })
   @ApiOkEnvelope(AdmissionMasterDto)
   @ApiStandardErrors(404)
-  async findOne(@Param('id') id: string) {
-    const data = await this.service.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const data = await this.service.findOne(id, resourceScopeOf(req.context));
     return { data, message: 'Language retrieved successfully' };
   }
 
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.AdmissionsMasters.Update)
   @ApiOperation({ summary: 'Update language' })
   @ApiOkEnvelope(AdmissionMasterDto)
   @ApiStandardErrors(404)
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateMasterDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const orgId = req.context?.organizationId || null;
-    const branchId = req.context?.branchId || null;
-    const data = await this.service.update(id, dto, orgId, branchId);
+    const scope = resourceScopeOf(req.context);
+    const data = await this.service.update(id, dto, scope);
     return { data, message: 'Language updated successfully' };
   }
 
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.AdmissionsMasters.Delete)
   @ApiOperation({ summary: 'Soft delete language' })
   @ApiEmptyEnvelope()
   @ApiStandardErrors(404)
-  async remove(@Param('id') id: string) {
-    await this.service.remove(id);
+  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    await this.service.remove(id, resourceScopeOf(req.context));
     return { message: 'Language deleted successfully' };
   }
 }

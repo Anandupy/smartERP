@@ -1,17 +1,26 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, ConflictException, Inject } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { ResourceScope } from '@/common/scope/resource-scope';
 import {
   AdmissionsMasterCreatedEvent,
   AdmissionsMasterUpdatedEvent,
   AdmissionsMasterDeletedEvent,
 } from '@/common/events';
 
+/**
+ * Shared CRUD for admissions reference data (Religion, Caste, Category, ...).
+ *
+ * A row is visible in a scope if it is a system-wide default (`organizationId`
+ * and `branchId` both null), an organization-wide default (`organizationId`
+ * matches, `branchId` null), or scoped exactly to the caller's branch. Only
+ * the API never creates the first two — they exist solely as seed data — so
+ * mutation is deliberately narrower than visibility: a branch cannot edit or
+ * remove a default it did not create, only rows scoped exactly to it. A miss
+ * on either check surfaces as 404, never 403, so a cross-tenant id cannot be
+ * used to probe for existence.
+ */
 @Injectable()
 export class BaseMasterService {
   @Inject(EventBus)
@@ -20,50 +29,58 @@ export class BaseMasterService {
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly modelName: string,
+    /** Relation field names, declared on the Prisma master model, that reference this master (e.g. `['applicants', 'students']`). */
+    protected readonly referenceRelations: string[] = [],
   ) {}
 
-  async create(
-    dto: any,
-    organizationId: string | null,
-    branchId: string | null,
-  ) {
+  private visibleWhere(scope: ResourceScope) {
+    return {
+      OR: [
+        { organizationId: null, branchId: null },
+        { organizationId: scope.organizationId, branchId: null },
+        { organizationId: scope.organizationId, branchId: scope.branchId },
+      ],
+    };
+  }
+
+  async create(dto: any, scope: ResourceScope) {
     const { code, name } = dto;
 
-    // Check unique code (case-insensitive)
     const existingCode = await (this.prisma as any)[this.modelName].findFirst({
       where: {
-        organizationId,
-        branchId,
+        organizationId: scope.organizationId,
+        branchId: scope.branchId,
         code: { equals: code, mode: 'insensitive' },
         deletedAt: null,
       },
     });
     if (existingCode) {
-      throw new BadRequestException(
-        `Master with code '${code}' already exists in this scope`,
-      );
+      throw new ConflictException({
+        error: 'DUPLICATE_CODE',
+        message: `Master with code '${code}' already exists in this scope`,
+      });
     }
 
-    // Check unique name (case-insensitive)
     const existingName = await (this.prisma as any)[this.modelName].findFirst({
       where: {
-        organizationId,
-        branchId,
+        organizationId: scope.organizationId,
+        branchId: scope.branchId,
         name: { equals: name, mode: 'insensitive' },
         deletedAt: null,
       },
     });
     if (existingName) {
-      throw new BadRequestException(
-        `Master with name '${name}' already exists in this scope`,
-      );
+      throw new ConflictException({
+        error: 'DUPLICATE_NAME',
+        message: `Master with name '${name}' already exists in this scope`,
+      });
     }
 
     const record = await (this.prisma as any)[this.modelName].create({
       data: {
         ...dto,
-        organizationId,
-        branchId,
+        organizationId: scope.organizationId,
+        branchId: scope.branchId,
       },
     });
 
@@ -79,18 +96,10 @@ export class BaseMasterService {
     return record;
   }
 
-  async findAll(
-    organizationId: string | null,
-    branchId: string | null,
-    includeInactive = false,
-  ) {
+  async findAll(scope: ResourceScope, includeInactive = false) {
     return (this.prisma as any)[this.modelName].findMany({
       where: {
-        OR: [
-          { organizationId, branchId },
-          { organizationId: null, branchId: null },
-          ...(organizationId ? [{ organizationId, branchId: null }] : []),
-        ],
+        ...this.visibleWhere(scope),
         deletedAt: null,
         ...(includeInactive ? {} : { isActive: true }),
       },
@@ -98,9 +107,9 @@ export class BaseMasterService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, scope: ResourceScope) {
     const record = await (this.prisma as any)[this.modelName].findFirst({
-      where: { id, deletedAt: null },
+      where: { id, ...this.visibleWhere(scope), deletedAt: null },
     });
     if (!record) {
       throw new NotFoundException(`Master record not found`);
@@ -108,30 +117,42 @@ export class BaseMasterService {
     return record;
   }
 
-  async update(
-    id: string,
-    dto: any,
-    organizationId: string | null,
-    branchId: string | null,
-  ) {
-    await this.findOne(id);
+  /** Existence check confined to rows scoped exactly to the caller's branch. */
+  private async findOwned(id: string, scope: ResourceScope) {
+    const record = await (this.prisma as any)[this.modelName].findFirst({
+      where: {
+        id,
+        organizationId: scope.organizationId,
+        branchId: scope.branchId,
+        deletedAt: null,
+      },
+    });
+    if (!record) {
+      throw new NotFoundException(`Master record not found`);
+    }
+    return record;
+  }
+
+  async update(id: string, dto: any, scope: ResourceScope) {
+    await this.findOwned(id, scope);
 
     if (dto.code) {
       const existingCode = await (this.prisma as any)[this.modelName].findFirst(
         {
           where: {
             id: { not: id },
-            organizationId,
-            branchId,
+            organizationId: scope.organizationId,
+            branchId: scope.branchId,
             code: { equals: dto.code, mode: 'insensitive' },
             deletedAt: null,
           },
         },
       );
       if (existingCode) {
-        throw new BadRequestException(
-          `Master with code '${dto.code}' already exists in this scope`,
-        );
+        throw new ConflictException({
+          error: 'DUPLICATE_CODE',
+          message: `Master with code '${dto.code}' already exists in this scope`,
+        });
       }
     }
 
@@ -140,17 +161,18 @@ export class BaseMasterService {
         {
           where: {
             id: { not: id },
-            organizationId,
-            branchId,
+            organizationId: scope.organizationId,
+            branchId: scope.branchId,
             name: { equals: dto.name, mode: 'insensitive' },
             deletedAt: null,
           },
         },
       );
       if (existingName) {
-        throw new BadRequestException(
-          `Master with name '${dto.name}' already exists in this scope`,
-        );
+        throw new ConflictException({
+          error: 'DUPLICATE_NAME',
+          message: `Master with name '${dto.name}' already exists in this scope`,
+        });
       }
     }
 
@@ -171,8 +193,31 @@ export class BaseMasterService {
     return updated;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, scope: ResourceScope) {
+    await this.findOwned(id, scope);
+
+    if (this.referenceRelations.length > 0) {
+      const usage = await (this.prisma as any)[this.modelName].findFirst({
+        where: { id },
+        select: Object.fromEntries(
+          this.referenceRelations.map((relation) => [
+            relation,
+            { select: { id: true }, take: 1 },
+          ]),
+        ),
+      });
+      const inUse = this.referenceRelations.some(
+        (relation) => (usage?.[relation]?.length ?? 0) > 0,
+      );
+      if (inUse) {
+        throw new ConflictException({
+          error: 'MASTER_IN_USE',
+          message:
+            'This record is referenced by existing applicant, student or admission records and cannot be deleted. Deactivate it instead.',
+        });
+      }
+    }
+
     const deleted = await (this.prisma as any)[this.modelName].update({
       where: { id },
       data: { deletedAt: new Date() },

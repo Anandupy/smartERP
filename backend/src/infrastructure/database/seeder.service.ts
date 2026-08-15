@@ -296,6 +296,29 @@ export class SeederService implements OnApplicationBootstrap {
         description: 'Export admissions data',
       },
 
+      // Admissions Masters — reference data (Religion, Caste, Quota, ...)
+      {
+        name: PERMISSIONS.AdmissionsMasters.View,
+        categoryCode: 'ADMISSIONS',
+        description:
+          'View admissions reference data (religion, caste, quota, ...)',
+      },
+      {
+        name: PERMISSIONS.AdmissionsMasters.Create,
+        categoryCode: 'ADMISSIONS',
+        description: 'Create an admissions reference data record',
+      },
+      {
+        name: PERMISSIONS.AdmissionsMasters.Update,
+        categoryCode: 'ADMISSIONS',
+        description: 'Update an admissions reference data record',
+      },
+      {
+        name: PERMISSIONS.AdmissionsMasters.Delete,
+        categoryCode: 'ADMISSIONS',
+        description: 'Delete an unreferenced admissions reference data record',
+      },
+
       // Guardian
       {
         name: PERMISSIONS.Guardian.View,
@@ -468,6 +491,10 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Admissions.Approve,
       PERMISSIONS.Admissions.Reject,
       PERMISSIONS.Admissions.Export,
+      PERMISSIONS.AdmissionsMasters.View,
+      PERMISSIONS.AdmissionsMasters.Create,
+      PERMISSIONS.AdmissionsMasters.Update,
+      PERMISSIONS.AdmissionsMasters.Delete,
       PERMISSIONS.Guardian.View,
       PERMISSIONS.Guardian.Create,
       PERMISSIONS.Guardian.Update,
@@ -502,6 +529,10 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Admissions.Update,
       PERMISSIONS.Admissions.Approve,
       PERMISSIONS.Admissions.Reject,
+      PERMISSIONS.AdmissionsMasters.View,
+      PERMISSIONS.AdmissionsMasters.Create,
+      PERMISSIONS.AdmissionsMasters.Update,
+      PERMISSIONS.AdmissionsMasters.Delete,
       PERMISSIONS.Guardian.View,
       PERMISSIONS.Guardian.Create,
       PERMISSIONS.Guardian.Update,
@@ -525,6 +556,7 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Admissions.View,
       PERMISSIONS.Admissions.Create,
       PERMISSIONS.Admissions.Update,
+      PERMISSIONS.AdmissionsMasters.View,
       PERMISSIONS.Guardian.View,
       PERMISSIONS.Fees.View,
       PERMISSIONS.Fees.Collect,

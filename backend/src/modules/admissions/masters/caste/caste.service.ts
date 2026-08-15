@@ -5,6 +5,6 @@ import { BaseMasterService } from '../base-master.service';
 @Injectable()
 export class CasteService extends BaseMasterService {
   constructor(prisma: PrismaService) {
-    super(prisma, 'caste');
+    super(prisma, 'caste', ['applicants', 'students']);
   }
 }
