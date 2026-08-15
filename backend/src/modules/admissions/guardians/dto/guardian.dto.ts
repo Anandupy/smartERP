@@ -6,11 +6,24 @@ import {
   IsNumber,
   IsBoolean,
   IsInt,
+  IsDateString,
   Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateGuardianDto {
+  @ApiPropertyOptional({
+    description:
+      'Date of birth. Not stored on the Guardian record — used once, if ' +
+      'supplied, to resolve this guardian against the Person identity index. ' +
+      'Without it the guardian profile is created with no personId, same as ' +
+      'every guardian created before this field existed.',
+    example: '1985-06-15',
+  })
+  @IsDateString()
+  @IsOptional()
+  dob?: string;
+
   @ApiProperty({ description: 'First name' })
   @IsString()
   @IsNotEmpty()
@@ -92,6 +105,17 @@ export class CreateGuardianDto {
 }
 
 export class UpdateGuardianDto {
+  @ApiPropertyOptional({
+    description:
+      'Date of birth. Only used, and only meaningful, when this guardian ' +
+      'has no personId yet — supplying it links a Person retroactively. ' +
+      'Ignored if the guardian is already linked.',
+    example: '1985-06-15',
+  })
+  @IsDateString()
+  @IsOptional()
+  dob?: string;
+
   @ApiPropertyOptional({ description: 'First name' })
   @IsString()
   @IsOptional()

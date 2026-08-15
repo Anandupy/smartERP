@@ -1043,6 +1043,92 @@ The sequence matters, and step 5 is the one that will surprise:
    financial guardians — which Defect 2 makes possible, and which nothing has
    been stopping.
 
+## 8.7 R4.5 — what actually shipped, 2026-08-16
+
+`IMPLEMENTED` `VERIFIED`. Reconciliation before this pass found the phase
+history's claim that S1 D1–D3 had already been migrated was **false**:
+`Guardian.personId` did not exist, `Guardianship` did not exist, and
+`ApplicantGuardianMapping` was still the only relationship model — confirmed
+directly against the schema and git history, not assumed from a document.
+The migration in §8.6 above was written for a clean-room implementation and
+did not anticipate two real constraints found while executing it:
+
+**`personId` is nullable, not required.** §8.5's target states Guardian's
+`personId` is required. It is not, here: `PersonService.resolve()` requires
+`dob`, which `Guardian` has never collected — making it required would mean
+either inventing a date of birth for the one pre-existing Guardian row
+(destructive guessing) or widening `Person.dob` to nullable everywhere it is
+used for matching quality (a much larger, unrelated change). Both were
+rejected. `CreateGuardianDto`/`UpdateGuardianDto` gained an optional,
+*transient* `dob` — used once to call `resolve()`, never stored on Guardian —
+so a guardian created with one gains a `personId` immediately, and one
+created without (every guardian before this field existed, and any created
+without it going forward) can gain one later via `PATCH` once a DOB is
+available. `REQUIRES BUSINESS DECISION` remains open on whether guardian
+onboarding should start collecting DOB up front; nothing in this phase
+depends on the answer.
+
+**Steps 1, 2 and 4 are `DEFERRED`, not skipped.** Migration order §8.6
+step 1 (backfill every existing Guardian to a Person) is unreachable for the
+same DOB reason above — there was exactly one Guardian row in dev with no DOB
+anywhere to source one from, and it was left alone rather than guessed at.
+Steps 2 and 4 (move addresses to S2, drop `aadhaarNo`/`branchId`/address
+columns) depend on step 1 having run first and are deferred with it. Step 3
+**did** ship, in a different shape than written: rather than a one-time bulk
+conversion of every `ApplicantGuardianMapping` row, `Guardianship` is
+projected continuously — synced from `GuardiansService.mapGuardianToApplicant`
+whenever both sides already have a `personId`, and caught up at `admit()`
+for the sibling case (guardian linked before the applicant itself resolved a
+Person). `ApplicantGuardianMapping` remains the authoritative record for one
+application; `Guardianship` is the record that survives it. Neither is
+redundant.
+
+**Defects 1, 2, 4, 5, 6 are fixed; Defect 3 was already fixed by R2** before
+this phase started (`GuardiansController` now carries `@RequirePermission`
+and every service method scopes through `scopedWhere`/`ResourceScope` — this
+document's Defect 3 entry above describes the state before R2, not the
+current one). This phase:
+
+- **Defect 1** (primary-guardian clear-then-set not transactional) —
+  `mapGuardianToApplicant` now runs inside one `$transaction`, and
+  `Guardianship_one_primary_per_ward_key` (a partial unique index) makes the
+  invariant a database guarantee rather than an application ordering hope.
+- **Defect 2** (`isFinancialGuardian` had no exclusivity) —
+  `Guardianship_one_financial_per_ward_key`, the same shape as Defect 1's fix.
+  `Guardianship` enforces this; `ApplicantGuardianMapping` still does not,
+  since fixing it there would require the same kind of migration-order
+  reasoning as steps 1/2/4 above for no benefit once `Guardianship` is the
+  persistent record.
+- **Defect 4** (Aadhaar substring search) — `GuardiansService.search()` no
+  longer matches `aadhaarNo` at all. Mobile and name only, the same rule
+  `PersonService.findCandidates` already applied to government identifiers.
+- **Defect 5** (re-mapping silently reset unset flags to `false`) —
+  `mapGuardianToApplicant` now reads the existing mapping first and falls
+  back to its values (`dto.isPrimary ?? existingMapping?.isPrimary ?? false`)
+  rather than defaulting every omitted field to `false`.
+- **Defect 6** (guardian events bypassed the outbox and carried PII) —
+  `GuardianCreatedEvent`/`GuardianUpdatedEvent`/`GuardianMappedEvent`/
+  `GuardianUnmappedEvent` now go through `OutboxPublisher.enqueue`, inside the
+  same transaction as the write they describe, and `GuardianCreatedEvent`
+  carries `guardianId`/`organizationId`/`hasPersonLink` — never name or
+  mobile number.
+
+**New: `Guardianship` read paths.** `GET /admissions/guardianships/ward/:id`,
+`.../guardian/:id` and `.../ward/:id/siblings`, organization-scoped like
+Person and Address (R4) rather than branch-scoped — a guardian in one branch
+and a child in another are reachable within one organization. Siblings are
+derived at query time via the join §9.2 already specifies; nothing new is
+stored for it.
+
+**`BILLING` address resolution remains incomplete.** R4's `AddressService.
+resolve()` documented that the financial-guardian step of §10.4 could not be
+implemented because Guardian had no `personId`. It now does, but the
+financial-guardian *exclusivity* only exists on `Guardianship`, and
+`Guardianship` rows exist only where both sides have resolved — so `BILLING`
+resolution through the financial guardian remains unimplemented pending a
+decision on whether to wire it now (partial coverage, since not every
+guardian will have a `personId`) or wait. `DEFERRED`.
+
 ---
 
 # 9. Guardianship / family
@@ -1132,10 +1218,18 @@ changed — which is what matters when someone asks who should have been called.
 | Guardian's `Person` | unchanged | |
 | Student → guardians | `GuardianService.findByWard(student.personId)`, composed **at the API layer** | Student never joins to Guardian directly — that is what keeps the dependency one-way |
 
-**The actual answer today:** the guardianship is an
-`ApplicantGuardianMapping` and it stays pointed at the Applicant. Nothing about
-the Student can reach it except through `sourceApplicantId`, and that path is
-null for migrated students. `VERIFIED`
+**The actual answer as of R4.5 (2026-08-16):** matches the intended table
+above for any pair where both sides had resolved a `personId` before
+`admit()` ran — `Guardianship` rows are written once, at
+`mapGuardianToApplicant` time, and `admit()`'s call to
+`GuardianshipService.syncFromApplicantMappings` is a catch-up for the
+remaining case (the applicant had no `personId` yet when the guardian was
+mapped), not a rewrite. `GuardianshipService.findByWard(wardPersonId)` is the
+literal implementation of the `Student → guardians` row above, reachable
+independent of `sourceApplicantId` — closing the "unreachable for a migrated
+student" gap this section originally reported. `VERIFIED` 2026-08-16.
+`Guardian` itself remains outside `Guardianship`'s reach when it has no
+`personId` (§8.7) — a mapping to such a guardian still projects nothing.
 
 ## 9.6 Is a guardian mandatory?
 

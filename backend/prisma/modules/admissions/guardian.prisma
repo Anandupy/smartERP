@@ -3,6 +3,15 @@ model Guardian {
   organizationId  String
   branchId        String
 
+  /// Links this guardian-domain profile to the canonical human identity.
+  /// Nullable: resolving a Person requires a DOB, which this record has
+  /// never collected, so most existing and many new Guardian rows have none.
+  /// Set at create() when the caller supplies `dob`, or later at update().
+  /// See docs/planning/core-admission-lifecycle-specification.md §8.5 — the
+  /// target says `personId` is required; it is nullable here because that
+  /// target did not account for the missing DOB collection point.
+  personId        String?
+
   // Identity
   firstName       String
   middleName      String?
@@ -35,11 +44,13 @@ model Guardian {
   applicants      ApplicantGuardianMapping[]
   branch          Branch                     @relation(fields: [branchId], references: [id])
   organization    Organization               @relation(fields: [organizationId], references: [id])
+  person          Person?                    @relation(fields: [personId], references: [id])
 
   @@index([organizationId])
   @@index([branchId])
   @@index([mobilePrimary])
   @@index([aadhaarNo])
+  @@index([personId])
 }
 
 model ApplicantGuardianMapping {

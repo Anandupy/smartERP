@@ -1,0 +1,62 @@
+/// The persistent, Person-to-Person guardian relationship. Unlike
+/// `ApplicantGuardianMapping` (which links a Guardian profile to one
+/// Applicant's working application) this survives the applicant -> student
+/// transition unchanged, because both ends are Persons and Person does not
+/// change at admission.
+///
+/// Rows are never hard-deleted and never edited to change who a relationship
+/// is between — a correction is a new row plus `endedAt` on the old one, the
+/// same append-only-history shape R4 established for `PersonAddress`. Two
+/// wards sharing an active `Guardianship` to the same `guardianPersonId` are
+/// siblings; that is derived by query (see `GuardianshipService.findSiblings`)
+/// rather than stored — a `Household` table was considered and explicitly
+/// refused for the same reason.
+///
+/// See docs/planning/core-admission-lifecycle-specification.md §8.5, §9.
+model Guardianship {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  guardianPersonId String
+  wardPersonId     String
+  relationTypeId   String
+
+  /// The default contact. At most one active per ward — enforced by
+  /// `Guardianship_one_primary_per_ward_key`, not merely by service logic.
+  isPrimary Boolean @default(false)
+
+  /// Who pays. At most one active per ward — enforced by
+  /// `Guardianship_one_financial_per_ward_key`. Unenforced in the predecessor
+  /// `ApplicantGuardianMapping` model, which is exactly why R4's `BILLING`
+  /// address resolution could not depend on it.
+  isFinancialGuardian Boolean @default(false)
+
+  /// Many, ordered by `emergencyPriority` — the point of an escalation list
+  /// is that there is more than one.
+  isEmergencyContact Boolean @default(false)
+  emergencyPriority  Int?
+
+  /// Custody, legally distinct from biology. Many may hold it.
+  isLegalGuardian Boolean @default(false)
+
+  pickupAllowed   Boolean   @default(true)
+  pickupValidFrom DateTime?
+  pickupValidTo   DateTime?
+
+  startedAt DateTime  @default(now())
+  /// Null while active. Set on custody change, death or withdrawal — never
+  /// hard-deleted, because an ended guardianship still explains a historical
+  /// sibling relationship and who was an authorised contact on a given date.
+  endedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guardianPerson Person       @relation("GuardianOf", fields: [guardianPersonId], references: [id])
+  wardPerson     Person       @relation("WardOf", fields: [wardPersonId], references: [id])
+  relationType   RelationType @relation(fields: [relationTypeId], references: [id])
+
+  @@index([organizationId])
+  @@index([guardianPersonId])
+  @@index([wardPersonId])
+}

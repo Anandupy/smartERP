@@ -18,6 +18,17 @@ export class GuardianDto {
   @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6c' })
   branchId!: string;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'The canonical identity this guardian profile resolves to. Null until ' +
+      'a DOB is supplied at create or update — see docs/planning/' +
+      'core-admission-lifecycle-specification.md §8.5.',
+    example: null,
+  })
+  personId!: string | null;
+
   @ApiProperty({ example: 'Anil' })
   firstName!: string;
 
@@ -142,4 +153,58 @@ export class MappedGuardianDto extends ApplicantGuardianMappingDto {
 
   @ApiProperty({ type: AdmissionMasterDto })
   relationType!: AdmissionMasterDto;
+}
+
+/**
+ * A persistent Person-to-Person guardian relationship.
+ *
+ * Unlike `ApplicantGuardianMappingDto`, this is not scoped to one
+ * application — it is the record that survives admission and answers
+ * "who are this student's guardians" and "which children does this person
+ * guardian" going forward.
+ */
+export class GuardianshipDto {
+  @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5ae0' })
+  id!: string;
+
+  @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5a6b' })
+  organizationId!: string;
+
+  @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5af0' })
+  guardianPersonId!: string;
+
+  @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5af1' })
+  wardPersonId!: string;
+
+  @ApiProperty({ example: '018f3a5b-7c9d-7e8f-9a0b-1c2d3e4f5aa1' })
+  relationTypeId!: string;
+
+  @ApiProperty({ example: true })
+  isPrimary!: boolean;
+
+  @ApiProperty({ example: true })
+  isFinancialGuardian!: boolean;
+
+  @ApiProperty({ example: false })
+  isEmergencyContact!: boolean;
+
+  @ApiProperty({ type: Number, nullable: true, example: null })
+  emergencyPriority!: number | null;
+
+  @ApiProperty({ example: false })
+  isLegalGuardian!: boolean;
+
+  @ApiProperty({ example: true })
+  pickupAllowed!: boolean;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  startedAt!: Date;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'Null while active.',
+  })
+  endedAt!: Date | null;
 }

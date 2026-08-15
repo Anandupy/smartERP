@@ -9,6 +9,7 @@ import { AuthorizationService } from '@/modules/authorization/authorization.serv
 import { AdmissionService } from '@/modules/admissions/admission/admission.service';
 import { WorkflowService } from '@/modules/admissions/workflow/workflow.service';
 import { AdmissionConversionService } from '@/modules/admissions/admission/admission-conversion.service';
+import { GuardianshipService } from '@/modules/admissions/guardians/guardianship.service';
 import { WorkflowAction } from '@/modules/admissions/workflow/workflow.transitions';
 import { ResourceScope } from '@/common/scope/resource-scope';
 
@@ -71,6 +72,7 @@ describe('Admission conversion', () => {
   const createAdmission = jest.fn();
   const createEnrollment = jest.fn();
   const transition = jest.fn();
+  const syncFromApplicantMappings = jest.fn().mockResolvedValue(undefined);
 
   const mockPrisma: any = {
     applicant: { findFirst: jest.fn() },
@@ -152,6 +154,10 @@ describe('Admission conversion', () => {
         },
         { provide: WorkflowService, useValue: { transition } },
         { provide: AuthorizationService, useValue: { hasPermission } },
+        {
+          provide: GuardianshipService,
+          useValue: { syncFromApplicantMappings },
+        },
       ],
     }).compile();
 

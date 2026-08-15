@@ -61,6 +61,11 @@ model Person {
   student         Student?
   applicants      Applicant[]
   addresses       PersonAddress[]
+  guardianProfiles Guardian[]
+  /// Relationships where this Person is the guardian.
+  guardianOf      Guardianship[] @relation("GuardianOf")
+  /// Relationships where this Person is the ward (child).
+  wardOf          Guardianship[] @relation("WardOf")
   mergedInto      Person?  @relation("PersonMerge", fields: [mergedIntoPersonId], references: [id])
   mergedFrom      Person[] @relation("PersonMerge")
 

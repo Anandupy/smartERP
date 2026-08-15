@@ -77,7 +77,7 @@ building the frontend; §41 if you are building a module on top.
 | # | Module | Status | Document |
 | :--- | :--- | :--- | :--- |
 | **★** | **Admission → Enrollment → Student — build blueprint** | `planned` ⚠️ 12 open questions, 12 Phase-0 blockers | [`student-admission-enrollment-architecture.md`](student-admission-enrollment-architecture.md) |
-| **★★** | **Core admission lifecycle — operational reference** | `reconciled` ⛔ **NOT READY TO FREEZE** — 4 blocking guardian issues | [`core-admission-lifecycle-specification.md`](core-admission-lifecycle-specification.md) |
+| **★★** | **Core admission lifecycle — operational reference** | `reconciled` ✅ guardian blockers closed 2026-08-16 (§8.7) — `BILLING` address resolution and Guardian→Person backfill for pre-existing rows remain `DEFERRED` | [`core-admission-lifecycle-specification.md`](core-admission-lifecycle-specification.md) |
 | **P0** | Foundation blockers *(numbering, BOLA, outbox, row locks)* | `implemented` ✅ 2026-08-09 | blueprint §47 Phase 0 |
 | **P1** | Identity foundation — Person, crypto, blind index | `implemented` ✅ 2026-08-09 ⚠️ recovery custody ceremony outstanding | [`../core/key-custody.md`](../core/key-custody.md) |
 | **P2** | Student identity | `implemented` ✅ 2026-08-10 | blueprint §11, §13, §39, §41 |
@@ -92,8 +92,8 @@ building the frontend; §41 if you are building a module on top.
 | **I1** | Person | `planned` ⚠️ 2 open questions | [`01-identity-core/01-person.md`](01-identity-core/01-person.md) |
 | **I2** | Applicant *(exists — needs changes)* | `planned` ⚠️ 2 open questions | [`01-identity-core/02-applicant.md`](01-identity-core/02-applicant.md) |
 | **I3+I4+I5** | Admission, Student, Enrollment *(one unit)* | `planned` ⚠️ 3 open questions | [`01-identity-core/03-05-admission-student-enrollment.md`](01-identity-core/03-05-admission-student-enrollment.md) |
-| **S1** | Guardian & family *(partially exists)* | `planned` ⛔ **blocks the core freeze** — 4 defects, see the reference §8 | [`02-guardian-family/01-guardian.md`](02-guardian-family/01-guardian.md) |
-| **S2** | Address | `planned` ⚠️ 2 open questions | [`03-address/01-address.md`](03-address/01-address.md) |
+| **S1** | Guardian & family | `implemented` ✅ 2026-08-16 — `Guardian.personId` (nullable) + `Guardianship`, Defects 1/2/4/5/6 fixed; DOB backfill for pre-existing Guardian rows and `BILLING` financial-guardian resolution `DEFERRED`, see the reference §8.7 | [`02-guardian-family/01-guardian.md`](02-guardian-family/01-guardian.md) |
+| **S2** | Address | `implemented` ✅ 2026-08-15 — `Address` + `PersonAddress`, no `Household` (§9.2 DECIDED); see the reference §10 | [`03-address/01-address.md`](03-address/01-address.md) |
 | **S3** | Document | `planned` ⚠️ 3 open questions | [`04-documents/01-document.md`](04-documents/01-document.md) |
 | **S4** | Employee / staff | `planned` ⚠️ 3 open questions | [`05-employee/01-employee.md`](05-employee/01-employee.md) |
 | **A1** | Program & academic unit *(exists)* | `not started` | `06-academic-structure/` |

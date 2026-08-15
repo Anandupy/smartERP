@@ -3,6 +3,7 @@ import { AdmissionService } from './admission.service';
 import { AdmissionConversionService } from './admission-conversion.service';
 import { AdmissionConversionController } from './admission-conversion.controller';
 import { WorkflowModule } from '../workflow/workflow.module';
+import { GuardiansModule } from '../guardians/guardians.module';
 import { IdentityModule } from '@/modules/identity/identity.module';
 import { EnrollmentModule } from '@/modules/enrollment/enrollment.module';
 import { AuthorizationModule } from '@/modules/authorization/authorization.module';
@@ -15,8 +16,11 @@ import { AuthorizationModule } from '@/modules/authorization/authorization.modul
  * written and creation belongs to an operation that knows *why*.
  *
  * `AdmissionConversionService` is that operation. It imports identity,
- * enrollment and workflow because it composes all three inside one transaction;
- * the edges it adds all run in the allowed direction — `admissions → identity`
+ * enrollment, workflow and guardians because it composes all of them inside
+ * one transaction — including projecting `ApplicantGuardianMapping` onto the
+ * persistent `Guardianship` once the new Student's `personId` exists, which
+ * is what stops a guardian relationship evaporating at admission (§8.3). The
+ * edges it adds all run in the allowed direction — `admissions → identity`
  * and `admissions → enrollment` — and none of those modules gains an edge back.
  */
 @Module({
@@ -25,6 +29,7 @@ import { AuthorizationModule } from '@/modules/authorization/authorization.modul
     IdentityModule,
     EnrollmentModule,
     AuthorizationModule,
+    GuardiansModule,
   ],
   controllers: [AdmissionConversionController],
   providers: [AdmissionService, AdmissionConversionService],

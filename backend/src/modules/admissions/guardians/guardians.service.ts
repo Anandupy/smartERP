@@ -1,8 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { OutboxPublisher } from '@/infrastructure/outbox/outbox.publisher';
+import { PersonService } from '@/modules/identity/person/person.service';
+import { GuardianshipService } from './guardianship.service';
 import {
   GuardianCreatedEvent,
+  GuardianPersonLinkedEvent,
   GuardianUpdatedEvent,
   GuardianMappedEvent,
   GuardianUnmappedEvent,
@@ -18,28 +21,62 @@ import {
 export class GuardiansService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventBus: EventBus,
+    private readonly outbox: OutboxPublisher,
+    private readonly persons: PersonService,
+    private readonly guardianships: GuardianshipService,
   ) {}
 
+  /**
+   * Create a guardian profile, optionally resolving it against the Person
+   * identity index.
+   *
+   * `dob` is transient: it exists only to call `PersonService.resolve()` and
+   * is never stored on Guardian. Person owns date of birth as a matching
+   * fact; a copy here would be a second source of truth for something
+   * Guardian does not otherwise need. Omitting `dob` (every guardian created
+   * before this field existed did) leaves `personId` null — a normal,
+   * expected state, not a degraded one.
+   */
   async create(dto: CreateGuardianDto, scope: ResourceScope) {
-    const guardian = await this.prisma.guardian.create({
-      data: {
-        ...dto,
-        organizationId: scope.organizationId,
-        branchId: scope.branchId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const { dob, ...guardianFields } = dto;
+      const personId = dob
+        ? (
+            await this.persons.resolve(
+              scope.organizationId,
+              {
+                firstName: dto.firstName,
+                middleName: dto.middleName,
+                lastName: dto.lastName,
+                dob: new Date(dob),
+                phone: dto.mobilePrimary,
+                governmentId: dto.aadhaarNo,
+              },
+              tx,
+            )
+          ).personId
+        : null;
+
+      const guardian = await tx.guardian.create({
+        data: {
+          ...guardianFields,
+          personId,
+          organizationId: scope.organizationId,
+          branchId: scope.branchId,
+        },
+      });
+
+      await this.outbox.enqueue(
+        new GuardianCreatedEvent({
+          guardianId: guardian.id,
+          organizationId: scope.organizationId,
+          hasPersonLink: personId !== null,
+        }),
+        tx,
+      );
+
+      return guardian;
     });
-
-    await this.eventBus.publish(
-      new GuardianCreatedEvent({
-        guardianId: guardian.id,
-        firstName: guardian.firstName,
-        lastName: guardian.lastName,
-        mobilePrimary: guardian.mobilePrimary,
-      }),
-    );
-
-    return guardian;
   }
 
   /**
@@ -62,32 +99,93 @@ export class GuardiansService {
    * The write re-asserts scope in its own `WHERE` rather than trusting the
    * preceding read, so a read-then-write-by-id can never drift into a
    * cross-tenant write.
+   *
+   * `dob` links a Person retroactively when the guardian has none yet — the
+   * path the one pre-existing, unlinkable Guardian row (and any other
+   * created without `dob`) uses to gain a `personId` later. It is ignored,
+   * not an error, when the guardian is already linked: re-supplying a DOB on
+   * an already-resolved guardian is not this endpoint's job.
    */
   async update(id: string, dto: UpdateGuardianDto, scope: ResourceScope) {
-    await this.findOne(id, scope);
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.guardian.findFirst({
+        where: { id, ...scopedWhere(scope), deletedAt: null },
+      });
+      if (!current) {
+        throw new NotFoundException('Guardian not found');
+      }
 
-    const result = await this.prisma.guardian.updateMany({
-      where: { id, ...scopedWhere(scope), deletedAt: null },
-      data: dto,
+      const { dob, ...fields } = dto;
+      let personId = current.personId;
+      let linkedNow = false;
+
+      if (dob && !current.personId) {
+        const resolved = await this.persons.resolve(
+          scope.organizationId,
+          {
+            firstName: fields.firstName ?? current.firstName,
+            middleName: fields.middleName ?? current.middleName,
+            lastName: fields.lastName ?? current.lastName,
+            dob: new Date(dob),
+            phone: fields.mobilePrimary ?? current.mobilePrimary,
+            governmentId: fields.aadhaarNo ?? current.aadhaarNo,
+          },
+          tx,
+        );
+        personId = resolved.personId;
+        linkedNow = true;
+      }
+
+      const writeData = { ...fields, ...(linkedNow ? { personId } : {}) };
+
+      // `dob` on an already-linked guardian, with nothing else in the
+      // request, leaves nothing to write — Prisma rejects an empty `data`.
+      // Returning the row unchanged is correct: there was nothing to do.
+      if (Object.keys(writeData).length === 0) {
+        return current;
+      }
+
+      const result = await tx.guardian.updateMany({
+        where: { id, ...scopedWhere(scope), deletedAt: null },
+        data: writeData,
+      });
+
+      if (result.count !== 1) {
+        throw new NotFoundException('Guardian not found');
+      }
+
+      const updated = await tx.guardian.findFirstOrThrow({ where: { id } });
+
+      await this.outbox.enqueue(
+        new GuardianUpdatedEvent({ guardianId: updated.id }),
+        tx,
+      );
+
+      if (linkedNow && personId) {
+        await this.outbox.enqueue(
+          new GuardianPersonLinkedEvent({
+            guardianId: updated.id,
+            organizationId: scope.organizationId,
+            personId,
+          }),
+          tx,
+        );
+      }
+
+      return updated;
     });
-
-    if (result.count !== 1) {
-      throw new NotFoundException('Guardian not found');
-    }
-
-    const updated = await this.prisma.guardian.findFirstOrThrow({
-      where: { id },
-    });
-
-    await this.eventBus.publish(
-      new GuardianUpdatedEvent({
-        guardianId: updated.id,
-      }),
-    );
-
-    return updated;
   }
 
+  /**
+   * Search guardians for sibling reuse.
+   *
+   * Mobile and name only — never Aadhaar. A `contains` match on a plaintext
+   * government identifier is a substring oracle: any STAFF caller could
+   * probe digits they were never shown one character at a time (§8.4 Defect
+   * 4). `Person.findCandidates` already refuses to accept a government
+   * identifier as a search term for the same reason; this brings Guardian in
+   * line rather than inventing a different rule.
+   */
   async search(searchTerm: string, scope: ResourceScope) {
     if (!searchTerm) {
       return [];
@@ -99,7 +197,6 @@ export class GuardiansService {
         deletedAt: null,
         OR: [
           { mobilePrimary: { contains: searchTerm } },
-          { aadhaarNo: { contains: searchTerm } },
           { firstName: { contains: searchTerm, mode: 'insensitive' } },
           { lastName: { contains: searchTerm, mode: 'insensitive' } },
         ],
@@ -121,71 +218,121 @@ export class GuardiansService {
     return applicant;
   }
 
+  /**
+   * Map a guardian to an applicant, idempotently.
+   *
+   * Runs inside one transaction (§8.4 Defect 1: the previous clear-then-set
+   * was two unrelated statements, so a failing upsert could leave a ward with
+   * no primary guardian, committed). Unset flags are preserved from the
+   * existing mapping rather than reset to `false` (§8.4 Defect 5: re-mapping
+   * to change only `relationTypeId` used to silently demote the primary
+   * guardian).
+   *
+   * When both the applicant and the guardian have a resolved `personId`,
+   * also syncs the persistent `Guardianship` row — the applicant will not
+   * always have one yet (personId is set at `submit()`, which may not have
+   * happened), in which case `admit()` catches it later.
+   */
   async mapGuardianToApplicant(
     applicantId: string,
     dto: MapGuardianDto,
     scope: ResourceScope,
   ) {
-    // 1. Verify applicant exists in scope
-    await this.findApplicantInScope(applicantId, scope);
-
-    // 2. Verify guardian exists in scope
-    await this.findOne(dto.guardianId, scope);
-
-    // 3. Verify relationType exists
-    const relType = await this.prisma.relationType.findFirst({
-      where: { id: dto.relationTypeId, deletedAt: null },
-    });
-    if (!relType) {
-      throw new NotFoundException('Relation Type not found');
-    }
-
-    // 4. Handle primary guardian rule: only one guardian can be primary per applicant
-    if (dto.isPrimary) {
-      await this.prisma.applicantGuardianMapping.updateMany({
-        where: { applicantId, isPrimary: true },
-        data: { isPrimary: false },
+    return this.prisma.$transaction(async (tx) => {
+      const applicant = await tx.applicant.findFirst({
+        where: { id: applicantId, ...scopedWhere(scope), deletedAt: null },
       });
-    }
+      if (!applicant) {
+        throw new NotFoundException('Applicant not found');
+      }
 
-    // 5. Create or update mapping
-    const mapping = await this.prisma.applicantGuardianMapping.upsert({
-      where: {
-        applicantId_guardianId: {
+      const guardian = await tx.guardian.findFirst({
+        where: { id: dto.guardianId, ...scopedWhere(scope), deletedAt: null },
+      });
+      if (!guardian) {
+        throw new NotFoundException('Guardian not found');
+      }
+
+      const relType = await tx.relationType.findFirst({
+        where: { id: dto.relationTypeId, deletedAt: null },
+      });
+      if (!relType) {
+        throw new NotFoundException('Relation Type not found');
+      }
+
+      const existingMapping = await tx.applicantGuardianMapping.findUnique({
+        where: {
+          applicantId_guardianId: { applicantId, guardianId: dto.guardianId },
+        },
+      });
+
+      const isPrimary = dto.isPrimary ?? existingMapping?.isPrimary ?? false;
+      const isEmergencyContact =
+        dto.isEmergencyContact ?? existingMapping?.isEmergencyContact ?? false;
+      const isFinancialGuardian =
+        dto.isFinancialGuardian ??
+        existingMapping?.isFinancialGuardian ??
+        false;
+      const pickupAllowed =
+        dto.pickupAllowed ?? existingMapping?.pickupAllowed ?? true;
+      const priority = dto.priority ?? existingMapping?.priority ?? 1;
+
+      if (isPrimary) {
+        await tx.applicantGuardianMapping.updateMany({
+          where: { applicantId, isPrimary: true },
+          data: { isPrimary: false },
+        });
+      }
+
+      const mapping = await tx.applicantGuardianMapping.upsert({
+        where: {
+          applicantId_guardianId: { applicantId, guardianId: dto.guardianId },
+        },
+        create: {
           applicantId,
           guardianId: dto.guardianId,
+          relationTypeId: dto.relationTypeId,
+          isPrimary,
+          isEmergencyContact,
+          isFinancialGuardian,
+          pickupAllowed,
+          priority,
         },
-      },
-      create: {
-        applicantId,
-        guardianId: dto.guardianId,
-        relationTypeId: dto.relationTypeId,
-        isPrimary: dto.isPrimary || false,
-        isEmergencyContact: dto.isEmergencyContact || false,
-        isFinancialGuardian: dto.isFinancialGuardian || false,
-        pickupAllowed: dto.pickupAllowed !== false,
-        priority: dto.priority || 1,
-      },
-      update: {
-        relationTypeId: dto.relationTypeId,
-        isPrimary: dto.isPrimary || false,
-        isEmergencyContact: dto.isEmergencyContact || false,
-        isFinancialGuardian: dto.isFinancialGuardian || false,
-        pickupAllowed: dto.pickupAllowed !== false,
-        priority: dto.priority || 1,
-      },
+        update: {
+          relationTypeId: dto.relationTypeId,
+          isPrimary,
+          isEmergencyContact,
+          isFinancialGuardian,
+          pickupAllowed,
+          priority,
+        },
+      });
+
+      await this.outbox.enqueue(
+        new GuardianMappedEvent({
+          applicantId: mapping.applicantId,
+          guardianId: mapping.guardianId,
+          relationTypeId: mapping.relationTypeId,
+          isPrimary: mapping.isPrimary,
+        }),
+        tx,
+      );
+
+      if (applicant.personId && guardian.personId) {
+        await this.guardianships.syncOne(tx, {
+          organizationId: scope.organizationId,
+          guardianPersonId: guardian.personId,
+          wardPersonId: applicant.personId,
+          relationTypeId: dto.relationTypeId,
+          isPrimary,
+          isFinancialGuardian,
+          isEmergencyContact,
+          pickupAllowed,
+        });
+      }
+
+      return mapping;
     });
-
-    await this.eventBus.publish(
-      new GuardianMappedEvent({
-        applicantId: mapping.applicantId,
-        guardianId: mapping.guardianId,
-        relationTypeId: mapping.relationTypeId,
-        isPrimary: mapping.isPrimary,
-      }),
-    );
-
-    return mapping;
   }
 
   async getMappedGuardians(applicantId: string, scope: ResourceScope) {
@@ -209,29 +356,28 @@ export class GuardiansService {
     await this.findApplicantInScope(applicantId, scope);
     await this.findOne(guardianId, scope);
 
-    const mapping = await this.prisma.applicantGuardianMapping.findUnique({
-      where: {
-        applicantId_guardianId: { applicantId, guardianId },
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const mapping = await tx.applicantGuardianMapping.findUnique({
+        where: { applicantId_guardianId: { applicantId, guardianId } },
+      });
+
+      if (!mapping) {
+        throw new NotFoundException('Guardian mapping not found');
+      }
+
+      const deletedMapping = await tx.applicantGuardianMapping.delete({
+        where: { applicantId_guardianId: { applicantId, guardianId } },
+      });
+
+      await this.outbox.enqueue(
+        new GuardianUnmappedEvent({
+          applicantId: deletedMapping.applicantId,
+          guardianId: deletedMapping.guardianId,
+        }),
+        tx,
+      );
+
+      return deletedMapping;
     });
-
-    if (!mapping) {
-      throw new NotFoundException('Guardian mapping not found');
-    }
-
-    const deletedMapping = await this.prisma.applicantGuardianMapping.delete({
-      where: {
-        applicantId_guardianId: { applicantId, guardianId },
-      },
-    });
-
-    await this.eventBus.publish(
-      new GuardianUnmappedEvent({
-        applicantId: deletedMapping.applicantId,
-        guardianId: deletedMapping.guardianId,
-      }),
-    );
-
-    return deletedMapping;
   }
 }

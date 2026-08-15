@@ -76,26 +76,59 @@ export class ApplicantDeletedEvent extends DomainEvent {
   }
 }
 
+/**
+ * Guardian events carry no PII — no name, no mobile number, no Aadhaar. An
+ * event is copied into the outbox and the audit log, the widest distribution
+ * a value can get; what travels is ids and booleans, the same rule
+ * `person.events.ts` and `address.events.ts` document for their own
+ * sensitive values. (Defect 6, §8.4 — the previous payload carried
+ * firstName/lastName/mobilePrimary verbatim.)
+ */
 export class GuardianCreatedEvent extends DomainEvent {
   static readonly EVENT_NAME = 'guardian.created';
   readonly payload: {
     guardianId: string;
-    firstName: string;
-    lastName: string;
-    mobilePrimary: string;
+    organizationId: string;
+    hasPersonLink: boolean;
   };
 
   constructor(
     payload: {
       guardianId: string;
-      firstName: string;
-      lastName: string;
-      mobilePrimary: string;
+      organizationId: string;
+      hasPersonLink: boolean;
     },
     metadata?: Record<string, any>,
   ) {
     super({
       eventName: GuardianCreatedEvent.EVENT_NAME,
+      aggregateId: payload.guardianId,
+      aggregateType: 'Guardian',
+      metadata,
+    });
+    this.payload = payload;
+  }
+}
+
+/** A Person was linked to a previously-unlinked Guardian profile. */
+export class GuardianPersonLinkedEvent extends DomainEvent {
+  static readonly EVENT_NAME = 'guardian.person_linked';
+  readonly payload: {
+    guardianId: string;
+    organizationId: string;
+    personId: string;
+  };
+
+  constructor(
+    payload: {
+      guardianId: string;
+      organizationId: string;
+      personId: string;
+    },
+    metadata?: Record<string, any>,
+  ) {
+    super({
+      eventName: GuardianPersonLinkedEvent.EVENT_NAME,
       aggregateId: payload.guardianId,
       aggregateType: 'Guardian',
       metadata,
@@ -172,6 +205,43 @@ export class GuardianUnmappedEvent extends DomainEvent {
       eventName: GuardianUnmappedEvent.EVENT_NAME,
       aggregateId: payload.applicantId,
       aggregateType: 'Applicant',
+      metadata,
+    });
+    this.payload = payload;
+  }
+}
+
+/**
+ * A persistent Person-to-Person `Guardianship` was created or its flags were
+ * synced from the applicant-scoped mapping it derives from. There is no
+ * `guardianship.updated`/`guardianship.ended`: nothing writes those paths yet
+ * (see `GuardianshipService`), and an event for a write that cannot happen is
+ * dead weight, not documentation.
+ */
+export class GuardianshipCreatedEvent extends DomainEvent {
+  static readonly EVENT_NAME = 'guardianship.created';
+  readonly payload: {
+    guardianshipId: string;
+    organizationId: string;
+    guardianPersonId: string;
+    wardPersonId: string;
+    relationTypeId: string;
+  };
+
+  constructor(
+    payload: {
+      guardianshipId: string;
+      organizationId: string;
+      guardianPersonId: string;
+      wardPersonId: string;
+      relationTypeId: string;
+    },
+    metadata?: Record<string, any>,
+  ) {
+    super({
+      eventName: GuardianshipCreatedEvent.EVENT_NAME,
+      aggregateId: payload.guardianshipId,
+      aggregateType: 'Guardianship',
       metadata,
     });
     this.payload = payload;

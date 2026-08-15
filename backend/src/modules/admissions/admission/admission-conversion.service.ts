@@ -18,6 +18,7 @@ import { RowLockService } from '@/infrastructure/database/row-lock.service';
 import { PersonService } from '@/modules/identity/person/person.service';
 import { StudentService } from '@/modules/identity/student/student.service';
 import { EnrollmentService } from '@/modules/enrollment/enrollment.service';
+import { GuardianshipService } from '../guardians/guardianship.service';
 import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 import { ResourceScope } from '@/common/scope/resource-scope';
@@ -130,6 +131,7 @@ export class AdmissionConversionService {
     private readonly enrollments: EnrollmentService,
     private readonly workflow: WorkflowService,
     private readonly authorization: AuthorizationService,
+    private readonly guardianships: GuardianshipService,
   ) {}
 
   /**
@@ -272,6 +274,19 @@ export class AdmissionConversionService {
         createdBy: actor.userId ?? null,
       },
       tx,
+    );
+
+    // 5.5. Project this applicant's guardian mappings onto the persistent
+    //      Guardianship (§8.3). The ward's Person is guaranteed resolved here
+    //      even for mappings created before the applicant itself had a
+    //      personId — the case `mapGuardianToApplicant` cannot sync at map
+    //      time. Guardians with no personId are skipped, not errored: a
+    //      guardian profile with no linked Person is a normal state.
+    await this.guardianships.syncFromApplicantMappings(
+      tx,
+      applicant.id,
+      applicant.organizationId,
+      personId,
     );
 
     // 6. The spell of study. `admissionNo` comes from the branch sequence.

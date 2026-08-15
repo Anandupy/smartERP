@@ -11,11 +11,12 @@ import { ReligionService } from '@/modules/admissions/masters/religion/religion.
 import { NumberingService } from '@/infrastructure/numbering/numbering.service';
 import { ApplicantService } from '@/modules/admissions/applicant/applicant.service';
 import { GuardiansService } from '@/modules/admissions/guardians/guardians.service';
+import { GuardianshipService } from '@/modules/admissions/guardians/guardianship.service';
+import { PersonService } from '@/modules/identity/person/person.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { ResourceScope } from '@/common/scope/resource-scope';
 import {
   ApplicantCreatedEvent,
-  GuardianMappedEvent,
   NumberingConfigCreatedEvent,
 } from '@/common/events';
 
@@ -154,6 +155,14 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         OutboxPublisher,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EventBus, useValue: mockEventBus },
+        { provide: PersonService, useValue: { resolve: jest.fn() } },
+        {
+          provide: GuardianshipService,
+          useValue: {
+            syncOne: jest.fn(),
+            syncFromApplicantMappings: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -525,8 +534,10 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         where: { applicantId: 'app-1', isPrimary: true },
         data: { isPrimary: false },
       });
-      expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.any(GuardianMappedEvent),
+      expect(mockPrisma.outboxEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ eventName: 'guardian.mapped' }),
+        }),
       );
     });
 
