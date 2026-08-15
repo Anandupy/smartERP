@@ -60,6 +60,7 @@ model Category {
 
   applicants     Applicant[]
   students       Student[]
+  documentRequirements DocumentRequirement[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -198,6 +199,7 @@ model Quota {
 
   applicants     Applicant[]
   admissions     Admission[]
+  documentRequirements DocumentRequirement[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])

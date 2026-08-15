@@ -21,6 +21,7 @@ model Program {
   applicants    Applicant[]
   preferences   ApplicantProgramPreference[]
   admissionEntries Admission[]
+  documentRequirements DocumentRequirement[]
 
   @@index([branchId])
   @@index([parentId])

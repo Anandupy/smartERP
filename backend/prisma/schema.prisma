@@ -147,6 +147,7 @@ model Program {
   applicants    Applicant[]
   preferences   ApplicantProgramPreference[]
   admissionEntries Admission[]
+  documentRequirements DocumentRequirement[]
 
   @@index([branchId])
   @@index([parentId])
@@ -780,6 +781,7 @@ model Category {
 
   applicants     Applicant[]
   students       Student[]
+  documentRequirements DocumentRequirement[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -918,6 +920,7 @@ model Quota {
 
   applicants     Applicant[]
   admissions     Admission[]
+  documentRequirements DocumentRequirement[]
 
   @@unique([organizationId, branchId, code])
   @@unique([organizationId, branchId, name])
@@ -1497,6 +1500,272 @@ model ProviderConfig {
   @@index([branchId])
   @@index([provider])
   @@index([channel])
+}
+
+
+// --- FROM: modules/documents/document.prisma ---
+
+/// R5 — Document Management foundation.
+///
+/// ## Current state before this phase
+///
+/// `VERIFIED` against the schema and git history: no `Document`,
+/// `DocumentVersion`, `DocumentType`, `DocumentRequirement`, `File` or
+/// `Attachment` model existed. `Applicant.photoFileId` and
+/// `Student.photoDocumentId` were (and `photoDocumentId` remains,
+/// deliberately, with no FK) dangling references. See
+/// docs/planning/core-admission-lifecycle-specification.md §11.
+///
+/// ## Document vs Version
+///
+/// `Document` is business identity: what it is, who it belongs to, its
+/// current state. `DocumentVersion` is one uploaded file: storage
+/// reference, scan result, verification result. A document is never
+/// overwritten — a replacement is a new, append-only `DocumentVersion` row,
+/// and `Document.currentVersionId` is the single pointer that decides which
+/// one is in force. Because that pointer is a nullable **unique** foreign
+/// key, "at most one current version" is structural, not a constraint that
+/// could be forgotten.
+///
+/// ## Ownership — polymorphic by necessity, not by convenience
+///
+/// A normal SQL foreign key cannot point at "whichever table `ownerType`
+/// names", so referential integrity for `(ownerType, ownerId)` is a SERVICE
+/// invariant: `DocumentService` resolves and scope-checks the owner row
+/// inside the same transaction, before the Document row is written, using
+/// the caller's own verified scope — never a scope value taken from the
+/// request body. Orphaning on owner deletion is not a practical risk today
+/// because every owner table in this schema is soft-deleted
+/// (`deletedAt`) or, for Person, never deleted at all.
+///
+/// `Employee` (S4) and a distinct `Guardian` owner type are deliberately
+/// absent: S4 does not exist yet, and a guardian's documents are owned by
+/// their own `Person` row per §11.3 ("Guardian ID proof → PERSON").
+enum DocumentOwnerType {
+  PERSON
+  APPLICANT
+  ADMISSION
+  ENROLLMENT
+  STUDENT
+  ORGANIZATION
+  BRANCH
+}
+
+enum DocumentStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+/// `FAILED` must never be treated as `CLEAN` — a scanner that is down is a
+/// reason to refuse the version, not to wave it through. Only `CLEAN` can
+/// ever become `Document.currentVersionId`.
+enum DocumentScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  FAILED
+}
+
+/// Re-verification is required on every new version: a `DocumentVersion`
+/// always starts `PENDING`, never inherits the previous version's status.
+enum DocumentVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+/// Configurable document types. Same visibility shape as the Admissions
+/// masters (Religion, Caste, ...): system default (`organizationId` and
+/// `branchId` both null), organization default (`branchId` null), or
+/// branch-specific.
+model DocumentType {
+  id             String  @id @default(uuid(7))
+  organizationId String?
+  branchId       String?
+  code           String
+  name           String
+  description    String?
+
+  /// Aadhaar, income and similar — drives the stricter download role check
+  /// in `DocumentService` (§14 of the spec).
+  isSensitive Boolean @default(false)
+
+  hasExpiry             Boolean @default(false)
+  /// Only meaningful when `hasExpiry`. Drives `Document.expiresAt` at
+  /// upload/replace time.
+  defaultValidityMonths Int?
+
+  /// Years to retain after the owning admission/enrollment closes. Read by
+  /// a future retention sweep — no sweep exists yet (§19, DEFERRED).
+  retentionYears Int?
+
+  /// Content-Type values accepted at upload. Enforced against the
+  /// client-declared type AND, for the types this deployment can sniff
+  /// (PDF/JPEG/PNG), against the file's own magic bytes.
+  allowedMimeTypes String[]
+  maxSizeBytes     Int      @default(10485760)
+
+  displayOrder Int     @default(0)
+  isActive     Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  requirements DocumentRequirement[]
+  documents    Document[]
+
+  @@unique([organizationId, branchId, code])
+  @@unique([organizationId, branchId, name])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+/// The rule that a file must exist — distinct from `Document`, which is a
+/// file that does. §11.2: this is the table that was missing, which is why
+/// `DOCUMENT_PENDING` had nothing to compute against.
+///
+/// Variance is `programId × quotaId × categoryId` (null = applies to all).
+/// `Applicant` carries no `admissionType` column today — `VERIFIED` against
+/// `applicant.prisma` — so that axis from the spec's §11.2 formula is not
+/// implemented; adding it would mean inventing a field on Applicant, which
+/// is out of R5's scope. Recorded as a discrepancy, not silently dropped.
+model DocumentRequirement {
+  id             String  @id @default(uuid(7))
+  organizationId String
+  /// Null = applies organization-wide across every branch.
+  branchId       String?
+
+  documentTypeId String
+
+  appliesToProgramId  String?
+  appliesToQuotaId    String?
+  appliesToCategoryId String?
+
+  /// Which `AdmissionApplicationStatus` demands this document. Reuses the
+  /// workflow's own enum rather than a parallel one, so a stage that stops
+  /// existing cannot leave an orphaned requirement definition silently valid.
+  requiredByStage AdmissionApplicationStatus
+
+  isMandatory Boolean @default(true)
+  isActive    Boolean @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  documentType DocumentType  @relation(fields: [documentTypeId], references: [id])
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  program      Program?      @relation(fields: [appliesToProgramId], references: [id])
+  quota        Quota?        @relation(fields: [appliesToQuotaId], references: [id])
+  category     Category?     @relation(fields: [appliesToCategoryId], references: [id])
+
+  @@index([organizationId, branchId])
+  @@index([documentTypeId])
+  @@index([appliesToProgramId])
+  @@index([appliesToQuotaId])
+  @@index([appliesToCategoryId])
+}
+
+model Document {
+  id             String @id @default(uuid(7))
+  organizationId String
+
+  /// Null for owners that are organization-scoped for life (`PERSON`,
+  /// `STUDENT` — a Student's branch moves, see `student.prisma` — and
+  /// `ORGANIZATION`). Set for owners fixed to one branch forever
+  /// (`APPLICANT`, `ADMISSION`, `ENROLLMENT`, `BRANCH`). Stamped from the
+  /// resolved owner row, never from client input.
+  branchId String?
+
+  ownerType DocumentOwnerType
+  ownerId   String
+
+  documentTypeId String
+
+  status DocumentStatus @default(ACTIVE)
+
+  /// The version in force. Null until a `CLEAN` version exists.
+  currentVersionId String? @unique
+
+  /// Derived from the current version's `uploadedAt` plus
+  /// `DocumentType.defaultValidityMonths`; recomputed on replace. An expired
+  /// document does not block anything by itself (§11.5) — it is an
+  /// administrative fact, not a workflow gate.
+  expiresAt DateTime?
+
+  archivedAt    DateTime?
+  archivedBy    String?
+  archiveReason String?
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documentType   DocumentType      @relation(fields: [documentTypeId], references: [id])
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  currentVersion DocumentVersion?  @relation("CurrentDocumentVersion", fields: [currentVersionId], references: [id])
+  versions       DocumentVersion[] @relation("DocumentVersions")
+
+  /// At most one ACTIVE document per owner+type — a second upload of the
+  /// same type for the same owner is a new VERSION, not a new Document.
+  /// Partial (`WHERE status = 'ACTIVE'`), hand-written in the migration, so
+  /// an archived document does not block a fresh one from starting.
+  @@index([organizationId, ownerType, ownerId])
+  @@index([documentTypeId])
+  @@index([branchId])
+  @@index([status])
+}
+
+model DocumentVersion {
+  id         String @id @default(uuid(7))
+  documentId String
+
+  /// 1-based, append-only. `@@unique([documentId, versionNumber])` is what
+  /// makes two concurrent replacements produce one winner and one 409
+  /// rather than two versions silently sharing a number.
+  versionNumber Int
+
+  /// Infrastructure metadata — never a domain concept. `storageProvider`
+  /// names which adapter wrote this version (`local` today), so a future
+  /// migration to a cloud provider can carry old versions' keys forward
+  /// under the adapter that can still resolve them.
+  storageProvider  String
+  storageKey       String
+  /// Display only. Never used to derive `storageKey` — that is generated,
+  /// which is what rules out path traversal from a crafted filename.
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  checksumSha256   String
+
+  /// Which generation of the organization's data key encrypted this
+  /// version's bytes at rest, mirroring `PersonSensitive`/`Address` — see
+  /// `IdentityCryptoService`.
+  encryptionKeyVersion Int
+
+  scanStatus      DocumentScanStatus @default(PENDING)
+  scanCompletedAt DateTime?
+  scanDetails     String?
+
+  verificationStatus DocumentVerificationStatus @default(PENDING)
+  verifiedBy         String?
+  verifiedAt         DateTime?
+  rejectionReason    String?
+
+  uploadedBy   String?
+  uploadedAt   DateTime  @default(now())
+  /// Set the instant a later version supersedes this one. Never null'd back.
+  supersededAt DateTime?
+
+  document   Document  @relation("DocumentVersions", fields: [documentId], references: [id])
+  /// The reverse of `Document.currentVersionId` — lets a version be found
+  /// from "am I the current one" without a second query.
+  currentFor Document? @relation("CurrentDocumentVersion")
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+  @@index([checksumSha256])
 }
 
 
@@ -2613,6 +2882,8 @@ model Organization {
   guardians        Guardian[]
   students         Student[]
   admissions       Admission[]
+  documents            Document[]
+  documentRequirements DocumentRequirement[]
 }
 
 

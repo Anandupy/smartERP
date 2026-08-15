@@ -25,4 +25,6 @@ model Organization {
   guardians        Guardian[]
   students         Student[]
   admissions       Admission[]
+  documents            Document[]
+  documentRequirements DocumentRequirement[]
 }
