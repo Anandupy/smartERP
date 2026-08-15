@@ -3,6 +3,9 @@
 /node_modules
 /coverage
 
+# R5 — local filesystem document storage adapter (development/test only)
+/storage
+
 # Logs
 logs/
 *.log
