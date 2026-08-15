@@ -1,6 +1,6 @@
 # Communication Module — UI/UX Functional Specification
 
-**Status:** analysis only. No code, backend or frontend, was changed to produce this.
+**Status:** this analysis has since been implemented as `src/features/communication`. Phase 1 (the ten admin screens: Overview, Templates Directory/Detail/Create/Edit, Template Preview drawer, Delivery Logs + detail drawer, Analytics, Settings, Send Notification) is live under `/app/communication/**`, wired against the same 18 endpoints this document catalogues. **Not implemented**: the Part 3 "personal surface" (Notification Inbox, Bell + Panel, Notification Preferences) — those endpoints are real and documented here but ship in a later phase, per the task that produced Phase 1. Every §13 Future Enhancement remains absent from the backend and therefore from the UI, shown (where surfaced at all) via `BackendPendingNote`.
 **Sources:** `backend/src/modules/communication/**` (6 controllers, 18 routes), `backend/prisma/modules/communication/*.prisma` (7 models, 8 enums), `backend/docs/modules/communication/*.md` (10 documents), `backend/postman/erp.postman_collection.json` (18 Communication requests), and the shipped CampusFlow frontend (`src/components/ui`, `src/shared/components`, `src/features/*`).
 
 ---
