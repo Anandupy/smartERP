@@ -1,9 +1,13 @@
 # Backend Contract Gaps
 
 Everything the administration modules could not wire, and exactly what is
-missing. Compiled from `backend/docs/modules/system-settings.md`,
+missing. Sections A–I are compiled from `backend/docs/modules/system-settings.md`,
 `backend/docs/modules/maintenance.md`, `backend/docs/core/audit.md` and the
-Postman collection — no backend source was read.
+Postman collection — no backend source was read for those. Section J (Account
+& Security Center) is the one exception: it is compiled from
+`backend/src/modules/auth` directly, because the Postman collection's
+session/logout examples were found incomplete for that milestone — see
+[`docs/security-center-module.md`](./security-center-module.md).
 
 Each entry states what the frontend does **today**, so nothing is blocked
 waiting on an answer. Searching the source for `BACKEND_PENDING_LABEL` finds
@@ -319,7 +323,35 @@ has moved up the priority list below.
 
 ---
 
-## J. What is needed, in priority order
+## J. Account & Security Center
+
+Compiled from `backend/src/modules/auth` (controller, service, DTOs) and the
+Prisma `User`/`RefreshToken` models directly — backend source, not the
+Postman collection, because the collection's session/logout examples were
+found to be incomplete for this milestone (see
+[`docs/security-center-module.md`](./security-center-module.md) for the full
+verification trail).
+
+Wired: `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `DELETE
+/auth/sessions`, `POST /auth/logout` (both `allDevices` states). All four
+existed already, wired by the auth feature; this module only added screens.
+
+| #   | Gap                                                                                                                                                                             | Impact                                                                       | Current behaviour                                                                                                                              |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| K1  | **No authenticated change-password endpoint.** `POST /auth/reset-password` exists but requires the single-use token from a `forgot-password` email — it is account recovery, not a signed-in user changing a known password. | Change Password cannot submit.                                              | Full form UI ships (`PendingSettingsGroup`); submit stays disabled. `reset-password` is never called with a fabricated token.                 |
+| K2  | **Two-factor authentication is schema-only.** `User.isTwoFactorEnabled`/`twoFactorSecret` exist in Prisma, but the column comment states they are unimplemented and never written; neither is selected into any API response. | 2FA status cannot be read, and there is no enroll/enable/disable/QR/backup-code endpoint. | Screen ships; status is reported as **unavailable**, never "disabled". Every management control is disabled. Login-time OTP (`purpose: MFA`) is noted as a separate, already-real mechanism, not conflated with enrollment. |
+| K3  | **No security-preferences endpoint** — distinct from `notification-preference` (communication channels, a different module).                                                    | Notification/session-behavior toggles cannot be read or saved.                | Screen ships with every toggle disabled via `PendingSettingsGroup`.                                                                            |
+| K4  | **No login-history endpoint**, distinct from `GET /auth/sessions` (live sessions only).                                                                                        | Historical sign-in attempts, including failed ones, cannot be listed.        | Screen ships with disabled filters and an empty state; nothing is derived from Active Sessions to fill the gap.                                 |
+| K5  | **No security-activity endpoint.** `auth.service.ts` never emits to the generic audit-log event system, so `/audit-logs` contains no login/logout/session-revoke events.        | A security-activity feed cannot be built from either an auth-specific endpoint or the generic audit log. | Screen ships with disabled filters and an empty state. The generic Audit Logs module is not repurposed — its semantics do not include auth events. |
+| K6  | **No trusted-device model or endpoints.** No Prisma model, no controller.                                                                                                       | Trusted-device enrollment, listing and revocation cannot be built.            | Screen ships as layout only. Sessions are not presented as trusted devices — they are a different concept.                                     |
+| K7  | **`AuthSessionDto` carries no "current session" marker**, `lastActive` or geolocation — only `id`, `device` (a coarse Desktop/Mobile/Tablet bucket), `ipAddress`, `userAgent` and `createdAt`. | No session can be labeled "this device"; no location can be shown.           | No card or drawer claims a current session. `userAgent` is shown as the raw string the backend recorded, never decomposed into a browser/OS guess. |
+| K8  | **`DELETE /auth/sessions` (revoke-all) has no per-session exclusion** — it revokes the caller's own session too, same as `POST /auth/logout?allDevices=true`.                    | A "sign out all *other* devices" action, as the Stitch design shows, cannot be built — the backend cannot exclude the current session. | Every "sign out everywhere" control (Active Sessions bulk action, Danger Zone) uses `POST /auth/logout?allDevices=true`, which also clears local state and redirects, and its copy says "including this one." `DELETE /auth/sessions` is left unused by this UI, since it would leave the current tab signed out server-side but still rendering the app. |
+| K9  | **No deactivate-account or delete-account endpoint.**                                                                                                                            | Two of the four Danger Zone actions the Stitch design shows have nothing to call. | Both render with a `Backend Pending` badge; neither is a one-click no-op.                                                                       |
+| K10 | **No account security score, metric or aggregate of any kind.**                                                                                                                  | The Stitch dashboard's "84 Excellent" badge has no backend source.            | Not reproduced. The dashboard shows only verifiable facts: identity (from `useAuth()`) and the live session count (`GET /auth/sessions`).       |
+
+---
+
+## K. What is needed, in priority order
 
 1. **One example response body** for `GET /maintenance-rules/active/status`,
    `GET /audit-logs/summary` and `GET /audit-logs/timeline` (A). Highest value
@@ -384,6 +416,19 @@ Added by the Program and Academic Unit milestone:
     called and ignored.
 21. **`isDeleted`, or confirmation that the lists exclude deleted records**
     (H5, I8) — the same question already open for Academic Year (G5).
+
+Added by the Account & Security Center milestone:
+
+22. **An authenticated change-password endpoint** (J1). The single most
+    consequential gap in this module — the only account-security screen a
+    user is likely to reach for first has nowhere to submit.
+23. Whether **two-factor authentication** (J2), **security preferences**
+    (J3), **login history** (J4), **security activity** (J5) or **trusted
+    devices** (J6) are planned at all, and roughly when — each is currently a
+    complete UI with no contract behind it.
+24. **A "current session" marker on `AuthSessionDto`** (J7). Without it, no
+    screen can ever tell a user which row is the browser they're looking at.
+25. Whether **deactivate-account** or **delete-account** (J9) are planned.
 
 None of these blocks further frontend work. Each one, when answered, turns a
 `Backend Pending` marker into a wired feature without restructuring anything.

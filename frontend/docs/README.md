@@ -28,11 +28,12 @@ without restructuring.
 19. [Program Module](./program-module.md)
 20. [Academic Unit Module](./academic-unit-module.md)
 21. [Communication Module UI Spec](./communication-module-ui-spec.md)
-22. [Backend Contract Gaps](./backend-gaps.md)
-23. [Testing Strategy](./testing.md)
-24. [Coding Standards](./coding-standards.md)
-25. [Contribution Guide](./contributing.md)
-26. [Future Theme Integration](./theme-integration.md)
+22. [Account & Security Center Module](./security-center-module.md)
+23. [Backend Contract Gaps](./backend-gaps.md)
+24. [Testing Strategy](./testing.md)
+25. [Coding Standards](./coding-standards.md)
+26. [Contribution Guide](./contributing.md)
+27. [Future Theme Integration](./theme-integration.md)
 
 ## Tech Stack
 
