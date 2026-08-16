@@ -61,6 +61,24 @@ export const ROUTES = Object.freeze({
       root: "/app/audit",
     },
     /**
+     * Account & Security Center — the signed-in user's own sessions, sign-out
+     * controls and (mostly backend-pending) account security screens. Scoped
+     * to the caller, never to another user: every real read/write here is
+     * `/auth/sessions` or `/auth/logout`, which the backend already resolves
+     * from the bearer token.
+     */
+    security: {
+      root: "/app/account/security",
+      sessions: "/app/account/security/sessions",
+      loginHistory: "/app/account/security/login-history",
+      changePassword: "/app/account/security/change-password",
+      twoFactor: "/app/account/security/two-factor",
+      preferences: "/app/account/security/preferences",
+      audit: "/app/account/security/audit",
+      dangerZone: "/app/account/security/danger-zone",
+      trustedDevices: "/app/account/security/trusted-devices",
+    },
+    /**
      * Organizations — the platform's tenants.
      *
      * `root` is the management overview and `directory` the full list, the

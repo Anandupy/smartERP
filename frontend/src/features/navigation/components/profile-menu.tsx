@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 
-import { Monitor, Moon, Settings, Sun } from "@/assets/icons";
+import { Monitor, Moon, Settings, Shield, Sun } from "@/assets/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,6 +90,13 @@ export function ProfileMenu({ signOut }: ProfileMenuProps) {
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator />
+
+        <DropdownMenuItem asChild>
+          <Link href={ROUTES.app.security.root}>
+            <Shield aria-hidden="true" />
+            Account &amp; security
+          </Link>
+        </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
           <Link href={ROUTES.app.settings.root}>
