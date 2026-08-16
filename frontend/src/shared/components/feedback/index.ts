@@ -18,6 +18,11 @@ export {
   type BackendPendingNoteProps,
 } from "./backend-pending";
 export { ApiErrorState, type ApiErrorStateProps } from "./api-error-state";
+export {
+  PendingSettingsGroup,
+  type PendingField,
+  type PendingSettingsGroupProps,
+} from "./pending-settings-group";
 export { InlineError, type InlineErrorProps } from "./inline-error";
 export { ForbiddenState, type ForbiddenStateProps } from "./forbidden-state";
 export { OfflineState, type OfflineStateProps } from "./offline-state";
