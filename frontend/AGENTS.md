@@ -107,7 +107,7 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 | Path                                                | Responsibility                                                                                                                                                                    |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).                                                                                                                           |
-| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `organization`, `branch`, `academic-year`, `program`, `academic-unit`, `system-settings`, `maintenance`, `audit`, `communication`, `security`. |
+| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `organization`, `branch`, `academic-year`, `program`, `academic-unit`, `admission-masters`, `system-settings`, `maintenance`, `audit`, `communication`, `security`. |
 | `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.                                                                                                                              |
 | `src/shared/components/{data,data-display,overlay}` | Table system, tiles/badges/cards, dialogs and drawers.                                                                                                                            |
 | `src/shared`                                        | Cross-feature presentational building blocks + error boundary.                                                                                                                    |
@@ -459,5 +459,6 @@ Detail: [`docs/administration-modules.md`](./docs/administration-modules.md),
 [`docs/academic-year-module.md`](./docs/academic-year-module.md),
 [`docs/program-module.md`](./docs/program-module.md),
 [`docs/academic-unit-module.md`](./docs/academic-unit-module.md),
+[`docs/admission-masters-module.md`](./docs/admission-masters-module.md),
 [`docs/dashboard-shell.md`](./docs/dashboard-shell.md), and the running gap
 inventory in [`docs/backend-gaps.md`](./docs/backend-gaps.md).

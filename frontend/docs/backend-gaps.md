@@ -383,7 +383,31 @@ endpoints, all wired. The only genuine gap in this module is
 
 ---
 
-## L. What is needed, in priority order
+## L. Admission Masters
+
+Compiled from `backend/docs/modules/admissions.md` and the Postman
+collection's "Admissions › Masters" folder — no backend source was read. See
+[`docs/admission-masters-module.md`](./admission-masters-module.md) for the
+full module writeup.
+
+All 10 resources (Admission Sources, Categories, Castes, Religions, Genders,
+Languages, Blood Groups, Disabilities, Relation Types, Quotas) are
+byte-identical in contract — same five endpoints, same headers, same body —
+so every gap below applies to all 10 equally rather than to one resource.
+
+| #   | Gap                                                                                                                                                          | Impact                                                                                                       | Current behaviour                                                                                                                                             |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L1  | **`includeInactive` is the only documented query parameter** on any of the 10 list endpoints. No `page`, `limit`, `search` or `sortBy`.                        | Server-side narrowing is impossible.                                                                              | Search, status filtering, sorting and paging all run **in the client** over one `includeInactive=true` fetch. The directory states this on the page.              |
+| L2  | **No dedicated status-toggle endpoint**, unlike branch, academic-year and academic-unit. The only mutation past create is the generic `PATCH /:id`, whose documented body is the complete record. | A partial `{ isActive }` write is not documented; sending one would be inventing a partial-update rule.       | Activating/deactivating resends the whole record with `isActive` flipped (`toAdmissionMasterToggleRequest`), the same "complete body" rule an edit follows.        |
+| L3  | **No restore-after-delete endpoint** for any of the 10 masters. Every "Soft delete" folder in the collection documents no inverse.                             | A delete is, from the UI's perspective, permanent even though the record is retained server-side.               | The delete confirmation states the record is soft-deleted and retained, but does **not** imply it can be undone from this app.                                      |
+| L4  | **No dependency or usage-count check before delete.** Nothing documents whether deleting a master in use by existing admission records is blocked or silently allowed. | Deleting, say, a Blood Group referenced by real applicant records has unknown server-side consequences.        | Not surfaced — no fabricated "used by N records" figure is shown. The delete dialog names the consequence it can state for certain (disappears from every list/picker) and no more. |
+| L5  | **`metadata` has no described purpose or shape.** It is a documented field of every request and response body, but neither `admissions.md` nor the Postman examples explain its intended use. | A raw-JSON editor would be building UI for a contract nobody has specified.                                     | Never exposed as a form field. It survives an edit unchanged (carried through from the loaded record) rather than being silently cleared to `{}`.                    |
+| L6  | **No field-level validation rules.** No lengths, formats or uniqueness scope for `code` or `name`; the Postman example values (`"HHS-001"`, `"Sample Resource Name"`) are schema-faker placeholders, not captured real data. | Client-side rules would be invented.                                                                             | The form asserts only that `code` and `name` are non-empty. Server validation errors bind to fields via `applyServerFieldErrors`.                                    |
+| L7  | **No permission-string or role matrix documented** for any of the 10 masters' endpoints, unlike branch's role table.                                            | No `admission.masters.*` capability can be gated on with confidence.                                            | No in-feature permission checks — gating relies on the same route-level session/role protection every other shipped module (branch, academic-year, organization) already relies on. |
+
+---
+
+## M. What is needed, in priority order
 
 1. **One example response body** for `GET /maintenance-rules/active/status`,
    `GET /audit-logs/summary` and `GET /audit-logs/timeline` (A). Highest value
@@ -471,6 +495,17 @@ Added by the Workspace Admin milestone:
     Terminus indicator detail rather than the generic error envelope (L5) —
     it would let the Health Monitor's dependency table stay populated through
     an outage instead of only after recovery.
+
+Added by the Admission Masters milestone:
+
+28. **A dependency/usage check before deleting a master** (L4). The single
+    change that would let the delete confirmation warn "used by N admission
+    records" truthfully instead of staying silent on the question.
+29. **`code`/`name` format and uniqueness rules** (L6) — today the form
+    asserts only non-emptiness, and the first legitimate value a guessed
+    pattern rejected would be a bug with no backend to blame.
+30. **What `metadata` is for** (L5). Until its shape is documented, it stays
+    out of every admission master form entirely.
 
 None of these blocks further frontend work. Each one, when answered, turns a
 `Backend Pending` marker into a wired feature without restructuring anything.

@@ -30,11 +30,12 @@ without restructuring.
 21. [Communication Module UI Spec](./communication-module-ui-spec.md)
 22. [Account & Security Center Module](./security-center-module.md)
 23. [Workspace Admin Module](./workspace-admin-module.md)
-24. [Backend Contract Gaps](./backend-gaps.md)
-25. [Testing Strategy](./testing.md)
-26. [Coding Standards](./coding-standards.md)
-27. [Contribution Guide](./contributing.md)
-28. [Future Theme Integration](./theme-integration.md)
+24. [Admission Masters Module](./admission-masters-module.md)
+25. [Backend Contract Gaps](./backend-gaps.md)
+26. [Testing Strategy](./testing.md)
+27. [Coding Standards](./coding-standards.md)
+28. [Contribution Guide](./contributing.md)
+29. [Future Theme Integration](./theme-integration.md)
 
 ## Tech Stack
 
