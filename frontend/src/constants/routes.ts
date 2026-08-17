@@ -208,6 +208,28 @@ export const ROUTES = Object.freeze({
      * detail panel together) rather than a separate record page — there is no
      * standalone "menu list" screen in the Stitch design.
      */
+    /**
+     * Admission Masters — the 10 branch-scoped reference-data resources under
+     * `/v1/admissions/masters/*` (Admission Sources, Categories, Castes,
+     * Religions, Genders, Languages, Blood Groups, Disabilities, Relation
+     * Types, Quotas). `resource` is always one of
+     * `AdmissionMasterType` (`src/features/admission-masters`) — the exact
+     * kebab-case path segment the backend documents.
+     *
+     * One dynamic `[resource]` route segment renders all 10, rather than ten
+     * near-identical folders, since every master shares the same generic
+     * screens. `root` is the Overview hub; every master's own screens hang
+     * off `resource`.
+     */
+    admissionMasters: {
+      root: "/app/admissions/masters",
+      list: (resource: string) => `/app/admissions/masters/${resource}`,
+      create: (resource: string) => `/app/admissions/masters/${resource}/new`,
+      detail: (resource: string, id: string) =>
+        `/app/admissions/masters/${resource}/${id}`,
+      edit: (resource: string, id: string) =>
+        `/app/admissions/masters/${resource}/${id}/edit`,
+    },
     workspaceAdmin: {
       root: "/app/workspace-admin",
       modules: {

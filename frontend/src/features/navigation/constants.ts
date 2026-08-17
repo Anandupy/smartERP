@@ -142,9 +142,9 @@ export const NAV_SECTIONS: readonly NavSection[] = Object.freeze([
       {
         id: "admissions",
         label: "Admissions",
-        href: ROUTES.app.root,
+        href: ROUTES.app.admissionMasters.root,
         icon: GraduationCap,
-        comingSoon: true,
+        description: "Reference data for admission and applicant workflows",
       },
       {
         id: "students",
