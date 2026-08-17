@@ -20,6 +20,15 @@ export default defineConfig({
       "@": path.join(dirname, "src"),
       "@tests": path.join(dirname, "tests"),
     },
+    // pnpm can install more than one instance of "next" under different
+    // peer-dependency hashes (visible as sibling folders under
+    // node_modules/.pnpm/next@*). Without deduping, `vi.mock("next/navigation", …)`
+    // only intercepts whichever instance the mock itself resolves, while a
+    // component reached through a different dependency path can resolve the
+    // *other* instance and get the real, unmocked module — surfacing as
+    // "invariant expected app router to be mounted" even though the mock is
+    // correctly set up.
+    dedupe: ["next"],
   },
   test: {
     projects: [
