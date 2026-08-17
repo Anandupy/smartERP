@@ -4,6 +4,7 @@
  * as features need them.
  */
 export {
+  Accessibility,
   Activity,
   AlertCircle,
   ArrowDown,
@@ -37,11 +38,13 @@ export {
   CircleHelp,
   Clock,
   Command,
+  Contact,
   Copy,
   Cpu,
   CreditCard,
   Database,
   Download,
+  Droplet,
   EllipsisVertical,
   ExternalLink,
   Eye,
@@ -82,6 +85,7 @@ export {
   Pause,
   Pencil,
   Phone,
+  PieChart,
   Play,
   Plus,
   Power,
@@ -113,6 +117,7 @@ export {
   Upload,
   User,
   Users,
+  UsersRound,
   UserX,
   WifiOff,
   Wrench,
