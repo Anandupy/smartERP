@@ -351,7 +351,39 @@ existed already, wired by the auth feature; this module only added screens.
 
 ---
 
-## K. What is needed, in priority order
+## K. Workspace Admin
+
+Compiled from `backend/src/modules/workspace` and `backend/src/modules/health`
+directly (controllers, services, DTOs, `workspace.prisma`) — backend source,
+not the Postman collection, because nearly every response body in that
+collection's Workspace/Navigation/Health folders is an auto-generated
+placeholder schema (`"<Error: Too many levels of nesting to fake this
+schema>"` in every field but the name). See
+[`docs/workspace-admin-module.md`](./workspace-admin-module.md) for the full
+verification trail.
+
+**Unlike every module above, Module and Menu CRUD are fully real** — 15 admin
+endpoints, all wired. The only genuine gap in this module is
+`WorkspaceConfiguration`.
+
+| #   | Gap                                                                                                                                                        | Impact                                                                                                    | Current behaviour                                                                                                                        |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| L1  | **`WorkspaceConfiguration` has one endpoint** — `POST /workspace/configuration`. No `GET`, no `list`, no `DELETE`.                                          | The Configuration Layer Editor cannot show a layer's current values before saving, and no screen can list every layer that exists for a scope. | The editor is explicitly "define this layer," never "edit this layer" — a `Banner` states this before any field is touched. Every save omits untouched preference keys (a tri-state control, not a boolean) so the shallow merge on the backend cannot be made to clear a key by accident. |
+| L2  | **`navigationPreferences`/`clientPreferences` are schemaless JSON** (`Record<string, any>`) — the documented keys are Postman examples, not a contract.    | A caller could write arbitrary keys; a reader cannot know what any of them mean beyond the six documented examples. | Only the six documented keys (`sidebarCollapsed`, `themeMode`, `defaultRoute`, `denseMode`, `theme`, `locale`) are editable, through structured controls — no free-form JSON editor. |
+| L3  | **No dashboard/widget/statistic endpoint anywhere in `workspace` or `health`.**                                                                             | A Workspace Overview screen (Stitch's S4) cannot show anything beyond what `/live`, `/ready`, `/health`, `/admin/navigation/modules` and `/workspace/navigation` already return individually. | Not built — out of this module's six-screen scope. The System Health Monitor is the one operational-dashboard screen this module ships, and it composes only the three real probes. |
+| L4  | **`/live`, `/ready` and `/health` return no historical data** — each is a current-state probe.                                                             | No uptime percentage, incident timeline or response-time trend can be shown truthfully.                    | The Health Monitor's "Historical monitoring" panel states this plainly (`BackendPendingNote`) instead of a fabricated chart.               |
+| L5  | **A 503 failure envelope carries no dependency detail** — `GlobalExceptionFilter` serializes failures to `{success:false, code, message}`, not the Terminus `HealthCheckResultDto` shape. | When `/ready` or `/health` returns 503, the frontend cannot show *which* dependency failed from that response alone. | The Dependency table renders whatever `details` a **successful** `/health` call reported; on failure it shows the probe's own error message and an explicit "no dependency details were returned" empty state rather than inventing one. |
+| L6  | **Menu `permissions`/`searchKeywords` have no tag-input component in this codebase.**                                                                       | Editing them as a real multi-select would need a new shared component.                                     | Edited as comma-separated text, split/joined in `mappers/menu.mapper.ts`. Not a backend gap, but recorded here since it is the reason the Menu form's two fields look unlike a typical array editor. |
+| L7  | **A menu's eligible "Move" targets in another module require fetching that module's full menu list** — there is no cross-module hierarchy-aware endpoint. | The Move dialog's parent picker is empty until the target module's menus have loaded.                       | `useMenus(targetModuleId)` fetches on selection; the dialog shows "None — top level" immediately and populates real parents once loaded. The server (`MenuHierarchyValidator`) remains the authoritative check regardless. |
+
+> **On L1 and L2 together:** because there is no read and no schema, this
+> module cannot verify a save actually took effect from the UI alone. A future
+> `GET /workspace/configuration/:scopeType/:scopeId` would close both gaps at
+> once and let the editor become a true edit form.
+
+---
+
+## L. What is needed, in priority order
 
 1. **One example response body** for `GET /maintenance-rules/active/status`,
    `GET /audit-logs/summary` and `GET /audit-logs/timeline` (A). Highest value
@@ -429,6 +461,16 @@ Added by the Account & Security Center milestone:
 24. **A "current session" marker on `AuthSessionDto`** (J7). Without it, no
     screen can ever tell a user which row is the browser they're looking at.
 25. Whether **deactivate-account** or **delete-account** (J9) are planned.
+
+Added by the Workspace Admin milestone:
+
+26. **A `GET /workspace/configuration/:scopeType/:scopeId`** (L1). The single
+    change that would let the Configuration Layer Editor pre-fill a layer
+    instead of only defining one blind.
+27. Whether the 503 failure body for `/ready`/`/health` could carry the
+    Terminus indicator detail rather than the generic error envelope (L5) —
+    it would let the Health Monitor's dependency table stay populated through
+    an outage instead of only after recovery.
 
 None of these blocks further frontend work. Each one, when answered, turns a
 `Backend Pending` marker into a wired feature without restructuring anything.
