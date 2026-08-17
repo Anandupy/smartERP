@@ -1,4 +1,5 @@
 import {
+  Activity,
   Blocks,
   Building2,
   CalendarDays,
@@ -7,10 +8,12 @@ import {
   Landmark,
   Layers,
   LayoutDashboard,
+  ListTree,
   MessageSquare,
   School,
   ScrollText,
   Settings,
+  SlidersHorizontal,
   Users,
   Wrench,
 } from "@/assets/icons";
@@ -101,6 +104,34 @@ export const NAV_SECTIONS: readonly NavSection[] = Object.freeze([
         href: ROUTES.app.communication.root,
         icon: MessageSquare,
         description: "Templates, delivery logs and settings",
+      },
+      {
+        id: "workspace-admin-modules",
+        label: "Navigation Modules",
+        href: ROUTES.app.workspaceAdmin.modules.root,
+        icon: Blocks,
+        description: "Top-level ERP capabilities",
+      },
+      {
+        id: "workspace-admin-menus",
+        label: "Menu Details",
+        href: ROUTES.app.workspaceAdmin.menus.root,
+        icon: ListTree,
+        description: "The menu hierarchy inside each module",
+      },
+      {
+        id: "workspace-admin-configuration",
+        label: "Workspace Configuration",
+        href: ROUTES.app.workspaceAdmin.configuration,
+        icon: SlidersHorizontal,
+        description: "Layered navigation and client preferences",
+      },
+      {
+        id: "workspace-admin-health",
+        label: "System Health",
+        href: ROUTES.app.workspaceAdmin.health,
+        icon: Activity,
+        description: "Process, traffic and dependency probes",
       },
     ],
   },
@@ -193,6 +224,11 @@ export const BREADCRUMB_LABELS: Readonly<Record<string, string>> =
     [ROUTES.app.communication.analytics]: "Analytics",
     [ROUTES.app.communication.settings]: "Settings",
     [ROUTES.app.communication.sendNotification]: "Send Notification",
+    [ROUTES.app.workspaceAdmin.modules.root]: "Navigation Modules",
+    [ROUTES.app.workspaceAdmin.modules.create]: "New module",
+    [ROUTES.app.workspaceAdmin.menus.root]: "Menu Details",
+    [ROUTES.app.workspaceAdmin.configuration]: "Workspace Configuration",
+    [ROUTES.app.workspaceAdmin.health]: "System Health",
   });
 
 /** Placeholder copy for the header affordances that are not wired yet. */

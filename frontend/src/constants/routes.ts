@@ -197,6 +197,32 @@ export const ROUTES = Object.freeze({
       settings: "/app/communication/settings",
       sendNotification: "/app/communication/notifications/new",
     },
+    /**
+     * Workspace Admin — the ERP's presentation/control plane: navigation
+     * modules and menus, the workspace configuration layer editor, and the
+     * system health monitor. Distinct from `workspace` above (organization /
+     * branch / academic-year scope selection) and from `core/workspace` (the
+     * scope consumer) — this is the backend's "Workspace Platform" module.
+     *
+     * `menus.detail` deep-links into the single Menu Details screen (tree +
+     * detail panel together) rather than a separate record page — there is no
+     * standalone "menu list" screen in the Stitch design.
+     */
+    workspaceAdmin: {
+      root: "/app/workspace-admin",
+      modules: {
+        root: "/app/workspace-admin/modules",
+        create: "/app/workspace-admin/modules/new",
+        detail: (id: string) => `/app/workspace-admin/modules/${id}`,
+        edit: (id: string) => `/app/workspace-admin/modules/${id}/edit`,
+      },
+      menus: {
+        root: "/app/workspace-admin/menus",
+        detail: (id: string) => `/app/workspace-admin/menus/${id}`,
+      },
+      configuration: "/app/workspace-admin/configuration",
+      health: "/app/workspace-admin/health",
+    },
   },
 });
 
