@@ -3,25 +3,31 @@
 import { useMemo } from "react";
 
 import { AcademicUnitPicker } from "@/features/academic-unit";
-import { AdmissionMasterPicker } from "@/features/admission-masters";
+import {
+  AdmissionMasterPicker,
+  useAdmissionMasterList,
+} from "@/features/admission-masters";
 import {
   ApplicantBoundary,
   ApplicantJourneyHubScreen,
   CreateApplicantScreen,
   EditApplicantScreen,
 } from "@/features/admissions";
+import { ApplicantDocumentsPanel } from "@/features/documents";
+import { ApplicantGuardiansPanel } from "@/features/guardians";
 import { ProgramPicker, useProgramBranch, usePrograms } from "@/features/program";
 
 /**
- * Where Admissions meets Admission Masters, Program and Academic Unit.
+ * Where Admissions meets Admission Masters, Program, Academic Unit,
+ * Guardians and Documents.
  *
  * AGENTS.md §28: *"Two features that meet do so at the route, through slots
  * — never by importing each other."* This file is that route composition,
- * mirroring `academic-units/program-composition.tsx` exactly. It is the
- * **only** module that imports all four feature barrels together. Nothing
- * but opaque `ReactNode` pickers and a plain program-name map crosses the
- * boundary — Admissions never learns that Admission Masters, Program or
- * Academic Unit exist as modules, only that it has slots to fill.
+ * mirroring `academic-units/program-composition.tsx`. It is the **only**
+ * module that imports all six feature barrels together. Nothing but opaque
+ * `ReactNode` panels/pickers and plain name maps cross the boundary —
+ * Admissions never learns that any of the other five exist as modules, only
+ * that it has slots to fill.
  */
 
 const MASTER_FIELD_NAMES = {
@@ -119,6 +125,28 @@ function useProgramNames(): ReadonlyMap<string, string> {
   }, [programs]);
 }
 
+/** Relation Type master names by id, for the active branch. */
+function useRelationTypeNames(): ReadonlyMap<string, string> {
+  const { masters } = useAdmissionMasterList("relation-types");
+
+  return useMemo(() => {
+    const names = new Map<string, string>();
+    for (const master of masters) names.set(master.id, master.name);
+    return names;
+  }, [masters]);
+}
+
+/** The Relation Type picker, for Guardians' mapping form. */
+function RelationTypePicker() {
+  return (
+    <AdmissionMasterPicker
+      type="relation-types"
+      name="relationTypeId"
+      label="Relation type"
+    />
+  );
+}
+
 /** Create, with all ten pickers slotted into the form. */
 export function CreateApplicantRoute() {
   const masters = useApplicantMasterPickers();
@@ -154,12 +182,14 @@ export function EditApplicantRoute({ id }: { id: string }) {
 
 /**
  * The Journey Hub, with the applicant resolved, its program name looked up,
- * and the admit dialog's academic-unit picker slotted in — filtered to the
+ * the admit dialog's academic-unit picker slotted in — filtered to the
  * applicant's own programme, since `admit()` refuses a unit belonging to
- * another one (`ACADEMIC_UNIT_MISMATCH`).
+ * another one (`ACADEMIC_UNIT_MISMATCH`) — and the Guardians/Documents
+ * panels composed in as opaque workspaces.
  */
 export function ApplicantJourneyHubRoute({ id }: { id: string }) {
   const programNames = useProgramNames();
+  const relationTypeNames = useRelationTypeNames();
 
   return (
     <ApplicantBoundary id={id}>
@@ -171,6 +201,21 @@ export function ApplicantJourneyHubRoute({ id }: { id: string }) {
             <AcademicUnitPicker
               programId={applicant.programId}
               description="Which section the applicant actually joins — not recorded until this moment."
+            />
+          }
+          guardiansPanel={
+            <ApplicantGuardiansPanel
+              applicantId={applicant.id}
+              relationTypeNames={relationTypeNames}
+              relationTypePicker={<RelationTypePicker />}
+            />
+          }
+          documentsPanel={
+            <ApplicantDocumentsPanel
+              applicantId={applicant.id}
+              programId={applicant.programId}
+              quotaId={applicant.quotaId}
+              categoryId={applicant.categoryId}
             />
           }
         />

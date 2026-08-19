@@ -16,6 +16,7 @@ import {
 } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROUTES } from "@/constants";
 import { DescriptionList } from "@/shared/components/data-display";
 import { EmptyState } from "@/shared/components/feedback";
@@ -39,20 +40,24 @@ export interface ApplicantJourneyHubScreenProps {
   programName: string | null;
   /** Slotted in for the Admit dialog's academic-unit selection. */
   academicUnitPicker: React.ReactNode;
+  /** The full Guardians workspace, composed at the route (features/guardians). */
+  guardiansPanel: React.ReactNode;
+  /** The full Documents workspace, composed at the route (features/documents). */
+  documentsPanel: React.ReactNode;
 }
 
 /**
  * The Applicant Journey Hub — the central operational workspace for one
- * application, per the design brief's central goal: everything an
- * administrator needs to understand this applicant's lifecycle, in one
- * place, without jumping between unrelated screens.
+ * application: everything an administrator needs to understand this
+ * applicant's lifecycle, in one place, without jumping between unrelated
+ * screens.
  *
- * This phase ships the Overview and Workflow surfaces: status, the
- * next-action engine, every legal transition, the admission transaction, and
- * the workflow history. Guardian mappings and document governance are their
- * own, larger workspaces and are **not** built yet — see
- * `docs/backend-gaps.md` §M and the follow-up noted in this feature's
- * `index.ts`, rather than shipped here as an empty or fake tab.
+ * Four tabs, not seven — the design brief's Preferences and a dedicated
+ * Audit-events tab are deliberately not built: `admit()` never reads the
+ * preference list (module doc §4.9), and the general Audit Logs module is
+ * not populated for Applicant mutations at all
+ * (`admissions-production-audit.md`), so a tab here would either be empty or
+ * duplicate the real Workflow History this screen already shows honestly.
  *
  * The identity panel shows only what the contract actually returns:
  * `personId` when present, and an honest "not yet resolved" state before
@@ -64,6 +69,8 @@ export function ApplicantJourneyHubScreen({
   applicant,
   programName,
   academicUnitPicker,
+  guardiansPanel,
+  documentsPanel,
 }: ApplicantJourneyHubScreenProps) {
   const [isAdmitOpen, setIsAdmitOpen] = useState(false);
   const [admitResult, setAdmitResult] =
@@ -135,26 +142,114 @@ export function ApplicantJourneyHubScreen({
         />
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Card>
-            <CardHeader className="border-b">
-              <CardTitle>What&apos;s next</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <p className="text-sm">
-                {nextActionSummary(applicant.admissionStatus)}
-              </p>
-              <ApplicantWorkflowActions applicant={applicant} />
-              {canAdmit ? (
-                <Button onClick={() => setIsAdmitOpen(true)}>
-                  <GraduationCap />
-                  Admit applicant
-                </Button>
-              ) : null}
-            </CardContent>
-          </Card>
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="guardians">Guardians</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="overview" className="pt-4">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <Card>
+                <CardHeader className="border-b">
+                  <CardTitle>What&apos;s next</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-4">
+                  <p className="text-sm">
+                    {nextActionSummary(applicant.admissionStatus)}
+                  </p>
+                  <ApplicantWorkflowActions applicant={applicant} />
+                  {canAdmit ? (
+                    <Button onClick={() => setIsAdmitOpen(true)}>
+                      <GraduationCap />
+                      Admit applicant
+                    </Button>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card>
+                <CardHeader className="border-b">
+                  <CardTitle>Applicant</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-4 text-sm">
+                  <Row icon={User} label="Program">
+                    {programName ?? "—"}
+                  </Row>
+                  <Row icon={CalendarDays} label="Date of birth">
+                    {formatDate(applicant.dob)}
+                  </Row>
+                  <Row icon={Phone} label="Mobile">
+                    {applicant.primaryMobile}
+                  </Row>
+                  {applicant.primaryEmail ? (
+                    <Row icon={Mail} label="Email">
+                      {applicant.primaryEmail}
+                    </Row>
+                  ) : null}
+                  <Row icon={MapPin} label="Address">
+                    {formatApplicantAddress(applicant)}
+                  </Row>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="border-b">
+                  <CardTitle className="flex items-center gap-2">
+                    <Contact aria-hidden="true" className="size-4" />
+                    Identity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 text-sm">
+                  {applicant.personId ? (
+                    <div className="space-y-1">
+                      <p className="text-chart-2 font-medium">
+                        Person linked
+                      </p>
+                      <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                        <code className="truncate">{applicant.personId}</code>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Copy person id"
+                          onClick={() =>
+                            navigator.clipboard.writeText(
+                              applicant.personId ?? "",
+                            )
+                          }
+                        >
+                          <Copy className="size-3" />
+                        </Button>
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Not yet resolved. This applicant will be matched to an
+                      existing person, or a new person will be created, when
+                      the application is submitted.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="guardians" className="pt-4">
+          {guardiansPanel}
+        </TabsContent>
+
+        <TabsContent value="documents" className="pt-4">
+          {documentsPanel}
+        </TabsContent>
+
+        <TabsContent value="history" className="pt-4">
           <Card>
             <CardHeader className="border-b">
               <CardTitle>Workflow history</CardTitle>
@@ -163,71 +258,8 @@ export function ApplicantJourneyHubScreen({
               <ApplicantWorkflowTimeline applicantId={applicant.id} />
             </CardContent>
           </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="border-b">
-              <CardTitle>Applicant</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-4 text-sm">
-              <Row icon={User} label="Program">
-                {programName ?? "—"}
-              </Row>
-              <Row icon={CalendarDays} label="Date of birth">
-                {formatDate(applicant.dob)}
-              </Row>
-              <Row icon={Phone} label="Mobile">
-                {applicant.primaryMobile}
-              </Row>
-              {applicant.primaryEmail ? (
-                <Row icon={Mail} label="Email">
-                  {applicant.primaryEmail}
-                </Row>
-              ) : null}
-              <Row icon={MapPin} label="Address">
-                {formatApplicantAddress(applicant)}
-              </Row>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="border-b">
-              <CardTitle className="flex items-center gap-2">
-                <Contact aria-hidden="true" className="size-4" />
-                Identity
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 text-sm">
-              {applicant.personId ? (
-                <div className="space-y-1">
-                  <p className="text-chart-2 font-medium">Person linked</p>
-                  <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                    <code className="truncate">{applicant.personId}</code>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Copy person id"
-                      onClick={() =>
-                        navigator.clipboard.writeText(applicant.personId ?? "")
-                      }
-                    >
-                      <Copy className="size-3" />
-                    </Button>
-                  </p>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  Not yet resolved. This applicant will be matched to an
-                  existing person, or a new person will be created, when the
-                  application is submitted.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
 
       <AdmitApplicantDialog
         applicant={applicant}
@@ -251,7 +283,10 @@ function Row({
 }) {
   return (
     <div className="flex items-start gap-2">
-      <Icon aria-hidden="true" className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+      <Icon
+        aria-hidden="true"
+        className="text-muted-foreground mt-0.5 size-4 shrink-0"
+      />
       <div className="min-w-0">
         <p className="text-muted-foreground text-xs">{label}</p>
         <p className="truncate">{children}</p>

@@ -1,27 +1,27 @@
 /**
  * Public surface of the Admissions module.
  *
- * Scope, this phase: the Applicant lifecycle — directory, create/edit
- * (Draft only), the Journey Hub (status, next action, every documented
- * workflow transition, history, and the final admit transaction). Sourced
- * entirely from `docs/admission-lifecycle-module.md`, itself compiled from
- * the backend's own status-tagged reconciliation spec and the Postman
+ * Scope: the Applicant lifecycle — directory, create/edit (Draft only), and
+ * the Journey Hub (status, next action, every documented workflow
+ * transition, history, and the final admit transaction). Sourced entirely
+ * from `docs/admission-lifecycle-module.md`, itself compiled from the
+ * backend's own status-tagged reconciliation spec and the Postman
  * collection's confirmed example responses for this module — see that
  * document for the full contract and `docs/backend-gaps.md` §M for the gap
  * ledger.
  *
- * **Not in this phase** — real, sizeable workspaces of their own, not
- * stubbed here:
+ * **Guardians and Documents are separate features**
+ * (`features/guardians`, `features/documents`), not built here — Guardian
+ * and Document are their own backend modules (module doc §5, §6), and the
+ * Journey Hub composes them as opaque panels rather than importing either
+ * directly (AGENTS.md §7, §28). `ApplicantJourneyHubScreen` takes
+ * `guardiansPanel`/`documentsPanel` as `ReactNode` slots for exactly this
+ * reason.
  *
- * - **Guardians** (`Guardian`, `ApplicantGuardianMapping`, `Guardianship`) —
- *   creation, search-for-reuse, mapping, and the Person↔Person relationship
- *   the module doc §5 describes.
- * - **Documents** (`Document`, `DocumentVersion`, `DocumentRequirement`) —
- *   the checklist, upload, verify/reject, versioning and download flows the
- *   module doc §6 describes.
+ * **Not built anywhere yet**:
+ *
  * - **Preferences** (`ApplicantProgramPreference`) — `admit()` never reads
- *   this list (module doc §3.5, §4.9), so it is lower priority than the
- *   above.
+ *   this list (module doc §3.5, §4.9), so it is lower priority.
  * - A dedicated audit-trail screen distinct from workflow history — the
  *   general Audit Logs module (`features/audit`) is not populated for
  *   Applicant mutations (`backend-gaps.md`, admissions-production-audit
@@ -32,11 +32,13 @@
  *
  * - `AdmissionMasterPicker` (from `features/admission-masters`) for gender,
  *   religion, caste, category, mother tongue, blood group, disability type,
- *   admission source and quota.
+ *   admission source and quota, and (for Guardians) relation type.
  * - `ProgramPicker` (from `features/program`) for the applicant's programme.
  * - `AcademicUnitPicker` (from `features/academic-unit`) for the section
  *   chosen at the final admit transaction — the one input `admit()` accepts
  *   beyond the applicant's own lineage.
+ * - `ApplicantGuardiansPanel` (from `features/guardians`) and
+ *   `ApplicantDocumentsPanel` (from `features/documents`).
  *
  * See `src/app/(app)/app/admissions/applicants/applicant-composition.tsx`
  * for where these meet.
