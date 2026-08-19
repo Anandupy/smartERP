@@ -1,18 +1,28 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { BaseMasterService } from '@/modules/admissions/masters/base-master.service';
+import {
+  BaseMasterService,
+  MasterReferenceRelation,
+} from '@/modules/admissions/masters/base-master.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { ResourceScope } from '@/common/scope/resource-scope';
 
 /**
- * R3 — Admissions Masters hardening.
+ * R3 — Admissions Masters hardening, plus the R6 fix for `remove()`
+ * incorrectly treating a soft-deleted referencing row (e.g. a withdrawn,
+ * deleted Applicant draft) as an active dependency forever.
  *
- * Before this change `findOne`/`update`/`remove` filtered only by
+ * Before the R3 change, `findOne`/`update`/`remove` filtered only by
  * `id + deletedAt: null`: any authenticated caller who knew a master's UUID
  * could read, edit or soft-delete a record belonging to a different
  * organization or branch. This suite locks the fixed scope-safety and
- * reference-protection behaviour in place.
+ * reference-protection behaviour in place, including the R6 correction to
+ * what counts as "in use".
  */
+const REFERENCE_RELATIONS: MasterReferenceRelation[] = [
+  { relation: 'applicants', filterSoftDeleted: true },
+  { relation: 'students', filterSoftDeleted: true },
+];
 const SCOPE: ResourceScope = {
   organizationId: 'org-1',
   branchId: 'branch-1',
@@ -46,10 +56,11 @@ describe('BaseMasterService', () => {
       },
     };
     mockEventBus = { publish: jest.fn().mockResolvedValue(undefined) };
-    service = new BaseMasterService(mockPrisma as PrismaService, 'religion', [
-      'applicants',
-      'students',
-    ]);
+    service = new BaseMasterService(
+      mockPrisma as PrismaService,
+      'religion',
+      REFERENCE_RELATIONS,
+    );
     (service as any).eventBus = mockEventBus as unknown as EventBus;
   });
 
@@ -259,6 +270,106 @@ describe('BaseMasterService', () => {
         NotFoundException,
       );
       expect(mockPrisma.religion.update).not.toHaveBeenCalled();
+    });
+
+    it('asks Prisma to exclude soft-deleted rows on relations flagged filterSoftDeleted', async () => {
+      mockPrisma.religion.findFirst
+        .mockResolvedValueOnce({ id: 'rel-1' }) // ownership check
+        .mockResolvedValueOnce({ applicants: [], students: [] }); // usage check
+      mockPrisma.religion.update.mockResolvedValue({ id: 'rel-1' });
+
+      await service.remove('rel-1', SCOPE);
+
+      expect(mockPrisma.religion.findFirst).toHaveBeenLastCalledWith({
+        where: { id: 'rel-1' },
+        select: {
+          applicants: {
+            where: { deletedAt: null },
+            select: { id: true },
+            take: 1,
+          },
+          students: {
+            where: { deletedAt: null },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      });
+    });
+
+    it('a soft-deleted-only reference (e.g. a withdrawn, deleted Applicant draft) no longer blocks deletion', async () => {
+      // Regression: remove() used to select the far side of every reference
+      // relation with no `where` at all, so a soft-deleted Applicant — one
+      // whose own `deletedAt` was already set by Applicant.remove() — still
+      // counted as "in use" and blocked the master forever. With
+      // filterSoftDeleted: true, Prisma is asked to exclude it, so a
+      // genuinely soft-deleted-only reference now resolves to an empty list.
+      mockPrisma.religion.findFirst
+        .mockResolvedValueOnce({ id: 'rel-1' }) // ownership check
+        .mockResolvedValueOnce({ applicants: [], students: [] }); // usage check, post-filter
+      mockPrisma.religion.update.mockResolvedValue({
+        id: 'rel-1',
+        deletedAt: new Date(),
+      });
+
+      await service.remove('rel-1', SCOPE);
+
+      expect(mockPrisma.religion.update).toHaveBeenCalledWith({
+        where: { id: 'rel-1' },
+        data: { deletedAt: expect.any(Date) },
+      });
+    });
+
+    it('a relation with filterSoftDeleted: false is never given a `where` clause', async () => {
+      const unfiltered = new BaseMasterService(
+        mockPrisma as PrismaService,
+        'religion',
+        [{ relation: 'applicants', filterSoftDeleted: false }],
+      );
+      (unfiltered as any).eventBus = mockEventBus;
+      mockPrisma.religion.findFirst
+        .mockResolvedValueOnce({ id: 'rel-1' })
+        .mockResolvedValueOnce({ applicants: [] });
+      mockPrisma.religion.update.mockResolvedValue({ id: 'rel-1' });
+
+      await unfiltered.remove('rel-1', SCOPE);
+
+      expect(mockPrisma.religion.findFirst).toHaveBeenLastCalledWith({
+        where: { id: 'rel-1' },
+        select: {
+          applicants: { select: { id: true }, take: 1 },
+        },
+      });
+    });
+
+    it('still blocks when a relation with filterSoftDeleted: false has any row at all, e.g. an unremovable ApplicantGuardianMapping/Guardianship reference', async () => {
+      mockPrisma.relationType = {
+        findFirst: jest.fn(),
+        update: jest.fn(),
+      };
+      const relationTypeService = new BaseMasterService(
+        mockPrisma as PrismaService,
+        'relationType',
+        [
+          { relation: 'mappings', filterSoftDeleted: false },
+          { relation: 'guardianships', filterSoftDeleted: false },
+        ],
+      );
+      (relationTypeService as any).eventBus = mockEventBus;
+      mockPrisma.relationType.findFirst
+        .mockResolvedValueOnce({ id: 'rt-1' }) // ownership check
+        .mockResolvedValueOnce({
+          mappings: [],
+          guardianships: [{ id: 'gs-1' }],
+        }); // usage check
+
+      const error: ConflictException = await relationTypeService
+        .remove('rt-1', SCOPE)
+        .catch((e) => e);
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect(error.getResponse()).toMatchObject({ error: 'MASTER_IN_USE' });
+      expect(mockPrisma.relationType.update).not.toHaveBeenCalled();
     });
   });
 
