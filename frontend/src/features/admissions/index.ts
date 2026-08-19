@@ -1,0 +1,147 @@
+/**
+ * Public surface of the Admissions module.
+ *
+ * Scope, this phase: the Applicant lifecycle — directory, create/edit
+ * (Draft only), the Journey Hub (status, next action, every documented
+ * workflow transition, history, and the final admit transaction). Sourced
+ * entirely from `docs/admission-lifecycle-module.md`, itself compiled from
+ * the backend's own status-tagged reconciliation spec and the Postman
+ * collection's confirmed example responses for this module — see that
+ * document for the full contract and `docs/backend-gaps.md` §M for the gap
+ * ledger.
+ *
+ * **Not in this phase** — real, sizeable workspaces of their own, not
+ * stubbed here:
+ *
+ * - **Guardians** (`Guardian`, `ApplicantGuardianMapping`, `Guardianship`) —
+ *   creation, search-for-reuse, mapping, and the Person↔Person relationship
+ *   the module doc §5 describes.
+ * - **Documents** (`Document`, `DocumentVersion`, `DocumentRequirement`) —
+ *   the checklist, upload, verify/reject, versioning and download flows the
+ *   module doc §6 describes.
+ * - **Preferences** (`ApplicantProgramPreference`) — `admit()` never reads
+ *   this list (module doc §3.5, §4.9), so it is lower priority than the
+ *   above.
+ * - A dedicated audit-trail screen distinct from workflow history — the
+ *   general Audit Logs module (`features/audit`) is not populated for
+ *   Applicant mutations (`backend-gaps.md`, admissions-production-audit
+ *   findings), so this would need its own honest empty-state design.
+ *
+ * **Cross-feature seams** (AGENTS.md §28 — never imported directly, always
+ * slotted in by the route composition):
+ *
+ * - `AdmissionMasterPicker` (from `features/admission-masters`) for gender,
+ *   religion, caste, category, mother tongue, blood group, disability type,
+ *   admission source and quota.
+ * - `ProgramPicker` (from `features/program`) for the applicant's programme.
+ * - `AcademicUnitPicker` (from `features/academic-unit`) for the section
+ *   chosen at the final admit transaction — the one input `admit()` accepts
+ *   beyond the applicant's own lineage.
+ *
+ * See `src/app/(app)/app/admissions/applicants/applicant-composition.tsx`
+ * for where these meet.
+ */
+
+// Screens
+export {
+  ApplicantDirectoryScreen,
+} from "./components/applicant-directory-screen";
+export {
+  CreateApplicantScreen,
+  type CreateApplicantScreenProps,
+} from "./components/create-applicant-screen";
+export {
+  EditApplicantScreen,
+  type EditApplicantScreenProps,
+} from "./components/edit-applicant-screen";
+export {
+  ApplicantJourneyHubScreen,
+  type ApplicantJourneyHubScreenProps,
+} from "./components/applicant-journey-hub-screen";
+
+// Composable pieces
+export {
+  ApplicantBoundary,
+  type ApplicantBoundaryProps,
+} from "./components/applicant-boundary";
+export { ApplicantForm, type ApplicantFormProps } from "./components/applicant-form";
+export {
+  ApplicantsTable,
+  type ApplicantsTableProps,
+} from "./components/applicants-table";
+export {
+  ApplicantStatusBadge,
+  type ApplicantStatusBadgeProps,
+} from "./components/applicant-status-badge";
+export {
+  ApplicantWorkflowActions,
+  type ApplicantWorkflowActionsProps,
+} from "./components/applicant-workflow-actions";
+export {
+  ApplicantWorkflowTimeline,
+  type ApplicantWorkflowTimelineProps,
+} from "./components/applicant-workflow-timeline";
+export {
+  AdmitApplicantDialog,
+  type AdmitApplicantDialogProps,
+} from "./components/admit-applicant-dialog";
+
+// Backend integration
+export { applicantService } from "./api/applicant.service";
+export { applicantKeys } from "./api/applicant.keys";
+export {
+  useApplicant,
+  useApplicants,
+  useApplicantScope,
+  useApplicantWorkflowHistory,
+  useApplicantWorkflowTransition,
+  useAdmitApplicant,
+  useCheckDuplicateApplicants,
+  useCreateApplicant,
+  useDeleteApplicant,
+  useUpdateApplicant,
+} from "./hooks/use-applicants";
+export {
+  formatApplicantAddress,
+  toApplicantFormValues,
+  toApplicantRequest,
+} from "./mappers/applicant.mapper";
+
+// Domain logic
+export {
+  STATUS_MEANING,
+  actionsFor,
+  isAdmitEligible,
+  nextActionSummary,
+  type WorkflowActionDescriptor,
+} from "./utils/workflow";
+
+// Contracts
+export {
+  ADMISSION_APPLICATION_STATUSES,
+  WORKFLOW_ACTIONS,
+  type AdmissionApplicationStatus,
+  type AdmitApplicantRequest,
+  type AdmitApplicantResponse,
+  type ApplicantDto,
+  type ApplicantListPage,
+  type ApplicantListQuery,
+  type ApplicantRequest,
+  type CheckDuplicateApplicantsRequest,
+  type CheckDuplicateApplicantsResponse,
+  type WorkflowAction,
+  type WorkflowHistoryEntry,
+  type WorkflowTransitionRequest,
+} from "./types/applicant.dto";
+export {
+  applicantFormDefaults,
+  applicantFormSchema,
+  type ApplicantFormValues,
+} from "./schemas/applicant.schema";
+export {
+  ANY_STATUS,
+  DIRECTORY_PAGE_SIZE,
+  STATUS_FILTER_OPTIONS,
+  STATUS_LABEL,
+  STATUS_TONE,
+} from "./constants";
