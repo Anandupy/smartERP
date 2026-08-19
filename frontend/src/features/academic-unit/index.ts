@@ -97,6 +97,10 @@ export {
   type MoveAcademicUnitDialogProps,
   type ToggleAcademicUnitStatusDialogProps,
 } from "./components/academic-unit-dialogs";
+export {
+  AcademicUnitPicker,
+  type AcademicUnitPickerProps,
+} from "./components/academic-unit-picker";
 
 // Backend integration
 export {

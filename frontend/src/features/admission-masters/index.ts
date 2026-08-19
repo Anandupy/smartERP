@@ -79,6 +79,10 @@ export {
   type DeleteAdmissionMasterDialogProps,
   type ToggleAdmissionMasterActiveDialogProps,
 } from "./components/admission-master-dialogs";
+export {
+  AdmissionMasterPicker,
+  type AdmissionMasterPickerProps,
+} from "./components/admission-master-picker";
 
 // Backend integration
 export { createAdmissionMasterService } from "./api/admission-master.service";
