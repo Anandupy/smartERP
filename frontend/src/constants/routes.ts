@@ -230,6 +230,22 @@ export const ROUTES = Object.freeze({
       edit: (resource: string, id: string) =>
         `/app/admissions/masters/${resource}/${id}/edit`,
     },
+    /**
+     * Admissions — the Applicant lifecycle: `Applicant → Person → Guardian →
+     * Documents → Workflow → Student → Admission → Enrollment`
+     * (`docs/admission-lifecycle-module.md`). `root` is the module hub;
+     * `applicants` is the primary operational workspace — directory,
+     * create/edit, and the per-applicant Journey Hub.
+     */
+    admissions: {
+      root: "/app/admissions",
+      applicants: {
+        directory: "/app/admissions/applicants",
+        create: "/app/admissions/applicants/new",
+        detail: (id: string) => `/app/admissions/applicants/${id}`,
+        edit: (id: string) => `/app/admissions/applicants/${id}/edit`,
+      },
+    },
     workspaceAdmin: {
       root: "/app/workspace-admin",
       modules: {
