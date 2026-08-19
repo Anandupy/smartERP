@@ -407,7 +407,64 @@ so every gap below applies to all 10 equally rather than to one resource.
 
 ---
 
-## M. What is needed, in priority order
+## M. Applicant Admission Lifecycle
+
+Compiled from `backend/docs/planning/core-admission-lifecycle-specification.md`
+(a status-tagged reconciliation against backend source, treated here as a
+verified proxy for source — no backend source was read directly),
+`backend/docs/planning/document-management-specification.md`, the individual
+`I1`–`I5`/`S1`–`S3` design-delta docs, `backend/docs/modules/admissions.md`,
+the `admissions-production-audit.md`/`security-review.md`/`numbering-review.md`
+audit trail, and the Postman collection's Admissions/Document/Person/
+Student/Enrollment/Numbering folders. See
+[`docs/admission-lifecycle-module.md`](./admission-lifecycle-module.md) for
+the full contract writeup — this is analysis only, no frontend feature exists
+yet.
+
+**Unlike every module above, this Postman collection has real, non-empty
+example response bodies and hand-written business-rule descriptions on
+almost every request** — see the module doc §7. Confidence in the endpoint
+shapes below is correspondingly higher than elsewhere in this document.
+**Unusually, the primary backend doc is internally multi-dated** (a
+2026-08-12 baseline plus two later addenda, 2026-08-16 and 2026-08-17) and
+several of its own earlier-dated sections are superseded by later ones within
+the same file — see the module doc §10. Gaps below state the current,
+latest-dated position.
+
+| #    | Gap                                                                                                                                                                                          | Impact                                                                                                                    | Current behaviour                                                                                                                                                    |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AP1  | **No "existing Person found" vs "new Person created" indicator is documented anywhere.** Neither the Applicant response nor any `Person` endpoint returns a `matchedBy`/`isNewPerson` flag. | The identity-resolution UX a design brief would want (✓ Existing Person found / ✓ New Person created) has no field to bind to. | Any future screen must show only "identity resolved" as a binary fact, never *how* it resolved, unless a future response adds the field.                              |
+| AP2  | **`Applicant.personId` is not present in any captured Postman example response** (create/get/update/workflow-transition alike), despite being required from `SUBMITTED` onward at the database level. | A UI cannot render "Person linked: `<id>`" from a response shape confirmed by example alone.                                | Treated as documented-but-unconfirmed-by-example rather than absent — the lifecycle spec's `VERIFIED` tag on the column outranks an example simply not showing it, but the exact field name and null-handling should be re-verified against a live response before binding to it. |
+| AP3  | **`Applicant.aadhaarNo` remains a plaintext column today.** The design intends to remove it entirely (moved to `PersonSensitive`); that migration (`R17`) is listed as not yet done, and Postman's captured request body still includes it. | Any UI touching this field carries the same plaintext-Aadhaar exposure risk AGENTS.md already warns about for the wider platform.  | Should be treated with the same handling discipline as any Aadhaar field platform-wide — never logged, never in a query key, never displayed after save.                |
+| AP4  | **`ApplicantProgramPreference.status`'s exact value set is unconfirmed by Postman.** Both `GET`/`POST .../applicants/:id/preferences` have no success example in the collection — error bodies only. | A preference-status UI (e.g. a badge per ranked choice) cannot be built against a confirmed enum.                            | The design doc's `PENDING/OFFERED/DECLINED/ALLOTTED` and the lifecycle spec's noted divergence (`REJECTED`/`WITHDRAWN` instead) are both unconfirmed by a captured example — treat as `unknown` pending direct verification. |
+| AP5  | **Person merge is designed but not executable.** `PersonMergeLog` and `mergedIntoPersonId` exist at the schema level; no operation writes them.                                              | No "Merge Person" action can be built — there is nothing to call.                                                            | Not surfaced anywhere; a duplicate-person situation stays unresolved from the UI.                                                                                    |
+| GD1  | **Guardian is still branch-scoped and still holds a plaintext `aadhaarNo` plus six inline address columns.** The target model (organization-scoped, `personId`-only, no address) is designed but the migration is deferred, blocked on missing `dob` data for backfill. | A UI built against the target model (one guardian login across branches, no Aadhaar column) does not match today's contract.  | Build against the confirmed-as-shipped shape (§5.2 of the module doc), not the target model, until the migration ships.                                             |
+| GD2  | **`ApplicantGuardianMapping` lacks four fields the newer `Guardianship` model has**: `startedAt`/`endedAt`, `isLegalGuardian`, `emergencyPriority`, `pickupValidFrom`/`pickupValidTo`.       | A guardian-mapping form cannot offer legal-guardian status, an ordered emergency-contact list, or a time-boxed pickup window while an applicant is still an applicant. | Offer only the seven confirmed mapping fields (§5.4); the four richer fields become available only once a `Guardianship` row exists (post-conversion).              |
+| GD3  | **A nested `guardians[]` field on Applicant create is designed and stated as "adopted," but the confirmed 43-field create request body does not contain it.**                                | Building a single-payload "Applicant + Guardians" create form would call an endpoint shape that is not confirmed to exist.  | Build against the confirmed three-round-trip flow (create/find guardian → map to applicant) until a nested payload is independently verified.                       |
+| GD4  | **`BILLING` address resolution through the financial guardian remains incomplete** — it depends on the guardian having a resolved `personId`, which is not guaranteed for every guardian yet. | A billing-address lookup for a student may silently fall through to `CURRENT` rather than the intended financial-guardian address. | Not surfaced as a distinct error; a UI showing a resolved billing address should not assert it came from the financial guardian without independent confirmation.    |
+| DOC1 | **Document upload's exact multipart field names are unconfirmed** — the Postman example body is multipart, not raw JSON, and this extraction pass could not parse it.                        | The upload form's field names (`file`, `documentTypeId`, `ownerType`, `ownerId`, …) rest on inference, not a captured example. | Verify the multipart field names directly (e.g. via the raw Postman body mode or a live request) before wiring an upload form.                                       |
+| DOC2 | **Whether `GET /documents/:id` returns prior-version history, or only the current version, is unconfirmed** — its example response is shaped identically to the single-version Upload response. | A "version history" panel cannot be built from this endpoint alone with confidence.                                          | Treat the endpoint as confirmed for the current version only; verify separately before building a full version-history view.                                        |
+| DOC3 | **The exact response shape of `409 DOCUMENTS_INCOMPLETE` (which field carries the missing-document-type list) is not documented field-by-field.**                                            | A "you are missing: Birth Certificate, Income Certificate" message cannot be built from a confirmed property path.           | Parse defensively via the standard error envelope; fall back to the checklist read as the authoritative source for per-requirement status rather than this error body. |
+| DOC4 | **No aggregate "N of M documents verified" field is documented** on any list or checklist response.                                                                                           | A progress indicator (e.g. "3/5 verified") has no field to read.                                                             | Compute any such count client-side from the returned array length, and hide the count entirely if the array cannot be fetched cheaply.                              |
+| WF1  | **The document checklist guard (`DOCUMENT_CHECKLIST_SATISFIED`) gates only `documentsReceived` and `approve`** — not `submit`, `startReview`, `requestDocuments`, `confirmSeat`, or `admit`. | A UI must not claim "cannot proceed — documents incomplete" at any transition other than those two, or it will contradict the actual guard placement. | The action area for every other transition must never reference document completeness as a blocker.                                                                |
+| WF2  | **`DEFERMENT_ENABLED` is off by default**, config-driven, with no documented endpoint to read its current value ahead of attempting the transition.                                          | Offering a "Defer" action unconditionally risks a `400 DEFERMENT_DISABLED` the UI cannot pre-empt.                           | Attempt the action and handle the specific error code, rather than assuming `defer` is always available from `APPROVED`.                                              |
+| WF3  | **`admit()` writes only one `WorkflowHistory` row (for the Applicant)** — Admission and Enrollment get no "birth" row.                                                                        | `GET /enrollments/:id/history` on a freshly admitted student returns an **empty array**.                                    | A timeline/history view for a newly admitted student's Enrollment must render an honest empty state, not assume a first entry always exists.                        |
+| SAE1 | **No `Admission` CRUD endpoints exist at all** — confirmed structurally by the absence of any `Admission` folder in the Postman collection.                                                   | There is no way to read or list Admission records independent of the `admit()` response or an Enrollment's `admissionId`.   | Any admission-detail screen must resolve the record through Enrollment or the `admit()` response, never a direct `GET /admissions/:id` (it does not exist).          |
+| SAE2 | **A documented `POST /students/:id/branch-transfer` route is not confirmed present** in the captured Postman collection, though it appears in the design doc's API surface table.             | A "Branch Transfer" action would call an endpoint whose existence is unconfirmed.                                            | Treat branch transfer as likely still unshipped pending direct confirmation; do not wire the action speculatively.                                                  |
+| SAE3 | **Promotion and repeat-year have no callable operation** — both are `DEFERRED` (Phase 6); the shared "supersede" primitive they will use exists and is test-proven, but nothing calls it for these two cases yet. | "Promote to next year" and "Repeat this year" cannot be built.                                                               | Only `correct` (placement correction) and `transfer` (mid-year change) are confirmed callable today.                                                                |
+| SAE4 | **`APPLICANT_ALREADY_ADMITTED` omits `admissionId`/`enrollmentId`**, though it is documented to carry them alongside `studentId`/`studentCode` (a known, cosmetic drift, `D23`).               | A "View Admission" / "View Enrollment" deep link from this specific conflict response cannot be built from its payload alone. | Fall back to fetching the applicant record (which does resolve to the admitted student) rather than expecting the conflict body to carry every identifier.          |
+| SAE5 | **`NUMBERING_NOT_PROVISIONED` is returned as `400` from the pre-flight check and `500` from the in-transaction path** for the same underlying condition (`D24`, not yet reconciled).          | Error-handling code keyed only on status code will treat the same failure two different ways depending on timing.           | Match on the error `code`, not the HTTP status, for this specific condition.                                                                                          |
+
+> **Resolved, not open — noted for completeness.** The lifecycle spec's own
+> R4.5 addendum (2026-08-16) confirms a serious cross-tenant vulnerability on
+> every Guardian route — `GET /guardians/:id` returning a full plaintext
+> Aadhaar to any authenticated user of any tenant — was closed by an earlier
+> release ("R2"). It is recorded here only so a future reader does not
+> rediscover it as new from the same source document's earlier-dated §8.3/§8.4.
+
+---
+
+## N. What is needed, in priority order
 
 1. **One example response body** for `GET /maintenance-rules/active/status`,
    `GET /audit-logs/summary` and `GET /audit-logs/timeline` (A). Highest value
@@ -506,6 +563,26 @@ Added by the Admission Masters milestone:
     pattern rejected would be a bug with no backend to blame.
 30. **What `metadata` is for** (L5). Until its shape is documented, it stays
     out of every admission master form entirely.
+
+Added by the Applicant Admission Lifecycle analysis:
+
+31. **A captured, non-error example response** for `GET`/`POST
+    .../applicants/:id/preferences` (AP4) and for the multipart `POST
+    /documents` upload (DOC1). Both are called by the design but have no
+    success example anywhere in the collection — the two remaining gaps in an
+    otherwise unusually well-documented Postman surface for this module.
+32. **Whether `Admission` will ever get a direct read endpoint** (SAE1). Every
+    other entity in this lifecycle has at least one `GET .../:id`; Admission
+    has none, and is reachable only through Enrollment or the `admit()`
+    response.
+33. **Confirmation of `POST /students/:id/branch-transfer`'s existence** (SAE2)
+    and of a nested `guardians[]` field on Applicant create (GD3) — both are
+    documented as decided/adopted in the design layer but neither is
+    confirmed present in the captured wire contract.
+34. **Reconciling `NUMBERING_NOT_PROVISIONED`'s two status codes** (SAE5) and
+    completing `APPLICANT_ALREADY_ADMITTED`'s payload with `admissionId`/
+    `enrollmentId` (SAE4) — both are named, acknowledged, cosmetic drifts in
+    the backend's own reconciliation document, not open questions.
 
 None of these blocks further frontend work. Each one, when answered, turns a
 `Backend Pending` marker into a wired feature without restructuring anything.
