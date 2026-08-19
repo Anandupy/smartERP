@@ -5,6 +5,9 @@ import { BaseMasterService } from '../base-master.service';
 @Injectable()
 export class AdmissionSourceService extends BaseMasterService {
   constructor(prisma: PrismaService) {
-    super(prisma, 'admissionSource', ['applicants', 'admissions']);
+    super(prisma, 'admissionSource', [
+      { relation: 'applicants', filterSoftDeleted: true },
+      { relation: 'admissions', filterSoftDeleted: true },
+    ]);
   }
 }

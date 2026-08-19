@@ -10,6 +10,24 @@ import {
 } from '@/common/events';
 
 /**
+ * One relation, declared on a Prisma master model, that references this
+ * master and should be checked before a delete is allowed.
+ *
+ * `filterSoftDeleted` must be `true` only when the *referencing* model has
+ * its own `deletedAt` column (`Applicant`, `Admission`, `Student` today) — a
+ * soft-deleted row on that side no longer represents an active dependency,
+ * so it is excluded from the "in use" check. Relations to a model with no
+ * `deletedAt` of its own (`ApplicantGuardianMapping`, `Guardianship`) must
+ * leave this `false`: removing the mapping/guardianship row itself is how
+ * that reference ends, and passing an unknown `where.deletedAt` to Prisma for
+ * those models would fail at runtime, not silently no-op.
+ */
+export interface MasterReferenceRelation {
+  relation: string;
+  filterSoftDeleted: boolean;
+}
+
+/**
  * Shared CRUD for admissions reference data (Religion, Caste, Category, ...).
  *
  * A row is visible in a scope if it is a system-wide default (`organizationId`
@@ -29,8 +47,8 @@ export class BaseMasterService {
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly modelName: string,
-    /** Relation field names, declared on the Prisma master model, that reference this master (e.g. `['applicants', 'students']`). */
-    protected readonly referenceRelations: string[] = [],
+    /** Relations that reference this master, each naming whether the far side excludes its own soft-deleted rows. See `MasterReferenceRelation`. */
+    protected readonly referenceRelations: MasterReferenceRelation[] = [],
   ) {}
 
   private visibleWhere(scope: ResourceScope) {
@@ -200,14 +218,18 @@ export class BaseMasterService {
       const usage = await (this.prisma as any)[this.modelName].findFirst({
         where: { id },
         select: Object.fromEntries(
-          this.referenceRelations.map((relation) => [
+          this.referenceRelations.map(({ relation, filterSoftDeleted }) => [
             relation,
-            { select: { id: true }, take: 1 },
+            {
+              ...(filterSoftDeleted ? { where: { deletedAt: null } } : {}),
+              select: { id: true },
+              take: 1,
+            },
           ]),
         ),
       });
       const inUse = this.referenceRelations.some(
-        (relation) => (usage?.[relation]?.length ?? 0) > 0,
+        ({ relation }) => (usage?.[relation]?.length ?? 0) > 0,
       );
       if (inUse) {
         throw new ConflictException({
