@@ -147,4 +147,180 @@ describe('ChecklistService', () => {
 
     expect(result.satisfied).toBe(false);
   });
+
+  it('filters out a requirement scoped to a different quotaId', async () => {
+    mockPrisma.documentRequirement.findMany.mockResolvedValue([
+      requirement({ appliesToQuotaId: 'some-other-quota' }),
+    ]);
+
+    const result = await service.isSatisfied(
+      APPLICANT,
+      [S.UNDER_REVIEW],
+      'org-1',
+    );
+
+    expect(result).toEqual({ satisfied: true, missing: [] });
+    expect(mockPrisma.document.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("applies a requirement scoped to the applicant's own quotaId — e.g. an RTE-only income certificate", async () => {
+    mockPrisma.documentRequirement.findMany.mockResolvedValue([
+      requirement({
+        documentTypeId: 'dt-income',
+        appliesToQuotaId: 'quota-1',
+        documentType: {
+          id: 'dt-income',
+          code: 'INCOME_CERTIFICATE',
+          name: 'Income Certificate',
+        },
+      }),
+    ]);
+    mockPrisma.document.findFirst.mockResolvedValue(null);
+
+    const result = await service.isSatisfied(
+      APPLICANT,
+      [S.UNDER_REVIEW],
+      'org-1',
+    );
+
+    expect(result.satisfied).toBe(false);
+    expect(result.missing).toEqual([
+      {
+        documentTypeId: 'dt-income',
+        code: 'INCOME_CERTIFICATE',
+        name: 'Income Certificate',
+      },
+    ]);
+  });
+
+  it('filters out a requirement scoped to a different categoryId', async () => {
+    mockPrisma.documentRequirement.findMany.mockResolvedValue([
+      requirement({ appliesToCategoryId: 'some-other-category' }),
+    ]);
+
+    const result = await service.isSatisfied(
+      APPLICANT,
+      [S.UNDER_REVIEW],
+      'org-1',
+    );
+
+    expect(result).toEqual({ satisfied: true, missing: [] });
+    expect(mockPrisma.document.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("applies a requirement scoped to the applicant's own categoryId — e.g. an SC-only caste certificate", async () => {
+    mockPrisma.documentRequirement.findMany.mockResolvedValue([
+      requirement({
+        documentTypeId: 'dt-caste',
+        appliesToCategoryId: 'cat-1',
+        documentType: {
+          id: 'dt-caste',
+          code: 'CASTE_CERTIFICATE',
+          name: 'Caste Certificate',
+        },
+      }),
+    ]);
+    mockPrisma.document.findFirst.mockResolvedValue(null);
+
+    const result = await service.isSatisfied(
+      APPLICANT,
+      [S.UNDER_REVIEW],
+      'org-1',
+    );
+
+    expect(result.satisfied).toBe(false);
+    expect(result.missing.map((m) => m.code)).toEqual(['CASTE_CERTIFICATE']);
+  });
+
+  it('does not require a category document for an applicant in a different category', async () => {
+    mockPrisma.documentRequirement.findMany.mockResolvedValue([
+      requirement({ appliesToCategoryId: 'cat-sc' }),
+    ]);
+
+    const result = await service.isSatisfied(
+      { ...APPLICANT, categoryId: 'cat-general' },
+      [S.UNDER_REVIEW],
+      'org-1',
+    );
+
+    expect(result).toEqual({ satisfied: true, missing: [] });
+  });
+
+  it('is additive: a base program requirement and a quota-specific requirement are both checked independently', async () => {
+    mockPrisma.documentRequirement.findMany.mockResolvedValue([
+      requirement({
+        documentTypeId: 'dt-birth',
+        appliesToProgramId: 'prog-1',
+        documentType: {
+          id: 'dt-birth',
+          code: 'BIRTH_CERTIFICATE',
+          name: 'Birth Certificate',
+        },
+      }),
+      requirement({
+        documentTypeId: 'dt-income',
+        appliesToProgramId: 'prog-1',
+        appliesToQuotaId: 'quota-1',
+        documentType: {
+          id: 'dt-income',
+          code: 'INCOME_CERTIFICATE',
+          name: 'Income Certificate',
+        },
+      }),
+    ]);
+    // The base document is on file; the RTE-specific one is not.
+    mockPrisma.document.findFirst.mockImplementation(async ({ where }: any) =>
+      where.documentTypeId === 'dt-birth' ? { id: 'doc-1' } : null,
+    );
+
+    const result = await service.isSatisfied(
+      APPLICANT,
+      [S.UNDER_REVIEW],
+      'org-1',
+    );
+
+    expect(mockPrisma.document.findFirst).toHaveBeenCalledTimes(2);
+    expect(result.satisfied).toBe(false);
+    expect(result.missing).toEqual([
+      {
+        documentTypeId: 'dt-income',
+        code: 'INCOME_CERTIFICATE',
+        name: 'Income Certificate',
+      },
+    ]);
+  });
+
+  it('only ever queries mandatory, active, non-deleted requirements at the requested stages', async () => {
+    mockPrisma.documentRequirement.findMany.mockResolvedValue([]);
+
+    await service.isSatisfied(APPLICANT, [S.UNDER_REVIEW, S.APPROVED], 'org-1');
+
+    expect(mockPrisma.documentRequirement.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isMandatory: true,
+          isActive: true,
+          deletedAt: null,
+          requiredByStage: { in: [S.UNDER_REVIEW, S.APPROVED] },
+        }),
+      }),
+    );
+  });
+
+  it('only a VERIFIED current version satisfies a requirement — PENDING and REJECTED do not', async () => {
+    mockPrisma.documentRequirement.findMany.mockResolvedValue([requirement()]);
+    mockPrisma.document.findFirst.mockResolvedValue(null);
+
+    await service.isSatisfied(APPLICANT, [S.UNDER_REVIEW], 'org-1');
+
+    expect(mockPrisma.document.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'ACTIVE',
+          currentVersion: { verificationStatus: 'VERIFIED' },
+        }),
+      }),
+    );
+  });
 });
