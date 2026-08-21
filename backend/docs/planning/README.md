@@ -133,6 +133,19 @@ the admissions masters (Religion, Caste, Category, Gender, BloodGroup, Language,
 Disability, RelationType, **Quota**, **AdmissionSource**). See
 [`../modules/`](../modules/) and [`../core/`](../core/) for their documentation.
 
+**2026-08-21 backend gap audit** — cross-verified against
+`frontend/docs/backend-gaps.md`. Auth gained `POST /auth/change-password`
+(authenticated; `reset-password` remained token-only recovery); Workspace
+gained `GET /workspace/configuration/:scopeType` (read-back for a
+previously-saved layer, `POST` was write-only before); Admissions fixed two
+numbering-status inconsistencies at the `admit()` boundary (D22/D24) and
+completed `APPLICANT_ALREADY_ADMITTED`'s payload (D23) — none required
+changes to `NumberingService` itself, which is unmodified and still frozen.
+The scope-header names flagged as a platform-level mismatch turned out to
+already be aliased and working. Full classification of every item —
+including the ones that needed no backend change — is in
+[`../backend pending.md`](../backend%20pending.md).
+
 ## Planning order
 
 Dependency-ordered, not preference-ordered:
