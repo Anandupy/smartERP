@@ -338,7 +338,7 @@ existed already, wired by the auth feature; this module only added screens.
 
 | #   | Gap                                                                                                                                                                             | Impact                                                                       | Current behaviour                                                                                                                              |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| K1  | **No authenticated change-password endpoint.** `POST /auth/reset-password` exists but requires the single-use token from a `forgot-password` email — it is account recovery, not a signed-in user changing a known password. | Change Password cannot submit.                                              | Full form UI ships (`PendingSettingsGroup`); submit stays disabled. `reset-password` is never called with a fabricated token.                 |
+| K1  | ~~No authenticated change-password endpoint.~~ **Resolved 2026-08-21** — `POST /auth/change-password` now exists, requiring the current password (unlike `reset-password`'s single-use token). | ~~Change Password cannot submit.~~ Resolved. | Real form, wired to `useChangePassword`. Success revokes every refresh token server-side (same as reset), so the client mirrors a sign-out and returns to `/login`. |
 | K2  | **Two-factor authentication is schema-only.** `User.isTwoFactorEnabled`/`twoFactorSecret` exist in Prisma, but the column comment states they are unimplemented and never written; neither is selected into any API response. | 2FA status cannot be read, and there is no enroll/enable/disable/QR/backup-code endpoint. | Screen ships; status is reported as **unavailable**, never "disabled". Every management control is disabled. Login-time OTP (`purpose: MFA`) is noted as a separate, already-real mechanism, not conflated with enrollment. |
 | K3  | **No security-preferences endpoint** — distinct from `notification-preference` (communication channels, a different module).                                                    | Notification/session-behavior toggles cannot be read or saved.                | Screen ships with every toggle disabled via `PendingSettingsGroup`.                                                                            |
 | K4  | **No login-history endpoint**, distinct from `GET /auth/sessions` (live sessions only).                                                                                        | Historical sign-in attempts, including failed ones, cannot be listed.        | Screen ships with disabled filters and an empty state; nothing is derived from Active Sessions to fill the gap.                                 |
@@ -368,7 +368,7 @@ endpoints, all wired. The only genuine gap in this module is
 
 | #   | Gap                                                                                                                                                        | Impact                                                                                                    | Current behaviour                                                                                                                        |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| L1  | **`WorkspaceConfiguration` has one endpoint** — `POST /workspace/configuration`. No `GET`, no `list`, no `DELETE`.                                          | The Configuration Layer Editor cannot show a layer's current values before saving, and no screen can list every layer that exists for a scope. | The editor is explicitly "define this layer," never "edit this layer" — a `Banner` states this before any field is touched. Every save omits untouched preference keys (a tri-state control, not a boolean) so the shallow merge on the backend cannot be made to clear a key by accident. |
+| L1  | ~~`WorkspaceConfiguration` has one endpoint — `POST /workspace/configuration`. No `GET`, no `list`, no `DELETE`.~~ **Resolved 2026-08-21** — `GET /workspace/configuration/:scopeType?scopeId=` now exists (same SUPER_ADMIN + `settings.manage` guard), reading a layer back by its exact scope key. `list`/`DELETE` remain absent. | The Configuration Layer Editor now loads a scope's existing values before editing. No screen can still list every layer for a scope. | The editor calls `GET` when a scope resolves to a lookup key and prefills the form from the result (or states plainly that no layer exists yet). Saving still omits untouched preference keys (a tri-state control, not a boolean) so the shallow merge on the backend cannot be made to clear a key by accident. |
 | L2  | **`navigationPreferences`/`clientPreferences` are schemaless JSON** (`Record<string, any>`) — the documented keys are Postman examples, not a contract.    | A caller could write arbitrary keys; a reader cannot know what any of them mean beyond the six documented examples. | Only the six documented keys (`sidebarCollapsed`, `themeMode`, `defaultRoute`, `denseMode`, `theme`, `locale`) are editable, through structured controls — no free-form JSON editor. |
 | L3  | **No dashboard/widget/statistic endpoint anywhere in `workspace` or `health`.**                                                                             | A Workspace Overview screen (Stitch's S4) cannot show anything beyond what `/live`, `/ready`, `/health`, `/admin/navigation/modules` and `/workspace/navigation` already return individually. | Not built — out of this module's six-screen scope. The System Health Monitor is the one operational-dashboard screen this module ships, and it composes only the three real probes. |
 | L4  | **`/live`, `/ready` and `/health` return no historical data** — each is a current-state probe.                                                             | No uptime percentage, incident timeline or response-time trend can be shown truthfully.                    | The Health Monitor's "Historical monitoring" panel states this plainly (`BackendPendingNote`) instead of a fabricated chart.               |
@@ -376,10 +376,12 @@ endpoints, all wired. The only genuine gap in this module is
 | L6  | **Menu `permissions`/`searchKeywords` have no tag-input component in this codebase.**                                                                       | Editing them as a real multi-select would need a new shared component.                                     | Edited as comma-separated text, split/joined in `mappers/menu.mapper.ts`. Not a backend gap, but recorded here since it is the reason the Menu form's two fields look unlike a typical array editor. |
 | L7  | **A menu's eligible "Move" targets in another module require fetching that module's full menu list** — there is no cross-module hierarchy-aware endpoint. | The Move dialog's parent picker is empty until the target module's menus have loaded.                       | `useMenus(targetModuleId)` fetches on selection; the dialog shows "None — top level" immediately and populates real parents once loaded. The server (`MenuHierarchyValidator`) remains the authoritative check regardless. |
 
-> **On L1 and L2 together:** because there is no read and no schema, this
-> module cannot verify a save actually took effect from the UI alone. A future
-> `GET /workspace/configuration/:scopeType/:scopeId` would close both gaps at
-> once and let the editor become a true edit form.
+> **On L1 and L2 together:** L1 is resolved — `GET
+> /workspace/configuration/:scopeType?scopeId=` (2026-08-21) lets the editor
+> verify a save took effect and pre-fill a layer before editing it. L2 (no
+> schema for the two preference blobs) is unchanged: the editor still only
+> exposes the six documented keys through structured controls, not a
+> free-form JSON editor.
 
 ---
 
@@ -532,9 +534,8 @@ Added by the Program and Academic Unit milestone:
 
 Added by the Account & Security Center milestone:
 
-22. **An authenticated change-password endpoint** (J1). The single most
-    consequential gap in this module — the only account-security screen a
-    user is likely to reach for first has nowhere to submit.
+22. ~~An authenticated change-password endpoint~~ (K1) — **done**, wired
+    2026-08-21 to `POST /auth/change-password`.
 23. Whether **two-factor authentication** (J2), **security preferences**
     (J3), **login history** (J4), **security activity** (J5) or **trusted
     devices** (J6) are planned at all, and roughly when — each is currently a
@@ -545,8 +546,8 @@ Added by the Account & Security Center milestone:
 
 Added by the Workspace Admin milestone:
 
-26. **A `GET /workspace/configuration/:scopeType/:scopeId`** (L1). The single
-    change that would let the Configuration Layer Editor pre-fill a layer
+26. ~~A `GET /workspace/configuration/:scopeType/:scopeId`~~ (L1) — **done**,
+    wired 2026-08-21. The Configuration Layer Editor now pre-fills a layer
     instead of only defining one blind.
 27. Whether the 503 failure body for `/ready`/`/health` could carry the
     Terminus indicator detail rather than the generic error envelope (L5) —

@@ -42,7 +42,7 @@ imports.
 | Revoke every session | `DELETE /auth/sessions` | Real, but **not used by this UI** — see below |
 | Sign out | `POST /auth/logout?allDevices=true\|false`, body `{refreshToken}` | Real |
 | Identity | `useAuth()` (JWT claims: name, email, role) | Real, already platform state |
-| Authenticated change password | — | Missing |
+| Authenticated change password | `POST /auth/change-password`, body `{currentPassword, newPassword}` | Real — wired 2026-08-21 |
 | 2FA enrollment/enable/disable/TOTP/backup codes | — | Missing (schema placeholder only, never written) |
 | Security preferences | — | Missing |
 | Login history | — | Missing |
@@ -104,7 +104,7 @@ identity and the live session count.
 | Active Sessions | `/app/account/security/sessions` | Real |
 | Session Details Drawer | (drawer on Active Sessions) | Real — built from the row already loaded, no `GET /:id` |
 | Login History | `/app/account/security/login-history` | Backend Pending |
-| Change Password | `/app/account/security/change-password` | Backend Pending |
+| Change Password | `/app/account/security/change-password` | Real — `POST /auth/change-password` |
 | Two-Factor Authentication | `/app/account/security/two-factor` | Backend Pending |
 | Security Preferences | `/app/account/security/preferences` | Backend Pending |
 | Security Activity Audit | `/app/account/security/audit` | Backend Pending |
@@ -114,6 +114,20 @@ identity and the live session count.
 ## Testing
 
 `tests/mocks/auth-handlers.ts` already covers `GET/DELETE /auth/sessions` and
-`POST /auth/logout` — no new MSW handlers were needed. The six fully-pending
+`POST /auth/logout` — no new MSW handlers were needed. The five fully-pending
 screens have no handlers at all; MSW's repo-wide `onUnhandledRequest: "error"`
 is what proves they never call out.
+
+**Change Password** (added 2026-08-21) is wired to the real
+`POST /auth/change-password`, verified against the backend's
+`ChangePasswordDto`/`AuthController`/`AuthService`. It requires the current
+password (unlike `reset-password`'s single-use token) and revokes every
+refresh token for the account server-side — same effect as "sign out
+everywhere." `useChangePassword` (`features/auth/hooks/use-change-password.ts`)
+mirrors `useLogout`: on success it clears local tokens/session, clears the
+query cache, and redirects to `/login`, since staying on a screen whose
+session was just revoked server-side would be misleading. Client-side
+validation reuses `lib/password-strength`'s `PASSWORD_RULES` (12+ chars,
+mixed case, number, symbol) — stricter than the backend's own `MinLength(8)`
+floor, so anything the form accepts always satisfies the backend. No reuse
+history exists on either side, so old-password reuse is not blocked.

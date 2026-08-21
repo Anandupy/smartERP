@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ChangePasswordScreen,
   LoginHistoryScreen,
   SecurityAuditScreen,
   SecurityPreferencesScreen,
@@ -12,11 +11,15 @@ import {
 import { render, screen } from "@tests/setup/render";
 
 /**
- * These six screens have no backend behind them at all. Rendering them must
+ * These five screens have no backend behind them at all. Rendering them must
  * never fire a network request — MSW's repo-wide `onUnhandledRequest: "error"`
  * would fail the test if one did — and every write control must render
  * disabled with a `Backend Pending` explanation rather than a fake success
  * path.
+ *
+ * Change Password used to be part of this cohort; it was wired to the real
+ * `POST /auth/change-password` on 2026-08-21 and now has its own test file
+ * (`change-password-screen.test.tsx`).
  */
 describe("Backend-pending security screens", () => {
   it("Login History ships the full filter UI, all of it inert", () => {
@@ -25,15 +28,6 @@ describe("Backend-pending security screens", () => {
     expect(screen.getByText("Login History")).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Search by IP or device/)).toBeDisabled();
     expect(screen.getAllByText("Backend Pending").length).toBeGreaterThan(0);
-  });
-
-  it("Change Password ships the full form, submit disabled", () => {
-    render(<ChangePasswordScreen />);
-
-    expect(screen.getByLabelText("Current password")).toBeDisabled();
-    expect(screen.getByLabelText("New password")).toBeDisabled();
-    expect(screen.getByLabelText("Confirm new password")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
   });
 
   it("Two-Factor Authentication never claims a status it cannot verify", () => {

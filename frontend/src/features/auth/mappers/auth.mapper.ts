@@ -5,6 +5,7 @@ import type { LoginFormValues } from "../schemas/login.schema";
 import type {
   AccessTokenClaims,
   AuthTokensDto,
+  ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
   ResetPasswordRequest,
@@ -52,6 +53,20 @@ export function toResetPasswordRequest(
   token: string,
 ): ResetPasswordRequest {
   return { token, password: values.password };
+}
+
+/**
+ * Change-password form → `POST /auth/change-password`. `confirmPassword`
+ * never leaves the client.
+ */
+export function toChangePasswordRequest(values: {
+  currentPassword: string;
+  newPassword: string;
+}): ChangePasswordRequest {
+  return {
+    currentPassword: values.currentPassword,
+    newPassword: values.newPassword,
+  };
 }
 
 /** Wire tokens → the platform's `TokenPair`, carrying the decoded expiry. */

@@ -3,6 +3,7 @@ import { api } from "@/core/api";
 import type {
   AuthSessionDto,
   AuthTokensDto,
+  ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
   LogoutRequest,
@@ -56,6 +57,14 @@ export const authService = {
   /** `POST /auth/reset-password` with the single-use token from that link. */
   resetPassword: (body: ResetPasswordRequest) =>
     api.post<null, ResetPasswordRequest>("/auth/reset-password", body),
+
+  /**
+   * `POST /auth/change-password`. Authenticated — requires the current
+   * password, unlike `resetPassword`'s single-use token. Revokes every
+   * refresh token for the account server-side.
+   */
+  changePassword: (body: ChangePasswordRequest) =>
+    api.post<null, ChangePasswordRequest>("/auth/change-password", body),
 
   /** `POST /auth/send-otp`. Not part of password recovery — see the DTO notes. */
   sendOtp: (body: OtpRequest) =>

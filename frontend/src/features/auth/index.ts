@@ -103,6 +103,7 @@ export {
   useForgotPassword,
   useResetPassword,
 } from "./hooks/use-password-recovery";
+export { useChangePassword } from "./hooks/use-change-password";
 export {
   useLogout,
   useRevokeAllSessions,
@@ -130,6 +131,7 @@ export {
 } from "./utils/session-manager";
 export {
   toAuthUser,
+  toChangePasswordRequest,
   toForgotPasswordRequest,
   toLoginRequest,
   toResetPasswordRequest,
@@ -140,6 +142,7 @@ export {
   type AccessTokenClaims,
   type AuthSessionDto,
   type AuthTokensDto,
+  type ChangePasswordRequest,
   type LoginRequest,
   type OtpPurpose,
 } from "./types/auth.dto";
@@ -160,6 +163,11 @@ export {
   type OtpFormValues,
   type ResetPasswordFormValues,
 } from "./schemas/recovery.schema";
+export {
+  changePasswordFormDefaults,
+  changePasswordFormSchema,
+  type ChangePasswordFormValues,
+} from "./schemas/change-password.schema";
 export {
   ACCOUNT_LOCKED_TIPS,
   ACCOUNT_LOCKOUT_SECONDS,

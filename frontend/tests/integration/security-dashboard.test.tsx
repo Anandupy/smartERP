@@ -46,8 +46,9 @@ describe("Account & Security dashboard", () => {
       screen.getByRole("link", { name: /Danger Zone/ }),
     ).toBeInTheDocument();
 
-    // Six of the eight sections have no backend behind their writes yet.
-    expect(screen.getAllByText("Backend Pending")).toHaveLength(6);
+    // Five of the eight sections have no backend behind their writes yet
+    // (Change Password was wired to POST /auth/change-password 2026-08-21).
+    expect(screen.getAllByText("Backend Pending")).toHaveLength(5);
   });
 
   it("never shows a fabricated security score", () => {

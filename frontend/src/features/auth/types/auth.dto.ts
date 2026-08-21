@@ -52,6 +52,16 @@ export interface ResetPasswordRequest {
   password: string;
 }
 
+/**
+ * `POST /auth/change-password`. Authenticated — requires the current
+ * password, unlike `reset-password`'s single-use token. The backend then
+ * revokes every refresh token for the account.
+ */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 /** `POST /auth/send-otp` and `POST /auth/resend-otp`. */
 export interface OtpRequest {
   identifier: string;

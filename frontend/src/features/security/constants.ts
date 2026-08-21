@@ -55,7 +55,6 @@ export const SECURITY_SECTIONS: readonly SecuritySection[] = Object.freeze([
     description: "Update the password used to sign in.",
     href: ROUTES.app.security.changePassword,
     icon: KeyRound,
-    backendPending: true,
   },
   {
     id: "two-factor",
