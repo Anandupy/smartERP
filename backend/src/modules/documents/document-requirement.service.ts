@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -23,6 +24,10 @@ export class DocumentRequirementService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateDocumentRequirementDto, scope: OrganizationScope) {
+    if (dto.branchId) {
+      await this.assertBranchInScope(dto.branchId, scope);
+    }
+
     await this.assertNoDuplicate(scope, {
       branchId: dto.branchId ?? null,
       documentTypeId: dto.documentTypeId,
@@ -73,6 +78,10 @@ export class DocumentRequirementService {
   ) {
     const existing = await this.findOne(id, scope);
 
+    if (dto.branchId) {
+      await this.assertBranchInScope(dto.branchId, scope);
+    }
+
     const touchesIdentity =
       dto.branchId !== undefined ||
       dto.documentTypeId !== undefined ||
@@ -117,6 +126,33 @@ export class DocumentRequirementService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+  }
+
+  /**
+   * `branchId` arrives from the request body, not the caller's resolved
+   * scope (a requirement may deliberately name a branch other than the
+   * caller's own, e.g. an org admin scoping a rule to one branch). Unlike
+   * `documentTypeId`/`appliesToProgramId`/`appliesToQuotaId`/
+   * `appliesToCategoryId`, the column carries no foreign key — `document.prisma`
+   * — so nothing before this stopped a caller writing a branch id that does
+   * not exist, or exists under a different organization, producing a rule no
+   * applicant in this org could ever match.
+   */
+  private async assertBranchInScope(
+    branchId: string,
+    scope: OrganizationScope,
+  ): Promise<void> {
+    const branch = await this.prisma.branch.findFirst({
+      where: { id: branchId, organizationId: scope.organizationId },
+      select: { id: true },
+    });
+
+    if (!branch) {
+      throw new BadRequestException({
+        error: 'BRANCH_NOT_IN_ORGANIZATION',
+        message: 'branchId must name a branch belonging to this organization.',
+      });
+    }
   }
 
   /**

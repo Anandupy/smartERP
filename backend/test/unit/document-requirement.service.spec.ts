@@ -22,8 +22,48 @@ describe('DocumentRequirementService', () => {
         findFirst: jest.fn(),
         update: jest.fn(),
       },
+      branch: {
+        findFirst: jest.fn(),
+      },
     };
     service = new DocumentRequirementService(mockPrisma as PrismaService);
+  });
+
+  describe('create — branch scoping', () => {
+    it('rejects a branchId that does not belong to the organization', async () => {
+      mockPrisma.branch.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.create(dto({ branchId: 'branch-other-org' }), SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'BRANCH_NOT_IN_ORGANIZATION' },
+      });
+
+      expect(mockPrisma.branch.findFirst).toHaveBeenCalledWith({
+        where: { id: 'branch-other-org', organizationId: 'org-1' },
+        select: { id: true },
+      });
+      expect(mockPrisma.documentRequirement.create).not.toHaveBeenCalled();
+    });
+
+    it('proceeds when branchId belongs to the organization', async () => {
+      mockPrisma.branch.findFirst.mockResolvedValue({ id: 'branch-1' });
+      mockPrisma.documentRequirement.findFirst.mockResolvedValue(null);
+      mockPrisma.documentRequirement.create.mockResolvedValue({ id: 'req-1' });
+
+      await service.create(dto({ branchId: 'branch-1' }), SCOPE);
+
+      expect(mockPrisma.documentRequirement.create).toHaveBeenCalled();
+    });
+
+    it('skips the branch check entirely when branchId is omitted', async () => {
+      mockPrisma.documentRequirement.findFirst.mockResolvedValue(null);
+      mockPrisma.documentRequirement.create.mockResolvedValue({ id: 'req-1' });
+
+      await service.create(dto(), SCOPE);
+
+      expect(mockPrisma.branch.findFirst).not.toHaveBeenCalled();
+    });
   });
 
   describe('create — duplicate prevention', () => {
@@ -139,6 +179,18 @@ describe('DocumentRequirementService', () => {
       await expect(
         service.update('missing-req', { isMandatory: false }, SCOPE),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('rejects moving a requirement to a branch outside the organization', async () => {
+      mockPrisma.documentRequirement.findFirst.mockResolvedValueOnce(EXISTING);
+      mockPrisma.branch.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.update('req-1', { branchId: 'branch-other-org' }, SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'BRANCH_NOT_IN_ORGANIZATION' },
+      });
+      expect(mockPrisma.documentRequirement.update).not.toHaveBeenCalled();
     });
   });
 });
