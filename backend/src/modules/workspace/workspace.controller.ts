@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseEnumPipe,
+  Query,
+  NotFoundException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
@@ -6,6 +15,7 @@ import { UserRole } from '@/common/enums/role.enum';
 import { RoleType } from '@/generated/client';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 import { RequestContextService } from '@/common/logger/request-context.service';
+import { WorkspaceScopeType } from '@/generated/client';
 import { WorkspaceService, WorkspaceLayoutResponse } from './workspace.service';
 import { WorkspaceConfigService } from './configuration/workspace-config.service';
 import { UpsertWorkspaceConfigDto } from './configuration/dto/workspace-config.dto';
@@ -52,6 +62,40 @@ export class WorkspaceController {
     return {
       data,
       message: 'Workspace layout resolved successfully',
+    };
+  }
+
+  @Get('configuration/:scopeType')
+  @Roles(UserRole.SUPER_ADMIN)
+  @RequirePermission(PERMISSIONS.Settings.Manage)
+  @ApiOperation({
+    summary: 'Read a single workspace configuration layer (Super Admin only)',
+    description:
+      'Looks a layer up by the exact scopeType/scopeId key POST /workspace/configuration upserts against — not the merged config a user in that scope effectively sees. Pass scopeId as a query parameter; omit it for the PRODUCT layer, which has none.',
+  })
+  @ApiOkEnvelope(WorkspaceConfigurationDto, {
+    message: 'Workspace configuration layer retrieved successfully',
+  })
+  @ApiStandardErrors(404)
+  async getConfiguration(
+    @Param('scopeType', new ParseEnumPipe(WorkspaceScopeType))
+    scopeType: WorkspaceScopeType,
+    @Query('scopeId') scopeId?: string,
+  ): Promise<{ data: WorkspaceConfigurationDto; message: string }> {
+    const config = await this.configService.getConfiguration(
+      scopeType,
+      scopeId || null,
+    );
+
+    if (!config) {
+      throw new NotFoundException(
+        'No configuration layer exists for this scope',
+      );
+    }
+
+    return {
+      data: config,
+      message: 'Workspace configuration layer retrieved successfully',
     };
   }
 

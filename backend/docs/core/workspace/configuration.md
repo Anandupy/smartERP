@@ -51,3 +51,27 @@ flowchart TD
   }
 }
 ```
+
+### `GET /v1/workspace/configuration/:scopeType`
+- **Permissions**: `PERMISSIONS.Settings.Manage` (Super Admin Only) — same guard as the
+  write endpoint above.
+- **Query**: `scopeId` (optional — omit for the `PRODUCT` layer, which has none)
+- Looks a layer up by the exact `scopeType`/`scopeId` key the `POST` above
+  upserts against — **not** the merged configuration a user in that scope
+  effectively sees (that is `GET /v1/workspace`'s `configuration` field,
+  §3 above). Returns `404` if no layer has ever been saved for that exact
+  scope.
+- **Response** (`WorkspaceConfigurationDto`):
+```json
+{
+  "id": "018f3a5b-...",
+  "scopeType": "ROLE",
+  "scopeId": "STAFF",
+  "navigationPreferences": { "denseMode": true },
+  "clientPreferences": { "theme": "dark" },
+  "isActive": true,
+  "createdById": "018f3a5b-...",
+  "createdAt": "2026-08-21T00:00:00.000Z",
+  "updatedAt": "2026-08-21T00:00:00.000Z"
+}
+```

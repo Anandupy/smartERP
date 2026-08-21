@@ -95,6 +95,24 @@ export class WorkspaceConfigService {
     };
   }
 
+  /**
+   * Reads a single layer by the same scopeType/scopeId key `upsertConfiguration`
+   * keys its lookup on. Returns `null` rather than the merged/resolved config
+   * `resolveConfiguration` produces — this is "what was saved for this exact
+   * scope," not "what a user in this scope effectively sees."
+   */
+  async getConfiguration(
+    scopeType: WorkspaceScopeType,
+    scopeId: string | null,
+  ): Promise<any> {
+    return this.prisma.workspaceConfiguration.findFirst({
+      where: {
+        scopeType,
+        scopeId: scopeId || null,
+      },
+    });
+  }
+
   async upsertConfiguration(
     scopeType: WorkspaceScopeType,
     scopeId: string | null,

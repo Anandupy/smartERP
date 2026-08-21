@@ -91,6 +91,40 @@ describe('WorkspaceConfigService', () => {
     expect(result.clientPreferences.font).toBe('Roboto');
   });
 
+  it('should look a layer up by its exact scopeType/scopeId key', async () => {
+    mockPrisma.workspaceConfiguration.findFirst.mockResolvedValue({
+      id: 'cfg-1',
+      scopeType: WorkspaceScopeType.BRANCH,
+      scopeId: 'branch-101',
+      navigationPreferences: {},
+      clientPreferences: {},
+    });
+
+    const result = await service.getConfiguration(
+      WorkspaceScopeType.BRANCH,
+      'branch-101',
+    );
+
+    expect(mockPrisma.workspaceConfiguration.findFirst).toHaveBeenCalledWith({
+      where: { scopeType: WorkspaceScopeType.BRANCH, scopeId: 'branch-101' },
+    });
+    expect(result?.id).toBe('cfg-1');
+  });
+
+  it('should normalize a missing scopeId to null for the PRODUCT layer', async () => {
+    mockPrisma.workspaceConfiguration.findFirst.mockResolvedValue(null);
+
+    const result = await service.getConfiguration(
+      WorkspaceScopeType.PRODUCT,
+      null,
+    );
+
+    expect(mockPrisma.workspaceConfiguration.findFirst).toHaveBeenCalledWith({
+      where: { scopeType: WorkspaceScopeType.PRODUCT, scopeId: null },
+    });
+    expect(result).toBeNull();
+  });
+
   it('should upsert workspace configuration layer and publish domain event', async () => {
     mockPrisma.workspaceConfiguration.findFirst.mockResolvedValue(null);
     mockPrisma.workspaceConfiguration.create.mockResolvedValue({
