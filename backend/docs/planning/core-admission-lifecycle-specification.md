@@ -1468,7 +1468,7 @@ administrative task, not a reason to un-enroll a child.
 | Term | Meaning today | Meaning once S3 lands |
 | :--- | :--- | :--- |
 | `DOCUMENT_PENDING` | *"A reviewer said paperwork is outstanding."* A human judgement with no computation behind it. | **At least one unsatisfied mandatory `DocumentRequirement` at the applicant's current stage.** |
-| `DOCUMENT_CHECKLIST_SATISFIED` | A guard that returns without checking. | Every mandatory requirement for `admissionType × program × quota × category` at `requiredByStage ≤ current` has a `VERIFIED`, unexpired document. |
+| `DOCUMENT_CHECKLIST_SATISFIED` | A guard that returns without checking. | Every mandatory requirement for `admissionType × program × quota × category` at `requiredByStage ≤ current` has a `VERIFIED` document. Expiry never blocks satisfaction — §11.5: "Expiry does not invalidate an admission." |
 
 `VERIFIED` · the second column is `RECOMMENDED`, and the guard is already wired
 so supplying the service is the only change needed.
