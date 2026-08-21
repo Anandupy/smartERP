@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Info, Layers, Settings, TriangleAlert } from "@/assets/icons";
 import {
@@ -16,12 +16,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePermissions } from "@/core/auth";
 import { useWorkspace } from "@/core/workspace";
 import { getErrorMessage } from "@/lib";
-import { Banner, ForbiddenState, Spinner } from "@/shared/components/feedback";
+import {
+  ApiErrorState,
+  Banner,
+  ForbiddenState,
+  Spinner,
+} from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
 
 import { SCOPE_TYPE_LABELS } from "../../constants";
-import { useUpsertConfiguration } from "../../hooks/use-configuration";
-import { toConfigurationRequest } from "../../mappers/configuration.mapper";
+import { useConfiguration, useUpsertConfiguration } from "../../hooks/use-configuration";
+import {
+  toConfigurationFormValues,
+  toConfigurationRequest,
+} from "../../mappers/configuration.mapper";
 import {
   UNSET,
   configurationFormDefaults,
@@ -47,9 +55,12 @@ const TRI_STATE_OPTIONS = [
  * authorization is UX only, and a 403 from the API still surfaces plainly if
  * this check is ever stale.
  *
- * There is no `GET`/list/`DELETE` for `WorkspaceConfiguration` — every save
- * here is "define this layer," never "edit this layer," and the banner below
- * says so before the form is touched.
+ * `GET /workspace/configuration/:scopeType` (added 2026-08-21) reads a layer
+ * back by its exact scope key, so the form now loads existing values before
+ * editing — `useConfiguration` runs whenever the chosen scope resolves to a
+ * lookup key, and the effect below resets the form to what it finds. There is
+ * still no `list`/`DELETE`, and saving still merges rather than replaces (see
+ * `schemas/configuration.schema.ts` on why every preference is tri-state).
  */
 export function ConfigurationEditorScreen() {
   const { hasRole } = usePermissions();
@@ -64,13 +75,30 @@ export function ConfigurationEditorScreen() {
     mode: "onSubmit",
   });
 
+  const scopeType = form.watch("scopeType");
+  const scopeId = form.watch("scopeId");
+  const effectiveScopeId = scopeType === "PRODUCT" ? null : scopeId || null;
+
+  const configQuery = useConfiguration(scopeType, effectiveScopeId, {
+    enabled: isSuperAdmin,
+  });
+
+  useEffect(() => {
+    if (configQuery.isSuccess) {
+      form.reset(toConfigurationFormValues(scopeType, scopeId, configQuery.data));
+    }
+    // `form` is a stable react-hook-form instance; re-running only when the
+    // fetched layer (or the scope it was fetched for) actually changes keeps
+    // this from fighting the user's own in-progress edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configQuery.data, configQuery.isSuccess, scopeType, scopeId]);
+
   if (!isSuperAdmin) {
     return (
       <ForbiddenState description="Workspace configuration is Super Admin only — the backend enforces this on POST /workspace/configuration." />
     );
   }
 
-  const scopeType = form.watch("scopeType");
   const isSubmitting = form.formState.isSubmitting || upsert.isPending;
 
   const handleSubmit = form.handleSubmit(async (values) => {
@@ -94,12 +122,39 @@ export function ConfigurationEditorScreen() {
 
       <SetupStatusBanner enabled={isSuperAdmin} />
 
-      <Banner
-        tone="warning"
-        icon={TriangleAlert}
-        title="No read endpoint exists for this configuration"
-        description="This form always upserts: it merges the fields you set into whatever already exists for the chosen scope, one level deep. It cannot show you the layer's current values first, and a field you leave on “Leave unchanged” is never sent, so it is never overwritten."
-      />
+      {configQuery.isError ? (
+        <ApiErrorState
+          error={configQuery.error}
+          onRetry={() => configQuery.refetch()}
+        />
+      ) : configQuery.isFetching ? (
+        <Banner
+          tone="info"
+          icon={Info}
+          title="Loading existing configuration for this scope…"
+        />
+      ) : configQuery.data ? (
+        <Banner
+          tone="success"
+          icon={Info}
+          title={`Editing existing layer ${configQuery.data.id}`}
+          description="Loaded values below reflect what's currently stored for this scope. Saving still merges rather than replaces: a field left on “Leave unchanged” is never sent, so it stays untouched."
+        />
+      ) : configQuery.isSuccess ? (
+        <Banner
+          tone="info"
+          icon={Info}
+          title="No configuration layer exists yet for this scope"
+          description="Saving below will create one. A field left on “Leave unchanged” is omitted from the request rather than sent as empty."
+        />
+      ) : (
+        <Banner
+          tone="warning"
+          icon={TriangleAlert}
+          title="Choose a scope to load its existing configuration"
+          description="Every save merges into whatever already exists for the chosen scope, one level deep — pick a scope above to see it first."
+        />
+      )}
 
       <Card>
         <CardHeader className="border-b">

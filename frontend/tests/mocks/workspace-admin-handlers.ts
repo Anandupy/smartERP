@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 
 import { apiConfig } from "@/config";
 
-import { successEnvelope } from "@tests/fixtures/api";
+import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
 import {
   healthCheckResultDto,
   livenessDto,
@@ -123,6 +123,17 @@ export const workspaceAdminHandlers = [
       { status: 201 },
     );
   }),
+  // Default: no layer has been defined for any scope yet. Tests that need an
+  // existing layer override this with `server.use(...)`.
+  http.get(`${base}/workspace/configuration/:scopeType`, () =>
+    HttpResponse.json(
+      errorEnvelope({
+        code: "NOT_FOUND",
+        message: "No configuration layer exists for this scope",
+      }),
+      { status: 404 },
+    ),
+  ),
   http.get(`${base}/workspace/setup/status`, () =>
     HttpResponse.json(successEnvelope(setupStatusDto())),
   ),

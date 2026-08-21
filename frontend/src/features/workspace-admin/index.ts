@@ -17,10 +17,12 @@
  *    brief assumed might be missing — 15 admin endpoints, verified against
  *    backend source, not just the Postman collection (whose response bodies
  *    are largely auto-generated placeholders).
- * 2. **Workspace configuration has exactly one endpoint** — `POST
- *    /workspace/configuration`. No `GET`, no `list`, no `DELETE`. Every save
- *    in the Configuration Layer Editor is "define this layer," never "edit
- *    this layer."
+ * 2. **Workspace configuration has two endpoints** — `POST
+ *    /workspace/configuration` to upsert, and `GET
+ *    /workspace/configuration/:scopeType` (added 2026-08-21) to read one layer
+ *    back by its exact scope key. Still no `list`, no `DELETE`. The
+ *    Configuration Layer Editor now loads existing values before editing, but
+ *    every save still merges into the scope rather than replacing it.
  * 3. **Liveness, readiness and dependency health are three independent
  *    dimensions**, never collapsed into one status. `mapHealthStatus` is the
  *    single place a backend outcome becomes a frontend health state.
@@ -96,7 +98,10 @@ export {
   useReadiness,
   useRefreshHealth,
 } from "./hooks/use-health";
-export { useUpsertConfiguration } from "./hooks/use-configuration";
+export {
+  useConfiguration,
+  useUpsertConfiguration,
+} from "./hooks/use-configuration";
 export { useSetupStatus } from "./hooks/use-setup-status";
 export { useNavigationTree } from "./hooks/use-navigation";
 
@@ -114,7 +119,10 @@ export {
 } from "./mappers/health.mapper";
 export { toModuleFormValues, toModuleRequest } from "./mappers/module.mapper";
 export { toMenuFormValues, toMenuRequest } from "./mappers/menu.mapper";
-export { toConfigurationRequest } from "./mappers/configuration.mapper";
+export {
+  toConfigurationFormValues,
+  toConfigurationRequest,
+} from "./mappers/configuration.mapper";
 
 // Contracts
 export type {

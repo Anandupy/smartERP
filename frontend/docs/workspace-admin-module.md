@@ -59,7 +59,8 @@ controllers, and `workspace.prisma`.
 | `/admin/navigation/menus/reorder`                 | PUT          | Wired   | Exposed via `useReorderMenus`; not used by any of the six screens (no drag-and-drop reorder ships — see [Screens](#screens)). |
 | `/admin/navigation/menus/:id`                     | DELETE       | Wired   | Blocked (400) while system-owned or children still exist.        |
 | `/workspace/navigation`                           | GET          | Wired   | **Runtime** tree for the caller only — never used for admin listings ([§ below](#the-runtime-navigation-endpoint-is-not-a-listing-api)). |
-| `/workspace/configuration`                        | POST         | Wired   | SUPER_ADMIN + `settings.manage`. No `GET`/list/`DELETE` — see [gap L1](./backend-gaps.md#k-workspace-admin). |
+| `/workspace/configuration`                        | POST         | Wired   | SUPER_ADMIN + `settings.manage`. No `list`/`DELETE`.             |
+| `/workspace/configuration/:scopeType`             | GET          | Wired   | Same guard. Added 2026-08-21 — see [gap L1](./backend-gaps.md#k-workspace-admin) (now resolved). Reads one layer by its exact `(scopeType, scopeId)` key; 404 when none exists yet. |
 | `/workspace/setup/status`                         | GET          | Wired   | SUPER_ADMIN/ORG_ADMIN. Backs a small banner only — no setup wizard ships. |
 | `/workspace/setup/complete`                       | POST         | Not used | Out of scope for the six screens this module ships.             |
 | `/live`, `/ready`, `/health`                      | GET          | Wired   | Public, unversioned, unauthenticated, throttle-exempt.           |

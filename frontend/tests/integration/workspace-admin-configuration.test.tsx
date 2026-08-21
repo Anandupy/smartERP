@@ -13,7 +13,7 @@ import {
 import { ConfigurationEditorScreen } from "@/features/workspace-admin";
 import { toWorkspaceAvailability } from "@/features/workspace";
 
-import { successEnvelope } from "@tests/fixtures/api";
+import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
 import { identityDto } from "@tests/fixtures/workspace";
 import { workspaceConfigurationDto } from "@tests/fixtures/workspace-admin";
 import { server } from "@tests/mocks/server";
@@ -71,7 +71,7 @@ describe("Configuration Layer Editor", () => {
     ).toBeVisible();
   });
 
-  it("states plainly that there is no read endpoint before any field is touched", async () => {
+  it("prompts to choose a scope before any field is touched (no scopeId yet for the default USER scope)", async () => {
     render(
       <SignedIn>
         <ConfigurationEditorScreen />
@@ -79,7 +79,72 @@ describe("Configuration Layer Editor", () => {
     );
 
     expect(
-      await screen.findByText(/No read endpoint exists for this configuration/),
+      await screen.findByText(/Choose a scope to load its existing configuration/),
+    ).toBeVisible();
+  });
+
+  it("loads and prefills an existing layer for the chosen scope", async () => {
+    const user = userEvent.setup();
+
+    // The scopeId text field fires a lookup on every keystroke, not only the
+    // final value — respond to all of them with the same existing layer.
+    server.use(
+      http.get(`${API_BASE}/workspace/configuration/USER`, () =>
+        HttpResponse.json(
+          successEnvelope(
+            workspaceConfigurationDto({
+              id: "config-existing",
+              scopeType: "USER",
+              scopeId: "user-42",
+              navigationPreferences: { sidebarCollapsed: true },
+              clientPreferences: { theme: "dark" },
+            }),
+          ),
+        ),
+      ),
+    );
+
+    render(
+      <SignedIn>
+        <ConfigurationEditorScreen />
+      </SignedIn>,
+    );
+
+    await user.type(await screen.findByLabelText("User id"), "user-42");
+
+    expect(
+      await screen.findByText("Editing existing layer config-existing"),
+    ).toBeVisible();
+    expect(
+      await screen.findByRole("combobox", { name: "Sidebar collapsed" }),
+    ).toHaveTextContent("On");
+  });
+
+  it("states plainly when no layer exists yet for the chosen scope", async () => {
+    const user = userEvent.setup();
+
+    server.use(
+      http.get(`${API_BASE}/workspace/configuration/USER`, () =>
+        HttpResponse.json(
+          errorEnvelope({
+            code: "NOT_FOUND",
+            message: "No configuration layer exists for this scope",
+          }),
+          { status: 404 },
+        ),
+      ),
+    );
+
+    render(
+      <SignedIn>
+        <ConfigurationEditorScreen />
+      </SignedIn>,
+    );
+
+    await user.type(await screen.findByLabelText("User id"), "user-99");
+
+    expect(
+      await screen.findByText(/No configuration layer exists yet for this scope/),
     ).toBeVisible();
   });
 
