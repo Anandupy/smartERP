@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { RowLockService } from '@/infrastructure/database/row-lock.service';
 import { PersonService } from '@/modules/identity/person/person.service';
@@ -80,6 +84,7 @@ describe('Admission conversion', () => {
     academicYear: { findFirst: jest.fn() },
     numberSequenceConfig: { findMany: jest.fn() },
     student: { findFirst: jest.fn().mockResolvedValue(null) },
+    admission: { findFirst: jest.fn().mockResolvedValue(null) },
     $transaction: jest.fn((cb: any) => cb(mockPrisma)),
     $queryRawUnsafe: rawQuery,
   };
@@ -389,19 +394,31 @@ describe('Admission conversion', () => {
         id: 'stu-winner',
         studentCode: 'STU0000000999',
       });
+      mockPrisma.admission.findFirst.mockResolvedValue({
+        id: 'adm-winner',
+        enrollments: [{ id: 'enr-winner' }],
+      });
 
       const caught = await conversion
         .admit('app-1', REQUEST, SCOPE, ACTOR)
         .catch((e: unknown) => e);
 
       expect(errorCode(caught)).toBe('APPLICANT_ALREADY_ADMITTED');
+      expect(mockPrisma.admission.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { studentId: 'stu-winner', status: 'ACTIVE' },
+        }),
+      );
       // Enough for a client to treat the conflict as the completed operation
-      // it is, and nothing about the person behind it.
+      // it is, and nothing about the person behind it — plus a deep link to
+      // the record that already exists.
       expect(
         (caught as { response: Record<string, unknown> }).response,
       ).toMatchObject({
         studentId: 'stu-winner',
         studentCode: 'STU0000000999',
+        admissionId: 'adm-winner',
+        enrollmentId: 'enr-winner',
       });
       expect(createStudent).not.toHaveBeenCalled();
     });
@@ -577,6 +594,28 @@ describe('Admission conversion', () => {
   });
 
   describe('provisioning', () => {
+    /**
+     * D22: the pre-flight query used to omit `isActive`, so a deactivated
+     * (not deleted) sequence config passed this check and then failed
+     * deterministically — a guaranteed 500, not a race — once
+     * `NumberingService.requireConfig` applied its own `isActive: true`
+     * filter inside the transaction.
+     */
+    it('filters the pre-flight check on isActive, matching NumberingService.requireConfig', async () => {
+      mockPrisma.numberSequenceConfig.findMany.mockResolvedValue([
+        { purpose: 'STUDENT_CODE' },
+        { purpose: 'ADMISSION_NO' },
+      ]);
+
+      await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
+
+      expect(mockPrisma.numberSequenceConfig.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ isActive: true }),
+        }),
+      );
+    });
+
     it.each([
       [['ADMISSION_NO'], ['STUDENT_CODE']],
       [['STUDENT_CODE'], ['ADMISSION_NO']],
@@ -806,7 +845,7 @@ describe('Admission conversion', () => {
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
     });
 
-    it('translates a duplicate applicant into a named conflict', async () => {
+    it('translates a duplicate applicant into a named conflict, resolving the winner outside the rolled-back transaction', async () => {
       const { Prisma } = await import('@/generated/client');
       createStudent.mockRejectedValueOnce(
         new Prisma.PrismaClientKnownRequestError('unique', {
@@ -815,13 +854,64 @@ describe('Admission conversion', () => {
           meta: { target: 'sourceApplicantId' },
         }),
       );
+      // First call is `assertNoExistingStudent`'s in-transaction pre-check
+      // (must stay null so the flow reaches `createStudent` and hits the
+      // P2002 this test simulates); the second is `translate`'s post-rollback
+      // lookup of the race's winner, after the transaction — and this same
+      // student.findFirst mock — has moved on.
+      mockPrisma.student.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          id: 'stu-race-winner',
+          studentCode: 'STU0000000888',
+        });
+      mockPrisma.admission.findFirst.mockResolvedValue({
+        id: 'adm-race-winner',
+        enrollments: [{ id: 'enr-race-winner' }],
+      });
 
       const caught = await conversion
         .admit('app-1', REQUEST, SCOPE, ACTOR)
         .catch((e: unknown) => e);
 
+      expect(
+        (caught as { response: Record<string, unknown> }).response,
+      ).toMatchObject({
+        studentId: 'stu-race-winner',
+        studentCode: 'STU0000000888',
+        admissionId: 'adm-race-winner',
+        enrollmentId: 'enr-race-winner',
+      });
+
       expect(errorCode(caught)).toBe('APPLICANT_ALREADY_ADMITTED');
       expect(JSON.stringify(caught)).not.toContain('P2002');
+    });
+
+    /**
+     * `assertNumberingProvisioned` already rejected this with 400 before the
+     * transaction opened. This is that same condition losing the TOCTOU race
+     * — the config was pulled after the pre-flight check passed — surfacing
+     * from deep inside the transaction as `NumberingService`'s 500. A caller
+     * of `admit()` must see one status for one condition regardless of
+     * timing.
+     */
+    it('remaps a numbering-not-provisioned failure inside the transaction to the same 400 the pre-flight check uses', async () => {
+      createStudent.mockRejectedValueOnce(
+        new InternalServerErrorException({
+          error: 'NUMBERING_NOT_PROVISIONED',
+          message:
+            "No active 'STUDENT_CODE' sequence is provisioned for this organization.",
+          purpose: 'STUDENT_CODE',
+          scope: 'ORGANIZATION',
+        }),
+      );
+
+      const caught = await conversion
+        .admit('app-1', REQUEST, SCOPE, ACTOR)
+        .catch((e: unknown) => e);
+
+      expect(errorCode(caught)).toBe('NUMBERING_NOT_PROVISIONED');
+      expect((caught as { status?: number }).status).toBe(400);
     });
 
     it('translates a duplicate person into a named conflict', async () => {

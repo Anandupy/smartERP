@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -173,7 +174,7 @@ export class AdmissionConversionService {
         { timeout: 15_000 },
       );
     } catch (error) {
-      throw this.translate(error, applicantId);
+      throw await this.translate(error, applicantId);
     }
   }
 
@@ -534,6 +535,12 @@ export class AdmissionConversionService {
         organizationId: applicant.organizationId,
         purpose: { in: ['STUDENT_CODE', 'ADMISSION_NO'] },
         deletedAt: null,
+        // Matches `NumberingService.requireConfig`'s own filter exactly. A
+        // deactivated-but-undeleted config previously passed this check and
+        // then failed deterministically at `numbering.allocate()` inside the
+        // transaction — not a race, a guaranteed 500 on every admit attempt
+        // for that organization until someone noticed.
+        isActive: true,
         OR: [{ branchId: null }, { branchId: applicant.branchId }],
       },
       select: { purpose: true },
@@ -613,6 +620,10 @@ export class AdmissionConversionService {
       select: { id: true, studentCode: true },
     });
 
+    const { admissionId, enrollmentId } = student
+      ? await this.findActiveAdmissionAndEnrollment(tx, student.id)
+      : { admissionId: null, enrollmentId: null };
+
     return new ConflictException({
       error: 'APPLICANT_ALREADY_ADMITTED',
       message: 'This application has already been converted to a student.',
@@ -620,7 +631,40 @@ export class AdmissionConversionService {
       // reveals anything about the person behind it.
       studentId: student?.id ?? null,
       studentCode: student?.studentCode ?? null,
+      admissionId,
+      enrollmentId,
     });
+  }
+
+  /**
+   * The active Admission for a just-admitted student, and its most recent
+   * Enrollment — enough for a "View Admission"/"View Enrollment" deep link
+   * from an `APPLICANT_ALREADY_ADMITTED` conflict. `client` is either the
+   * in-flight transaction (the common, lock-serialized path) or `this.prisma`
+   * (the P2002 race path in `translate`, which runs after that transaction
+   * has already rolled back).
+   */
+  private async findActiveAdmissionAndEnrollment(
+    client: PrismaTransactionClient | PrismaService,
+    studentId: string,
+  ): Promise<{ admissionId: string | null; enrollmentId: string | null }> {
+    const admission = await client.admission.findFirst({
+      where: { studentId, status: 'ACTIVE' },
+      select: {
+        id: true,
+        enrollments: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { id: true },
+        },
+      },
+    });
+
+    return {
+      admissionId: admission?.id ?? null,
+      enrollmentId: admission?.enrollments[0]?.id ?? null,
+    };
   }
 
   /**
@@ -661,7 +705,28 @@ export class AdmissionConversionService {
    * the normal case, and these catch everything it cannot see, such as two
    * different applicants for one person admitted at two branches at once.
    */
-  private translate(error: unknown, applicantId: string): unknown {
+  private async translate(
+    error: unknown,
+    applicantId: string,
+  ): Promise<unknown> {
+    // `assertNumberingProvisioned` already checked this before the transaction
+    // opened (400 BadRequestException). This is that same condition losing a
+    // TOCTOU race — the config was deactivated or deleted between the
+    // pre-flight check and `numbering.allocate()` running inside the
+    // transaction, where `NumberingService.requireConfig` throws
+    // `InternalServerErrorException` (500) instead, by design — see
+    // `numbering.service.ts`, a frozen, independently-audited module this
+    // does not modify. Remapped here so a caller of `admit()` sees one status
+    // code for one condition regardless of timing, without changing
+    // `NumberingService`'s contract for any of its other callers.
+    if (
+      error instanceof InternalServerErrorException &&
+      (error.getResponse() as { error?: string })?.error ===
+        'NUMBERING_NOT_PROVISIONED'
+    ) {
+      return new BadRequestException(error.getResponse());
+    }
+
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       const meta = (error.meta ?? {}) as { target?: string | string[] };
       const target = Array.isArray(meta.target)
@@ -670,11 +735,28 @@ export class AdmissionConversionService {
 
       if (error.code === 'P2002') {
         if (target.includes('sourceApplicantId')) {
+          // The transaction that won this race has already committed, so the
+          // student/admission/enrollment it created are readable outside it.
+          const student = await this.prisma.student.findFirst({
+            where: { sourceApplicantId: applicantId },
+            select: { id: true, studentCode: true },
+          });
+          const { admissionId, enrollmentId } = student
+            ? await this.findActiveAdmissionAndEnrollment(
+                this.prisma,
+                student.id,
+              )
+            : { admissionId: null, enrollmentId: null };
+
           return new ConflictException({
             error: 'APPLICANT_ALREADY_ADMITTED',
             message:
               'This application has already been converted to a student.',
             applicantId,
+            studentId: student?.id ?? null,
+            studentCode: student?.studentCode ?? null,
+            admissionId,
+            enrollmentId,
           });
         }
         if (target.includes('personId')) {

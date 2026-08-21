@@ -2759,7 +2759,7 @@ RECOMMENDED  Keep it. Reusing the Student and opening a second Admission *is*
 | Type is not a first entry | 400 | `ADMISSION_TYPE_NOT_A_FIRST_ENTRY` | `allowed[]` |
 | Applicant absent or out of scope | 404 | `NotFoundException` | — |
 | Not `SEAT_CONFIRMED` | 409 | `APPLICANT_NOT_SEAT_CONFIRMED` | `currentStatus` |
-| Already admitted | 409 | `APPLICANT_ALREADY_ADMITTED` | `studentId`, `studentCode` |
+| Already admitted | 409 | `APPLICANT_ALREADY_ADMITTED` | `studentId`, `studentCode`, `admissionId`, `enrollmentId` |
 | Person is already a student | 409 | `STUDENT_ALREADY_EXISTS` | `studentId`, `studentCode`, `studentStatus` |
 | No programme on the application | 400 | `PROGRAM_REQUIRED` | — |
 | Unit not found | 404 | `ACADEMIC_UNIT_NOT_FOUND` | — |
@@ -2772,14 +2772,14 @@ RECOMMENDED  Keep it. Reusing the Student and opening a second Admission *is*
 
 `IMPLEMENTED` `VERIFIED`
 
-> Two small divergences from the documented contract, both cosmetic and both
-> `RECOMMENDED` for alignment: (a) `APPLICANT_ALREADY_ADMITTED` is documented to
-> carry `admissionId` and `enrollmentId` as well, and carries only the student
-> pair; (b) `NUMBERING_NOT_PROVISIONED` is documented as `500` and the
-> **pre-flight** raises `400` while the **in-transaction** path raises `500`.
-> The pre-flight is the one a caller normally meets; `400` is arguably the
-> better answer, so align the document rather than the code — but make the two
-> paths agree.
+> **Resolved, not open — noted for completeness.** The two divergences this
+> note used to flag (D22/D23/D24) are both closed: `APPLICANT_ALREADY_ADMITTED`
+> now carries `admissionId`/`enrollmentId` alongside the student pair on both
+> the lock-reread path and the P2002-race path, and `NUMBERING_NOT_PROVISIONED`
+> is `400` from both the pre-flight check and the in-transaction path — the
+> latter remapped in `admission-conversion.service.ts`, not by changing
+> `NumberingService` itself, so every other caller of the numbering engine is
+> unaffected. See R13/R14 in §47.3.
 
 ---
 
@@ -4290,7 +4290,7 @@ lifecycle introduces no second envelope.** `DECIDED`
 | **404** | `NotFoundException` | **Absent or out of scope — indistinguishable** | Every read and scoped write | "`<Entity>` not found" | ❌ | **none** | no |
 | 404 | `ACADEMIC_UNIT_NOT_FOUND` / `PROGRAM_NOT_FOUND` | Missing structure | Admit, applicant | — | ❌ | — | no |
 | **409** | `APPLICANT_NOT_SEAT_CONFIRMED` | Wrong state | Admit | "An application must have a confirmed seat…" | ❌ | `currentStatus` | no |
-| 409 | `APPLICANT_ALREADY_ADMITTED` | Already converted | Admit | "This application has already been converted to a student." | **treat as success** | `studentId`, `studentCode` | no — **identifiers only** |
+| 409 | `APPLICANT_ALREADY_ADMITTED` | Already converted | Admit | "This application has already been converted to a student." | **treat as success** | `studentId`, `studentCode`, `admissionId`, `enrollmentId` | no — **identifiers only** |
 | 409 | `STUDENT_ALREADY_EXISTS` | Person is already a student | Admit | "…Returning students are readmitted… a separate operation." | ❌ until readmission | `studentId`, `studentCode`, `studentStatus` | no |
 | 409 | `DUPLICATE_ACTIVE_APPLICATION` | One live application per person/branch/year | Submit | "This person already has a live application…" | ❌ | **none** | no |
 | 409 | `ACTIVE_ADMISSION_EXISTS` | Second live spell | Create admission | "…Close it before opening another." | ❌ | `studentId` | no |
@@ -4312,6 +4312,15 @@ lifecycle introduces no second envelope.** `DECIDED`
 | 500 | `NUMBERING_API_REMOVED` | A caller on the removed API | — | — | ❌ | — | no |
 
 `IMPLEMENTED` `VERIFIED`
+
+> **Admit-specific note (R13):** the `500 NUMBERING_NOT_PROVISIONED` row above
+> is `NumberingService.requireConfig`'s own contract, unchanged, and still
+> what every other caller of the numbering engine sees. Specifically for
+> `admit()`, `admission-conversion.service.ts`'s `translate()` catches that
+> 500 when it surfaces from inside the transaction and remaps it to the same
+> `400` the pre-flight check (row above, line 4264) uses — so a caller of
+> `admit()` never sees the 500 for this condition, regardless of whether it
+> was caught pre-flight or lost the TOCTOU race.
 
 ## 40.3 Proposed future errors
 
@@ -4853,9 +4862,9 @@ Ordered by severity. Every one is `VERIFIED` in the repository on 2026-08-12.
 | **D19** | `Applicant.photoFileId` dangling (V3) | A column with no target table |
 | **D20** | `checklistStatus` is an accepted, unread client blob (V4) | Looks like a control and is not |
 | **D21** | No DOB plausibility bound on Applicant (V5) | Fails late, at `admit()`, instead of at the counter |
-| **D22** | Numbering pre-flight ignores `isActive` (V8) | `500` inside the transaction instead of a clean `400` |
-| **D23** | `APPLICANT_ALREADY_ADMITTED` omits `admissionId`/`enrollmentId` | Cosmetic contract drift |
-| **D24** | `NUMBERING_NOT_PROVISIONED` is `400` pre-flight and `500` in-transaction | Two statuses for one condition |
+| **D22** | ~~Numbering pre-flight ignores `isActive` (V8)~~ **Resolved — R13** | `500` inside the transaction instead of a clean `400` |
+| **D23** | ~~`APPLICANT_ALREADY_ADMITTED` omits `admissionId`/`enrollmentId`~~ **Resolved — R14** | Cosmetic contract drift |
+| **D24** | ~~`NUMBERING_NOT_PROVISIONED` is `400` pre-flight and `500` in-transaction~~ **Resolved — R13** | Two statuses for one condition |
 | **D25** | `createInitialEnrollment` does not re-check `AcademicUnit.isActive` | Only reachable by the future importer |
 | **D26** | `pref_one_allotted` absent | Inert today — nothing writes `ALLOTTED` |
 | **D27** | `Guardian.deletedAt` has no writer | Guardians cannot be retired |
@@ -4927,8 +4936,8 @@ Small, mechanical, closes a reference hole reached through a legitimate route.
 | # | Refinement | Closes |
 | :--- | :--- | :--- |
 | **R12** | Applicant validation: bound `previousPercentage`, validate `assignedCounsellorId`, add a DOB plausibility range, stop accepting `checklistStatus` | D17, D18, D20, D21 |
-| **R13** | Numbering pre-flight: add `isActive`, and make the two `NUMBERING_NOT_PROVISIONED` paths agree on a status | D22, D24 |
-| **R14** | Add `admissionId` and `enrollmentId` to `APPLICANT_ALREADY_ADMITTED` | D23 |
+| **R13** | ~~Numbering pre-flight: add `isActive`, and make the two `NUMBERING_NOT_PROVISIONED` paths agree on a status~~ **Done** — `assertNumberingProvisioned` now filters `isActive: true`, and `admission-conversion.service.ts`'s `translate()` remaps the in-transaction 500 to the pre-flight's 400 for the same condition, without touching `NumberingService` (frozen, independently audited) for its other callers. | D22, D24 |
+| **R14** | ~~Add `admissionId` and `enrollmentId` to `APPLICANT_ALREADY_ADMITTED`~~ **Done** — both the lock-reread path (`explainIneligible`) and the P2002-race path (`translate`) now resolve and include them. | D23 |
 | **R15** | Re-check `AcademicUnit.isActive` in `createInitialEnrollment` | D25 |
 | **R16** | Retire or reimplement `checkDuplicates` over Person | D28 |
 
@@ -5287,9 +5296,12 @@ built.
 ## Admission/enrollment issues
 
 No `WorkflowHistory` birth row for either, so a new student's placement history
-reads empty. `APPLICANT_ALREADY_ADMITTED` omits two documented detail fields.
-`NUMBERING_NOT_PROVISIONED` is `400` on the pre-flight and `500` inside the
-transaction. `createInitialEnrollment` does not re-check `AcademicUnit.isActive`
+reads empty. ~~`APPLICANT_ALREADY_ADMITTED` omits two documented detail
+fields.~~ **Resolved (R14)** — both are now included. ~~`NUMBERING_NOT_PROVISIONED`
+is `400` on the pre-flight and `500` inside the transaction.~~ **Resolved
+(R13)** — the in-transaction path is remapped to `400` at the `admit()`
+caller without changing `NumberingService`. `createInitialEnrollment` does
+not re-check `AcademicUnit.isActive`
 — only reachable by the future importer. `admit()` refusing an existing Student
 is **correct** and is the Phase 6 entry point, not a defect. Readmission, branch
 transfer, promotion, repeat and the whole Student lifecycle are unbuilt, and all
