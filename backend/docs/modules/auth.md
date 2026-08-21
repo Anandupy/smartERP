@@ -73,6 +73,19 @@ Revokes all active sessions for the user (effectively a "logout from all devices
 - Body: `{ refreshToken: string }`
 - Response: Success message
 
+### POST /v1/auth/change-password
+- Authenticated (JWT)
+- Body: `{ currentPassword: string, newPassword: string }` (`newPassword` min 8 chars)
+- Verifies `currentPassword` against the account's stored hash — distinct from
+  `POST /v1/auth/reset-password`, which verifies a single-use recovery token
+  instead and requires no active session.
+- Revokes every refresh token for the account on success (same effect as
+  `reset-password`), so other devices are signed out. No per-session
+  exclusion exists platform-wide, so the caller's own other sessions are
+  revoked too; its current access token stays valid until it expires.
+- Audited via the existing `communication.password_changed` event.
+- Response: Success message
+
 ### User Endpoints
 - `POST /v1/users`: Create a new user (Admin only).
 - `GET /v1/users/:id`: Get user details.

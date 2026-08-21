@@ -8,7 +8,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PasswordService } from '@/common/services/password.service';
 import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
 import { OtpService } from '@/modules/communication/otp/otp.service';
 
@@ -30,13 +30,14 @@ describe('AuthService', () => {
 
   const mockPasswordService = {
     compare: jest.fn(),
+    hash: jest.fn(),
   };
 
   const mockMaintenanceService = {
     checkMaintenance: jest.fn().mockResolvedValue(undefined),
   };
 
-  const mockPrisma = {
+  const mockPrisma: any = {
     user: { update: jest.fn(), findUnique: jest.fn() },
     refreshToken: {
       create: jest.fn(),
@@ -46,6 +47,7 @@ describe('AuthService', () => {
       updateMany: jest.fn(),
       findMany: jest.fn(),
     },
+    $transaction: jest.fn((cb) => cb(mockPrisma)),
   };
 
   const mockAuthorizationService = {
@@ -218,5 +220,78 @@ describe('AuthService', () => {
         data: { isRevoked: true, revokedAt: expect.any(Date) },
       }),
     );
+  });
+
+  describe('changePassword', () => {
+    const user = {
+      id: 'user-1',
+      email: 'test@test.com',
+      fullName: 'Test User',
+      passwordHash: 'old-hash',
+    };
+
+    it('rejects an incorrect current password without touching the record', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(user);
+      mockPasswordService.compare.mockResolvedValue(false);
+
+      await expect(
+        service.changePassword('user-1', {
+          currentPassword: 'wrong',
+          newPassword: 'NewPassword123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when the user no longer exists', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.changePassword('missing-user', {
+          currentPassword: 'whatever',
+          newPassword: 'NewPassword123!',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('hashes the new password, revokes every session and audits the change', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(user);
+      mockPasswordService.compare.mockResolvedValue(true);
+      mockPasswordService.hash.mockResolvedValue('new-hash');
+      mockPrisma.user.update.mockResolvedValue({
+        ...user,
+        passwordHash: 'new-hash',
+      });
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 2 });
+
+      const result = await service.changePassword('user-1', {
+        currentPassword: 'old-password',
+        newPassword: 'NewPassword123!',
+      });
+
+      expect(mockPasswordService.compare).toHaveBeenCalledWith(
+        'old-password',
+        'old-hash',
+      );
+      expect(mockPasswordService.hash).toHaveBeenCalledWith('NewPassword123!');
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { passwordHash: 'new-hash' },
+      });
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', isRevoked: false },
+        data: { isRevoked: true, revokedAt: expect.any(Date) },
+      });
+      expect(mockEventBus.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            userId: 'user-1',
+            email: 'test@test.com',
+          }),
+        }),
+      );
+      expect(result).toEqual({ message: 'Password changed successfully' });
+    });
   });
 });

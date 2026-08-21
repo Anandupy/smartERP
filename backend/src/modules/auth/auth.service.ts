@@ -23,6 +23,7 @@ import {
 import { UserService } from '@/modules/user/user.service';
 import { PasswordService } from '@/common/services/password.service';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { MaintenanceService } from '@/modules/maintenance/maintenance.service';
 import { OtpService } from '@/modules/communication/otp/otp.service';
 import { OtpPurpose } from '@/generated/client';
@@ -282,6 +283,60 @@ export class AuthService {
     );
 
     return { message: genericMessage };
+  }
+
+  /**
+   * Unlike `resetPassword` (a single-use token, used when the caller is not
+   * signed in), this is the authenticated path: it verifies the current
+   * password rather than a token. Revokes every refresh token for the
+   * account afterward — same effect as `resetPassword`, so a compromised
+   * password can't keep an attacker's session alive after the owner changes
+   * it. `revokeAllSessions` has no per-session exclusion (confirmed absent
+   * platform-wide), so this signs the caller's own other devices out too;
+   * the caller's current access token remains valid until it expires, same
+   * as every other revoke-sessions path in this service.
+   */
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isCurrentPasswordValid = await this.passwordService.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const passwordHash = await this.passwordService.hash(dto.newPassword);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: { userId: user.id, isRevoked: false },
+        data: { isRevoked: true, revokedAt: new Date() },
+      });
+    });
+
+    await this.eventBus.publish(
+      new PasswordChangedEvent({
+        userId: user.id,
+        email: user.email,
+        userName: user.fullName,
+      }),
+    );
+
+    return { message: 'Password changed successfully' };
   }
 
   async resetPassword(dto: any): Promise<{ message: string }> {

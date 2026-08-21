@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -137,6 +138,20 @@ export class AuthController {
   async revokeAllSessions(@Req() req: any) {
     await this.authService.revokeAllSessions(req.user.id);
     return { message: 'All sessions revoked successfully' };
+  }
+
+  @Post('change-password')
+  @Throttle({ [THROTTLE_BUCKET.PASSWORD_RESET]: {} })
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Change password for the authenticated user',
+    description:
+      'Requires the current password, unlike POST /auth/reset-password which uses a single-use recovery token. Revokes every refresh token for the account, same as a reset — other devices are signed out.',
+  })
+  @ApiEmptyEnvelope({ status: 201, message: 'Password changed successfully' })
+  @ApiStandardErrors()
+  async changePassword(@Body() dto: ChangePasswordDto, @Req() req: any) {
+    return this.authService.changePassword(req.user.id, dto);
   }
 
   @Public()
