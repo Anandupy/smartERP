@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { OrganizationScope } from '@/common/scope/resource-scope';
+import { AdmissionApplicationStatus } from '@/generated/client';
 import {
   CreateDocumentRequirementDto,
   UpdateDocumentRequirementDto,
@@ -18,6 +23,15 @@ export class DocumentRequirementService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateDocumentRequirementDto, scope: OrganizationScope) {
+    await this.assertNoDuplicate(scope, {
+      branchId: dto.branchId ?? null,
+      documentTypeId: dto.documentTypeId,
+      appliesToProgramId: dto.appliesToProgramId ?? null,
+      appliesToQuotaId: dto.appliesToQuotaId ?? null,
+      appliesToCategoryId: dto.appliesToCategoryId ?? null,
+      requiredByStage: dto.requiredByStage,
+    });
+
     return this.prisma.documentRequirement.create({
       data: {
         organizationId: scope.organizationId,
@@ -57,7 +71,43 @@ export class DocumentRequirementService {
     dto: UpdateDocumentRequirementDto,
     scope: OrganizationScope,
   ) {
-    await this.findOne(id, scope);
+    const existing = await this.findOne(id, scope);
+
+    const touchesIdentity =
+      dto.branchId !== undefined ||
+      dto.documentTypeId !== undefined ||
+      dto.appliesToProgramId !== undefined ||
+      dto.appliesToQuotaId !== undefined ||
+      dto.appliesToCategoryId !== undefined ||
+      dto.requiredByStage !== undefined;
+
+    if (touchesIdentity) {
+      await this.assertNoDuplicate(
+        scope,
+        {
+          branchId:
+            dto.branchId !== undefined
+              ? (dto.branchId ?? null)
+              : existing.branchId,
+          documentTypeId: dto.documentTypeId ?? existing.documentTypeId,
+          appliesToProgramId:
+            dto.appliesToProgramId !== undefined
+              ? (dto.appliesToProgramId ?? null)
+              : existing.appliesToProgramId,
+          appliesToQuotaId:
+            dto.appliesToQuotaId !== undefined
+              ? (dto.appliesToQuotaId ?? null)
+              : existing.appliesToQuotaId,
+          appliesToCategoryId:
+            dto.appliesToCategoryId !== undefined
+              ? (dto.appliesToCategoryId ?? null)
+              : existing.appliesToCategoryId,
+          requiredByStage: dto.requiredByStage ?? existing.requiredByStage,
+        },
+        id,
+      );
+    }
+
     return this.prisma.documentRequirement.update({ where: { id }, data: dto });
   }
 
@@ -67,5 +117,50 @@ export class DocumentRequirementService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+  }
+
+  /**
+   * Two rows naming the same document type for the same branch, program,
+   * quota, category and stage are not a second policy — they are the same
+   * rule entered twice. `ChecklistService` would evaluate both independently
+   * and report the same missing document twice, which is confusing rather
+   * than additive. Mirrors `DocumentTypeService`'s duplicate check (same
+   * module, same convention) rather than inventing a new one.
+   */
+  private async assertNoDuplicate(
+    scope: OrganizationScope,
+    identity: {
+      branchId: string | null;
+      documentTypeId: string;
+      appliesToProgramId: string | null;
+      appliesToQuotaId: string | null;
+      appliesToCategoryId: string | null;
+      requiredByStage: AdmissionApplicationStatus;
+    },
+    excludeId?: string,
+  ): Promise<void> {
+    const duplicate = await this.prisma.documentRequirement.findFirst({
+      where: {
+        id: excludeId ? { not: excludeId } : undefined,
+        organizationId: scope.organizationId,
+        deletedAt: null,
+        branchId: identity.branchId,
+        documentTypeId: identity.documentTypeId,
+        appliesToProgramId: identity.appliesToProgramId,
+        appliesToQuotaId: identity.appliesToQuotaId,
+        appliesToCategoryId: identity.appliesToCategoryId,
+        requiredByStage: identity.requiredByStage,
+      },
+      select: { id: true },
+    });
+
+    if (duplicate) {
+      throw new ConflictException({
+        error: 'DUPLICATE_DOCUMENT_REQUIREMENT',
+        message:
+          'A document requirement with this document type, scope and stage already exists.',
+        requirementId: duplicate.id,
+      });
+    }
   }
 }
