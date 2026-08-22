@@ -33,11 +33,12 @@ without restructuring.
 24. [Admission Masters Module](./admission-masters-module.md)
 25. [Applicant Admission Lifecycle](./admission-lifecycle-module.md)
 26. [Documents Management Module](./documents-management-module.md)
-27. [Backend Contract Gaps](./backend-gaps.md)
-28. [Testing Strategy](./testing.md)
-29. [Coding Standards](./coding-standards.md)
-30. [Contribution Guide](./contributing.md)
-31. [Future Theme Integration](./theme-integration.md)
+27. [Numbering Module](./numbering-module.md)
+28. [Backend Contract Gaps](./backend-gaps.md)
+29. [Testing Strategy](./testing.md)
+30. [Coding Standards](./coding-standards.md)
+31. [Contribution Guide](./contributing.md)
+32. [Future Theme Integration](./theme-integration.md)
 
 ## Tech Stack
 

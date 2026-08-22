@@ -1056,6 +1056,51 @@ elsewhere in the same document.
 
 ---
 
+## 13. Frontend implementation — Final Admission / Person / Numbering milestone
+
+Built on top of the shipped Applicant Journey Hub and Admit dialog, not a
+rewrite of either:
+
+- **Academic placement is now the review's own section**, not an implicit
+  side-effect of picking a unit: the Admit dialog shows Branch, Academic
+  Year, Program and the Academic Unit picker together, sourced from
+  `useWorkspace()` and the route composition's own `programId` lookup —
+  never re-fetched or duplicated.
+- **The Academic Unit slot is resolved at the route composition**
+  (`applicant-composition.tsx`'s `useAcademicUnitSlot`), not inside
+  `AcademicUnitPicker` itself: when the applicant's program has zero
+  academic units in the active branch/year, the slot renders a structured
+  empty state linking to `ROUTES.app.academicUnits.create` instead of a
+  picker with nothing to choose — admission is not silently allowed through
+  an empty picker.
+- **`PersonPanel` (`features/person`) now renders wherever `applicant.personId`
+  is present** — the Overview tab's Identity card, the Admit review's Person
+  section, and the post-admit success screen — using the confirmed
+  `GET /v1/persons/:id` (`id, dob, governmentIdMasked, governmentIdType,
+  governmentIdErased, mergedIntoPersonId`). §2's own "not yet resolved"
+  fallback copy is unchanged; only what happens once `personId` *is* present
+  is new. `features/person` has no navigation entry — see its own `index.ts`.
+- **The Admit dialog's CTA is now "Complete admission"**, its confirmation
+  names every consequence the backend actually guarantees (Student +
+  Admission + Enrollment created atomically, application moves to
+  `ADMITTED`), its loading state disables every control and states plainly
+  that this is a UI explanation, not real-time backend progress, and its
+  failure state states that nothing was created — because the transaction
+  is genuinely atomic, not because the frontend assumes so.
+- **The success screen now shows all six `/admit` response identifiers**
+  (`studentId`, `studentCode`, `admissionId`, `admissionNo`,
+  `enrollmentId`, `applicantId` — §8.6's own confirmed field list), grouped
+  by Student/Admission/Enrollment, plus "View applicant" and "Back to
+  applicants" (real, working links) — "View Student"/"View
+  Admission"/"View Enrollment" are not offered, since no read screen exists
+  for any of the three yet (`docs/backend-gaps.md` #43).
+- **`STUDENT_CODE`/`ADMISSION_NO` are never generated or previewed by this
+  frontend before `/admit`.** See
+  [Numbering Module](./numbering-module.md) for the module that configures
+  their *format*, entirely separate from the moment a number is allocated.
+
+---
+
 ## Related
 
 - [Backend Contract Gaps §M](./backend-gaps.md#m-applicant-admission-lifecycle) —
@@ -1064,6 +1109,11 @@ elsewhere in the same document.
   branch-scoped reference-data resources this lifecycle's dropdowns are built
   from (Categories, Castes, Religions, Genders, Languages, Blood Groups,
   Disabilities, Relation Types, Quotas, Admission Sources).
+- [Documents Management Module](./documents-management-module.md) — Document
+  Types, Document Requirements and the owner-document panels composed into
+  the Journey Hub's Documents tab.
+- [Numbering Module](./numbering-module.md) — the format configuration for
+  `studentCode`/`admissionNo`, composed nowhere near `/admit` itself.
 - [Administration Modules](./administration-modules.md),
   [Response Handling](./response-handling.md) — the platform conventions
   (envelope, `ApiError`, `createResourceService`) any future implementation
