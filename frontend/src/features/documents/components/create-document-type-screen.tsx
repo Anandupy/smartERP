@@ -6,7 +6,7 @@ import { ROUTES } from "@/constants";
 import { PageHeader } from "@/shared/components/layout";
 
 import { useCreateDocumentType } from "../hooks/use-documents";
-import { toDocumentTypeRequest } from "../mappers/document-type.mapper";
+import { toDocumentTypeCreateRequest } from "../mappers/document-type.mapper";
 import { documentTypeFormDefaults } from "../schemas/document-type.schema";
 import { DocumentTypeForm } from "./document-type-form";
 
@@ -26,9 +26,10 @@ export function CreateDocumentTypeScreen() {
       <DocumentTypeForm
         defaultValues={documentTypeFormDefaults()}
         submitLabel="Create document type"
+        showActiveToggle={false}
         onCancel={() => router.push(listHref)}
         onSubmit={async (values) => {
-          const created = await create.mutateAsync(toDocumentTypeRequest(values));
+          const created = await create.mutateAsync(toDocumentTypeCreateRequest(values));
           router.push(
             created?.id
               ? ROUTES.app.documents.types.detail(created.id)

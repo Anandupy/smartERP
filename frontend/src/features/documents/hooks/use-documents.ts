@@ -13,7 +13,7 @@ import {
   toDocumentRequirementUpdateRequest,
   toDocumentRequirementFormValues,
 } from "../mappers/document-requirement.mapper";
-import { toDocumentTypeFormValues, toDocumentTypeRequest } from "../mappers/document-type.mapper";
+import { toDocumentTypeFormValues, toDocumentTypeUpdateRequest } from "../mappers/document-type.mapper";
 import type {
   ArchiveDocumentRequest,
   DocumentOwnerType,
@@ -365,7 +365,7 @@ export function useToggleDocumentTypeActive() {
     mutationFn: (type: DocumentTypeDto) =>
       documentService.updateType(
         type.id,
-        toDocumentTypeRequest({
+        toDocumentTypeUpdateRequest({
           ...toDocumentTypeFormValues(type),
           isActive: !type.isActive,
         }),

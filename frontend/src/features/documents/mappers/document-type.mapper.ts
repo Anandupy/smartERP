@@ -21,11 +21,12 @@ export function toDocumentTypeFormValues(
 }
 
 /**
- * Form values → the complete documented request body, for both create and
- * update — the captured Postman bodies for both are identical
- * (`docs/documents-management-module.md`).
+ * Form values → the documented Create body. `isActive` is deliberately
+ * absent — the captured Create example does not include it (the backend's
+ * `CreateDocumentTypeDto` rejects unknown properties with `property
+ * isActive should not exist`); only the Update body documents it.
  */
-export function toDocumentTypeRequest(
+export function toDocumentTypeCreateRequest(
   values: DocumentTypeFormValues,
 ): DocumentTypeRequest {
   const trimmedDescription = values.description.trim();
@@ -41,6 +42,15 @@ export function toDocumentTypeRequest(
     allowedMimeTypes: values.allowedMimeTypes,
     maxSizeBytes: values.maxSizeBytes,
     displayOrder: values.displayOrder,
+  };
+}
+
+/** Form values → the documented Update body — the complete record, including `isActive`. */
+export function toDocumentTypeUpdateRequest(
+  values: DocumentTypeFormValues,
+): DocumentTypeRequest {
+  return {
+    ...toDocumentTypeCreateRequest(values),
     isActive: values.isActive,
   };
 }

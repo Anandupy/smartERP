@@ -149,8 +149,9 @@ export {
   toDocumentRequirementUpdateRequest,
 } from "./mappers/document-requirement.mapper";
 export {
+  toDocumentTypeCreateRequest,
   toDocumentTypeFormValues,
-  toDocumentTypeRequest,
+  toDocumentTypeUpdateRequest,
 } from "./mappers/document-type.mapper";
 
 // Contracts

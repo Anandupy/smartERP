@@ -28,6 +28,13 @@ export interface DocumentTypeFormProps {
   submitLabel: string;
   onSubmit: (values: DocumentTypeFormValues) => Promise<unknown>;
   onCancel: () => void;
+  /**
+   * Hides the Active switch. `POST /document-types` does not document
+   * `isActive` (a new type is always created active), so Create renders
+   * without it rather than showing a control the request never sends.
+   * Defaults to `true` for Edit, where `PATCH` does document the field.
+   */
+  showActiveToggle?: boolean;
 }
 
 /**
@@ -43,6 +50,7 @@ export function DocumentTypeForm({
   submitLabel,
   onSubmit,
   onCancel,
+  showActiveToggle = true,
 }: DocumentTypeFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -178,13 +186,15 @@ export function DocumentTypeForm({
               description="Controls ordering in lists and upload pickers."
               disabled={isSubmitting}
             />
-            <SwitchField
-              control={form.control}
-              name="isActive"
-              label="Active"
-              description="Available for selection on new requirements and uploads."
-              disabled={isSubmitting}
-            />
+            {showActiveToggle ? (
+              <SwitchField
+                control={form.control}
+                name="isActive"
+                label="Active"
+                description="Available for selection on new requirements and uploads."
+                disabled={isSubmitting}
+              />
+            ) : null}
           </CardContent>
         </Card>
 

@@ -211,7 +211,7 @@ describe("Deleting a document type", () => {
 });
 
 describe("Creating a document type", () => {
-  it("sends the documented fields, including selected MIME types", async () => {
+  it("sends the documented fields, including selected MIME types, without isActive", async () => {
     const user = userEvent.setup();
     let body: Record<string, unknown> | null = null;
 
@@ -236,8 +236,15 @@ describe("Creating a document type", () => {
       code: "TRANSFER_CERT",
       name: "Transfer Certificate",
       allowedMimeTypes: ["application/pdf"],
-      isActive: true,
     });
+    expect(body).not.toHaveProperty("isActive");
+  });
+
+  it("does not render an Active toggle, since Create does not accept isActive", async () => {
+    render(<CreateDocumentTypeScreen />);
+
+    await screen.findByLabelText("Code");
+    expect(screen.queryByText("Active")).not.toBeInTheDocument();
   });
 
   it("requires code, name and at least one file type", async () => {
@@ -262,6 +269,29 @@ describe("Editing a document type", () => {
 
     expect(await screen.findByLabelText("Code")).toHaveValue("BIRTH_CERTIFICATE");
     expect(screen.getByLabelText("Name")).toHaveValue("Birth Certificate");
+  });
+
+  it("shows the Active toggle and sends isActive in the PATCH body", async () => {
+    const user = userEvent.setup();
+    let body: Record<string, unknown> | null = null;
+
+    withType(documentTypeDto({ id: "type-9", isActive: true }));
+    server.use(
+      http.patch(`${TYPES_PATH}/:id`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          successEnvelope(documentTypeDto({ ...body, id: "type-9" })),
+        );
+      }),
+    );
+
+    render(<EditDocumentTypeScreen id="type-9" />);
+
+    expect(await screen.findByText("Active")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body).toMatchObject({ code: "BIRTH_CERTIFICATE", isActive: true });
   });
 
   it("returns to the detail screen once saved", async () => {

@@ -6,7 +6,7 @@ import { ROUTES } from "@/constants";
 import { PageHeader } from "@/shared/components/layout";
 
 import { useUpdateDocumentType } from "../hooks/use-documents";
-import { toDocumentTypeFormValues, toDocumentTypeRequest } from "../mappers/document-type.mapper";
+import { toDocumentTypeFormValues, toDocumentTypeUpdateRequest } from "../mappers/document-type.mapper";
 import { DocumentTypeBoundary } from "./document-type-boundary";
 import { DocumentTypeForm } from "./document-type-form";
 
@@ -31,7 +31,7 @@ export function EditDocumentTypeScreen({ id }: EditDocumentTypeScreenProps) {
             submitLabel="Save changes"
             onCancel={() => router.push(detailHref)}
             onSubmit={async (values) => {
-              await update.mutateAsync(toDocumentTypeRequest(values));
+              await update.mutateAsync(toDocumentTypeUpdateRequest(values));
               router.push(detailHref);
             }}
           />
