@@ -49,6 +49,7 @@ export {
   ExternalLink,
   Eye,
   EyeOff,
+  FileCheck2,
   FileText,
   Filter,
   Globe,
