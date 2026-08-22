@@ -46,6 +46,16 @@ export const ROUTES = Object.freeze({
       maintenance: "/app/settings/maintenance",
       systemInformation: "/app/settings/system-information",
       history: "/app/settings/history",
+      /**
+       * Numbering sequence configuration — the format of every human-facing
+       * identifier the platform generates. No `GET /:id` is documented, so
+       * `edit` is the only per-record destination; there is no detail page.
+       */
+      numbering: {
+        root: "/app/settings/numbering",
+        create: "/app/settings/numbering/new",
+        edit: (id: string) => `/app/settings/numbering/${id}/edit`,
+      },
     },
     /**
      * Maintenance **rules**. A rule has no read-only screen of its own: the
