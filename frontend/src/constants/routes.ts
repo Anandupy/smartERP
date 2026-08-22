@@ -246,6 +246,32 @@ export const ROUTES = Object.freeze({
         edit: (id: string) => `/app/admissions/applicants/${id}/edit`,
       },
     },
+    /**
+     * Documents — the generic, owner-polymorphic document module: what a
+     * document type is, which owners require which documents, and (composed
+     * into owner journeys like Admissions' Applicant) the documents
+     * themselves. `root` is the Overview hub; `types` and `requirements` are
+     * the two configuration resources this module administers.
+     */
+    documents: {
+      root: "/app/documents",
+      types: {
+        root: "/app/documents/types",
+        create: "/app/documents/types/new",
+        detail: (id: string) => `/app/documents/types/${id}`,
+        edit: (id: string) => `/app/documents/types/${id}/edit`,
+      },
+      /**
+       * Document Requirements have no standalone detail screen — every
+       * documented field is already visible on the directory row, so
+       * "view" and "edit" are the same destination.
+       */
+      requirements: {
+        root: "/app/documents/requirements",
+        create: "/app/documents/requirements/new",
+        edit: (id: string) => `/app/documents/requirements/${id}/edit`,
+      },
+    },
     workspaceAdmin: {
       root: "/app/workspace-admin",
       modules: {
