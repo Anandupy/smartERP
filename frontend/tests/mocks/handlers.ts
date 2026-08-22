@@ -7,6 +7,7 @@ import { adminHandlers } from "./admin-handlers";
 import { admissionMastersHandlers } from "./admission-masters-handlers";
 import { authHandlers } from "./auth-handlers";
 import { communicationHandlers } from "./communication-handlers";
+import { documentHandlers } from "./document-handlers";
 import { workspaceAdminHandlers } from "./workspace-admin-handlers";
 import { workspaceHandlers } from "./workspace-handlers";
 
@@ -22,6 +23,7 @@ export const handlers = [
   ...workspaceHandlers,
   ...adminHandlers,
   ...admissionMastersHandlers,
+  ...documentHandlers,
   ...communicationHandlers,
   ...workspaceAdminHandlers,
   http.get(`${base}/health`, () =>
