@@ -1,8 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 
-import { AcademicUnitPicker } from "@/features/academic-unit";
+import {
+  AcademicUnitPicker,
+  academicUnitState,
+  useAcademicUnitScope,
+  useAcademicUnits,
+} from "@/features/academic-unit";
 import {
   AdmissionMasterPicker,
   useAdmissionMasterList,
@@ -13,20 +19,36 @@ import {
   CreateApplicantScreen,
   EditApplicantScreen,
 } from "@/features/admissions";
-import { ApplicantDocumentsPanel } from "@/features/documents";
-import { ApplicantGuardiansPanel } from "@/features/guardians";
+import { Hash } from "@/assets/icons";
+import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/constants";
+import {
+  ApplicantDocumentsPanel,
+  buildChecklist,
+  checklistSummary,
+  useDocumentRequirements,
+  useOwnerDocuments,
+} from "@/features/documents";
+import {
+  ApplicantGuardiansPanel,
+  formatGuardianName,
+  useApplicantGuardians,
+} from "@/features/guardians";
+import { PersonPanel } from "@/features/person";
 import { ProgramPicker, useProgramBranch, usePrograms } from "@/features/program";
+import { EmptyState } from "@/shared/components/feedback";
+import type { ApplicantDto } from "@/features/admissions";
 
 /**
  * Where Admissions meets Admission Masters, Program, Academic Unit,
- * Guardians and Documents.
+ * Guardians, Documents and Person.
  *
  * AGENTS.md §28: *"Two features that meet do so at the route, through slots
  * — never by importing each other."* This file is that route composition,
  * mirroring `academic-units/program-composition.tsx`. It is the **only**
- * module that imports all six feature barrels together. Nothing but opaque
- * `ReactNode` panels/pickers and plain name maps cross the boundary —
- * Admissions never learns that any of the other five exist as modules, only
+ * module that imports all seven feature barrels together. Nothing but
+ * opaque `ReactNode` panels/pickers and plain name maps cross the boundary —
+ * Admissions never learns that any of the other six exist as modules, only
  * that it has slots to fill.
  */
 
@@ -147,6 +169,127 @@ function RelationTypePicker() {
   );
 }
 
+/**
+ * The Admit dialog's academic-unit slot: the real picker when the
+ * applicant's program has at least one academic unit in the active branch
+ * and year, otherwise a structured empty state — never a picker silently
+ * offering nothing (task: "do not silently allow final admission").
+ *
+ * Filters the same way `AcademicUnitPicker` does internally
+ * (`programId` + active-only) so "is there anything to choose" matches what
+ * the picker itself would show — this composition owns that decision
+ * because the picker is an opaque `ReactNode` once handed to Admissions.
+ */
+function useAcademicUnitSlot(programId: string) {
+  const scope = useAcademicUnitScope();
+  const { units, isPending } = useAcademicUnits(scope);
+
+  const available = useMemo(
+    () =>
+      units.filter(
+        (unit) => unit.programId === programId && academicUnitState(unit) !== "inactive",
+      ),
+    [units, programId],
+  );
+
+  if (isPending) {
+    return (
+      <AcademicUnitPicker
+        programId={programId}
+        description="Which section the applicant actually joins — not recorded until this moment."
+      />
+    );
+  }
+
+  if (available.length === 0) {
+    return (
+      <EmptyState
+        icon={Hash}
+        title="No academic unit available"
+        description="This program currently has no academic units configured for the selected branch and academic year."
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link href={ROUTES.app.academicUnits.create}>Configure academic units</Link>
+          </Button>
+        }
+      />
+    );
+  }
+
+  return (
+    <AcademicUnitPicker
+      programId={programId}
+      description="Which section the applicant actually joins — not recorded until this moment."
+    />
+  );
+}
+
+/** Primary/financial guardian names for the Admit review — derived from data the Guardians tab already fetches. */
+function GuardianSummary({ applicantId }: { applicantId: string }) {
+  const { mappings, isPending } = useApplicantGuardians(applicantId);
+
+  if (isPending) {
+    return <p className="text-muted-foreground text-sm">Loading guardians…</p>;
+  }
+
+  if (mappings.length === 0) {
+    return <p className="text-muted-foreground text-sm">No guardians mapped yet.</p>;
+  }
+
+  const primary = mappings.find((mapping) => mapping.isPrimary);
+  const financial = mappings.find((mapping) => mapping.isFinancialGuardian);
+
+  return (
+    <div className="space-y-1 text-sm">
+      <p>
+        <span className="text-muted-foreground">Primary: </span>
+        {primary?.guardian ? formatGuardianName(primary.guardian) : "Not set"}
+      </p>
+      <p>
+        <span className="text-muted-foreground">Financial: </span>
+        {financial?.guardian ? formatGuardianName(financial.guardian) : "Not set"}
+      </p>
+      <p className="text-muted-foreground text-xs">
+        {mappings.length} guardian{mappings.length === 1 ? "" : "s"} mapped
+      </p>
+    </div>
+  );
+}
+
+/** Required-document readiness for the Admit review — the same checklist the Documents tab computes. */
+function DocumentsSummary({ applicant }: { applicant: ApplicantDto }) {
+  const { requirements, isPending: requirementsPending } = useDocumentRequirements();
+  const { documents, isPending: documentsPending } = useOwnerDocuments(
+    "APPLICANT",
+    applicant.id,
+  );
+
+  const summary = useMemo(
+    () =>
+      checklistSummary(
+        buildChecklist(requirements, documents, {
+          programId: applicant.programId,
+          quotaId: applicant.quotaId,
+          categoryId: applicant.categoryId,
+        }),
+      ),
+    [requirements, documents, applicant.programId, applicant.quotaId, applicant.categoryId],
+  );
+
+  if (requirementsPending || documentsPending) {
+    return <p className="text-muted-foreground text-sm">Loading documents…</p>;
+  }
+
+  return (
+    <p className="text-sm">
+      {summary.verified} of {summary.total} required documents verified
+      {summary.isSatisfied ? (
+        <span className="text-chart-2 ml-1.5 font-medium">Complete</span>
+      ) : null}
+    </p>
+  );
+}
+
 /** Create, with all ten pickers slotted into the form. */
 export function CreateApplicantRoute() {
   const masters = useApplicantMasterPickers();
@@ -194,32 +337,57 @@ export function ApplicantJourneyHubRoute({ id }: { id: string }) {
   return (
     <ApplicantBoundary id={id}>
       {(applicant) => (
-        <ApplicantJourneyHubScreen
+        <ApplicantJourneyHubInner
           applicant={applicant}
           programName={programNames.get(applicant.programId) ?? null}
-          academicUnitPicker={
-            <AcademicUnitPicker
-              programId={applicant.programId}
-              description="Which section the applicant actually joins — not recorded until this moment."
-            />
-          }
-          guardiansPanel={
-            <ApplicantGuardiansPanel
-              applicantId={applicant.id}
-              relationTypeNames={relationTypeNames}
-              relationTypePicker={<RelationTypePicker />}
-            />
-          }
-          documentsPanel={
-            <ApplicantDocumentsPanel
-              applicantId={applicant.id}
-              programId={applicant.programId}
-              quotaId={applicant.quotaId}
-              categoryId={applicant.categoryId}
-            />
-          }
+          relationTypeNames={relationTypeNames}
         />
       )}
     </ApplicantBoundary>
+  );
+}
+
+/**
+ * Split out from `ApplicantJourneyHubRoute` only so `useAcademicUnitSlot`
+ * (a hook) can be called with the applicant's own `programId` — hooks
+ * cannot run conditionally inside the boundary's render-prop callback.
+ */
+function ApplicantJourneyHubInner({
+  applicant,
+  programName,
+  relationTypeNames,
+}: {
+  applicant: ApplicantDto;
+  programName: string | null;
+  relationTypeNames: ReadonlyMap<string, string>;
+}) {
+  const academicUnitSlot = useAcademicUnitSlot(applicant.programId);
+
+  return (
+    <ApplicantJourneyHubScreen
+      applicant={applicant}
+      programName={programName}
+      academicUnitPicker={academicUnitSlot}
+      guardiansPanel={
+        <ApplicantGuardiansPanel
+          applicantId={applicant.id}
+          relationTypeNames={relationTypeNames}
+          relationTypePicker={<RelationTypePicker />}
+        />
+      }
+      documentsPanel={
+        <ApplicantDocumentsPanel
+          applicantId={applicant.id}
+          programId={applicant.programId}
+          quotaId={applicant.quotaId}
+          categoryId={applicant.categoryId}
+        />
+      }
+      guardianSummary={<GuardianSummary applicantId={applicant.id} />}
+      documentsSummary={<DocumentsSummary applicant={applicant} />}
+      renderPersonPanel={(personId, compact) => (
+        <PersonPanel personId={personId} compact={compact} />
+      )}
+    />
   );
 }

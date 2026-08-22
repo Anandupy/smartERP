@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { GraduationCap } from "@/assets/icons";
+import { GraduationCap, TriangleAlert } from "@/assets/icons";
 import { Form, useZodForm } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { useWorkspace } from "@/core/workspace";
 import { getErrorMessage } from "@/lib";
 import { Spinner } from "@/shared/components/feedback";
 
@@ -23,6 +25,8 @@ import type {
   AdmitApplicantResponse,
   ApplicantDto,
 } from "../types/applicant.dto";
+import { ApplicantIdentitySummary } from "./applicant-identity-summary";
+import { ApplicantStatusBadge } from "./applicant-status-badge";
 
 const admitFormSchema = z.object({
   academicUnitId: z.string().min(1, "Required"),
@@ -32,8 +36,16 @@ export interface AdmitApplicantDialogProps {
   applicant: ApplicantDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** The academic-unit picker, slotted in by the route composition. */
+  /** The academic-unit picker (or its empty-state), slotted in by the route composition. */
   academicUnitPicker: React.ReactNode;
+  /** Resolved by the route composition — Program is a separate feature. */
+  programName: string | null;
+  /** A short guardian summary, slotted in by the route composition (features/guardians). */
+  guardianSummary: React.ReactNode;
+  /** A short document-readiness summary, slotted in by the route composition (features/documents). */
+  documentsSummary: React.ReactNode;
+  /** `PersonPanel` from `features/person`, slotted in by the route composition. */
+  renderPersonPanel: (personId: string, compact?: boolean) => React.ReactNode;
   onAdmitted: (result: AdmitApplicantResponse) => void;
 }
 
@@ -49,16 +61,26 @@ export interface AdmitApplicantDialogProps {
  * "Save" button: the confirmation names exactly what will be created, and
  * failure never shows a partial success — the transaction is genuinely
  * atomic, verified by fault injection at every step.
+ *
+ * The review below exists so this reads as a real ERP transaction, not a
+ * bare confirm — every section shows only what the confirmed contract
+ * actually provides (`docs/admission-lifecycle-module.md`,
+ * `backend/docs/planning/00-foundation/03-numbering.md`).
  */
 export function AdmitApplicantDialog({
   applicant,
   open,
   onOpenChange,
   academicUnitPicker,
+  programName,
+  guardianSummary,
+  documentsSummary,
+  renderPersonPanel,
   onAdmitted,
 }: AdmitApplicantDialogProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
   const admit = useAdmitApplicant(applicant.id);
+  const { branch, academicYear } = useWorkspace();
 
   const form = useZodForm(admitFormSchema, {
     defaultValues: { academicUnitId: "" },
@@ -80,51 +102,133 @@ export function AdmitApplicantDialog({
     }
   });
 
+  const isPending = admit.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => (isPending ? null : onOpenChange(next))}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GraduationCap aria-hidden="true" />
-            Admit {applicant.displayName}?
+            Complete admission for {applicant.displayName}?
           </DialogTitle>
           <DialogDescription>
-            This is the final admission transaction. It creates the Student,
-            the Admission and the first Enrollment, and moves the application
-            to Admitted — all in one backend transaction. If any step fails,
-            nothing is created.
+            This will permanently complete the admission transaction. A
+            Student, Admission and initial Enrollment will be created, and
+            the applicant will move to Admitted — all in one backend
+            transaction. If any step fails, nothing is created.
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            {academicUnitPicker}
-
-            {submitError ? (
-              <p className="text-destructive text-sm">
-                {getErrorMessage(submitError)}
+        {isPending ? (
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <Spinner size="lg" label="Completing admission" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Completing admission…</p>
+              <p className="text-muted-foreground text-xs">
+                Creating the student, admission and enrollment records in one
+                transaction. This will only take a moment.
               </p>
-            ) : null}
+            </div>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              <ReviewSection title="Applicant">
+                <ReviewRow label="Name" value={applicant.displayName} />
+                <ReviewRow
+                  label="Application no."
+                  value={applicant.applicationNo ?? "—"}
+                />
+                <ReviewRow
+                  label="Current status"
+                  value={<ApplicantStatusBadge status={applicant.admissionStatus} />}
+                />
+              </ReviewSection>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={admit.isPending}
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={admit.isPending}>
-                {admit.isPending ? (
-                  <Spinner size="sm" label="Admitting" />
-                ) : null}
-                {admit.isPending ? "Admitting…" : "Admit applicant"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              <Separator />
+
+              <ReviewSection title="Person">
+                <ApplicantIdentitySummary
+                  personId={applicant.personId}
+                  renderPersonPanel={renderPersonPanel}
+                  compact
+                />
+              </ReviewSection>
+
+              <Separator />
+
+              <ReviewSection title="Guardians">{guardianSummary}</ReviewSection>
+
+              <Separator />
+
+              <ReviewSection title="Academic placement">
+                <ReviewRow label="Branch" value={branch?.name ?? "—"} />
+                <ReviewRow label="Academic year" value={academicYear?.name ?? "—"} />
+                <ReviewRow label="Program" value={programName ?? "—"} />
+                <div className="pt-1">{academicUnitPicker}</div>
+              </ReviewSection>
+
+              <Separator />
+
+              <ReviewSection title="Documents">{documentsSummary}</ReviewSection>
+
+              {submitError ? (
+                <div className="border-destructive/30 bg-destructive/5 rounded-lg border p-3">
+                  <p className="text-destructive flex items-center gap-1.5 text-sm font-medium">
+                    <TriangleAlert className="size-3.5" aria-hidden="true" />
+                    Admission could not be completed
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {getErrorMessage(submitError)} No Student, Admission or
+                    Enrollment was created by the failed transaction.
+                  </p>
+                </div>
+              ) : null}
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  Complete admission
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ReviewSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+        {title}
+      </h3>
+      <div className="space-y-1.5">{children}</div>
+    </div>
+  );
+}
+
+function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-right font-medium">{value}</span>
+    </div>
   );
 }

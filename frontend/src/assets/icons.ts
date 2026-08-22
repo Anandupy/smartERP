@@ -54,6 +54,7 @@ export {
   Filter,
   Globe,
   GraduationCap,
+  Hash,
   History,
   Home,
   ImageIcon,

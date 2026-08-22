@@ -6,7 +6,6 @@ import { useState } from "react";
 import {
   CalendarDays,
   Contact,
-  Copy,
   GraduationCap,
   Mail,
   MapPin,
@@ -19,11 +18,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROUTES } from "@/constants";
 import { DescriptionList } from "@/shared/components/data-display";
-import { EmptyState } from "@/shared/components/feedback";
+import { BackendPendingNote, EmptyState } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
 import { formatDate } from "@/utils";
 
 import { AdmitApplicantDialog } from "./admit-applicant-dialog";
+import { ApplicantIdentitySummary } from "./applicant-identity-summary";
 import { ApplicantStatusBadge } from "./applicant-status-badge";
 import { ApplicantWorkflowActions } from "./applicant-workflow-actions";
 import { ApplicantWorkflowTimeline } from "./applicant-workflow-timeline";
@@ -38,12 +38,18 @@ export interface ApplicantJourneyHubScreenProps {
   applicant: ApplicantDto;
   /** Resolved by the route composition — Program is a separate feature. */
   programName: string | null;
-  /** Slotted in for the Admit dialog's academic-unit selection. */
+  /** Slotted in for the Admit dialog's academic-unit selection — the real picker, or its empty-state. */
   academicUnitPicker: React.ReactNode;
   /** The full Guardians workspace, composed at the route (features/guardians). */
   guardiansPanel: React.ReactNode;
   /** The full Documents workspace, composed at the route (features/documents). */
   documentsPanel: React.ReactNode;
+  /** A short guardian summary for the Admit review, composed at the route. */
+  guardianSummary: React.ReactNode;
+  /** A short document-readiness summary for the Admit review, composed at the route. */
+  documentsSummary: React.ReactNode;
+  /** `PersonPanel` from `features/person`, slotted in by the route composition (AGENTS.md §28). */
+  renderPersonPanel: (personId: string, compact?: boolean) => React.ReactNode;
 }
 
 /**
@@ -71,6 +77,9 @@ export function ApplicantJourneyHubScreen({
   academicUnitPicker,
   guardiansPanel,
   documentsPanel,
+  guardianSummary,
+  documentsSummary,
+  renderPersonPanel,
 }: ApplicantJourneyHubScreenProps) {
   const [isAdmitOpen, setIsAdmitOpen] = useState(false);
   const [admitResult, setAdmitResult] =
@@ -112,26 +121,97 @@ export function ApplicantJourneyHubScreen({
               Admission completed
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-4">
-            <p className="text-muted-foreground mb-4 text-sm">
+          <CardContent className="space-y-5 pt-4">
+            <p className="text-muted-foreground text-sm">
               {applicant.displayName} has been admitted. These identifiers
               have distinct scopes — none is interchangeable with another.
             </p>
-            <DescriptionList
-              items={[
-                {
-                  key: "studentCode",
-                  label: "Student code",
-                  value: admitResult.studentCode,
-                },
-                {
-                  key: "admissionNo",
-                  label: "Admission no.",
-                  value: admitResult.admissionNo,
-                },
-                { key: "enrollment", label: "Enrollment", value: "Active" },
-              ]}
-            />
+
+            <div>
+              <h3 className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
+                Student
+              </h3>
+              <DescriptionList
+                items={[
+                  { key: "studentCode", label: "Student code", value: admitResult.studentCode },
+                  {
+                    key: "studentId",
+                    label: "Student ID",
+                    value: <code className="text-xs">{admitResult.studentId}</code>,
+                  },
+                ]}
+                columns={2}
+              />
+            </div>
+
+            <div>
+              <h3 className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
+                Admission
+              </h3>
+              <DescriptionList
+                items={[
+                  { key: "admissionNo", label: "Admission no.", value: admitResult.admissionNo },
+                  {
+                    key: "admissionId",
+                    label: "Admission ID",
+                    value: <code className="text-xs">{admitResult.admissionId}</code>,
+                  },
+                ]}
+                columns={2}
+              />
+            </div>
+
+            <div>
+              <h3 className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
+                Enrollment
+              </h3>
+              <DescriptionList
+                items={[
+                  {
+                    key: "enrollmentId",
+                    label: "Enrollment ID",
+                    value: <code className="text-xs">{admitResult.enrollmentId}</code>,
+                  },
+                ]}
+                columns={2}
+              />
+            </div>
+
+            <div>
+              <h3 className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
+                Academic placement
+              </h3>
+              <DescriptionList
+                items={[{ key: "program", label: "Program", value: programName ?? "—" }]}
+                columns={2}
+              />
+            </div>
+
+            {applicant.personId ? (
+              <div>
+                <h3 className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
+                  Person
+                </h3>
+                {renderPersonPanel(applicant.personId)}
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+              <Button asChild variant="outline" size="sm">
+                <Link href={ROUTES.app.admissions.applicants.detail(applicant.id)}>
+                  View applicant
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href={ROUTES.app.admissions.applicants.directory}>Back to applicants</Link>
+              </Button>
+            </div>
+            <BackendPendingNote>
+              no Student, Admission or Enrollment read endpoint is wired into
+              this frontend yet, so View Student, View Admission and View
+              Enrollment have nowhere to link — the identifiers above are
+              shown as returned, not as clickable destinations.
+            </BackendPendingNote>
           </CardContent>
         </Card>
       ) : applicant.admissionStatus === "ADMITTED" ? (
@@ -165,7 +245,7 @@ export function ApplicantJourneyHubScreen({
                   {canAdmit ? (
                     <Button onClick={() => setIsAdmitOpen(true)}>
                       <GraduationCap />
-                      Admit applicant
+                      Complete admission
                     </Button>
                   ) : null}
                 </CardContent>
@@ -206,35 +286,10 @@ export function ApplicantJourneyHubScreen({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 text-sm">
-                  {applicant.personId ? (
-                    <div className="space-y-1">
-                      <p className="text-chart-2 font-medium">
-                        Person linked
-                      </p>
-                      <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                        <code className="truncate">{applicant.personId}</code>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label="Copy person id"
-                          onClick={() =>
-                            navigator.clipboard.writeText(
-                              applicant.personId ?? "",
-                            )
-                          }
-                        >
-                          <Copy className="size-3" />
-                        </Button>
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">
-                      Not yet resolved. This applicant will be matched to an
-                      existing person, or a new person will be created, when
-                      the application is submitted.
-                    </p>
-                  )}
+                  <ApplicantIdentitySummary
+                    personId={applicant.personId}
+                    renderPersonPanel={renderPersonPanel}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -266,6 +321,10 @@ export function ApplicantJourneyHubScreen({
         open={isAdmitOpen}
         onOpenChange={setIsAdmitOpen}
         academicUnitPicker={academicUnitPicker}
+        programName={programName}
+        guardianSummary={guardianSummary}
+        documentsSummary={documentsSummary}
+        renderPersonPanel={renderPersonPanel}
         onAdmitted={setAdmitResult}
       />
     </div>
