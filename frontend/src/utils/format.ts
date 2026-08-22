@@ -40,6 +40,19 @@ export function formatDateTime(
   return formatDate(value, options, locale);
 }
 
+/** Byte count as a human-readable size (`"10 MB"`, `"512 KB"`). Base-1000, matching how file sizes are commonly quoted. */
+export function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const exponent = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1000)),
+    units.length - 1,
+  );
+  const value = bytes / 1000 ** exponent;
+  const formatted = exponent === 0 ? String(value) : value.toFixed(value < 10 ? 1 : 0);
+  return `${formatted} ${units[exponent]}`;
+}
+
 export function truncate(value: string, max: number): string {
   return value.length > max
     ? `${value.slice(0, Math.max(0, max - 1))}…`
