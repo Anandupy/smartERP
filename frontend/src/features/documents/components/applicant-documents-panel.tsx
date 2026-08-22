@@ -32,11 +32,7 @@ export function ApplicantDocumentsPanel({
   categoryId,
 }: ApplicantDocumentsPanelProps) {
   const { requirements, isPending: requirementsPending } =
-    useDocumentRequirements({
-      programId,
-      quotaId: quotaId ?? undefined,
-      categoryId: categoryId ?? undefined,
-    });
+    useDocumentRequirements();
   const { documents, isPending: documentsPending, error, refetch } =
     useOwnerDocuments("APPLICANT", applicantId);
   const { types } = useDocumentTypes();
@@ -52,8 +48,12 @@ export function ApplicantDocumentsPanel({
       ...requirement,
       documentType: documentTypesById.get(requirement.documentTypeId),
     }));
-    return buildChecklist(withTypeNames, documents);
-  }, [requirements, documents, documentTypesById]);
+    return buildChecklist(withTypeNames, documents, {
+      programId,
+      quotaId,
+      categoryId,
+    });
+  }, [requirements, documents, documentTypesById, programId, quotaId, categoryId]);
 
   if (requirementsPending || documentsPending) {
     return <p className="text-muted-foreground text-sm">Loading documents…</p>;

@@ -6,7 +6,9 @@ import type {
   DocumentDto,
   DocumentOwnerType,
   DocumentRequirementDto,
+  DocumentRequirementRequest,
   DocumentTypeDto,
+  DocumentTypeRequest,
   RejectDocumentRequest,
   UploadDocumentFields,
 } from "../types/document.dto";
@@ -23,14 +25,18 @@ export const documentService = {
   listByOwner: (ownerType: DocumentOwnerType, ownerId: string) =>
     api.get<DocumentDto[]>("/documents", { params: { ownerType, ownerId } }),
 
-  /** `GET /documents/:id`. Whether this expands prior versions is unconfirmed (DOC2). */
+  /**
+   * `GET /documents/:id` — "Get One Document with Its Version History" in
+   * the Postman collection. Its captured response schema carries only
+   * `currentVersion`, no `versions[]` array — see the DTO doc-comment
+   * (`docs/backend-gaps.md` DOC2).
+   */
   get: (id: string) => api.get<DocumentDto>(`/documents/${id}`),
 
   /**
    * `POST /documents` — multipart upload. Field names (`file`, `ownerType`,
-   * `ownerId`, `documentTypeId`) follow convention, not a confirmed Postman
-   * example (module doc §6.7, `backend-gaps.md` DOC1) — the one place in
-   * this module built on an educated guess rather than a verified shape.
+   * `ownerId`, `documentTypeId`) are confirmed via the Postman example's
+   * `formdata` body.
    *
    * `Content-Type` is left for the browser to set (with the multipart
    * boundary) by explicitly clearing the client's default JSON header —
@@ -64,7 +70,7 @@ export const documentService = {
 
   /**
    * `POST /documents/:id/replace` — a new version, append-only. Same
-   * unconfirmed multipart shape as `upload`.
+   * multipart shape as `upload`, `file` only.
    */
   replace: async (id: string, file: File) => {
     const form = new FormData();
@@ -103,14 +109,66 @@ export const documentService = {
     URL.revokeObjectURL(objectUrl);
   },
 
-  /** `GET /document-requirements`. The checklist definition table. */
-  listRequirements: (params: {
-    programId?: string;
-    quotaId?: string;
-    categoryId?: string;
-  }) =>
-    api.get<DocumentRequirementDto[]>("/document-requirements", { params }),
+  /**
+   * `GET /document-requirements?branchId=`. `branchId` is the only
+   * documented query parameter, and the collection marks it **Required** —
+   * confirmed directly against the Postman example, superseding the earlier
+   * `programId`/`quotaId`/`categoryId` assumption. Program/quota/category
+   * narrowing happens client-side (`utils/checklist.ts`), matching every
+   * nullable-means-"applies to all" field the design spec documents (§8).
+   */
+  listRequirements: (branchId: string) =>
+    api.get<DocumentRequirementDto[]>("/document-requirements", {
+      params: { branchId },
+    }),
 
-  /** `GET /document-types`. */
-  listTypes: () => api.get<DocumentTypeDto[]>("/document-types"),
+  /** `GET /document-requirements/:id`. */
+  getRequirement: (id: string) =>
+    api.get<DocumentRequirementDto>(`/document-requirements/${id}`),
+
+  /** `POST /document-requirements`. */
+  createRequirement: (body: DocumentRequirementRequest) =>
+    api.post<DocumentRequirementDto, DocumentRequirementRequest>(
+      "/document-requirements",
+      body,
+    ),
+
+  /** `PATCH /document-requirements/:id`. Body is the complete documented record. */
+  updateRequirement: (id: string, body: DocumentRequirementRequest) =>
+    api.patch<DocumentRequirementDto, DocumentRequirementRequest>(
+      `/document-requirements/${id}`,
+      body,
+    ),
+
+  /** `DELETE /document-requirements/:id`. */
+  deleteRequirement: (id: string) =>
+    api.delete<void>(`/document-requirements/${id}`),
+
+  /**
+   * `GET /document-types?includeInactive=`. The only documented query
+   * parameter, marked **Required** — mirrors Admission Masters' `list`
+   * contract exactly, so `includeInactive=true` is always sent and
+   * active/inactive filtering happens client-side.
+   */
+  listTypes: (includeInactive: boolean) =>
+    api.get<DocumentTypeDto[]>("/document-types", {
+      params: { includeInactive },
+    }),
+
+  /** `GET /document-types/:id`. */
+  getType: (id: string) => api.get<DocumentTypeDto>(`/document-types/${id}`),
+
+  /** `POST /document-types`. */
+  createType: (body: DocumentTypeRequest) =>
+    api.post<DocumentTypeDto, DocumentTypeRequest>("/document-types", body),
+
+  /** `PATCH /document-types/:id`. Body is the complete documented record. */
+  updateType: (id: string, body: DocumentTypeRequest) =>
+    api.patch<DocumentTypeDto, DocumentTypeRequest>(
+      `/document-types/${id}`,
+      body,
+    ),
+
+  /** `DELETE /document-types/:id`. */
+  deleteType: (id: string) => api.delete<void>(`/document-types/${id}`),
 } as const;

@@ -2,10 +2,12 @@
  * Wire shapes for `/v1/documents`, `/v1/document-requirements` and
  * `/v1/document-types`.
  *
- * Sourced entirely from `docs/admission-lifecycle-module.md` §6 — the
- * Documents module (R5, "foundation only"). Document is generic and
- * owner-polymorphic — not nested under Admissions — so nothing here assumes
- * `ownerType` is always `APPLICANT`.
+ * Sourced from `docs/admission-lifecycle-module.md` §6 and directly verified
+ * against `backend/postman/erp.postman_collection.json`'s "Document",
+ * "Document Requirement" and "Document Type" folders — every request URL,
+ * query parameter and request body below was read from a captured example,
+ * not inferred. Document is generic and owner-polymorphic — not nested under
+ * Admissions — so nothing here assumes `ownerType` is always `APPLICANT`.
  */
 
 /** As-shipped `ownerType` enum — confirmed via `POST /v1/documents` (module doc §6.1). */
@@ -70,10 +72,18 @@ export interface DocumentVersionDto {
 }
 
 /**
- * A `Document` — confirmed shape via `POST /v1/documents` (module doc §6.2):
- * `id, organizationId, ownerType, ownerId, documentTypeId, status, branchId,
- * currentVersionId, expiresAt, currentVersion`. `status` here is the
- * documented `verificationStatus` field, named `status` on the wire.
+ * A `Document` — confirmed shape via `POST /v1/documents` and
+ * `GET /v1/documents/:id` (module doc §6.2): `id, organizationId, ownerType,
+ * ownerId, documentTypeId, status, branchId, currentVersionId, expiresAt,
+ * currentVersion`. `status` here is the documented `verificationStatus`
+ * field, named `status` on the wire.
+ *
+ * `GET /v1/documents/:id` is named "Get One Document with Its Version
+ * History" in the Postman collection, but its captured response schema
+ * carries the exact same field list as every other document response —
+ * no `versions[]` array. A full multi-version history list is therefore
+ * **not confirmed** to exist on the wire (`docs/backend-gaps.md` DOC2); only
+ * `currentVersion` is read.
  */
 export interface DocumentDto {
   id: string;
@@ -89,12 +99,40 @@ export interface DocumentDto {
 }
 
 /**
- * `DocumentType` — confirmed field list (module doc §6.1): `code, name,
- * description, isSensitive, hasExpiry, defaultValidityMonths, retentionYears,
- * allowedMimeTypes, maxSizeBytes, displayOrder, isActive`.
+ * `DocumentType` — confirmed field list via the "Create/Update/Get Document
+ * Type" Postman examples: `id, code, name, description, isSensitive,
+ * hasExpiry, allowedMimeTypes, maxSizeBytes, isActive, organizationId,
+ * branchId, defaultValidityMonths, retentionYears`.
+ *
+ * `displayOrder` is a request-only field in the captured contract — it is
+ * accepted by Create/Update but does **not** appear in either response
+ * example's field list, so it is typed optional here and never relied on for
+ * ordering when absent (`docs/backend-gaps.md` DOC5).
+ *
+ * Visibility follows the Admission Masters shape: nullable `organizationId`/
+ * `branchId` (design spec §7) — system default, organization default, or
+ * branch-specific.
  */
 export interface DocumentTypeDto {
   id: string;
+  organizationId?: string | null;
+  branchId?: string | null;
+  code: string;
+  name: string;
+  description: string | null;
+  isSensitive: boolean;
+  hasExpiry: boolean;
+  defaultValidityMonths: number | null;
+  retentionYears: number | null;
+  allowedMimeTypes: string[];
+  maxSizeBytes: number;
+  /** Request-only in the captured contract — see the type doc-comment. */
+  displayOrder?: number;
+  isActive: boolean;
+}
+
+/** Body for `POST /document-types` and `PATCH /document-types/:id`. */
+export interface DocumentTypeRequest {
   code: string;
   name: string;
   description: string | null;
@@ -105,17 +143,25 @@ export interface DocumentTypeDto {
   allowedMimeTypes: string[];
   maxSizeBytes: number;
   displayOrder: number;
-  isActive: boolean;
+  /** Only the Update body documents this field — omitted on create. */
+  isActive?: boolean;
 }
 
 /**
- * `DocumentRequirement` — the checklist definition table (module doc §6.4):
- * `documentTypeId, appliesToProgramId, appliesToQuotaId, appliesToCategoryId,
- * requiredByStage, isMandatory, isActive`. The `admissionType` axis in the
- * original design is **not implemented** — no field for it exists.
+ * `DocumentRequirement` — the checklist definition table. Confirmed field
+ * list via the "Create/Update/Get Document Requirement" Postman examples:
+ * `id, organizationId, branchId, documentTypeId, appliesToProgramId,
+ * appliesToQuotaId, appliesToCategoryId, requiredByStage, isMandatory,
+ * isActive`. The `admissionType` axis in the original design is **not
+ * implemented** — no field for it exists (design spec §8).
+ *
+ * Each `appliesTo*Id` is nullable, meaning "applies to all" (design spec
+ * §8) — matched client-side in `utils/checklist.ts`.
  */
 export interface DocumentRequirementDto {
   id: string;
+  organizationId?: string;
+  branchId: string;
   documentTypeId: string;
   appliesToProgramId: string | null;
   appliesToQuotaId: string | null;
@@ -128,11 +174,27 @@ export interface DocumentRequirementDto {
 }
 
 /**
- * Multipart upload fields. **Unconfirmed by Postman** (module doc §6.7,
- * `backend-gaps.md` DOC1 — the example body is multipart, not raw JSON, and
- * this extraction pass could not parse it). `file`/`ownerType`/`ownerId`/
- * `documentTypeId` follow the overwhelming NestJS/multer convention; verify
- * against a live request before relying on the exact field names.
+ * Body for `POST /document-requirements` and `PATCH /document-requirements/:id`.
+ * Create's captured example omits `isActive` (defaults server-side); Update's
+ * includes it, matching every other "resend the complete record" module in
+ * this codebase.
+ */
+export interface DocumentRequirementRequest {
+  branchId: string;
+  documentTypeId: string;
+  appliesToProgramId: string | null;
+  appliesToQuotaId: string | null;
+  appliesToCategoryId: string | null;
+  requiredByStage: string;
+  isMandatory: boolean;
+  isActive?: boolean;
+}
+
+/**
+ * Multipart upload fields. Field names confirmed via the "Upload a Document"
+ * Postman example's `formdata` body: `ownerType`, `ownerId`, `documentTypeId`
+ * (`file` is the implicit multer field every other multipart route in this
+ * codebase uses, not itself enumerated in the example's text-field list).
  */
 export interface UploadDocumentFields {
   file: File;

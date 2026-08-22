@@ -444,10 +444,12 @@ latest-dated position.
 | GD2  | **`ApplicantGuardianMapping` lacks four fields the newer `Guardianship` model has**: `startedAt`/`endedAt`, `isLegalGuardian`, `emergencyPriority`, `pickupValidFrom`/`pickupValidTo`.       | A guardian-mapping form cannot offer legal-guardian status, an ordered emergency-contact list, or a time-boxed pickup window while an applicant is still an applicant. | Offer only the seven confirmed mapping fields (§5.4); the four richer fields become available only once a `Guardianship` row exists (post-conversion).              |
 | GD3  | **A nested `guardians[]` field on Applicant create is designed and stated as "adopted," but the confirmed 43-field create request body does not contain it.**                                | Building a single-payload "Applicant + Guardians" create form would call an endpoint shape that is not confirmed to exist.  | Build against the confirmed three-round-trip flow (create/find guardian → map to applicant) until a nested payload is independently verified.                       |
 | GD4  | **`BILLING` address resolution through the financial guardian remains incomplete** — it depends on the guardian having a resolved `personId`, which is not guaranteed for every guardian yet. | A billing-address lookup for a student may silently fall through to `CURRENT` rather than the intended financial-guardian address. | Not surfaced as a distinct error; a UI showing a resolved billing address should not assert it came from the financial guardian without independent confirmation.    |
-| DOC1 | **Document upload's exact multipart field names are unconfirmed** — the Postman example body is multipart, not raw JSON, and this extraction pass could not parse it.                        | The upload form's field names (`file`, `documentTypeId`, `ownerType`, `ownerId`, …) rest on inference, not a captured example. | Verify the multipart field names directly (e.g. via the raw Postman body mode or a live request) before wiring an upload form.                                       |
-| DOC2 | **Whether `GET /documents/:id` returns prior-version history, or only the current version, is unconfirmed** — its example response is shaped identically to the single-version Upload response. | A "version history" panel cannot be built from this endpoint alone with confidence.                                          | Treat the endpoint as confirmed for the current version only; verify separately before building a full version-history view.                                        |
+| DOC1 | **RESOLVED — Document upload's multipart field names are now confirmed.** The Postman "Upload a Document" request's `formdata` body enumerates `ownerType`, `ownerId`, `documentTypeId` as required text fields; `file` is the implicit multer field. | None — the upload form and `document.service.ts` are wired against the confirmed shape. | No longer a gap. |
+| DOC2 | **`GET /documents/:id` is titled "Get One Document with Its Version History" but its captured response schema carries no `versions[]` array** — the same field list as every other document response (`id, organizationId, ownerType, ownerId, documentTypeId, status, branchId, currentVersionId, expiresAt, currentVersion`). | A multi-version history panel (§18 of the Documents Management milestone) cannot be built from this endpoint with confidence, despite its name. | Treat the endpoint as confirmed for the current version only. A dedicated version-history capability is `BACKEND PENDING` — see `docs/documents-management-module.md`. |
 | DOC3 | **The exact response shape of `409 DOCUMENTS_INCOMPLETE` (which field carries the missing-document-type list) is not documented field-by-field.**                                            | A "you are missing: Birth Certificate, Income Certificate" message cannot be built from a confirmed property path.           | Parse defensively via the standard error envelope; fall back to the checklist read as the authoritative source for per-requirement status rather than this error body. |
 | DOC4 | **No aggregate "N of M documents verified" field is documented** on any list or checklist response.                                                                                           | A progress indicator (e.g. "3/5 verified") has no field to read.                                                             | Compute any such count client-side from the returned array length, and hide the count entirely if the array cannot be fetched cheaply.                              |
+| DOC5 | **`DocumentType.displayOrder` is accepted on Create/Update but is absent from both captured response examples' field lists.** | A directory sorted by `displayOrder` cannot rely on the field surviving a round trip; a freshly-created record's returned order is unconfirmed. | Typed optional in `DocumentTypeDto`; sorting falls back to `0` when absent, and the detail screen states plainly when the field was not returned. |
+| DOC6 | **RESOLVED — `GET /document-requirements`'s only documented filter is `branchId` (required), not `programId`/`quotaId`/`categoryId`** as the R5 foundation phase assumed. Confirmed directly against the Postman "List Document Requirements" example. | The Applicant Documents panel and the new Document Requirements directory both now fetch the complete branch-scoped list and match program/quota/category client-side (`utils/checklist.ts`'s `matchesRequirementScope`), instead of sending unsupported query params. | No longer a gap — `document.service.ts#listRequirements` takes only `branchId`. |
 | WF1  | **The document checklist guard (`DOCUMENT_CHECKLIST_SATISFIED`) gates only `documentsReceived` and `approve`** — not `submit`, `startReview`, `requestDocuments`, `confirmSeat`, or `admit`. | A UI must not claim "cannot proceed — documents incomplete" at any transition other than those two, or it will contradict the actual guard placement. | The action area for every other transition must never reference document completeness as a blocker.                                                                |
 | WF2  | **`DEFERMENT_ENABLED` is off by default**, config-driven, with no documented endpoint to read its current value ahead of attempting the transition.                                          | Offering a "Defer" action unconditionally risks a `400 DEFERMENT_DISABLED` the UI cannot pre-empt.                           | Attempt the action and handle the specific error code, rather than assuming `defer` is always available from `APPROVED`.                                              |
 | WF3  | **`admit()` writes only one `WorkflowHistory` row (for the Applicant)** — Admission and Enrollment get no "birth" row.                                                                        | `GET /enrollments/:id/history` on a freshly admitted student returns an **empty array**.                                    | A timeline/history view for a newly admitted student's Enrollment must render an honest empty state, not assume a first entry always exists.                        |
@@ -568,10 +570,11 @@ Added by the Admission Masters milestone:
 Added by the Applicant Admission Lifecycle analysis:
 
 31. **A captured, non-error example response** for `GET`/`POST
-    .../applicants/:id/preferences` (AP4) and for the multipart `POST
-    /documents` upload (DOC1). Both are called by the design but have no
-    success example anywhere in the collection — the two remaining gaps in an
-    otherwise unusually well-documented Postman surface for this module.
+    .../applicants/:id/preferences` (AP4) — called by the design but with no
+    success example anywhere in the collection. (The multipart `POST
+    /documents` upload's field names, the other gap originally listed here,
+    were resolved by the Documents Management milestone — DOC1, now
+    `RESOLVED`.)
 32. **Whether `Admission` will ever get a direct read endpoint** (SAE1). Every
     other entity in this lifecycle has at least one `GET .../:id`; Admission
     has none, and is reachable only through Enrollment or the `admit()`
@@ -584,6 +587,33 @@ Added by the Applicant Admission Lifecycle analysis:
     completing `APPLICANT_ALREADY_ADMITTED`'s payload with `admissionId`/
     `enrollmentId` (SAE4) — both are named, acknowledged, cosmetic drifts in
     the backend's own reconciliation document, not open questions.
+
+Added by the Documents Management milestone (Document Types and Document
+Requirements admin CRUD, confirmed directly against the "Document Type" and
+"Document Requirement" Postman folders — see
+[`docs/documents-management-module.md`](./documents-management-module.md)):
+
+35. **A true multi-version history endpoint** (DOC2, updated). `GET
+    /documents/:id` is named "with Its Version History" but its response
+    schema carries no `versions[]` array — only `currentVersion`. Whether a
+    real history list exists anywhere on the wire is unconfirmed.
+36. **`DocumentType.displayOrder`'s round trip** (DOC5). Accepted on
+    Create/Update, absent from both response examples' field lists — whether
+    a freshly created record's order survives a re-read is unconfirmed.
+37. **A secure preview/inline-view endpoint distinct from download.** Only
+    `GET /documents/:id/download` is documented (streamed bytes,
+    `Content-Disposition: attachment` implied by "download"); no separate
+    preview/inline-render contract exists, so an in-app document viewer
+    cannot be built without triggering a file download instead.
+38. **Sensitive-document download's exact `STAFF`-refusal response shape.**
+    The design spec names `403 SENSITIVE_DOCUMENT_RESTRICTED` (§17) but no
+    captured example shows the envelope; the UI treats any `403` on download
+    as access-restricted rather than parsing a specific code.
+39. **Bulk operations (bulk upload, bulk verification) and parent-side
+    upload** — none are documented anywhere in the collection or the design
+    spec; not built, and not stubbed with disabled UI, since no screen was
+    ever designed around them (AGENTS.md §28 — a missing endpoint is never
+    filled in).
 
 None of these blocks further frontend work. Each one, when answered, turns a
 `Backend Pending` marker into a wired feature without restructuring anything.

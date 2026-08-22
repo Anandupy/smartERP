@@ -12,6 +12,45 @@ export interface ChecklistItem {
   state: ChecklistItemState;
 }
 
+export interface RequirementScope {
+  programId: string;
+  quotaId?: string | null;
+  categoryId?: string | null;
+}
+
+/**
+ * Whether a requirement applies to the given program/quota/category.
+ *
+ * Each `appliesTo*Id` is nullable, meaning "applies to all" (design spec §8)
+ * — matched here rather than server-side, since the only documented list
+ * filter for `/document-requirements` is `branchId`
+ * (`docs/backend-gaps.md` DOC-branch-scope).
+ */
+export function matchesRequirementScope(
+  requirement: DocumentRequirementDto,
+  scope: RequirementScope,
+): boolean {
+  if (
+    requirement.appliesToProgramId &&
+    requirement.appliesToProgramId !== scope.programId
+  ) {
+    return false;
+  }
+  if (
+    requirement.appliesToQuotaId &&
+    requirement.appliesToQuotaId !== (scope.quotaId ?? null)
+  ) {
+    return false;
+  }
+  if (
+    requirement.appliesToCategoryId &&
+    requirement.appliesToCategoryId !== (scope.categoryId ?? null)
+  ) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Client-side mirror of the server's `DOCUMENT_CHECKLIST_SATISFIED` guard,
  * **for display only** — the server remains the sole authority, evaluated
@@ -27,6 +66,7 @@ export interface ChecklistItem {
 export function buildChecklist(
   requirements: readonly DocumentRequirementDto[],
   documents: readonly DocumentDto[],
+  scope: RequirementScope,
 ): ChecklistItem[] {
   const byType = new Map<string, DocumentDto>();
   for (const document of documents) {
@@ -34,7 +74,10 @@ export function buildChecklist(
   }
 
   return requirements
-    .filter((requirement) => requirement.isActive)
+    .filter(
+      (requirement) =>
+        requirement.isActive && matchesRequirementScope(requirement, scope),
+    )
     .map((requirement) => {
       const document = byType.get(requirement.documentTypeId) ?? null;
       return {
