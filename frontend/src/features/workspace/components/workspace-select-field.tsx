@@ -64,12 +64,18 @@ export function WorkspaceSelectField({
         <SelectTrigger
           id={id}
           aria-labelledby={`${labelId} ${id}`}
-          className="h-auto w-full py-2.5 pl-3"
+          className="min-h-14 h-auto w-full py-2.5 pl-2.5"
         >
-          <span className="flex min-w-0 items-center gap-2.5">
-            <Icon aria-hidden="true" className="text-primary size-4 shrink-0" />
+          <span className="flex min-w-0 flex-1 items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg"
+            >
+              <Icon className="size-4" />
+            </span>
             <SelectValue
               placeholder={isEmpty ? emptyPlaceholder : placeholder}
+              className="min-w-0"
             />
           </span>
         </SelectTrigger>
@@ -77,9 +83,11 @@ export function WorkspaceSelectField({
           {options.map((option) => (
             <SelectItem key={option.id} value={option.id}>
               <span className="flex min-w-0 flex-col items-start gap-0.5">
-                <span className="truncate">{option.name}</span>
+                <span className="text-foreground truncate text-sm font-medium">
+                  {option.name}
+                </span>
                 {option.code ? (
-                  <span className="text-muted-foreground text-xs">
+                  <span className="text-muted-foreground truncate text-xs">
                     {option.code}
                   </span>
                 ) : null}

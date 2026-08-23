@@ -92,11 +92,11 @@ export function WorkspaceBranchField({
                 </div>
 
                 <div className="min-w-0 space-y-0.5">
-                  <span className="text-foreground block text-sm font-medium">
+                  <span className="text-foreground block truncate text-sm font-medium">
                     {branch.name}
                   </span>
                   {branch.code ? (
-                    <span className="text-muted-foreground block text-xs">
+                    <span className="text-muted-foreground block truncate text-xs">
                       {branch.code}
                     </span>
                   ) : null}
