@@ -6,16 +6,18 @@ import {
 } from '../workspace-setup.types';
 
 export class SetupActionDto implements SetupAction {
-  @ApiProperty({ example: 'CREATE_ORGANIZATION' })
+  @ApiProperty({ example: 'INIT_SYSTEM_SETTINGS' })
   action!: string;
 
   @ApiProperty({ example: 'POST' })
   method!: string;
 
-  @ApiProperty({ example: '/v1/organizations' })
+  @ApiProperty({ example: '/v1/system-settings/init' })
   path!: string;
 
-  @ApiProperty({ example: 'Create the first organization.' })
+  @ApiProperty({
+    example: 'Initialize the platform-level system configuration.',
+  })
   description!: string;
 }
 
@@ -28,14 +30,21 @@ export class WorkspaceSetupStatusDto {
 
   @ApiProperty({
     description: 'The resource to create next, or FINALIZE / COMPLETED.',
-    enum: ['ORGANIZATION', 'BRANCH', 'ACADEMIC_YEAR', 'FINALIZE', 'COMPLETED'],
-    example: 'ORGANIZATION',
+    enum: [
+      'SYSTEM_SETTINGS',
+      'ORGANIZATION',
+      'BRANCH',
+      'ACADEMIC_YEAR',
+      'FINALIZE',
+      'COMPLETED',
+    ],
+    example: 'SYSTEM_SETTINGS',
   })
   setupStage!: WorkspaceSetupStage;
 
   @ApiProperty({
     description: 'Resources that do not yet exist, in creation order.',
-    example: ['ORGANIZATION', 'BRANCH', 'ACADEMIC_YEAR'],
+    example: ['SYSTEM_SETTINGS', 'ORGANIZATION', 'BRANCH', 'ACADEMIC_YEAR'],
     isArray: true,
   })
   missingResources!: SetupResource[];

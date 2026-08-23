@@ -12,6 +12,7 @@ describe('WorkspaceSetupService', () => {
       findUnique: jest.fn(),
       upsert: jest.fn(),
     },
+    systemSetting: { findFirst: jest.fn() },
     organization: { findFirst: jest.fn() },
     branch: { findFirst: jest.fn() },
     academicYear: { findFirst: jest.fn() },
@@ -19,10 +20,14 @@ describe('WorkspaceSetupService', () => {
 
   /** Describes which bootstrap resources exist in the database. */
   const withResources = (opts: {
+    systemSettings?: boolean;
     organization?: boolean;
     branch?: boolean;
     academicYear?: boolean;
   }) => {
+    mockPrisma.systemSetting.findFirst.mockResolvedValue(
+      opts.systemSettings ? { id: 'sys-1' } : null,
+    );
     mockPrisma.organization.findFirst.mockResolvedValue(
       opts.organization ? { id: 'org-1' } : null,
     );
@@ -54,15 +59,16 @@ describe('WorkspaceSetupService', () => {
   });
 
   describe('getStatus', () => {
-    it('reports ORGANIZATION as the first stage on an empty installation', async () => {
+    it('reports SYSTEM_SETTINGS as the first stage on an empty installation', async () => {
       mockPrisma.workspaceState.findUnique.mockResolvedValue(null);
       withResources({});
 
       const status = await service.getStatus();
 
       expect(status.setupRequired).toBe(true);
-      expect(status.setupStage).toBe('ORGANIZATION');
+      expect(status.setupStage).toBe('SYSTEM_SETTINGS');
       expect(status.missingResources).toEqual([
+        'SYSTEM_SETTINGS',
         'ORGANIZATION',
         'BRANCH',
         'ACADEMIC_YEAR',
@@ -72,20 +78,42 @@ describe('WorkspaceSetupService', () => {
       expect(status.initializedAt).toBeNull();
     });
 
+    it('advances to ORGANIZATION once system settings exist', async () => {
+      mockPrisma.workspaceState.findUnique.mockResolvedValue(null);
+      withResources({ systemSettings: true });
+
+      const status = await service.getStatus();
+
+      expect(status.setupStage).toBe('ORGANIZATION');
+      expect(status.completedResources).toEqual(['SYSTEM_SETTINGS']);
+      expect(status.missingResources).toEqual([
+        'ORGANIZATION',
+        'BRANCH',
+        'ACADEMIC_YEAR',
+      ]);
+    });
+
     it('advances to BRANCH once an organization exists', async () => {
       mockPrisma.workspaceState.findUnique.mockResolvedValue(null);
-      withResources({ organization: true });
+      withResources({ systemSettings: true, organization: true });
 
       const status = await service.getStatus();
 
       expect(status.setupStage).toBe('BRANCH');
-      expect(status.completedResources).toEqual(['ORGANIZATION']);
+      expect(status.completedResources).toEqual([
+        'SYSTEM_SETTINGS',
+        'ORGANIZATION',
+      ]);
       expect(status.missingResources).toEqual(['BRANCH', 'ACADEMIC_YEAR']);
     });
 
     it('advances to ACADEMIC_YEAR once a branch exists', async () => {
       mockPrisma.workspaceState.findUnique.mockResolvedValue(null);
-      withResources({ organization: true, branch: true });
+      withResources({
+        systemSettings: true,
+        organization: true,
+        branch: true,
+      });
 
       const status = await service.getStatus();
 
@@ -95,7 +123,12 @@ describe('WorkspaceSetupService', () => {
 
     it('reports FINALIZE when every resource exists but setup was never completed', async () => {
       mockPrisma.workspaceState.findUnique.mockResolvedValue(null);
-      withResources({ organization: true, branch: true, academicYear: true });
+      withResources({
+        systemSettings: true,
+        organization: true,
+        branch: true,
+        academicYear: true,
+      });
 
       const status = await service.getStatus();
 
@@ -109,7 +142,12 @@ describe('WorkspaceSetupService', () => {
       mockPrisma.workspaceState.findUnique.mockResolvedValue({
         initializedAt: new Date('2026-01-01T00:00:00.000Z'),
       });
-      withResources({ organization: true, branch: true, academicYear: true });
+      withResources({
+        systemSettings: true,
+        organization: true,
+        branch: true,
+        academicYear: true,
+      });
 
       const status = await service.getStatus();
 
@@ -159,11 +197,26 @@ describe('WorkspaceSetupService', () => {
       expect(mockPrisma.workspaceState.upsert).not.toHaveBeenCalled();
     });
 
+    it('refuses READY while system settings are uninitialized, even with a full academic foundation', async () => {
+      mockPrisma.workspaceState.findUnique.mockResolvedValue(null);
+      withResources({ organization: true, branch: true, academicYear: true });
+
+      await expect(service.markInitialized('user-1')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(mockPrisma.workspaceState.upsert).not.toHaveBeenCalled();
+    });
+
     it('records completion with the acting user', async () => {
       mockPrisma.workspaceState.findUnique
         .mockResolvedValueOnce(null)
         .mockResolvedValue({ initializedAt: new Date('2026-02-01') });
-      withResources({ organization: true, branch: true, academicYear: true });
+      withResources({
+        systemSettings: true,
+        organization: true,
+        branch: true,
+        academicYear: true,
+      });
 
       const status = await service.markInitialized('user-1');
 
@@ -180,7 +233,12 @@ describe('WorkspaceSetupService', () => {
       mockPrisma.workspaceState.findUnique.mockResolvedValue({
         initializedAt: new Date('2026-02-01'),
       });
-      withResources({ organization: true, branch: true, academicYear: true });
+      withResources({
+        systemSettings: true,
+        organization: true,
+        branch: true,
+        academicYear: true,
+      });
 
       const status = await service.markInitialized('user-2');
 

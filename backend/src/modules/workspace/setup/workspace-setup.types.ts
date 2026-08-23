@@ -1,8 +1,17 @@
 /**
  * The resources a workspace must have before normal operation can begin.
  * Ordered: each stage depends on the one before it.
+ *
+ * `SYSTEM_SETTINGS` comes first because it is platform-level and
+ * SUPER_ADMIN-only (`SystemSettingsController` is `@Roles(SUPER_ADMIN)`
+ * throughout): every other stage can be delegated to an ORG_ADMIN, but the
+ * installation's product identity cannot. Programs and Academic Units are
+ * deliberately absent — they are real domain concepts but not part of the
+ * mandatory foundation; the ERP maintains its academic hierarchy through them
+ * after bootstrap, not during it.
  */
 export const SETUP_RESOURCES = [
+  'SYSTEM_SETTINGS',
   'ORGANIZATION',
   'BRANCH',
   'ACADEMIC_YEAR',
@@ -65,6 +74,20 @@ export const SETUP_ALLOWED_ACTIONS: SetupAction[] = [
     method: 'GET',
     path: '/v1/workspace/setup/status',
     description: 'Read the current setup stage and missing resources.',
+  },
+  {
+    action: 'INIT_SYSTEM_SETTINGS',
+    method: 'POST',
+    path: '/v1/system-settings/init',
+    description:
+      'Initialize the platform-level system configuration (SUPER_ADMIN only).',
+  },
+  {
+    action: 'PROVISION_ORG_ADMIN',
+    method: 'POST',
+    path: '/v1/users',
+    description:
+      'Provision an ORG_ADMIN to complete organization setup (SUPER_ADMIN only), or delegate further roles once an organization exists.',
   },
   {
     action: 'CREATE_ORGANIZATION',

@@ -4,6 +4,7 @@ import { LoggerService } from '@/common/logger/logger.service';
 import { OrganizationStatus } from '@/generated/client';
 import {
   SETUP_ALLOWED_ACTIONS,
+  SETUP_RESOURCES,
   SetupResource,
   WorkspaceSetupStage,
   WorkspaceSetupStatus,
@@ -137,22 +138,25 @@ export class WorkspaceSetupService {
    * reject.
    */
   private async findPresentResources(): Promise<SetupResource[]> {
-    const [organization, branch, academicYear] = await Promise.all([
-      this.prisma.organization.findFirst({
-        where: { status: OrganizationStatus.ACTIVE },
-        select: { id: true },
-      }),
-      this.prisma.branch.findFirst({
-        where: { isActive: true, isDeleted: false },
-        select: { id: true },
-      }),
-      this.prisma.academicYear.findFirst({
-        where: { isDeleted: false },
-        select: { id: true },
-      }),
-    ]);
+    const [systemSettings, organization, branch, academicYear] =
+      await Promise.all([
+        this.prisma.systemSetting.findFirst({ select: { id: true } }),
+        this.prisma.organization.findFirst({
+          where: { status: OrganizationStatus.ACTIVE },
+          select: { id: true },
+        }),
+        this.prisma.branch.findFirst({
+          where: { isActive: true, isDeleted: false },
+          select: { id: true },
+        }),
+        this.prisma.academicYear.findFirst({
+          where: { isDeleted: false },
+          select: { id: true },
+        }),
+      ]);
 
     const present: SetupResource[] = [];
+    if (systemSettings) present.push('SYSTEM_SETTINGS');
     if (organization) present.push('ORGANIZATION');
     if (branch) present.push('BRANCH');
     if (academicYear) present.push('ACADEMIC_YEAR');
@@ -160,11 +164,7 @@ export class WorkspaceSetupService {
   }
 
   private missingFrom(present: SetupResource[]): SetupResource[] {
-    const missing: SetupResource[] = [];
-    if (!present.includes('ORGANIZATION')) missing.push('ORGANIZATION');
-    if (!present.includes('BRANCH')) missing.push('BRANCH');
-    if (!present.includes('ACADEMIC_YEAR')) missing.push('ACADEMIC_YEAR');
-    return missing;
+    return SETUP_RESOURCES.filter((resource) => !present.includes(resource));
   }
 
   private stageFor(

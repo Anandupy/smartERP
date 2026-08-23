@@ -6,6 +6,7 @@ import { UpdateSystemDto } from './dto/update-system.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole } from '@/common/enums/role.enum';
 import { RequirePermission } from '@/common/decorators/permission.decorator';
+import { AllowDuringSetup } from '@/common/decorators/allow-during-setup.decorator';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 import {
   ApiCreatedEnvelope,
@@ -22,11 +23,12 @@ export class SystemSettingsController {
   constructor(private readonly systemSettingsService: SystemSettingsService) {}
 
   @Post('init')
+  @AllowDuringSetup()
   @RequirePermission(PERMISSIONS.System.Manage)
   @ApiOperation({
     summary: 'Initialize system settings (allowed only once)',
     description:
-      'Creates the singleton configuration record. A second call is rejected with 409.',
+      'Creates the singleton configuration record. A second call is rejected with 409. This is stage one of workspace bootstrap — see `docs/core/workspace-bootstrap.md` — so it must remain reachable before an Organization, Branch or Academic Year exists.',
   })
   @ApiCreatedEnvelope(SystemSettingsDto, {
     message: 'System settings initialized successfully',
@@ -38,6 +40,7 @@ export class SystemSettingsController {
   }
 
   @Get()
+  @AllowDuringSetup()
   @RequirePermission(PERMISSIONS.System.View)
   @ApiOperation({ summary: 'Get global system configuration' })
   @ApiOkEnvelope(SystemSettingsDto, {
@@ -50,6 +53,7 @@ export class SystemSettingsController {
   }
 
   @Patch()
+  @AllowDuringSetup()
   @RequirePermission(PERMISSIONS.System.Manage)
   @ApiOperation({
     summary: 'Update system configuration',
