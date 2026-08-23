@@ -13,6 +13,11 @@ import {
 } from '@/common/events';
 import { CreateAcademicYearDto } from './dto/create-academic-year.dto';
 import { UpdateAcademicYearDto } from './dto/update-academic-year.dto';
+import {
+  assertBranchInScope,
+  assertOrganizationInScope,
+} from '@/common/scope/resource-scope';
+import type { RequestContext } from '@/common/logger/request-context.types';
 
 @Injectable()
 export class AcademicYearService {
@@ -21,7 +26,11 @@ export class AcademicYearService {
     private readonly eventBus: EventBus,
   ) {}
 
-  async create(dto: CreateAcademicYearDto, creatorId?: string) {
+  async create(
+    dto: CreateAcademicYearDto,
+    creatorId?: string,
+    context?: RequestContext,
+  ) {
     const { branchId, startDate, endDate } = dto;
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -37,6 +46,11 @@ export class AcademicYearService {
     if (!branch) {
       throw new NotFoundException('Branch not found');
     }
+
+    // BRANCH_ADMIN may only act on their own branch; ORG_ADMIN may only act
+    // within their own organization's branches. SUPER_ADMIN is unrestricted.
+    assertBranchInScope(context, branch.id);
+    assertOrganizationInScope(context, branch.organizationId);
 
     // Overlap check
     const overlap = await this.prisma.academicYear.findFirst({

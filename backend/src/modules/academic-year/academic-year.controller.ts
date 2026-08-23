@@ -58,7 +58,11 @@ export class AcademicYearController {
     if (req.context?.branchId && !dto.branchId) {
       dto.branchId = req.context.branchId;
     }
-    const data = await this.academicYearService.create(dto, req.userId);
+    const data = await this.academicYearService.create(
+      dto,
+      req.userId,
+      req.context,
+    );
     return { data, message: 'Academic year created successfully' };
   }
 

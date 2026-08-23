@@ -14,6 +14,8 @@ import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { RoleType } from '@/generated/client';
+import { assertOrganizationInScope } from '@/common/scope/resource-scope';
+import type { RequestContext } from '@/common/logger/request-context.types';
 
 @Injectable()
 export class BranchService {
@@ -23,7 +25,16 @@ export class BranchService {
     private readonly requestContext: RequestContextService,
   ) {}
 
-  async createBranch(dto: CreateBranchDto, userId?: string) {
+  async createBranch(
+    dto: CreateBranchDto,
+    userId?: string,
+    context?: RequestContext,
+  ) {
+    // An ORG_ADMIN's own tenant scope, not just SUPER_ADMIN's unrestricted
+    // reach, must confine which organization a new branch can be filed
+    // under — otherwise the organizationId in the body is trusted blindly.
+    assertOrganizationInScope(context, dto.organizationId);
+
     // Validate organization exists
     const org = await this.prisma.organization.findUnique({
       where: { id: dto.organizationId },

@@ -41,7 +41,11 @@ export class BranchController {
   @ApiCreatedEnvelope(BranchDto, { message: 'Branch created successfully' })
   @ApiStandardErrors(404, 409)
   async create(@Body() dto: CreateBranchDto, @Req() req: any) {
-    const data = await this.branchService.createBranch(dto, req.userId);
+    const data = await this.branchService.createBranch(
+      dto,
+      req.userId,
+      req.context,
+    );
     return { data, message: 'Branch created successfully' };
   }
 
