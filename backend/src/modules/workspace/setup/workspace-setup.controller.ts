@@ -40,11 +40,11 @@ export class WorkspaceSetupController {
 
   @Post('complete')
   @AllowDuringSetup()
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
   @ApiOperation({
     summary: 'Mark the workspace initialized',
     description:
-      'Completes bootstrap once an organization, branch and academic year all exist. From this point the tenant context headers apply as normal. Idempotent.',
+      'Completes bootstrap once an organization, branch and academic year all exist. From this point the tenant context headers apply as normal. Idempotent. SUPER_ADMIN may complete setup unconditionally; an ORG_ADMIN may complete it only once resolved to their own organization (see WorkspaceSetupService.markInitialized).',
   })
   @ApiCreatedEnvelope(WorkspaceSetupStatusDto, {
     message: 'Workspace marked initialized successfully',
@@ -54,7 +54,10 @@ export class WorkspaceSetupController {
     data: WorkspaceSetupStatusDto;
     message: string;
   }> {
-    const data = await this.setupService.markInitialized(req.userId ?? null);
+    const data = await this.setupService.markInitialized(req.userId ?? null, {
+      role: req.context?.role ?? null,
+      organizationId: req.context?.organizationId ?? null,
+    });
     return { data, message: 'Workspace marked initialized successfully' };
   }
 }

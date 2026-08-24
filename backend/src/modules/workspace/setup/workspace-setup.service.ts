@@ -1,7 +1,12 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { LoggerService } from '@/common/logger/logger.service';
 import { OrganizationStatus } from '@/generated/client';
+import { UserRole } from '@/common/enums/role.enum';
 import {
   SETUP_ALLOWED_ACTIONS,
   SETUP_RESOURCES,
@@ -11,6 +16,19 @@ import {
 } from './workspace-setup.types';
 
 const WORKSPACE_STATE_SCOPE = 'GLOBAL';
+
+/**
+ * Who is asking to complete setup, as resolved onto the request by
+ * `ExecutionContextGuard` (`resolveBootstrapContext`) before this runs.
+ *
+ * `organizationId` reflects the single organization discovery found for this
+ * caller — never a body-supplied value — so it cannot be spoofed the way a DTO
+ * field could.
+ */
+export interface SetupCompletionActor {
+  role: string | null;
+  organizationId: string | null;
+}
 
 /**
  * Owns the workspace bootstrap state.
@@ -94,8 +112,31 @@ export class WorkspaceSetupService {
    * Idempotent, and refuses while any required resource is still missing —
    * completing setup early would re-create the deadlock in a harder-to-diagnose
    * form, with the header contract enforced against records that do not exist.
+   *
+   * `actor` authorizes *who* may call this at all, on top of `@Roles()`:
+   * `SUPER_ADMIN` is unconditional. An `ORG_ADMIN` may only finish setup once
+   * resolved to exactly one organization — `context.organizationId` is null
+   * both for an `ORG_ADMIN` never assigned an organization and for one whose
+   * assignment does not (yet) resolve to a single discoverable organization
+   * (see `ContextResolverService.resolveBootstrapContext`). Refusing that case
+   * closes the one way this endpoint could otherwise be triggered by an
+   * account with no real stake in the organization being finalized — the
+   * `workspace_state` row itself stays a single global flag (§2 of
+   * `docs/core/workspace-bootstrap.md`), so this is the only place that
+   * "their own organization" can be checked.
    */
-  async markInitialized(userId: string | null): Promise<WorkspaceSetupStatus> {
+  async markInitialized(
+    userId: string | null,
+    actor: SetupCompletionActor = { role: null, organizationId: null },
+  ): Promise<WorkspaceSetupStatus> {
+    if (actor.role === UserRole.ORG_ADMIN && !actor.organizationId) {
+      throw new ForbiddenException({
+        error: 'ORGANIZATION_SCOPE_REQUIRED',
+        message:
+          'Completing setup requires an organization assigned to your account.',
+      });
+    }
+
     const current = await this.getStatus();
 
     if (!current.setupRequired) {

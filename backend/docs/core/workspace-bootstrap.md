@@ -100,11 +100,15 @@ POST /system-settings/init          @AllowDuringSetup, SUPER_ADMIN only
                                                                     │
     ┌───────────────────────────────────────────────────────────┘
     ▼
-POST /v1/workspace/setup/complete   @AllowDuringSetup, SUPER_ADMIN
+POST /v1/workspace/setup/complete   @AllowDuringSetup, SUPER_ADMIN or ORG_ADMIN
     │  → setupStage: "COMPLETED"
     ▼
 Normal operation — tenant headers now apply
 ```
+
+`SUPER_ADMIN` may complete setup unconditionally. An `ORG_ADMIN` may complete
+it too — Path B does not stall on a step only `SUPER_ADMIN` could take — but
+only once resolved to exactly one organization; see §6.
 
 `GET /v1/workspace/setup/status` returns the same payload at any point, so a
 client that reloads mid-wizard can resume without replaying the flow — this is
@@ -157,7 +161,7 @@ Currently marked:
 | :----------------------------------- | :------------------------------------------------------ |
 | `GET /auth/me`                      | Where the client learns setup is required              |
 | `GET /v1/workspace/setup/status`    | Wizard state                                            |
-| `POST /v1/workspace/setup/complete` | Finalisation, `SUPER_ADMIN` only                        |
+| `POST /v1/workspace/setup/complete` | Finalisation, `SUPER_ADMIN` or an `ORG_ADMIN` resolved to their own organization (§6) |
 | `POST /system-settings/init`        | Stage 0, `SUPER_ADMIN` only (§2)                        |
 | `GET`/`PATCH /system-settings`      | So SUPER_ADMIN can review/adjust it mid-setup           |
 | `POST /v1/users`                    | ORG_ADMIN provisioning (Path B) and further delegation  |

@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { WorkspaceSetupService } from '@/modules/workspace/setup/workspace-setup.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { LoggerService } from '@/common/logger/logger.service';
+import { UserRole } from '@/common/enums/role.enum';
 
 describe('WorkspaceSetupService', () => {
   let service: WorkspaceSetupService;
@@ -244,6 +245,62 @@ describe('WorkspaceSetupService', () => {
 
       expect(mockPrisma.workspaceState.upsert).not.toHaveBeenCalled();
       expect(status.setupStage).toBe('COMPLETED');
+    });
+
+    it('allows an ORG_ADMIN resolved to an organization to complete setup', async () => {
+      mockPrisma.workspaceState.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue({ initializedAt: new Date('2026-02-01') });
+      withResources({
+        systemSettings: true,
+        organization: true,
+        branch: true,
+        academicYear: true,
+      });
+
+      const status = await service.markInitialized('org-admin-1', {
+        role: UserRole.ORG_ADMIN,
+        organizationId: 'org-1',
+      });
+
+      expect(mockPrisma.workspaceState.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({ initializedById: 'org-admin-1' }),
+        }),
+      );
+      expect(status.setupRequired).toBe(false);
+    });
+
+    it('refuses an ORG_ADMIN with no resolved organization', async () => {
+      const status = service.markInitialized('org-admin-2', {
+        role: UserRole.ORG_ADMIN,
+        organizationId: null,
+      });
+
+      await expect(status).rejects.toThrow(ForbiddenException);
+      expect(mockPrisma.workspaceState.upsert).not.toHaveBeenCalled();
+      // Rejected before even reading current status — an unaffiliated
+      // ORG_ADMIN has no basis to trigger the check at all.
+      expect(mockPrisma.workspaceState.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('does not require an organization for SUPER_ADMIN', async () => {
+      mockPrisma.workspaceState.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue({ initializedAt: new Date('2026-02-01') });
+      withResources({
+        systemSettings: true,
+        organization: true,
+        branch: true,
+        academicYear: true,
+      });
+
+      const status = await service.markInitialized('super-1', {
+        role: UserRole.SUPER_ADMIN,
+        organizationId: null,
+      });
+
+      expect(status.setupRequired).toBe(false);
     });
   });
 });
