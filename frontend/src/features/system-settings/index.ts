@@ -39,6 +39,14 @@ export {
   type GeneralSettingsFormProps,
 } from "./components/general-settings-form";
 export {
+  InitializeSettingsForm,
+  type InitializeSettingsFormProps,
+} from "./components/initialize-settings-form";
+export {
+  InitializeSettingsDialog,
+  type InitializeSettingsDialogProps,
+} from "./components/initialize-settings-dialog";
+export {
   MaintenanceSupportForm,
   type MaintenanceSupportFormProps,
 } from "./components/maintenance-support-form";
