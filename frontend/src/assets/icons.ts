@@ -118,6 +118,7 @@ export {
   TriangleAlert,
   Upload,
   User,
+  UserPlus,
   Users,
   UsersRound,
   UserX,
