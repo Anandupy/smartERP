@@ -149,12 +149,22 @@ never be served from a stale cache.
 
 ### Status
 
-| Status        | Meaning                                               |
-| ------------- | ----------------------------------------------------- |
-| `idle`        | nothing loaded; the app cannot decide anything yet    |
-| `selecting`   | a real choice exists and the user has not resolved it |
-| `ready`       | a complete scope is active; scoped screens may render |
-| `unavailable` | authenticated, but no scope can be formed at all      |
+| Status            | Meaning                                                    |
+| ----------------- | ----------------------------------------------------------- |
+| `idle`            | nothing loaded; the app cannot decide anything yet          |
+| `setup-required`  | the installation has not finished initial bootstrap         |
+| `selecting`       | a real choice exists and the user has not resolved it       |
+| `ready`           | a complete scope is active; scoped screens may render       |
+| `unavailable`     | authenticated, but no scope can be formed at all             |
+
+`setup-required` is decided by `setAvailability` before `resolveWorkspaceAccess`
+ever runs, and only for a role entitled to run setup (`ROLES_REQUIRING_SELECTION`
+— the same two roles that choose their own scope here). A fresh install has zero
+organizations, which `resolveWorkspaceAccess` would otherwise read as
+`unavailable`; that reading is only correct once bootstrap is done. Every other
+role falls through to ordinary resolution unchanged, setup or not. See
+[`workspace-setup-module.md`](./workspace-setup-module.md) for the wizard this
+status routes to.
 
 ## Headers
 
@@ -187,13 +197,16 @@ SessionProvider
 `WorkspaceProvider` holds no state of its own. It registers the headers, mirrors
 the active scope into `SessionContext`, and renders its children.
 
-| Guard              | Question                  | Group                  |
-| ------------------ | ------------------------- | ---------------------- |
-| `ProtectedRoute`   | is the visitor signed in? | `(app)`, `(workspace)` |
-| `RequireWorkspace` | signed in _where_?        | `(app)` only           |
+| Guard                     | Question                          | Group                          |
+| ------------------------- | ---------------------------------- | ------------------------------- |
+| `ProtectedRoute`          | is the visitor signed in?          | `(app)`, `(workspace)`, `(setup)` |
+| `RequireWorkspace`        | signed in _where_?                 | `(app)` only                    |
+| `RequireSetupIncomplete`  | is bootstrap genuinely in progress? | `(setup)/setup/(wizard)` only  |
 
 The `(workspace)` group is guarded by `ProtectedRoute` **only** — gating the
-screen that resolves the scope behind the scope would send it to itself.
+screen that resolves the scope behind the scope would send it to itself. The
+same reasoning keeps `RequireSetupIncomplete` out of `(setup)`'s outer layout —
+see [`workspace-setup-module.md`](./workspace-setup-module.md).
 
 ## The identity endpoint
 
@@ -350,6 +363,7 @@ the campus grid has room.
 | `tests/unit/workspace-selection-schema.test.ts`  | validation order and membership re-checking                                      |
 | `tests/integration/workspace-selection.test.tsx` | loading, cascade, guard, single-workspace confirmation, skip, unavailable, retry |
 | `tests/integration/feedback.test.tsx`            | the shared state platform, including `ApiErrorState` kinds                       |
+| `tests/integration/workspace-setup-redirect.test.tsx` | `setup-required` routing from this screen, and the no-setup-authority/regression cases |
 
 `GET /auth/me` is mocked at the network boundary in
 `tests/mocks/workspace-handlers.ts`; identities are built with
@@ -363,6 +377,10 @@ the campus grid has room.
      `lg` up, in the header. See [Dashboard Shell](./dashboard-shell.md).
 2. **Dashboard** — `features/dashboard` replaces the `/app` placeholder, reading
    its scope through `useWorkspace()` and nothing else.
+3. **Initial setup wizard** — `setup-required` status and `features/workspace-setup`,
+   covering the fresh-install case this module's own `unavailable`/
+   `no-organizations` outcome could not distinguish from a genuinely
+   misconfigured account. See [`workspace-setup-module.md`](./workspace-setup-module.md).
 
 ## What lands next
 

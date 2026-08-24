@@ -107,7 +107,7 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 | Path                                                | Responsibility                                                                                                                                                                    |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/app`                                           | Routing, layouts, route-level error/loading/404 (thin).                                                                                                                           |
-| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `navigation`, `dashboard`, `organization`, `branch`, `academic-year`, `program`, `academic-unit`, `admission-masters`, `admissions`, `documents`, `guardians`, `person`, `numbering`, `system-settings`, `maintenance`, `audit`, `communication`, `security`, `workspace-admin`. |
+| `src/features/*`                                    | Business modules; the only place with domain logic. Shipped: `auth`, `workspace`, `workspace-setup`, `navigation`, `dashboard`, `organization`, `branch`, `academic-year`, `program`, `academic-unit`, `admission-masters`, `admissions`, `documents`, `guardians`, `person`, `numbering`, `system-settings`, `maintenance`, `audit`, `communication`, `security`, `workspace-admin`. |
 | `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.                                                                                                                              |
 | `src/shared/components/{data,data-display,overlay}` | Table system, tiles/badges/cards, dialogs and drawers.                                                                                                                            |
 | `src/shared`                                        | Cross-feature presentational building blocks + error boundary.                                                                                                                    |
@@ -410,8 +410,14 @@ useWorkspace()` from `@/core/workspace`. Never re-fetch it, never prop-drill it.
   wire.
 - Sign-out must clear the scope — it is persisted and would otherwise carry to
   the next user on that machine.
+- **A fresh install is a fourth status, not a fourth reason for `unavailable`.**
+  `setAvailability` checks the backend's setup block before
+  `resolveWorkspaceAccess` runs at all; `"setup-required"` routes
+  `SUPER_ADMIN`/`ORG_ADMIN` to `/setup` (`features/workspace-setup`) instead of
+  the "no organizations" screen. Every other role is unaffected.
 
-Detail: [`docs/workspace.md`](./docs/workspace.md).
+Detail: [`docs/workspace.md`](./docs/workspace.md),
+[`docs/workspace-setup-module.md`](./docs/workspace-setup-module.md).
 
 ## 28. Contract-Driven Modules
 
