@@ -87,11 +87,21 @@ export interface WorkspaceSelectionPolicy {
  * Where the workspace platform currently stands.
  *
  * - `idle` — nothing loaded yet; the app cannot decide anything.
+ * - `setup-required` — the installation has not finished initial bootstrap
+ *   (see `docs/workspace-setup-module.md`); a `SUPER_ADMIN`/`ORG_ADMIN` is sent
+ *   to the setup wizard instead of ordinary workspace resolution. Takes
+ *   priority over every other status — it is checked before availability is
+ *   even considered.
  * - `selecting` — a real choice exists and the user has not resolved it.
  * - `ready` — a complete scope is active; scoped screens may render.
  * - `unavailable` — authenticated, but no scope can be formed at all.
  */
-export type WorkspaceStatus = "idle" | "selecting" | "ready" | "unavailable";
+export type WorkspaceStatus =
+  | "idle"
+  | "setup-required"
+  | "selecting"
+  | "ready"
+  | "unavailable";
 
 /** Which level came up empty, so the UI can say precisely what is missing. */
 export type WorkspaceUnavailableReason =
@@ -102,6 +112,64 @@ export interface WorkspaceResolution {
   status: WorkspaceStatus;
   selection: WorkspaceSelection;
   reason: WorkspaceUnavailableReason | null;
+}
+
+/**
+ * Resources the backend requires before ordinary workspace resolution applies.
+ *
+ * Mirrors the backend's `SETUP_RESOURCES` (`workspace-setup.types.ts`) exactly —
+ * this is a wire contract, not a frontend invention. `SYSTEM_SETTINGS` is
+ * first because it is platform-level and `SUPER_ADMIN`-only; every stage after
+ * it can be delegated to an `ORG_ADMIN`.
+ */
+export const SETUP_RESOURCES = [
+  "SYSTEM_SETTINGS",
+  "ORGANIZATION",
+  "BRANCH",
+  "ACADEMIC_YEAR",
+] as const;
+
+export type SetupResource = (typeof SETUP_RESOURCES)[number];
+
+/**
+ * The stage a workspace is currently at. `FINALIZE` means every resource
+ * exists and setup awaits explicit completion; `COMPLETED` means the
+ * tenant-header contract is in force.
+ */
+export const SETUP_STAGES = [
+  "SYSTEM_SETTINGS",
+  "ORGANIZATION",
+  "BRANCH",
+  "ACADEMIC_YEAR",
+  "FINALIZE",
+  "COMPLETED",
+] as const;
+
+export type WorkspaceSetupStage = (typeof SETUP_STAGES)[number];
+
+/** A call the client may make while setup is incomplete. */
+export interface SetupActionDescriptor {
+  action: string;
+  method: string;
+  path: string;
+  description: string;
+}
+
+/**
+ * The workspace bootstrap state, as `GET /auth/me` and
+ * `GET /workspace/setup/status` both report it.
+ *
+ * Progress is derived by the backend from which resources exist; only the
+ * terminal transition (`POST /workspace/setup/complete`) is ever written, so
+ * this is read-only from the frontend's perspective.
+ */
+export interface WorkspaceSetupStatus {
+  setupRequired: boolean;
+  setupStage: WorkspaceSetupStage;
+  missingResources: SetupResource[];
+  completedResources: SetupResource[];
+  allowedActions: SetupActionDescriptor[];
+  initializedAt: string | null;
 }
 
 /** The options valid for the current selection, already filtered. */

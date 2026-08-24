@@ -29,6 +29,23 @@ export const ROUTES = Object.freeze({
     root: "/workspace",
   },
   /**
+   * Initial setup wizard. Reached instead of `workspace` above when the
+   * installation has not finished bootstrap (`core/workspace`'s
+   * `"setup-required"` status) — `SUPER_ADMIN`/`ORG_ADMIN` only; see
+   * `docs/workspace-setup-module.md`. Once setup completes these routes
+   * redirect away like any other resolved status; they are not a second,
+   * permanent navigation path.
+   */
+  setup: {
+    root: "/setup",
+    systemSettings: "/setup/system-settings",
+    organization: "/setup/organization",
+    branch: "/setup/branch",
+    academicYear: "/setup/academic-year",
+    review: "/setup/review",
+    complete: "/setup/complete",
+  },
+  /**
    * The authenticated application. Every path below renders inside the
    * dashboard shell and is scoped by the active workspace.
    */

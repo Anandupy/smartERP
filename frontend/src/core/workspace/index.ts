@@ -12,7 +12,9 @@
 export { useWorkspace } from "./workspace-context";
 export { WorkspaceProvider } from "./workspace-provider";
 export {
+  RequireSetupIncomplete,
   RequireWorkspace,
+  type RequireSetupIncompleteProps,
   type RequireWorkspaceProps,
 } from "./workspace-guards";
 export { resolvePostAuthRoute } from "./workspace-route";
@@ -44,7 +46,13 @@ export {
   resolveWorkspaceAccess,
   roleRequiresSelection,
 } from "./workspace-policy";
+export {
+  SETUP_RESOURCES,
+  SETUP_STAGES,
+} from "./types";
 export type {
+  SetupActionDescriptor,
+  SetupResource,
   WorkspaceAcademicYear,
   WorkspaceAvailability,
   WorkspaceBranch,
@@ -55,6 +63,8 @@ export type {
   WorkspaceResolution,
   WorkspaceSelection,
   WorkspaceSelectionPolicy,
+  WorkspaceSetupStage,
+  WorkspaceSetupStatus,
   WorkspaceStatus,
   WorkspaceUnavailableReason,
 } from "./types";
