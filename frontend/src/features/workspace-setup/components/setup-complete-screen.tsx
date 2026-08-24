@@ -3,8 +3,10 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
 import { useWorkspace } from "@/core/workspace";
+import { FadeIn } from "@/shared";
 import { SuccessState } from "@/shared/components/feedback";
 
 export interface SetupCompleteScreenProps {
@@ -28,23 +30,49 @@ export function SetupCompleteScreen({ onContinue }: SetupCompleteScreenProps) {
 
   return (
     <div className="bg-muted/30 flex min-h-dvh items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md">
+      <FadeIn offsetY={16} className="w-full max-w-md space-y-6">
         <SuccessState
-          title="Your workspace is ready"
-          description={
-            organization
-              ? `${organization.name} is set up with ${branchCount} branch${branchCount === 1 ? "" : "es"} and ${yearCount} academic year${yearCount === 1 ? "" : "s"}. Programs and academic units are still optional — configure them any time from the main menu.`
-              : "Your workspace is set up. Programs and academic units are still optional — configure them any time from the main menu."
-          }
-          action={
-            <Button asChild size="lg">
-              <Link href={ROUTES.workspace.root} onClick={onContinue}>
-                Go to your workspace
-              </Link>
-            </Button>
-          }
+          title="CampusFlow is ready"
+          description="Your organization is configured and your workspace is ready to use. Programs and academic units are still optional — configure them any time from the main menu."
         />
-      </div>
+
+        {organization ? (
+          <Card>
+            <CardContent className="grid grid-cols-3 divide-x py-4 text-center">
+              <div className="flex flex-col gap-0.5 px-2">
+                <span className="text-foreground text-lg font-semibold">
+                  1
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  Organization
+                </span>
+              </div>
+              <div className="flex flex-col gap-0.5 px-2">
+                <span className="text-foreground text-lg font-semibold tabular-nums">
+                  {branchCount}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  Branch{branchCount === 1 ? "" : "es"}
+                </span>
+              </div>
+              <div className="flex flex-col gap-0.5 px-2">
+                <span className="text-foreground text-lg font-semibold tabular-nums">
+                  {yearCount}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  Academic year{yearCount === 1 ? "" : "s"}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <Button asChild size="lg" className="w-full">
+          <Link href={ROUTES.workspace.root} onClick={onContinue}>
+            Continue to Workspace
+          </Link>
+        </Button>
+      </FadeIn>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { useWorkspace, useWorkspaceStore } from "@/core/workspace";
 import { Banner } from "@/shared/components/feedback";
 
 import { ProvisionOrgAdminPanel } from "./provision-org-admin-panel";
+import { SetupProgressSummary } from "./setup-progress-summary";
 import { SetupShell } from "./setup-shell";
 import {
   buildSetupSteps,
@@ -63,9 +64,7 @@ export function SetupWelcomeScreen({
     >
       <Card>
         <CardContent className="space-y-6 py-6">
-          <p className="text-muted-foreground text-sm">
-            {completedCount} of {steps.length} required steps complete.
-          </p>
+          <SetupProgressSummary completed={completedCount} total={steps.length} />
 
           {current && !current.actionable ? (
             <Banner

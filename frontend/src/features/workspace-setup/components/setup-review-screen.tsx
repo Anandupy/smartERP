@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { TriangleAlert } from "@/assets/icons";
+import { CheckCircle2, Circle, TriangleAlert } from "@/assets/icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,10 +60,24 @@ export function SetupReviewScreen({ role, onCompleted }: SetupReviewScreenProps)
         <CardHeader>
           <CardTitle>Required foundation</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-1">
           {steps.map((step) => (
-            <div key={step.key} className="flex items-center justify-between text-sm">
-              <span>{step.label}</span>
+            <div
+              key={step.key}
+              className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm"
+            >
+              {step.status === "complete" ? (
+                <CheckCircle2
+                  aria-hidden="true"
+                  className="text-primary size-5 shrink-0"
+                />
+              ) : (
+                <Circle
+                  aria-hidden="true"
+                  className="text-muted-foreground/50 size-5 shrink-0"
+                />
+              )}
+              <span className="flex-1 font-medium">{step.label}</span>
               <span
                 className={
                   step.status === "complete"
@@ -78,22 +92,31 @@ export function SetupReviewScreen({ role, onCompleted }: SetupReviewScreenProps)
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-muted/40">
         <CardHeader>
           <CardTitle>Optional configuration</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           <p className="text-muted-foreground text-sm">
             Programs and academic units are not required to finish setup. Once
             your workspace is ready, configure them from Programs and Academic
             Units in the normal menu — whenever suits you.
           </p>
           {organization ? (
-            <p className="text-muted-foreground text-sm">
-              {options.organizations.length} organization ·{" "}
-              {options.branches.length} branch(es) ·{" "}
-              {options.academicYears.length} academic year(s) recorded so far.
-            </p>
+            <div className="flex gap-6 text-sm">
+              <span>
+                <span className="text-foreground font-semibold tabular-nums">
+                  {options.branches.length}
+                </span>{" "}
+                <span className="text-muted-foreground">branch(es)</span>
+              </span>
+              <span>
+                <span className="text-foreground font-semibold tabular-nums">
+                  {options.academicYears.length}
+                </span>{" "}
+                <span className="text-muted-foreground">academic year(s)</span>
+              </span>
+            </div>
           ) : null}
         </CardContent>
       </Card>
@@ -126,9 +149,9 @@ export function SetupReviewScreen({ role, onCompleted }: SetupReviewScreenProps)
             onClick={() => void handleComplete()}
           >
             {complete.isPending ? (
-              <Spinner size="sm" label="Finishing setup" />
+              <Spinner size="sm" label="Completing setup" />
             ) : null}
-            {complete.isPending ? "Finishing…" : "Finish setup"}
+            {complete.isPending ? "Completing…" : "Complete Setup"}
           </Button>
         </div>
       )}

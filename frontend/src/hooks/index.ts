@@ -8,3 +8,4 @@ export {
   type Countdown,
   type UseCountdownOptions,
 } from "./use-countdown";
+export { useCountUp } from "./use-count-up";

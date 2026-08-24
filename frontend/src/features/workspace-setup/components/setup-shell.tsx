@@ -1,7 +1,6 @@
 "use client";
 
 import { Stepper, type StepperStep } from "@/components/ui/stepper";
-import { Card, CardContent } from "@/components/ui/card";
 import { BrandMark, FadeIn } from "@/shared";
 
 export interface SetupShellProps {
@@ -37,11 +36,9 @@ export function SetupShell({
         </header>
 
         {steps ? (
-          <Card>
-            <CardContent className="py-4 sm:py-5">
-              <Stepper steps={steps} />
-            </CardContent>
-          </Card>
+          <div className="border-border/70 border-b pb-6">
+            <Stepper steps={steps} />
+          </div>
         ) : null}
 
         <FadeIn className="space-y-6">
