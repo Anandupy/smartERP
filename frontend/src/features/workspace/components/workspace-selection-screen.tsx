@@ -91,6 +91,11 @@ export function WorkspaceSelectionScreen({
               // The redirect is already in flight; this is the half-second
               // between confirming and the app taking over.
               <LoadingState message="Opening your workspace…" />
+            ) : status === "setup-required" ? (
+              // Same idea: the redirect to the setup wizard is already in
+              // flight (see `useWorkspaceRedirect`) — this is never a state
+              // the user chooses their way into.
+              <LoadingState message="Preparing your setup…" />
             ) : (
               <WorkspaceSelectionForm sessionActions={sessionActions} />
             )}

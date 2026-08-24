@@ -3,6 +3,7 @@ import type {
   IdentityBranchDto,
   IdentityDto,
   IdentityScopeDto,
+  IdentitySetupDto,
 } from "@/features/workspace";
 
 /**
@@ -98,6 +99,47 @@ export function singleChoiceIdentity(): IdentityDto {
     availableOrganizations: [organizationsFixture[0]],
     availableBranches: [branchesFixture[0]],
     availableAcademicYears: [academicYearsFixture[0]],
+  });
+}
+
+/**
+ * The workspace bootstrap block, complete by default.
+ *
+ * Setup tests override `setupRequired`/`missingResources`/`completedResources`
+ * per scenario; a fixture that already reflects "done" keeps every unrelated
+ * workspace-selection test — which never sets `setup` at all — unaffected,
+ * since `identityDto()` still omits this field unless a test opts in.
+ */
+export function setupStatusDto(
+  overrides: Partial<IdentitySetupDto> = {},
+): IdentitySetupDto {
+  return {
+    setupRequired: false,
+    setupStage: "COMPLETED",
+    missingResources: [],
+    completedResources: ["SYSTEM_SETTINGS", "ORGANIZATION", "BRANCH", "ACADEMIC_YEAR"],
+    allowedActions: [],
+    initializedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+/** A fresh installation: nothing configured yet, every resource missing. */
+export function freshInstallSetupDto(
+  overrides: Partial<IdentitySetupDto> = {},
+): IdentitySetupDto {
+  return setupStatusDto({
+    setupRequired: true,
+    setupStage: "SYSTEM_SETTINGS",
+    missingResources: [
+      "SYSTEM_SETTINGS",
+      "ORGANIZATION",
+      "BRANCH",
+      "ACADEMIC_YEAR",
+    ],
+    completedResources: [],
+    initializedAt: null,
+    ...overrides,
   });
 }
 

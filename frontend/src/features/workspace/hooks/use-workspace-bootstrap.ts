@@ -8,6 +8,7 @@ import { useWorkspaceStore, type WorkspaceStatus } from "@/core/workspace";
 import {
   toIdentityUser,
   toWorkspaceAvailability,
+  toWorkspaceSetupStatus,
 } from "../mappers/identity.mapper";
 import { useIdentity } from "./use-identity";
 
@@ -30,10 +31,13 @@ export interface WorkspaceBootstrap {
  *   token-claim stand-in — `name` becomes a real name and `can()` stops
  *   failing closed;
  * - the **available scopes and backend defaults** go to `core/workspace`,
- *   which runs the resolution policy over them.
+ *   which runs the resolution policy over them;
+ * - the **bootstrap state** goes to `core/workspace` too, published in the
+ *   same call so it can never disagree with the availability it overrides.
  *
  * Publishing rather than deciding is the point: this hook never says where to
- * navigate. `resolveWorkspaceAccess` decides whether a choice exists, and
+ * navigate. `resolveWorkspaceAccess` (short-circuited by setup, when it
+ * applies — see `workspace-store.ts`) decides whether a choice exists, and
  * `resolvePostAuthRoute` decides where that leads.
  */
 export function useWorkspaceBootstrap(): WorkspaceBootstrap {
@@ -53,7 +57,10 @@ export function useWorkspaceBootstrap(): WorkspaceBootstrap {
   useEffect(() => {
     if (!query.data) return;
     setUser(toIdentityUser(query.data, fallbackUser.current));
-    setAvailability(toWorkspaceAvailability(query.data));
+    setAvailability(
+      toWorkspaceAvailability(query.data),
+      toWorkspaceSetupStatus(query.data),
+    );
   }, [query.data, setUser, setAvailability]);
 
   return {

@@ -1,10 +1,16 @@
 import type { AuthUser } from "@/core/auth";
-import type {
-  WorkspaceAcademicYear,
-  WorkspaceAvailability,
-  WorkspaceBranch,
-  WorkspaceOrganization,
-  WorkspaceSelection,
+import {
+  SETUP_RESOURCES,
+  SETUP_STAGES,
+  type SetupActionDescriptor,
+  type SetupResource,
+  type WorkspaceAcademicYear,
+  type WorkspaceAvailability,
+  type WorkspaceBranch,
+  type WorkspaceOrganization,
+  type WorkspaceSelection,
+  type WorkspaceSetupStage,
+  type WorkspaceSetupStatus,
 } from "@/core/workspace";
 
 import type {
@@ -12,6 +18,8 @@ import type {
   IdentityBranchDto,
   IdentityDto,
   IdentityScopeDto,
+  IdentitySetupActionDto,
+  IdentitySetupDto,
 } from "../types/identity.dto";
 
 /**
@@ -142,6 +150,65 @@ export function toWorkspaceAvailability(
  * user built from the access token's claims, so the address stays correct
  * rather than being invented or blanked.
  */
+function isSetupResource(value: string): value is SetupResource {
+  return (SETUP_RESOURCES as readonly string[]).includes(value);
+}
+
+function isSetupStage(value: string): value is WorkspaceSetupStage {
+  return (SETUP_STAGES as readonly string[]).includes(value);
+}
+
+/** Drop anything not on the documented list, rather than guess at it. */
+function toResourceList(value: string[] | null | undefined): SetupResource[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isSetupResource);
+}
+
+function toSetupAction(
+  dto: IdentitySetupActionDto,
+): SetupActionDescriptor | null {
+  const action = text(dto?.action);
+  const method = text(dto?.method);
+  const path = text(dto?.path);
+  if (!action || !method || !path) return null;
+  return { action, method, path, description: text(dto?.description) ?? "" };
+}
+
+/**
+ * `/auth/me` → the workspace bootstrap state, or `null` when there is none to
+ * read.
+ *
+ * `setupRequired` is the one field this treats as load-bearing: without a
+ * boolean there, the block is either absent (an older backend) or malformed,
+ * and in both cases the honest answer is "no setup information available" —
+ * falling through to ordinary workspace resolution — rather than assuming
+ * setup is or is not required.
+ */
+export function toWorkspaceSetupStatus(
+  dto: IdentityDto,
+): WorkspaceSetupStatus | null {
+  const setup: IdentitySetupDto | null | undefined = dto.setup;
+  if (!setup || typeof setup.setupRequired !== "boolean") return null;
+
+  const stage = text(setup.setupStage);
+  const allowedActions = Array.isArray(setup.allowedActions)
+    ? setup.allowedActions
+        .map(toSetupAction)
+        .filter((action): action is SetupActionDescriptor => action !== null)
+    : [];
+
+  return {
+    setupRequired: setup.setupRequired,
+    // The stage names the next resource to create; an unrecognized value
+    // falls back to the first stage rather than a guess further along.
+    setupStage: stage && isSetupStage(stage) ? stage : SETUP_STAGES[0],
+    missingResources: toResourceList(setup.missingResources),
+    completedResources: toResourceList(setup.completedResources),
+    allowedActions,
+    initializedAt: text(setup.initializedAt),
+  };
+}
+
 export function toIdentityUser(
   dto: IdentityDto,
   fallback?: AuthUser | null,

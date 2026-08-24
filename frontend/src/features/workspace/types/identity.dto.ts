@@ -53,6 +53,32 @@ export interface IdentityAcademicYearDto extends IdentityScopeDto {
   branchId?: string | null;
 }
 
+/** One call the client may make while setup is incomplete. */
+export interface IdentitySetupActionDto {
+  action?: string | null;
+  method?: string | null;
+  path?: string | null;
+  description?: string | null;
+}
+
+/**
+ * The workspace bootstrap block `/auth/me` carries alongside identity.
+ *
+ * Everything is optional here for the same reason the rest of this file is:
+ * an older backend, or a response `/auth/me` genuinely omits it from, must not
+ * crash the mapper. `toWorkspaceSetupStatus` treats a missing or unrecognized
+ * `setupRequired` as "no setup information available" rather than guessing —
+ * see its doc comment.
+ */
+export interface IdentitySetupDto {
+  setupRequired?: boolean | null;
+  setupStage?: string | null;
+  missingResources?: string[] | null;
+  completedResources?: string[] | null;
+  allowedActions?: IdentitySetupActionDto[] | null;
+  initializedAt?: string | null;
+}
+
 /** `GET /auth/me` → the unwrapped `data` payload. */
 export interface IdentityDto {
   user: IdentityUserDto;
@@ -67,4 +93,6 @@ export interface IdentityDto {
   availableOrganizations?: IdentityScopeDto[] | null;
   availableBranches?: IdentityBranchDto[] | null;
   availableAcademicYears?: IdentityAcademicYearDto[] | null;
+  /** Absent on a backend that predates the setup lifecycle. */
+  setup?: IdentitySetupDto | null;
 }

@@ -66,6 +66,7 @@ export {
   toIdentityUser,
   toPermissions,
   toWorkspaceAvailability,
+  toWorkspaceSetupStatus,
 } from "./mappers/identity.mapper";
 export type {
   IdentityAcademicYearDto,
@@ -73,6 +74,8 @@ export type {
   IdentityContextDto,
   IdentityDto,
   IdentityScopeDto,
+  IdentitySetupActionDto,
+  IdentitySetupDto,
   IdentityUserDto,
 } from "./types/identity.dto";
 

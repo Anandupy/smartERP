@@ -6,8 +6,9 @@ import {
   toIdentityUser,
   toPermissions,
   toWorkspaceAvailability,
+  toWorkspaceSetupStatus,
 } from "@/features/workspace";
-import { identityDto } from "@tests/fixtures/workspace";
+import { freshInstallSetupDto, identityDto, setupStatusDto } from "@tests/fixtures/workspace";
 
 /**
  * Translation of `/auth/me` into the shapes the app codes against.
@@ -161,5 +162,86 @@ describe("identity user", () => {
     );
 
     expect(user.name).toBe("person@institution.edu");
+  });
+});
+
+describe("workspace setup status", () => {
+  it("returns null when the backend omits the block entirely", () => {
+    expect(toWorkspaceSetupStatus(identityDto())).toBeNull();
+  });
+
+  it("returns null when setupRequired is missing or the wrong type", () => {
+    expect(
+      toWorkspaceSetupStatus(identityDto({ setup: {} })),
+    ).toBeNull();
+    expect(
+      toWorkspaceSetupStatus(
+        identityDto({ setup: { setupRequired: "yes" as never } }),
+      ),
+    ).toBeNull();
+  });
+
+  it("normalizes a fresh install", () => {
+    const status = toWorkspaceSetupStatus(
+      identityDto({ setup: freshInstallSetupDto() }),
+    );
+
+    expect(status).toEqual({
+      setupRequired: true,
+      setupStage: "SYSTEM_SETTINGS",
+      missingResources: [
+        "SYSTEM_SETTINGS",
+        "ORGANIZATION",
+        "BRANCH",
+        "ACADEMIC_YEAR",
+      ],
+      completedResources: [],
+      allowedActions: [],
+      initializedAt: null,
+    });
+  });
+
+  it("drops an unrecognized resource rather than guessing", () => {
+    const status = toWorkspaceSetupStatus(
+      identityDto({
+        setup: setupStatusDto({
+          setupRequired: true,
+          missingResources: ["PROGRAMS" as never, "BRANCH"],
+        }),
+      }),
+    );
+
+    expect(status?.missingResources).toEqual(["BRANCH"]);
+  });
+
+  it("falls back to the first stage for an unrecognized setupStage", () => {
+    const status = toWorkspaceSetupStatus(
+      identityDto({
+        setup: setupStatusDto({
+          setupRequired: true,
+          setupStage: "SOMETHING_NEW" as never,
+        }),
+      }),
+    );
+
+    expect(status?.setupStage).toBe("SYSTEM_SETTINGS");
+  });
+
+  it("drops an action missing a required field instead of a partial entry", () => {
+    const status = toWorkspaceSetupStatus(
+      identityDto({
+        setup: setupStatusDto({
+          setupRequired: true,
+          allowedActions: [
+            { action: "VIEW", method: "GET", path: "/auth/me" },
+            { action: "BROKEN", method: null, path: "/x" },
+          ],
+        }),
+      }),
+    );
+
+    expect(status?.allowedActions).toEqual([
+      { action: "VIEW", method: "GET", path: "/auth/me", description: "" },
+    ]);
   });
 });
