@@ -21,3 +21,20 @@ export type PaginationParams = z.output<typeof paginationParamsSchema>;
 /** Common reusable field schemas. */
 export const emailSchema = z.string().email("Enter a valid email address");
 export const nonEmptyString = z.string().trim().min(1, "Required");
+
+/**
+ * The two pieces of a phone number entered through `PhoneField`
+ * (`components/form`), combined into the single E.164 string
+ * `CreateUserDto.phone` requires — see `@/lib/phone` for why. Kept apart
+ * here rather than as one schema so a form can validate "is this a plausible
+ * code" / "is this a plausible number" independently before checking the
+ * combined value with `isValidE164`.
+ */
+export const phoneCountryCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\+[1-9]\d{0,3}$/, "e.g. +91");
+export const phoneNumberSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6,12}$/, "Digits only");

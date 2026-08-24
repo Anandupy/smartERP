@@ -1,6 +1,7 @@
 export { useZodForm } from "./use-zod-form";
 export { applyServerFieldErrors } from "./validation";
 export { TextField, type TextFieldProps } from "./fields/text-field";
+export { PhoneField, type PhoneFieldProps } from "./fields/phone-field";
 export {
   PasswordField,
   type PasswordFieldProps,

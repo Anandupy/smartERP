@@ -6,9 +6,9 @@ import { TriangleAlert } from "@/assets/icons";
 import {
   Form,
   PasswordField,
+  PhoneField,
   SelectField,
   TextField,
-  applyServerFieldErrors,
   useZodForm,
 } from "@/components/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,7 +18,10 @@ import { getErrorMessage } from "@/lib";
 import { Spinner } from "@/shared/components/feedback";
 
 import { useProvisionOrgAdmin } from "../hooks/use-provision-org-admin";
-import { toCreateOrgAdminRequest } from "../mappers/provision-org-admin.mapper";
+import {
+  applyProvisionOrgAdminFieldErrors,
+  toCreateOrgAdminRequest,
+} from "../mappers/provision-org-admin.mapper";
 import {
   provisionOrgAdminFormDefaults,
   provisionOrgAdminFormSchema,
@@ -64,7 +67,10 @@ export function ProvisionOrgAdminForm({
         form.reset(provisionOrgAdminFormDefaults());
         onProvisioned?.(admin);
       } catch (error) {
-        const boundToFields = applyServerFieldErrors(error, form.setError);
+        const boundToFields = applyProvisionOrgAdminFieldErrors(
+          error,
+          form.setError,
+        );
         if (!boundToFields) setSubmitError(error);
       }
     },
@@ -104,11 +110,12 @@ export function ProvisionOrgAdminForm({
             label="Email"
             disabled={isSubmitting}
           />
-          <TextField
+          <PhoneField
             control={form.control}
-            name="phone"
-            type="tel"
+            codeName="phoneCountryCode"
+            numberName="phoneNumber"
             label="Phone"
+            description="Include the country code."
             disabled={isSubmitting}
           />
           <PasswordField
