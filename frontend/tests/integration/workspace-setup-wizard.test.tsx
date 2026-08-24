@@ -104,6 +104,9 @@ describe("welcome screen: SUPER_ADMIN", () => {
         expect(body).toMatchObject({
           role: "ORG_ADMIN",
           organizationId: "org-1",
+          // CreateUserDto.phone requires E.164 — the country-code field
+          // defaults to +91 and the test only types the national number.
+          phone: "+919876543210",
         });
         return HttpResponse.json(
           successEnvelope({
@@ -132,7 +135,10 @@ describe("welcome screen: SUPER_ADMIN", () => {
       screen.getByLabelText(/^email/i),
       "dana@institution.edu",
     );
-    await userEvent.type(screen.getByLabelText(/^phone/i), "9876543210");
+    await userEvent.type(
+      screen.getByLabelText(/phone number/i),
+      "9876543210",
+    );
     await userEvent.type(
       screen.getByLabelText(/temporary password/i),
       "Password123!",
@@ -152,6 +158,112 @@ describe("welcome screen: SUPER_ADMIN", () => {
     expect(
       await screen.findByText(/administrator created/i),
     ).toBeInTheDocument();
+  });
+
+  it("rejects an invalid phone number before ever sending the request", async () => {
+    // No POST /users handler is registered: MSW fails the test on any
+    // unhandled request, so a request reaching the network here would fail
+    // the test on its own — this proves client-side validation stopped it.
+    seed({ organizations: [ORGANIZATION] }, {});
+    render(<SetupWelcomeScreen role="SUPER_ADMIN" />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /prefer to delegate this setup/i }),
+    );
+    await userEvent.type(screen.getByLabelText(/full name/i), "Dana Kapoor");
+    await userEvent.type(screen.getByLabelText(/^username/i), "dana_kapoor");
+    await userEvent.type(
+      screen.getByLabelText(/^email/i),
+      "dana@institution.edu",
+    );
+    await userEvent.type(screen.getByLabelText(/phone number/i), "12x45");
+    await userEvent.type(
+      screen.getByLabelText(/temporary password/i),
+      "Password123!",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /create administrator/i }),
+    );
+
+    expect(
+      await screen.findByText(/digits only/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/administrator created/i)).not.toBeInTheDocument();
+  });
+
+  it("rejects an empty phone number before ever sending the request", async () => {
+    seed({ organizations: [ORGANIZATION] }, {});
+    render(<SetupWelcomeScreen role="SUPER_ADMIN" />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /prefer to delegate this setup/i }),
+    );
+    await userEvent.type(screen.getByLabelText(/full name/i), "Dana Kapoor");
+    await userEvent.type(screen.getByLabelText(/^username/i), "dana_kapoor");
+    await userEvent.type(
+      screen.getByLabelText(/^email/i),
+      "dana@institution.edu",
+    );
+    await userEvent.type(
+      screen.getByLabelText(/temporary password/i),
+      "Password123!",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /create administrator/i }),
+    );
+
+    // CreateUserDto.phone is @IsNotEmpty() — an absent number is exactly as
+    // invalid as a malformed one, not a silently-allowed optional field.
+    expect(await screen.findByText(/digits only/i)).toBeInTheDocument();
+  });
+
+  it("shows the backend's phone rejection as a friendly message, not the raw validator text", async () => {
+    seed({ organizations: [ORGANIZATION] }, {});
+    server.use(
+      http.post(`${API_BASE}/users`, () =>
+        HttpResponse.json(
+          {
+            success: false,
+            code: "BadRequestException",
+            message: "phone must be a valid phone number",
+            errors: [
+              { field: "phone", message: "phone must be a valid phone number" },
+            ],
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    render(<SetupWelcomeScreen role="SUPER_ADMIN" />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /prefer to delegate this setup/i }),
+    );
+    await userEvent.type(screen.getByLabelText(/full name/i), "Dana Kapoor");
+    await userEvent.type(screen.getByLabelText(/^username/i), "dana_kapoor");
+    await userEvent.type(
+      screen.getByLabelText(/^email/i),
+      "dana@institution.edu",
+    );
+    // A shape the client-side check would accept but the backend still
+    // refuses (e.g. a number libphonenumber cannot resolve to a real range).
+    await userEvent.type(screen.getByLabelText(/phone number/i), "0000000");
+    await userEvent.type(
+      screen.getByLabelText(/temporary password/i),
+      "Password123!",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /create administrator/i }),
+    );
+
+    expect(
+      await screen.findByText(
+        /enter a valid phone number, including the country code/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/phone must be a valid phone number/i)).not
+      .toBeInTheDocument();
   });
 });
 
@@ -189,7 +301,7 @@ describe("welcome screen: ORG_ADMIN", () => {
 });
 
 describe("review screen", () => {
-  it("lets SUPER_ADMIN finish setup once everything is done", async () => {
+  it("lets SUPER_ADMIN complete setup once everything is done", async () => {
     seed(
       { organizations: [ORGANIZATION], branches: [BRANCH] },
       {
@@ -214,13 +326,13 @@ describe("review screen", () => {
     );
 
     await userEvent.click(
-      await screen.findByRole("button", { name: /finish setup/i }),
+      await screen.findByRole("button", { name: /complete setup/i }),
     );
 
     await waitFor(() => expect(completed).toBe(true));
   });
 
-  it("lets a delegated ORG_ADMIN finish setup for their own organization", async () => {
+  it("lets a delegated ORG_ADMIN complete setup for their own organization", async () => {
     seed(
       { role: "ORG_ADMIN", organizations: [ORGANIZATION], branches: [BRANCH] },
       {
@@ -245,7 +357,7 @@ describe("review screen", () => {
     );
 
     await userEvent.click(
-      await screen.findByRole("button", { name: /finish setup/i }),
+      await screen.findByRole("button", { name: /complete setup/i }),
     );
 
     await waitFor(() => expect(completed).toBe(true));
@@ -287,7 +399,7 @@ describe("review screen", () => {
     );
 
     await userEvent.click(
-      await screen.findByRole("button", { name: /finish setup/i }),
+      await screen.findByRole("button", { name: /complete setup/i }),
     );
 
     expect(
@@ -304,7 +416,7 @@ describe("review screen", () => {
       await screen.findByText(/required steps are still missing/i),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /finish setup/i }),
+      screen.queryByRole("button", { name: /complete setup/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -339,7 +451,7 @@ describe("review screen", () => {
     );
 
     await userEvent.click(
-      await screen.findByRole("button", { name: /finish setup/i }),
+      await screen.findByRole("button", { name: /complete setup/i }),
     );
 
     expect(
