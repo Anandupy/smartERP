@@ -480,7 +480,7 @@ Pre-app (outside the shell)
 | `/v1/workspace/configuration` | POST | SUPER_ADMIN + `Settings.Manage` | ✅ |
 | `/v1/workspace/navigation` | GET | JWT | ✅ |
 | `/v1/workspace/setup/status` | GET | SUPER/ORG admin, `@AllowDuringSetup` | ✅ |
-| `/v1/workspace/setup/complete` | POST | SUPER_ADMIN, `@AllowDuringSetup` | ✅ |
+| `/v1/workspace/setup/complete` | POST | SUPER_ADMIN or ORG_ADMIN resolved to their own organization, `@AllowDuringSetup` | ✅ |
 | `/v1/admin/navigation/modules` | GET·POST | SUPER_ADMIN + `Settings.Manage` | ✅ |
 | `/v1/admin/navigation/modules/:id` | GET·PATCH·DELETE | ″ | ✅ |
 | `/v1/admin/navigation/modules/:id/status` | PATCH | ″ | ✅ |

@@ -25,14 +25,15 @@ export function canActOnStage(
 }
 
 /**
- * `POST /workspace/setup/complete` is `SUPER_ADMIN`-only on the backend, with
- * no exception for the `ORG_ADMIN` who may have done all the actual
- * configuration work (Path B). This is a deliberate backend decision, not a
- * gap this feature works around — see
- * `docs/workspace-setup-module.md`'s "Completion is not delegated" section.
+ * `POST /workspace/setup/complete` is `@Roles(SUPER_ADMIN, ORG_ADMIN)` on the
+ * backend: `SUPER_ADMIN` unconditionally, and an `ORG_ADMIN` once resolved to
+ * their own organization (the backend rejects one that is not, with a `403`
+ * — see `docs/workspace-setup-module.md`'s "Completion" section). Both roles
+ * are surfaced here; the organization-resolution check itself is the
+ * backend's, not duplicated client-side.
  */
 export function canCompleteSetup(role: string | null): boolean {
-  return role === "SUPER_ADMIN";
+  return role === "SUPER_ADMIN" || role === "ORG_ADMIN";
 }
 
 /**

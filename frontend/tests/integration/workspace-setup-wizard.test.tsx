@@ -220,7 +220,42 @@ describe("review screen", () => {
     await waitFor(() => expect(completed).toBe(true));
   });
 
-  it("shows a waiting state for ORG_ADMIN even when everything is done", async () => {
+  it("lets a delegated ORG_ADMIN finish setup for their own organization", async () => {
+    seed(
+      { role: "ORG_ADMIN", organizations: [ORGANIZATION], branches: [BRANCH] },
+      {
+        missingResources: [],
+        completedResources: [
+          "SYSTEM_SETTINGS",
+          "ORGANIZATION",
+          "BRANCH",
+          "ACADEMIC_YEAR",
+        ],
+      },
+    );
+    server.use(
+      http.post(`${API_BASE}/workspace/setup/complete`, () =>
+        HttpResponse.json(successEnvelope({ setupRequired: false })),
+      ),
+    );
+
+    let completed = false;
+    render(
+      <SetupReviewScreen role="ORG_ADMIN" onCompleted={() => { completed = true; }} />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /finish setup/i }),
+    );
+
+    await waitFor(() => expect(completed).toBe(true));
+  });
+
+  it("shows the backend's refusal and stays on the screen for an ORG_ADMIN with no resolved organization", async () => {
+    // The frontend cannot know this in advance — completedResources reads
+    // ORGANIZATION as done globally, but this specific ORG_ADMIN's own
+    // account is not (yet) scoped to one. The backend is authoritative: it
+    // answers 403, and the screen must show that rather than pretend success.
     seed(
       { role: "ORG_ADMIN" },
       {
@@ -233,14 +268,32 @@ describe("review screen", () => {
         ],
       },
     );
-    render(<SetupReviewScreen role="ORG_ADMIN" onCompleted={() => {}} />);
+    server.use(
+      http.post(`${API_BASE}/workspace/setup/complete`, () =>
+        HttpResponse.json(
+          errorEnvelope({
+            code: "ForbiddenException",
+            message:
+              "Completing setup requires an organization assigned to your account.",
+          }),
+          { status: 403 },
+        ),
+      ),
+    );
+
+    let completed = false;
+    render(
+      <SetupReviewScreen role="ORG_ADMIN" onCompleted={() => { completed = true; }} />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /finish setup/i }),
+    );
 
     expect(
-      await screen.findByText(/waiting on your platform administrator/i),
+      await screen.findByText(/organization assigned to your account/i),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /finish setup/i }),
-    ).not.toBeInTheDocument();
+    expect(completed).toBe(false);
   });
 
   it("warns instead of offering completion while resources are missing", async () => {

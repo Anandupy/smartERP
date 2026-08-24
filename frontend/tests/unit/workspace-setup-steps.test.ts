@@ -49,9 +49,10 @@ describe("canActOnStage", () => {
 });
 
 describe("canCompleteSetup", () => {
-  it("is SUPER_ADMIN-only, even for the ORG_ADMIN who did the work", () => {
+  it("allows SUPER_ADMIN and ORG_ADMIN, matching the backend's @Roles()", () => {
     expect(canCompleteSetup("SUPER_ADMIN")).toBe(true);
-    expect(canCompleteSetup("ORG_ADMIN")).toBe(false);
+    expect(canCompleteSetup("ORG_ADMIN")).toBe(true);
+    expect(canCompleteSetup("BRANCH_ADMIN")).toBe(false);
     expect(canCompleteSetup(null)).toBe(false);
   });
 });

@@ -173,15 +173,19 @@ to it, in either order — the `ORG_ADMIN`'s own work is Branch and Academic
 Year," not "the `ORG_ADMIN` can create everything downstream of System
 Settings."
 
-### Completion is not delegated either
+### Completion is delegated too, once the `ORG_ADMIN` is resolved to an organization
 
-`POST /workspace/setup/complete` is `@Roles(SUPER_ADMIN)` only on the backend
-— with no exception for an `ORG_ADMIN` who completed every actual
-configuration step. `canCompleteSetup` (`setup-access.ts`) encodes this
-directly. The review screen reflects it rather than working around it: an
-`ORG_ADMIN` who finishes Branch and Academic Year sees "Every required step is
-done. Only a platform administrator can finish activating the workspace" in
-place of a Finish button they would only get a 403 from clicking.
+`POST /workspace/setup/complete` is `@Roles(SUPER_ADMIN, ORG_ADMIN)` on the
+backend: `SUPER_ADMIN` unconditionally, and an `ORG_ADMIN` once
+`ExecutionContextGuard`'s bootstrap resolution has them scoped to exactly one
+organization (`WorkspaceSetupService.markInitialized`'s `actor` check). This
+was fixed from an earlier `SUPER_ADMIN`-only restriction that stalled Path B —
+an `ORG_ADMIN` who did the actual Branch/Academic Year work had no way to
+finish, only a platform administrator could. `canCompleteSetup`
+(`setup-access.ts`) now allows both roles; the backend remains the actual
+authority, and an `ORG_ADMIN` whose account somehow is not (yet) scoped to an
+organization still gets a `403` from the endpoint itself, surfaced verbatim by
+the review screen's existing error handling rather than a frontend guess.
 
 ## Programs and Academic Units are not wizard steps
 
@@ -250,11 +254,12 @@ under a second contract.
 
 `SetupReviewScreen` calls `useCompleteSetup()` → `POST /workspace/setup/complete`
 only when `setup.missingResources` is empty and `canCompleteSetup(role)` is
-true; otherwise it shows why not (missing resources, or waiting on a platform
-administrator) instead of a disabled button with no explanation. A `409` from
-the backend — another transition finished first, or a resource disappeared
-between page loads — surfaces as the backend's own message and leaves the user
-on the review screen; nothing here decides setup succeeded on its own.
+true (`SUPER_ADMIN` or `ORG_ADMIN`); otherwise it shows why not (missing
+resources) instead of a disabled button with no explanation. A `409` from the
+backend — another transition finished first, or a resource disappeared
+between page loads — or a `403` — an `ORG_ADMIN` not resolved to an
+organization — surfaces as the backend's own message and leaves the user on
+the review screen; nothing here decides setup succeeded on its own.
 
 On success, the review route invalidates identity and navigates to
 `/setup/complete`, which reads the refreshed `useWorkspace()` data (the actual
@@ -270,7 +275,7 @@ than one).
 | Role | Setup authority |
 | --- | --- |
 | `SUPER_ADMIN` | System Settings, Organization, Branch, Academic Year, `ORG_ADMIN` provisioning, completion |
-| `ORG_ADMIN` | Branch, Academic Year (once an Organization exists) |
+| `ORG_ADMIN` | Branch, Academic Year (once an Organization exists), completion (once resolved to their own organization) |
 | `BRANCH_ADMIN`, `STAFF`, `STUDENT`, `PARENT` | none — never routed to `/setup`; `setup-required` is never assigned for these roles (see "Where the decision is made") |
 
 Frontend role checks here (`usePermissions().hasRole`, matching the
@@ -288,7 +293,7 @@ still gets a `403` from the API.
 | `tests/unit/identity-mapper.test.ts` | `toWorkspaceSetupStatus`: absent block, malformed `setupRequired`, unrecognized resource/stage dropped, malformed action dropped |
 | `tests/unit/workspace-setup-steps.test.ts` | `canActOnStage`, `canCompleteSetup`, `roleCanAccessSetupWizard`, `buildSetupSteps` status derivation, `nextSetupHref` per role |
 | `tests/integration/workspace-setup-redirect.test.tsx` | fresh-install redirect to `/setup` for `SUPER_ADMIN`/`ORG_ADMIN`, no redirect for a role without setup authority, and the READY-user regression (setup omitted, and setup explicitly complete) |
-| `tests/integration/workspace-setup-wizard.test.tsx` | welcome screen's actionable-step link and waiting state, `ORG_ADMIN` provisioning end to end, and the review screen's finish/waiting/missing/refused outcomes |
+| `tests/integration/workspace-setup-wizard.test.tsx` | welcome screen's actionable-step link and waiting state, `ORG_ADMIN` provisioning end to end, and the review screen's finish (`SUPER_ADMIN` and `ORG_ADMIN`)/missing/409/403 outcomes |
 
 ## What lands next
 
