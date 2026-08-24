@@ -168,6 +168,7 @@ Currently marked:
 | `POST /v1/organizations`            | Stage 1 (`SUPER_ADMIN` only — see §8)                   |
 | `POST /v1/branches`                 | Stage 2                                                 |
 | `POST /v1/academic-years`           | Stage 3                                                 |
+| `GET /v1/academic-years`            | So the Stage 3 UI can check the branch's existing years before creating one — see below |
 
 Before this, `POST /system-settings/init` had **no** `@AllowDuringSetup()` —
 on a fresh database SUPER_ADMIN could not reach it at all, blocked by the very

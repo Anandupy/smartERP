@@ -67,6 +67,7 @@ export class AcademicYearController {
   }
 
   @Get()
+  @AllowDuringSetup()
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ORG_ADMIN,
