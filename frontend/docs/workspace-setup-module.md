@@ -212,6 +212,35 @@ scoped to one afterward. The form offers the organization picker only when at
 least one organization is already on offer (`useWorkspace().options.organizations`);
 otherwise it is omitted rather than shown disabled.
 
+### Phone: the field CreateUserDto actually enforces
+
+`CreateUserDto.phone` is validated with class-validator's `@IsPhoneNumber()`
+called with no region argument, which requires **E.164** (`+<country
+code><number>`) — a bare national number such as `9876543210` fails it, even
+though it looks valid and is exactly what the DTO's own Swagger example
+shows. Confirmed independently from the backend's own `POST /users` e2e
+fixtures, which build `phone: '+9198' + …` with the comment "IsPhoneNumber()
+with no region requires E.164."
+
+The form used to send a single free-text `phone` field straight through and
+hit this on every submission. The fix is `PhoneField`
+(`components/form/fields/phone-field.tsx`) — the platform's first phone
+input, since no other module in this codebase creates a `User` yet — backed
+by two RHF fields (`phoneCountryCode`, defaulting to `+91`; `phoneNumber`,
+digits only) that the schema's own `superRefine` combines and checks against
+`isValidE164` (`@/lib/phone`) before the mapper joins them into the one
+E.164 string the wire DTO expects. Two fields, not one the component
+splits and rejoins on every keystroke, because parsing an opaque
+`+919876543210` back into "which prefix is the country code" is ambiguous
+without a country database this product does not have. India is the
+default, not a restriction — the code field stays freely editable.
+
+A backend `phone` field-error has nothing to bind to under this shape
+(`applyProvisionOrgAdminFieldErrors` in the mapper), so it is redirected to
+`phoneNumber` with the same combined-format message the client-side check
+already shows, rather than silently vanishing the way a bare
+`setError("phone", …)` would.
+
 ## Reused, not duplicated
 
 | Step | Reused component | Reused hook/mapper |
@@ -229,6 +258,59 @@ unmodified inside `/setup` because the `(setup)` layout mounts
 `useWorkspaceBootstrap()` the same way `/workspace` does — the store they read
 through `useWorkspace()` is kept live throughout the wizard, not just before
 or after it.
+
+### The Academic Year step's branch: `useWorkspace()`, not `useAcademicYearBranch()`
+
+The Academic Year step used to read its branch through
+`useAcademicYearBranch()` (`features/academic-year`) — the same hook the
+module's *own*, post-setup screens use. That hook is deliberately gated:
+
+```ts
+export function useAcademicYearBranch() {
+  const { branch, isReady } = useWorkspace();
+  return isReady ? branch : null;
+}
+```
+
+`isReady` means `status === "ready"` — the status setup **never reaches**. It
+stays `"setup-required"` throughout, by the same design that lets it
+auto-settle a sole organization/branch without persisting or confirming it
+(see "Where the decision is made" above). So the gate was never open during
+setup, regardless of whether a branch existed: the step showed "Waiting on a
+branch" even immediately after the stepper marked Branch complete, because
+the two were reading through entirely different accessors, one of which
+could never turn on inside the wizard. Not a caching bug, not a missing
+invalidation — a hook written for a status this flow does not use.
+
+The fix reads `useWorkspace().branch` directly, the same way the Branch and
+Organization steps already read `useWorkspace().organization` — no `isReady`
+gate, resolved straight from the current selection. `narrowSelection`
+auto-settles that selection onto the sole branch the moment the Branch
+step's `onSubmit` invalidates identity and `/auth/me` reports one, so the
+Academic Year step sees it on the very next render, no refetch of its own and
+no page reload required (`tests/unit/workspace-setup-branch-sync.test.ts`
+proves this against the real hook, across the same `setAvailability` sequence
+a live mutation produces). When more than one branch exists,
+`useWorkspace().branch` stays `null` — a genuine choice, not a bug — and the
+step now renders `WorkspaceSelectField` (`features/workspace`, composed at
+the route rather than imported into `features/workspace-setup` — see
+AGENTS.md §28's "meet at the route" rule) so the user picks one via
+`select({ branchId })`.
+
+### A second, smaller gap this exposed: `GET /academic-years` couldn't run during setup at all
+
+Fixing the branch resolution surfaced a second issue one layer down:
+`AcademicYearController`'s `POST` (create) carries `@AllowDuringSetup()`, but
+its `GET` (list) — which the Academic Year step also calls, for the same
+overlap-check `AcademicYearForm` always runs — did not. Every list request
+made while `setupRequired: true` therefore 409'd with `SETUP_REQUIRED` before
+`ExecutionContextGuard` even ran, regardless of the branch fix above. Same
+shape as the `POST /system-settings/init` and `POST /v1/users` gaps §4 of
+`docs/core/workspace-bootstrap.md` already documents — a route the bootstrap
+flow genuinely needs, left off the allow-list by omission, not a security
+decision. Fixed by adding `@AllowDuringSetup()` to `findAll`; `@Roles()` and
+`@RequirePermission()` on that route are untouched, so who may call it is
+exactly as before — only when.
 
 ## Keeping progress live without a second endpoint
 
@@ -264,7 +346,7 @@ the review screen; nothing here decides setup succeeded on its own.
 On success, the review route invalidates identity and navigates to
 `/setup/complete`, which reads the refreshed `useWorkspace()` data (the actual
 organization/branch/year now on offer) rather than anything passed through
-navigation state. Its one action, "Go to your workspace," is a plain link to
+navigation state. Its one action, "Continue to Workspace," is a plain link to
 `ROUTES.workspace.root` — the existing workspace selection flow, unmodified,
 decides what happens next (auto-forward to `/app` for a single-tenant
 install, or the selection screen for a `SUPER_ADMIN` who now administers more
@@ -293,7 +375,14 @@ still gets a `403` from the API.
 | `tests/unit/identity-mapper.test.ts` | `toWorkspaceSetupStatus`: absent block, malformed `setupRequired`, unrecognized resource/stage dropped, malformed action dropped |
 | `tests/unit/workspace-setup-steps.test.ts` | `canActOnStage`, `canCompleteSetup`, `roleCanAccessSetupWizard`, `buildSetupSteps` status derivation, `nextSetupHref` per role |
 | `tests/integration/workspace-setup-redirect.test.tsx` | fresh-install redirect to `/setup` for `SUPER_ADMIN`/`ORG_ADMIN`, no redirect for a role without setup authority, and the READY-user regression (setup omitted, and setup explicitly complete) |
-| `tests/integration/workspace-setup-wizard.test.tsx` | welcome screen's actionable-step link and waiting state, `ORG_ADMIN` provisioning end to end, and the review screen's finish (`SUPER_ADMIN` and `ORG_ADMIN`)/missing/409/403 outcomes |
+| `tests/integration/workspace-setup-wizard.test.tsx` | welcome screen's actionable-step link and waiting state, `ORG_ADMIN` provisioning end to end (valid/invalid/empty/backend-refused phone), and the review screen's complete (`SUPER_ADMIN` and `ORG_ADMIN`)/missing/409/403 outcomes |
+| `tests/unit/workspace-setup-branch-sync.test.ts` | `useWorkspace().branch` resolving a newly-created branch across a second `setAvailability` call with no remount, and staying unresolved (picker required) when more than one branch exists |
+| `tests/unit/stepper.test.tsx` | the responsive `Stepper`: mobile "Step X of Y" + progress bar, every label rendered in full, `aria-current` on the right item |
+
+Backend: `test/unit/workspace-setup.service.spec.ts` (ORG_ADMIN completion
+authorization) and `test/unit/academic-year.controller.spec.ts`
+(`GET /academic-years` carries `@AllowDuringSetup()`) live in the backend
+workspace — see `backend/docs/core/workspace-bootstrap.md`.
 
 ## What lands next
 
@@ -304,3 +393,14 @@ still gets a `403` from the API.
 2. **Server-side scope enforcement** remains the backend's job, exactly as
    [`workspace.md`](./workspace.md) already notes — every guard here is a
    client convenience.
+3. **In-wizard editing of a completed step** was not added: every step page
+   still redirects straight back to `/setup` once its resource exists (the
+   resumability contract — see "Routing" above), so a review-screen "Edit"
+   link back to a finished step would only bounce the user, not show an
+   editable form. Organization/Branch/Academic Year already have their own
+   edit screens outside setup for this.
+4. **Programs and Academic Units keep their own module UI** — the hierarchy
+   builder, drag-and-drop parent/child editing, and similar depth stay in
+   `features/program`/`features/academic-unit`'s own screens, unmodified by
+   this pass; the wizard still only links out to them as optional, post-setup
+   configuration.
