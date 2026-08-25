@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { TriangleAlert } from "@/assets/icons";
+import { Lock, TriangleAlert } from "@/assets/icons";
 import {
   Form,
   SelectField,
@@ -14,15 +14,30 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isApiError } from "@/core/api";
 import { getErrorMessage } from "@/lib";
 import { BackendPendingNote, Spinner } from "@/shared/components/feedback";
 
-import { NUMBERING_PURPOSES } from "../types/numbering.dto";
-import { purposeLabel } from "../constants";
+import { NUMBERING_PURPOSES, NUMBERING_YEAR_FORMATS } from "../types/numbering.dto";
+import { YEAR_FORMAT_EXAMPLE, YEAR_FORMAT_LABEL, purposeLabel } from "../constants";
 import {
   numberingConfigFormSchema,
   type NumberingConfigFormValues,
 } from "../schemas/numbering.schema";
+
+/**
+ * The error the backend raises when a `NEVER`-reset sequence has already
+ * issued a value and the save would have changed what it renders (design
+ * spec §12.6). Nothing on `NumberingConfigDto` predicts this ahead of time
+ * (`docs/backend-gaps.md` NUM2) — it can only be learned by a rejected save,
+ * so the form starts every field editable and locks reactively once told.
+ */
+const LOCKED_ERROR_CODE = "SEQUENCE_WIDTH_IMMUTABLE";
+
+const YEAR_FORMAT_OPTIONS = NUMBERING_YEAR_FORMATS.map((value) => ({
+  value,
+  label: YEAR_FORMAT_LABEL[value],
+}));
 
 export interface NumberingConfigFormProps {
   defaultValues: NumberingConfigFormValues;
@@ -55,6 +70,7 @@ export function NumberingConfigForm({
   showActiveToggle = true,
 }: NumberingConfigFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   const form = useZodForm(numberingConfigFormSchema, {
     defaultValues,
@@ -66,17 +82,35 @@ export function NumberingConfigForm({
     try {
       await onSubmit(values);
     } catch (error) {
+      if (isApiError(error) && error.code === LOCKED_ERROR_CODE) {
+        // Learned, not guessed (see LOCKED_ERROR_CODE) — from this point the
+        // format fields genuinely cannot change, so disabling them stops a
+        // second attempt from repeating the same rejected request rather
+        // than merely looking disabled while still submitting it.
+        setIsLocked(true);
+      }
       const boundToFields = applyServerFieldErrors(error, form.setError);
       if (!boundToFields) setSubmitError(error);
     }
   });
 
   const isSubmitting = form.formState.isSubmitting;
+  const isFormatLocked = isSubmitting || isLocked;
 
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
-        {submitError ? (
+        {isLocked ? (
+          <Alert>
+            <Lock aria-hidden="true" />
+            <AlertTitle>Format is locked</AlertTitle>
+            <AlertDescription>
+              This sequence has already issued identifiers, so its prefix,
+              suffix, format, components and sequence padding can no longer
+              change. Only the sequence&apos;s active status stays editable.
+            </AlertDescription>
+          </Alert>
+        ) : submitError ? (
           <Alert variant="destructive">
             <TriangleAlert aria-hidden="true" />
             <AlertTitle>Couldn&apos;t save the sequence</AlertTitle>
@@ -121,14 +155,14 @@ export function NumberingConfigForm({
               name="prefix"
               label="Prefix"
               description="Optional. e.g. STU"
-              disabled={isSubmitting}
+              disabled={isFormatLocked}
             />
             <TextField
               control={form.control}
               name="suffix"
               label="Suffix"
               description="Optional."
-              disabled={isSubmitting}
+              disabled={isFormatLocked}
             />
             <TextField
               control={form.control}
@@ -136,28 +170,36 @@ export function NumberingConfigForm({
               type="number"
               label="Sequence padding"
               description="How many digits the sequence number is padded to."
-              disabled={isSubmitting}
+              disabled={isFormatLocked}
+            />
+            <SelectField
+              control={form.control}
+              name="yearFormat"
+              label="Year format"
+              options={YEAR_FORMAT_OPTIONS}
+              disabled={isFormatLocked}
+              description={`Only used where the format renders {year}. Example: ${YEAR_FORMAT_EXAMPLE[form.watch("yearFormat")]}`}
             />
             <div className="sm:col-span-2">
               <TextField
                 control={form.control}
                 name="format"
                 label="Format"
-                description="Must include {sequence}. Other placeholders: {prefix}, {suffix}, {year}, {branchCode}."
-                disabled={isSubmitting}
+                description="Must include {sequence}. Other placeholders: {prefix}, {suffix}, {year}, {branchCode} — each usable at most once."
+                disabled={isFormatLocked}
               />
             </div>
             <SwitchField
               control={form.control}
               name="includeBranchCode"
               label="Include branch code"
-              disabled={isSubmitting}
+              disabled={isFormatLocked}
             />
             <SwitchField
               control={form.control}
               name="includeAcademicYear"
               label="Include academic year"
-              disabled={isSubmitting}
+              disabled={isFormatLocked}
             />
           </CardContent>
         </Card>
@@ -179,12 +221,16 @@ export function NumberingConfigForm({
           </Card>
         ) : null}
 
-        <BackendPendingNote>
-          the API does not expose whether this sequence has already issued a
-          value, so a never-reset sequence&apos;s prefix/padding cannot be
-          locked here even though the backend may refuse changing them once
-          issued — a rejected save will show the server&apos;s own error.
-        </BackendPendingNote>
+        {!isLocked ? (
+          <BackendPendingNote>
+            the API does not expose whether this sequence has already issued
+            a value, so a never-reset sequence&apos;s format fields cannot be
+            locked proactively on load — only once a save is rejected with{" "}
+            <code>{LOCKED_ERROR_CODE}</code>, at which point this form locks
+            them itself rather than letting a second attempt repeat the same
+            rejected request.
+          </BackendPendingNote>
+        ) : null}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" disabled={isSubmitting} onClick={onCancel}>

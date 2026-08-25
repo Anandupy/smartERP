@@ -16,7 +16,13 @@ import { ROUTES } from "@/constants";
 import { StatusBadge } from "@/shared/components/data-display";
 import { DataTable, DataTableColumnHeader } from "@/shared/components/data";
 
-import { ALLOCATION_MODE_LABEL, RESET_STRATEGY_LABEL, SCOPE_LABEL, purposeLabel } from "../constants";
+import {
+  ALLOCATION_MODE_LABEL,
+  RESET_STRATEGY_LABEL,
+  SCOPE_LABEL,
+  YEAR_FORMAT_LABEL,
+  purposeLabel,
+} from "../constants";
 import type { NumberingConfigDto } from "../types/numbering.dto";
 
 export interface NumberingConfigsTableProps {
@@ -57,9 +63,20 @@ export function NumberingConfigsTable({
         id: "format",
         enableSorting: false,
         header: ({ column }) => <DataTableColumnHeader column={column} title="Format" />,
-        cell: ({ row }) => (
-          <code className="text-muted-foreground text-xs">{row.original.format}</code>
-        ),
+        cell: ({ row }) => {
+          const config = row.original;
+          const rendersYear = config.includeAcademicYear || config.format.includes("{year}");
+          return (
+            <div className="min-w-0">
+              <code className="text-muted-foreground text-xs">{config.format}</code>
+              {rendersYear ? (
+                <p className="text-muted-foreground/70 truncate text-xs">
+                  Year: {YEAR_FORMAT_LABEL[config.yearFormat]}
+                </p>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         id: "scope",

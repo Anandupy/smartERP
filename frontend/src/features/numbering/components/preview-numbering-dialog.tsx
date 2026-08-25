@@ -19,13 +19,23 @@ import { useWorkspace } from "@/core/workspace";
 import { getErrorMessage } from "@/lib";
 import { Spinner } from "@/shared/components/feedback";
 
-import { purposeLabel } from "../constants";
+import { YEAR_FORMAT_LABEL, purposeLabel } from "../constants";
 import { usePreviewNumbering } from "../hooks/use-numbering";
 import type { NumberingConfigDto } from "../types/numbering.dto";
 
 export interface PreviewNumberingDialogProps {
   config: NumberingConfigDto | null;
   onOpenChange: (open: boolean) => void;
+}
+
+/**
+ * Whether this format needs an academic year to render — the same
+ * `includeAcademicYear || format.includes('{year}')` test the allocator
+ * itself uses (design spec §12.4), so a format that embeds `{year}` without
+ * the flag set still gets one supplied.
+ */
+function needsAcademicYear(config: NumberingConfigDto): boolean {
+  return config.includeAcademicYear || config.format.includes("{year}");
 }
 
 /**
@@ -70,6 +80,13 @@ export function PreviewNumberingDialog({ config, onOpenChange }: PreviewNumberin
             />
           </div>
 
+          {config && needsAcademicYear(config) ? (
+            <p className="text-muted-foreground text-xs">
+              Year format: {YEAR_FORMAT_LABEL[config.yearFormat]}
+              {academicYear ? ` — using ${academicYear.name}` : " — no academic year selected"}
+            </p>
+          ) : null}
+
           {preview.data ? (
             <div className="border-border bg-muted/40 rounded-lg border p-3">
               <p className="text-muted-foreground text-xs">Rendered result</p>
@@ -92,10 +109,18 @@ export function PreviewNumberingDialog({ config, onOpenChange }: PreviewNumberin
                 toast.error("Enter a sample sequence value of 1 or more");
                 return;
               }
+              if (needsAcademicYear(config) && !academicYear) {
+                toast.error(
+                  "This format renders a year. Select an academic year in your workspace to preview it.",
+                );
+                return;
+              }
               try {
                 await preview.mutateAsync({
                   sampleValue: parsed,
-                  academicYearId: config.includeAcademicYear ? (academicYear?.id ?? undefined) : undefined,
+                  academicYearId: needsAcademicYear(config)
+                    ? (academicYear?.id ?? undefined)
+                    : undefined,
                 });
               } catch (error) {
                 toast.error(getErrorMessage(error));
