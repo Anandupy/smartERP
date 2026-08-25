@@ -469,6 +469,33 @@ describe('Admission conversion (integration)', () => {
       expect(result.studentId[14]).toBe('7');
     });
 
+    it('places two different students into the same academic unit', async () => {
+      // AcademicUnit carries no capacity today (Part 10 of the numbering /
+      // placement review) — nothing in the schema or the service layer counts
+      // active enrolments against a limit, so two admissions into the same
+      // unit must both succeed. This pins that as current, deliberate
+      // behaviour rather than an oversight a future change silently reverses.
+      const first = await seatConfirmed();
+      const second = await seatConfirmed();
+
+      const firstResult = await admit(first.id, { academicUnitId: unitA2Id });
+      const secondResult = await admit(second.id, {
+        academicUnitId: unitA2Id,
+      });
+
+      const enrollments = await prisma.enrollment.findMany({
+        where: {
+          academicUnitId: unitA2Id,
+          applicantId: { in: [first.id, second.id] },
+        },
+      });
+
+      expect(enrollments).toHaveLength(2);
+      expect(new Set(enrollments.map((e) => e.studentId))).toEqual(
+        new Set([firstResult.studentId, secondResult.studentId]),
+      );
+    });
+
     it('keeps the applicant as evidence rather than replacing it', async () => {
       const applicant = await seatConfirmed();
       const result = await admit(applicant.id);
@@ -855,6 +882,40 @@ describe('Admission conversion (integration)', () => {
         await prisma.numberSequenceConfig.update({
           where: { id: config.id },
           data: { deletedAt: null },
+        });
+      }
+    });
+
+    it('leaves nothing behind when the sequence is deactivated, not only when deleted', async () => {
+      // `assertNumberingProvisioned` filters on both `deletedAt: null` and
+      // `isActive: true` — a config a tenant switched off is a distinct state
+      // from one that was removed, and the pre-flight check has to catch both.
+      const applicant = await seatConfirmed();
+
+      const config = await prisma.numberSequenceConfig.findFirstOrThrow({
+        where: {
+          organizationId: orgId,
+          purpose: 'ADMISSION_NO',
+          branchId: branchAId,
+        },
+      });
+      await prisma.numberSequenceConfig.update({
+        where: { id: config.id },
+        data: { isActive: false },
+      });
+
+      try {
+        await expect(admit(applicant.id)).rejects.toMatchObject({
+          response: {
+            error: 'NUMBERING_NOT_PROVISIONED',
+            missing: ['ADMISSION_NO'],
+          },
+        });
+        expect(await footprint(applicant.id)).toEqual(UNTOUCHED);
+      } finally {
+        await prisma.numberSequenceConfig.update({
+          where: { id: config.id },
+          data: { isActive: true },
         });
       }
     });
