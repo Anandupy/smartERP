@@ -23,6 +23,7 @@ export function toNumberingConfigFormValues(
     includeAcademicYear: config.includeAcademicYear,
     sequencePadding: config.sequencePadding,
     format: config.format,
+    yearFormat: config.yearFormat,
     isActive: config.isActive,
   };
 }
@@ -43,6 +44,7 @@ export function toCreateNumberingConfigRequest(
     includeAcademicYear: values.includeAcademicYear,
     sequencePadding: values.sequencePadding,
     format: values.format,
+    yearFormat: values.yearFormat,
   };
 }
 
@@ -57,6 +59,7 @@ export function toUpdateNumberingConfigRequest(
     includeAcademicYear: values.includeAcademicYear,
     sequencePadding: values.sequencePadding,
     format: values.format,
+    yearFormat: values.yearFormat,
     isActive: values.isActive,
   };
 }

@@ -2,6 +2,7 @@ import type {
   NumberingAllocationMode,
   NumberingResetStrategy,
   NumberingScope,
+  NumberingYearFormat,
 } from "./types/numbering.dto";
 
 /**
@@ -39,6 +40,29 @@ export const ALLOCATION_MODE_LABEL: Record<NumberingAllocationMode, string> = {
 export const RESET_STRATEGY_LABEL: Record<NumberingResetStrategy, string> = {
   NEVER: "Never resets",
   YEARLY: "Resets every academic year",
+};
+
+/**
+ * Human labels for `yearFormat` (design spec §12.2). Illustrative examples
+ * only, not a claim about any current academic year — the actual rendered
+ * value always comes from the Preview endpoint against a real academic year,
+ * never computed here.
+ */
+export const YEAR_FORMAT_LABEL: Record<NumberingYearFormat, string> = {
+  NAME: "Academic year name, as entered",
+  FULL_START: "Start year, 4 digits",
+  SHORT_START: "Start year, 2 digits",
+  FULL_RANGE: "Both years, 8 digits",
+  SHORT_RANGE: "Both years, 4 digits",
+};
+
+/** A short worked example for each mode — shown as helper text, not a claimed current year. */
+export const YEAR_FORMAT_EXAMPLE: Record<NumberingYearFormat, string> = {
+  NAME: '"2026-27" (whatever the academic year is named)',
+  FULL_START: '"2026"',
+  SHORT_START: '"26"',
+  FULL_RANGE: '"20262027"',
+  SHORT_RANGE: '"2627"',
 };
 
 /** Rows per page — client-side, since the list endpoint takes no paging params. */

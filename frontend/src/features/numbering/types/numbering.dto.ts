@@ -5,7 +5,8 @@
  * "Numbering / Config" folder (List, Provision, Edit, Preview — four
  * requests, no `GET /:id`, no `DELETE`) and
  * `backend/docs/planning/00-foundation/03-numbering.md` (design spec,
- * `Status: planned`).
+ * `Status: planned`; §12 is the R6 addendum that added `yearFormat` and is
+ * implemented, not planned).
  *
  * One engine generates every human-facing business identifier in the ERP —
  * `studentCode`, `admissionNo` and others. It does not own primary keys
@@ -48,8 +49,27 @@ export type NumberingAllocationMode = "GAPLESS" | "MONOTONIC";
 export type NumberingResetStrategy = "NEVER" | "YEARLY";
 
 /**
+ * How `{year}` renders, when a format or `includeAcademicYear` uses one.
+ * Added by the R6 refinement (design spec §12.2) — `NAME` is the pre-R6
+ * default and behaves exactly as `{year}` always did (the raw
+ * `AcademicYear.name`); the other four are computed from the academic
+ * year's actual dates server-side, not derived here.
+ */
+export const NUMBERING_YEAR_FORMATS = [
+  "NAME",
+  "FULL_START",
+  "SHORT_START",
+  "FULL_RANGE",
+  "SHORT_RANGE",
+] as const;
+
+export type NumberingYearFormat = (typeof NUMBERING_YEAR_FORMATS)[number];
+
+/**
  * One sequence configuration. Confirmed field list via the "Provision a
- * Sequence" and "Edit a Sequence Format" response examples.
+ * Sequence" and "Edit a Sequence Format" response examples, plus
+ * `yearFormat` (design spec §12.2, present on every response since the R6
+ * migration — including a config created before R6, where it reads `NAME`).
  */
 export interface NumberingConfigDto {
   id: string;
@@ -64,6 +84,7 @@ export interface NumberingConfigDto {
   includeAcademicYear: boolean;
   sequencePadding: number;
   format: string;
+  yearFormat: NumberingYearFormat;
   resetStrategy: NumberingResetStrategy;
   isActive: boolean;
   createdAt: string;
@@ -76,6 +97,7 @@ export interface NumberingConfigDto {
  * `resetStrategy` are **not** create inputs — the Postman example's own
  * description states they "are derived from the purpose and cannot be
  * supplied." `isActive` is likewise absent from the captured example.
+ * `yearFormat` is optional — the server defaults an omitted value to `NAME`.
  */
 export interface CreateNumberingConfigRequest {
   purpose: string;
@@ -85,6 +107,7 @@ export interface CreateNumberingConfigRequest {
   includeAcademicYear: boolean;
   sequencePadding: number;
   format: string;
+  yearFormat?: NumberingYearFormat;
 }
 
 /**
@@ -98,6 +121,7 @@ export interface UpdateNumberingConfigRequest {
   includeAcademicYear: boolean;
   sequencePadding: number;
   format: string;
+  yearFormat: NumberingYearFormat;
   isActive: boolean;
 }
 
