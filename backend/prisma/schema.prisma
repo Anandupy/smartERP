@@ -2715,6 +2715,35 @@ enum ResetStrategy {
   YEARLY
 }
 
+/// How the `{year}` placeholder renders, when a format uses one.
+///
+/// This is independent of `resetStrategy` (§ counter reset) and of
+/// `includeAcademicYear` (§ whether a year appears at all) — it only answers
+/// *what the digits look like*, given that an AcademicYear has already been
+/// chosen for the allocation. Deliberately not derived from `AcademicYear.name`
+/// for every mode: that field is admin-typed free text ("2025-26", "2026-2027"
+/// both exist in this codebase's own data) with no guaranteed shape, so a
+/// format expecting a fixed width would silently misrender the day an academic
+/// year is named differently. Every mode but `NAME` computes from
+/// `AcademicYear.startDate`/`endDate` instead, which is authoritative and
+/// fixed-shape by construction.
+///
+/// - `NAME`         — `AcademicYear.name` verbatim. The only mode with no
+///                     guaranteed width; kept as the default so every sequence
+///                     provisioned before this enum existed renders exactly as
+///                     it always has.
+/// - `FULL_START`   — the starting year, four digits: `2026`.
+/// - `SHORT_START`  — the starting year, two digits: `26`.
+/// - `FULL_RANGE`   — both years, eight digits: `20262027`.
+/// - `SHORT_RANGE`  — both years, four digits: `2627`.
+enum SequenceYearFormat {
+  NAME
+  FULL_START
+  SHORT_START
+  FULL_RANGE
+  SHORT_RANGE
+}
+
 
 // --- FROM: modules/numbering/numbering.prisma ---
 
@@ -2745,6 +2774,9 @@ model NumberSequenceConfig {
   /// generated value is identical and the failure surfaces as a confusing
   /// unique violation at the destination.
   format              String
+  /// How `{year}` renders, when `format` or `includeAcademicYear` uses one.
+  /// Independent of `resetStrategy` — see the enum doc.
+  yearFormat          SequenceYearFormat @default(NAME)
 
   resetStrategy ResetStrategy @default(NEVER)
   isActive      Boolean       @default(true)

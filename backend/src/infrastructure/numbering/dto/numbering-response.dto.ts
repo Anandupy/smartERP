@@ -4,6 +4,7 @@ import {
   ResetStrategy,
   SequencePurpose,
   SequenceScope,
+  SequenceYearFormat,
 } from '@/generated/client';
 
 /**
@@ -70,6 +71,13 @@ export class NumberSequenceConfigDto {
 
   @ApiProperty({ example: '{prefix}{sequence}' })
   format!: string;
+
+  @ApiProperty({
+    enum: SequenceYearFormat,
+    description: 'How {year} renders, when the format uses one.',
+    example: SequenceYearFormat.NAME,
+  })
+  yearFormat!: SequenceYearFormat;
 
   @ApiProperty({
     enum: ResetStrategy,

@@ -17,8 +17,13 @@ import {
   SEQUENCE_PLACEHOLDER,
   YEAR_PLACEHOLDER,
   SEQUENCE_PURPOSE_RULES,
+  KNOWN_PLACEHOLDERS,
+  SAFE_LITERAL_PATTERN,
+  MAX_FORMAT_LENGTH,
+  MAX_PREFIX_SUFFIX_LENGTH,
   ResetStrategy,
   SequencePurpose,
+  SequenceYearFormat,
 } from './numbering.types';
 import {
   CreateNumberSequenceConfigDto,
@@ -85,10 +90,33 @@ export class NumberingService {
     // the format silently loses: `{year}` renders as an empty string, the
     // separators collapse, and a yearly sequence emits the same value every
     // year with nothing to indicate why. Asking for the year is enough.
-    const yearName =
-      config.includeAcademicYear || config.format.includes(YEAR_PLACEHOLDER)
-        ? await this.resolveAcademicYearName(params.academicYearId)
-        : '';
+    const needsYear =
+      config.includeAcademicYear || config.format.includes(YEAR_PLACEHOLDER);
+
+    // A format that needs a year and gets none is the same silent-loss failure
+    // one level up: rather than render a blank and collapse the separator, this
+    // is a provisioning-context error, on the same footing as the `YEARLY`
+    // reset check below. It is the one place `NEVER`-reset purposes (a
+    // permanent Student/Employee Code that opts into a year, §7/§8 of
+    // 03-numbering.md) can hit a missing academic year, since a `YEARLY`
+    // sequence already demands one to reset its counter.
+    if (needsYear && !params.academicYearId) {
+      throw new BadRequestException({
+        error: 'NUMBERING_YEAR_CONTEXT_REQUIRED',
+        message:
+          `Sequence '${config.purpose}' renders a year, but this allocation ` +
+          'supplied no academic year. Rendering it blank would silently ' +
+          'produce an identifier that names no year at all.',
+        purpose: config.purpose,
+      });
+    }
+
+    const yearName = needsYear
+      ? await this.resolveYearComponent(
+          params.academicYearId,
+          config.yearFormat,
+        )
+      : '';
 
     const counterYearId =
       config.resetStrategy === 'YEARLY'
@@ -213,15 +241,54 @@ export class NumberingService {
     return branch?.code ?? '';
   }
 
-  private async resolveAcademicYearName(
-    academicYearId?: string | null,
+  /**
+   * The `{year}` component, computed the way `yearFormat` says.
+   *
+   * `NAME` is the one mode this cannot compute from `startDate`/`endDate`: it
+   * is whatever the administrator typed into `AcademicYear.name`, verbatim,
+   * with no guaranteed width — and it stays the default so a sequence
+   * provisioned before `yearFormat` existed keeps rendering exactly as it
+   * always has. Every other mode reads the authoritative dates instead of
+   * parsing that free-text field, because two academic years in this
+   * codebase's own data are already named "2025-26" and "2026-2027" — no
+   * fixed shape a parser could rely on.
+   */
+  private async resolveYearComponent(
+    academicYearId: string | null | undefined,
+    yearFormat: SequenceYearFormat,
   ): Promise<string> {
     if (!academicYearId) return '';
     const year = await this.prisma.academicYear.findUnique({
       where: { id: academicYearId },
-      select: { name: true },
+      select: { name: true, startDate: true, endDate: true },
     });
-    return year?.name ?? '';
+    if (!year) return '';
+
+    // `NAME` never touches the dates — computed lazily, not up front, so a
+    // caller (or a test double) that supplies only `name` still works for the
+    // default mode. Every other mode needs both. Falsy `yearFormat` is
+    // treated the same as `NAME` rather than as a fifth case to branch on: a
+    // config row predating this field reads as `NAME` by construction (the
+    // migration default), so anything that resolves it the same way — a
+    // stale cache, a partial mock — should render identically, not crash.
+    if (!yearFormat || yearFormat === 'NAME') return year.name;
+
+    const short = (y: number) => String(y).slice(-2);
+    const startYear = year.startDate.getUTCFullYear();
+    const endYear = year.endDate.getUTCFullYear();
+
+    switch (yearFormat) {
+      case 'FULL_START':
+        return String(startYear);
+      case 'SHORT_START':
+        return short(startYear);
+      case 'FULL_RANGE':
+        return `${startYear}${endYear}`;
+      case 'SHORT_RANGE':
+        return `${short(startYear)}${short(endYear)}`;
+      default:
+        return year.name;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -234,12 +301,14 @@ export class NumberingService {
     branchId: string | null,
   ) {
     const rules = SEQUENCE_PURPOSE_RULES[dto.purpose];
-    this.assertFormatRendersSequence(dto.format);
+    this.assertFormatWellFormed(dto.format);
     this.assertYearlyFormatRendersYear(
       dto.format,
       rules.resetStrategy,
       dto.purpose,
     );
+    if (dto.prefix) this.assertLiteralSafe(dto.prefix, 'prefix');
+    if (dto.suffix) this.assertLiteralSafe(dto.suffix, 'suffix');
 
     const scopedBranchId = rules.scope === 'BRANCH' ? branchId : null;
 
@@ -284,6 +353,7 @@ export class NumberingService {
         includeAcademicYear: dto.includeAcademicYear ?? false,
         sequencePadding: dto.sequencePadding ?? 4,
         format: dto.format,
+        yearFormat: dto.yearFormat ?? 'NAME',
       },
     });
 
@@ -301,12 +371,20 @@ export class NumberingService {
   /**
    * Edit a sequence's rendering.
    *
-   * `prefix` and `sequencePadding` are frozen once a `NEVER`-reset sequence has
-   * issued its first value. Changing the width mid-life produces
-   * `STU0000000999` followed by `STU00000001000` — different lengths, which
-   * breaks lexicographic ordering (so every export and printed register
-   * reorders wrongly), fixed-width card and certificate layouts, and any
-   * downstream pattern match.
+   * Every field that decides what an identifier *looks like* — prefix,
+   * suffix, which components appear, how the year renders, and the sequence's
+   * padding — is frozen the moment a `NEVER`-reset sequence has issued its
+   * first value. Only `NEVER`-reset purposes freeze at all: a `YEARLY` format
+   * change is a fresh series next April, not a fracture inside one — see
+   * `03-numbering.md` §6 (permitted, discouraged, never blocked) versus §12
+   * (frozen once permanent).
+   *
+   * Freezing only the width (`prefix` + `sequencePadding`, as this method once
+   * did) missed the more common way to break a series: leaving `format` itself
+   * open let `{prefix}{sequence}` become `{prefix}-{sequence}-X` mid-life,
+   * changing every code's *shape* without ever touching its width. `STU0001`
+   * followed by `STU-0002-X` sorts fine and breaks every fixed-layout ID card,
+   * CSV column and downstream pattern match just the same.
    */
   async updateConfig(
     id: string,
@@ -322,27 +400,37 @@ export class NumberingService {
     }
 
     if (dto.format !== undefined) {
-      this.assertFormatRendersSequence(dto.format);
+      this.assertFormatWellFormed(dto.format);
       this.assertYearlyFormatRendersYear(
         dto.format,
         config.resetStrategy,
         config.purpose,
       );
     }
+    if (dto.prefix) this.assertLiteralSafe(dto.prefix, 'prefix');
+    if (dto.suffix) this.assertLiteralSafe(dto.suffix, 'suffix');
 
     if (config.resetStrategy === 'NEVER') {
-      const changesRenderedWidth =
+      const changesIdentityShape =
         (dto.sequencePadding !== undefined &&
           dto.sequencePadding !== config.sequencePadding) ||
-        (dto.prefix !== undefined && dto.prefix !== config.prefix);
+        (dto.prefix !== undefined && dto.prefix !== config.prefix) ||
+        (dto.suffix !== undefined && dto.suffix !== config.suffix) ||
+        (dto.includeBranchCode !== undefined &&
+          dto.includeBranchCode !== config.includeBranchCode) ||
+        (dto.includeAcademicYear !== undefined &&
+          dto.includeAcademicYear !== config.includeAcademicYear) ||
+        (dto.format !== undefined && dto.format !== config.format) ||
+        (dto.yearFormat !== undefined && dto.yearFormat !== config.yearFormat);
 
-      if (changesRenderedWidth && (await this.hasAllocated(config.id))) {
+      if (changesIdentityShape && (await this.hasAllocated(config.id))) {
         throw new BadRequestException({
           error: 'SEQUENCE_WIDTH_IMMUTABLE',
           message:
             `Sequence '${config.purpose}' has already issued identifiers. ` +
-            'Its prefix and padding are frozen — changing them would produce ' +
-            'codes of two different widths that no longer sort correctly.',
+            'Everything that decides what it renders — prefix, suffix, which ' +
+            'components appear, the year representation and the padding — is ' +
+            'frozen, so every code in the series keeps the same shape.',
           purpose: config.purpose,
         });
       }
@@ -357,6 +445,7 @@ export class NumberingService {
         includeAcademicYear: dto.includeAcademicYear,
         sequencePadding: dto.sequencePadding,
         format: dto.format,
+        yearFormat: dto.yearFormat,
         isActive: dto.isActive,
       },
     });
@@ -403,8 +492,24 @@ export class NumberingService {
     const branchCode = config.includeBranchCode
       ? await this.resolveBranchCode(config.branchId)
       : '';
-    const yearName = config.includeAcademicYear
-      ? await this.resolveAcademicYearName(dto.academicYearId)
+
+    const needsYear =
+      config.includeAcademicYear || config.format.includes(YEAR_PLACEHOLDER);
+
+    if (needsYear && !dto.academicYearId) {
+      // A blank preview is a misleading preview: it would show an
+      // administrator a shape the format never actually produces. Asking for
+      // a sample year here is cheaper than discovering the gap after the
+      // first real allocation.
+      throw new BadRequestException({
+        error: 'NUMBERING_YEAR_CONTEXT_REQUIRED',
+        message: `Sequence '${config.purpose}' renders a year. Supply academicYearId to preview it.`,
+        purpose: config.purpose,
+      });
+    }
+
+    const yearName = needsYear
+      ? await this.resolveYearComponent(dto.academicYearId, config.yearFormat)
       : '';
 
     const sampleValue = dto.sampleValue ?? 1;
@@ -424,11 +529,112 @@ export class NumberingService {
     return counter !== null;
   }
 
+  /**
+   * Every structural rule a format must satisfy before it is stored.
+   *
+   * The format layer is a closed token vocabulary — `KNOWN_PLACEHOLDERS` — not
+   * an expression language, so this rejects anything the renderer would
+   * either silently ignore (an unknown `{token}` prints as literal text,
+   * which looks like a typo nobody caught) or that makes a rendered value
+   * ambiguous to parse back apart (the same dynamic component twice).
+   */
+  private assertFormatWellFormed(format: string): void {
+    this.assertFormatRendersSequence(format);
+    this.assertFormatWithinMaxLength(format);
+    this.assertFormatUsesKnownPlaceholders(format);
+    this.assertNoDuplicatePlaceholders(format);
+    this.assertFormatCharactersSafe(format);
+  }
+
   private assertFormatRendersSequence(format: string): void {
     if (!format.includes(SEQUENCE_PLACEHOLDER)) {
       throw new BadRequestException({
         error: 'NUMBERING_FORMAT_INVALID',
         message: `A sequence format must contain ${SEQUENCE_PLACEHOLDER}; without it every generated value is identical.`,
+      });
+    }
+  }
+
+  private assertFormatWithinMaxLength(format: string): void {
+    if (format.length > MAX_FORMAT_LENGTH) {
+      throw new BadRequestException({
+        error: 'NUMBERING_FORMAT_TOO_LONG',
+        message: `A format may be at most ${MAX_FORMAT_LENGTH} characters.`,
+        maxLength: MAX_FORMAT_LENGTH,
+      });
+    }
+  }
+
+  /**
+   * An unknown `{token}` is not rendered — `render()` only replaces the five
+   * it knows — so it would print as literal text in every issued identifier.
+   * That is indistinguishable from a typo nobody caught until the codes were
+   * already on ID cards.
+   */
+  private assertFormatUsesKnownPlaceholders(format: string): void {
+    const tokens = format.match(/\{[^}]*\}/g) ?? [];
+    const known: readonly string[] = KNOWN_PLACEHOLDERS;
+    const unknown = tokens.filter((token) => !known.includes(token));
+
+    if (unknown.length > 0) {
+      throw new BadRequestException({
+        error: 'NUMBERING_FORMAT_UNKNOWN_TOKEN',
+        message:
+          `Format contains a token this engine does not render: ${unknown.join(', ')}. ` +
+          `Supported tokens are ${KNOWN_PLACEHOLDERS.join(', ')}.`,
+        unknownTokens: unknown,
+      });
+    }
+  }
+
+  /**
+   * The same dynamic component twice makes a rendered value ambiguous to read
+   * back apart — `{prefix}-{sequence}-{prefix}` cannot be un-rendered even in
+   * principle, since both occurrences of `{prefix}` collapse to one string.
+   */
+  private assertNoDuplicatePlaceholders(format: string): void {
+    const tokens = format.match(/\{[^}]*\}/g) ?? [];
+    const seen = new Set<string>();
+
+    for (const token of tokens) {
+      if (seen.has(token)) {
+        throw new BadRequestException({
+          error: 'NUMBERING_FORMAT_DUPLICATE_TOKEN',
+          message: `Format uses ${token} more than once.`,
+          token,
+        });
+      }
+      seen.add(token);
+    }
+  }
+
+  /** Literal text outside the placeholders — same character set as §prefix/suffix. */
+  private assertFormatCharactersSafe(format: string): void {
+    const literal = format.replace(/\{[^}]*\}/g, '');
+    if (!SAFE_LITERAL_PATTERN.test(literal)) {
+      throw new BadRequestException({
+        error: 'NUMBERING_FORMAT_ILLEGAL_CHARACTERS',
+        message:
+          'A format may contain only letters, digits, and - _ . / space ' +
+          'outside its placeholders.',
+      });
+    }
+  }
+
+  private assertLiteralSafe(value: string, field: 'prefix' | 'suffix'): void {
+    if (value.length > MAX_PREFIX_SUFFIX_LENGTH) {
+      throw new BadRequestException({
+        error: 'NUMBERING_LITERAL_TOO_LONG',
+        message: `A ${field} may be at most ${MAX_PREFIX_SUFFIX_LENGTH} characters.`,
+        field,
+        maxLength: MAX_PREFIX_SUFFIX_LENGTH,
+      });
+    }
+    if (!SAFE_LITERAL_PATTERN.test(value)) {
+      throw new BadRequestException({
+        error: 'NUMBERING_LITERAL_ILLEGAL_CHARACTERS',
+        message: `A ${field} may contain only letters, digits, and - _ . / space.`,
+        field,
       });
     }
   }

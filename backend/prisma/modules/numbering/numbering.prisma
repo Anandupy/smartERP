@@ -25,6 +25,9 @@ model NumberSequenceConfig {
   /// generated value is identical and the failure surfaces as a confusing
   /// unique violation at the destination.
   format              String
+  /// How `{year}` renders, when `format` or `includeAcademicYear` uses one.
+  /// Independent of `resetStrategy` — see the enum doc.
+  yearFormat          SequenceYearFormat @default(NAME)
 
   resetStrategy ResetStrategy @default(NEVER)
   isActive      Boolean       @default(true)

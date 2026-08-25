@@ -3,9 +3,16 @@ import {
   ResetStrategy,
   SequencePurpose,
   SequenceScope,
+  SequenceYearFormat,
 } from '@/generated/client';
 
-export { AllocationMode, ResetStrategy, SequencePurpose, SequenceScope };
+export {
+  AllocationMode,
+  ResetStrategy,
+  SequencePurpose,
+  SequenceScope,
+  SequenceYearFormat,
+};
 
 /**
  * What a caller must state to allocate a number.
@@ -103,6 +110,38 @@ export const NULL_ACADEMIC_YEAR_SENTINEL =
 
 /** A format that renders no counter renders the same value every time. */
 export const SEQUENCE_PLACEHOLDER = '{sequence}';
+
+/**
+ * The format layer's entire vocabulary.
+ *
+ * Deliberately closed: `render()` performs a fixed find-and-replace over
+ * exactly these five tokens, never an interpolation or an expression
+ * evaluation, so a format string cannot become an execution surface. Adding a
+ * component means adding it here, to `render()`, and to the volatility
+ * analysis in `03-numbering.md` §6 — not accepting whatever a caller writes
+ * between braces.
+ */
+export const KNOWN_PLACEHOLDERS = [
+  '{prefix}',
+  '{suffix}',
+  '{branchCode}',
+  '{year}',
+  '{sequence}',
+] as const;
+
+/**
+ * Literal characters a format may contain outside its placeholders, and the
+ * full character set `prefix`/`suffix` may use.
+ *
+ * Letters, digits and the separators an identifier conventionally uses.
+ * Nothing that could be mistaken for control syntax anywhere downstream this
+ * string travels to — a printed ID card, a CSV export, a URL path segment.
+ */
+export const SAFE_LITERAL_PATTERN = /^[A-Za-z0-9\-_./ ]*$/;
+
+/** Guards against a pathological format, not a precisely bounded render. */
+export const MAX_FORMAT_LENGTH = 64;
+export const MAX_PREFIX_SUFFIX_LENGTH = 20;
 
 /**
  * A format that renders no year cannot survive a yearly reset.

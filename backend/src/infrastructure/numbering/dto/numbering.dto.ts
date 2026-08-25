@@ -10,9 +10,9 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SequencePurpose } from '@/generated/client';
+import { SequencePurpose, SequenceYearFormat } from '@/generated/client';
 
-export { SequencePurpose };
+export { SequencePurpose, SequenceYearFormat };
 
 export class CreateNumberSequenceConfigDto {
   @ApiProperty({
@@ -75,12 +75,31 @@ export class CreateNumberSequenceConfigDto {
   @ApiProperty({
     description:
       'Template to render. Must contain {sequence}; available placeholders are ' +
-      '{prefix} {suffix} {branchCode} {year} {sequence}.',
+      '{prefix} {suffix} {branchCode} {year} {sequence}, each usable at most ' +
+      'once. Letters, digits and - _ . / space only. Frozen, along with every ' +
+      'other field on this DTO, once a NEVER-reset sequence has issued its ' +
+      'first value.',
     example: '{prefix}{sequence}',
   })
   @IsString()
   @IsNotEmpty()
   format!: string;
+
+  @ApiPropertyOptional({
+    enum: SequenceYearFormat,
+    description:
+      'How {year} renders, when the format or includeAcademicYear uses one. ' +
+      'NAME (the default) is AcademicYear.name verbatim, for a sequence ' +
+      'provisioned before this field existed. The other four are computed ' +
+      'from AcademicYear.startDate/endDate, not the free-text name, so their ' +
+      'width is guaranteed: FULL_START (2026), SHORT_START (26), FULL_RANGE ' +
+      '(20262027), SHORT_RANGE (2627).',
+    default: SequenceYearFormat.NAME,
+    example: SequenceYearFormat.FULL_START,
+  })
+  @IsEnum(SequenceYearFormat)
+  @IsOptional()
+  yearFormat?: SequenceYearFormat;
 }
 
 export class UpdateNumberSequenceConfigDto {
@@ -115,6 +134,14 @@ export class UpdateNumberSequenceConfigDto {
   @IsString()
   @IsOptional()
   format?: string;
+
+  @ApiPropertyOptional({
+    enum: SequenceYearFormat,
+    description: 'See CreateNumberSequenceConfigDto.yearFormat.',
+  })
+  @IsEnum(SequenceYearFormat)
+  @IsOptional()
+  yearFormat?: SequenceYearFormat;
 
   @ApiPropertyOptional()
   @IsBoolean()
