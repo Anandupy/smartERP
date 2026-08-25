@@ -38,7 +38,7 @@ for a value it hands to someone else.
 | D4 | **Format placeholders resolve _before_ the increment** | Every millisecond between increment and commit is lock-hold time on a row every concurrent admission at that branch is waiting for. |
 | D5 | **`purpose` and `resetStrategy` become enums** | Free strings today. A typo silently creates a second, parallel sequence. |
 | D6 | **A format must contain `{sequence}`, validated at config creation** | Without it every generated value is identical, and the failure surfaces as a confusing unique-violation at the destination. |
-| D7 | **`studentCode` never resets and embeds nothing volatile** | `STU` + 10 digits, organization-scoped, `resetStrategy: NEVER`. Branch and year both change (§5); the code must not. |
+| D7 | **`studentCode` never resets and embeds nothing volatile** | `STU` + 10 digits, organization-scoped, `resetStrategy: NEVER`. Branch and year both change (§5); the code must not. **§12 narrows this**: `STU` + 10 digits is the *default institutional choice*, not a hardcoded shape — `prefix`, `sequencePadding` and `format` are configurable per organization, same as every other purpose. What §12 keeps as an actual invariant is narrower and still true: `scope: ORGANIZATION`, `resetStrategy: NEVER`, and no *mutable* fact (branch, programme, academic unit) embedded in the rendered value. |
 | D8 | **Numbers are never reused, not even after a rollback or a void** | A voided receipt keeps its number and is marked void. Reissuing a number breaks every audit that assumed sequence uniqueness. |
 
 ### 2.1 Defects in the current implementation
@@ -323,3 +323,162 @@ Scenarios 2 and 7 are the ones that catch the defects in the current
 implementation — 2 catches the NULL trap, 7 catches the aborted-transaction
 handler. Both **fail against today's code**, which is the point of writing them
 down before the rewrite.
+
+---
+
+## 12. Addendum — R6: configurable `{year}` rendering, tightened format safety (2026-08-25)
+
+This section postdates §1–11, which describe the engine as originally shipped.
+Nothing here replaces it — the allocation statement (§3.4), the two allocation
+modes (§2.2), and the format-as-token-vocabulary approach are unchanged and
+remain the single authority. This closes three gaps found while verifying that
+"institutions can configure their own Student Code format" is actually true
+end to end, not merely true of `prefix` and `sequencePadding`.
+
+### 12.1 What "configurable" already meant, and what it did not
+
+Before this addendum, `NumberSequenceConfig.format` was already a closed
+token-replace template — `{prefix} {suffix} {branchCode} {year} {sequence}` —
+not an expression language, so an institution could already provision
+`STU-2026-0001` or `STU/26/001` by supplying the right `prefix` and `format`.
+That part needed no rewrite.
+
+Three things did not work, despite looking configurable:
+
+1. **`{year}` had exactly one rendering** — `AcademicYear.name` verbatim,
+   whatever an admin happened to type. Two academic years in this codebase's
+   own data are named `"2025-26"` and `"2026-2027"` — different shapes, no
+   guaranteed width, and no way to ask for `2026` or `26` instead.
+2. **`STUDENT_CODE` allocation never received an academic year at all**
+   (`StudentService.createControlled` called `numbering.allocate({ purpose:
+   'STUDENT_CODE', organizationId }, …)` — no `academicYearId`). A `{year}` in
+   a `STUDENT_CODE` format would have silently rendered blank, collapsing the
+   separator around it, with no error anywhere.
+3. **Only `prefix` and `sequencePadding` froze after first allocation.**
+   `format`, `suffix`, `includeBranchCode` and `includeAcademicYear` stayed
+   editable for the life of the sequence, so `STU0001` could become
+   `STU-0002-X` mid-series without tripping `SEQUENCE_WIDTH_IMMUTABLE` — a
+   shape change the invariant's own name promised to prevent.
+
+None of these is a flaw in the engine's authority (§4 invariant 5 — the
+destination's own uniqueness constraint — was never at risk); all three are
+gaps in the format layer being genuinely usable the way §5–6 of this document
+describes it.
+
+### 12.2 `SequenceYearFormat`
+
+```prisma
+enum SequenceYearFormat {
+  NAME          // AcademicYear.name verbatim — the default, and the only
+                // mode that predates this addendum.
+  FULL_START    // 2026
+  SHORT_START   // 26
+  FULL_RANGE    // 20262027
+  SHORT_RANGE   // 2627
+}
+```
+
+`NumberSequenceConfig.yearFormat SequenceYearFormat @default(NAME)`. The
+default reproduces the pre-existing behaviour exactly, so every sequence
+provisioned before this column existed renders identically after the
+migration — this is additive, not a behaviour change for anyone who has not
+opted in.
+
+The four computed modes read `AcademicYear.startDate`/`endDate`, not `.name`,
+precisely because `.name` has no guaranteed shape. This is independent of
+`resetStrategy`: `resetStrategy` decides whether the *counter* restarts each
+year; `yearFormat` decides what the `{year}` *token* looks like when the
+format uses one. A `NEVER`-reset sequence may still embed a year (§12.3); a
+`YEARLY` sequence still must (§9 invariant, unchanged).
+
+### 12.3 Which year, for `STUDENT_CODE`
+
+§7/§9's open question — *if a permanent code embeds a year, which year?* — is
+answered now that it is actually reachable: **the academic year of first
+admission.** A historical fact, fixed the moment the student is admitted,
+never recomputed, and unrelated to the counter's own reset behaviour
+(`STUDENT_CODE` still never resets — embedding a year in the rendered text is
+a display choice, not a change to `resetStrategy`).
+
+Plumbing: `AdmissionConversionService.convert()` passes the applicant's
+`academicYearId` to `StudentService.createControlled()` as
+`admissionAcademicYearId` — numbering context only, **not** a Student column
+(Student holds no academic-year field, ever, by design — see
+`student-admission-enrollment-architecture.md` §11 and the model's own doc
+comment). `StudentService` forwards it to `numbering.allocate()` as
+`academicYearId`. An organization that has not configured a `{year}` in its
+`STUDENT_CODE` format never touches this path — the value is simply unused.
+
+`EMPLOYEE_CODE` (the other `NEVER`-reset, `ORGANIZATION`-scoped purpose) has
+no equivalent "date of first admission" concept and is out of scope here; a
+caller wanting a year in an employee code would need its own analogous
+decision when that module is built.
+
+### 12.4 A year-bearing format with no year supplied is now a hard error
+
+`allocate()` and `preview()` both now raise `NUMBERING_YEAR_CONTEXT_REQUIRED`
+(400) if the config's format needs a year (`includeAcademicYear` or the
+format contains `{year}`) and the caller supplied no `academicYearId` —
+instead of the previous behaviour of rendering an empty string and collapsing
+the separator. A `YEARLY`-reset sequence already could not reach this state
+(`NUMBERING_ACADEMIC_YEAR_REQUIRED` already required a year to reset the
+counter); this closes the one path that could: a `NEVER`-reset sequence that
+opts into a year, per §12.3.
+
+### 12.5 Format well-formedness, tightened
+
+`createConfig`/`updateConfig` now also reject, at provisioning time rather
+than as a confusing render later:
+
+| Rule | Error |
+| :--- | :--- |
+| A token outside `{prefix} {suffix} {branchCode} {year} {sequence}` | `NUMBERING_FORMAT_UNKNOWN_TOKEN` — previously printed as **literal text**, indistinguishable from a typo left on every issued identifier |
+| The same token twice | `NUMBERING_FORMAT_DUPLICATE_TOKEN` |
+| A character outside `[A-Za-z0-9\-_./ ]` in the format's literal text, or in `prefix`/`suffix` | `NUMBERING_FORMAT_ILLEGAL_CHARACTERS` / `NUMBERING_LITERAL_ILLEGAL_CHARACTERS` |
+| `format` longer than 64 characters, or `prefix`/`suffix` longer than 20 | `NUMBERING_FORMAT_TOO_LONG` / `NUMBERING_LITERAL_TOO_LONG` |
+
+These are sanity bounds, not a precise render-length simulation — `branchCode`
+and `NAME`-mode `{year}` are dynamic and not statically bounded, so the limits
+guard against a pathological configuration rather than promise an exact
+maximum output width.
+
+**Deliberately not added:** `PROGRAM_CODE` and `ACADEMIC_UNIT_CODE` tokens.
+Both were evaluated against §16 of the numbering-provisioning review and
+rejected — a programme transfer, section transfer, or correction would leave
+a permanent code naming a placement the student is no longer in, and neither
+has the kind of frozen-at-admission semantics `{year}` now has (§12.3). An
+`ORGANIZATION_CODE` token was also evaluated and deferred: `STUDENT_CODE`
+uniqueness is already `@@unique([organizationId, studentCode])` (invariant
+5), so it adds no correctness value, only a readability preference nobody has
+asked for yet.
+
+### 12.6 Freeze widened from "width" to "shape"
+
+Once a `NEVER`-reset sequence (`STUDENT_CODE`, `EMPLOYEE_CODE`) has issued its
+first value, **every** field that decides what it renders is frozen — not
+only `prefix` and `sequencePadding` as before, but `suffix`,
+`includeBranchCode`, `includeAcademicYear`, `format` and `yearFormat` too.
+`updateConfig` still returns `SEQUENCE_WIDTH_IMMUTABLE` (the error code is
+unchanged; its meaning widened to match what the message already promised).
+`isActive` is not part of the rendered shape and stays freely editable.
+
+`YEARLY`-reset sequences are **not** affected — §6's existing position holds:
+a format change mid-life is a fresh series next reset, permitted (if
+discouraged), never blocked.
+
+### 12.7 Provisioning is still not automatic
+
+§9's "every organization needs `STUDENT_CODE` and `EMPLOYEE_CODE` configs at
+creation… belongs in tenant onboarding (P2)" remains unbuilt — this addendum
+makes the format layer genuinely configurable, it does not add automatic
+provisioning. `docs/admissions/numbering-review.md` §3 records the concrete
+incident this produced (an organization admitted zero students because
+`ADMISSION_NO` was never provisioned) and the decision not to fold
+provisioning into `admit()`.
+
+### 12.8 Migration
+
+Additive only: `CREATE TYPE "SequenceYearFormat"` + `ALTER TABLE
+"NumberSequenceConfig" ADD COLUMN "yearFormat" … DEFAULT 'NAME'`. No existing
+row changes value, no counter resets, no issued identifier is recomputed —
+consistent with §5's "a generated identifier is persisted, not recomputed."
