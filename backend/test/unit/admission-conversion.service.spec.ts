@@ -271,6 +271,18 @@ describe('Admission conversion', () => {
       }
     });
 
+    it('passes the applicant’s academic year as numbering context only, not as a Student field', async () => {
+      // Not a Student column — StudentService never persists it. It exists so
+      // an organization that has configured STUDENT_CODE to render a {year}
+      // has one to render (03-numbering.md §7): the academic year of first
+      // admission, the only "year" meaning that stays true for the rest of
+      // the student's permanent code, forever.
+      await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
+
+      const input = createStudent.mock.calls[0][0];
+      expect(input.admissionAcademicYearId).toBe('year-1');
+    });
+
     it('opens the admission with the applicant’s own quota and source', async () => {
       await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
 

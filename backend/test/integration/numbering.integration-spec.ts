@@ -386,7 +386,7 @@ describe('Numbering engine (integration)', () => {
     ).rejects.toThrow();
   });
 
-  it('freezes the rendered width once an identity sequence has issued a value', async () => {
+  it('freezes everything that decides an identity sequence shape once it has issued a value', async () => {
     const config = await provisionStudentCode();
 
     await numbering.allocate(
@@ -394,22 +394,64 @@ describe('Numbering engine (integration)', () => {
       prisma,
     );
 
-    await expect(
-      numbering.updateConfig(config.id, { sequencePadding: 6 }, orgId),
-    ).rejects.toMatchObject({
-      response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' },
-    });
+    // Not only width — every field that changes what the rendered string
+    // looks like is frozen: prefix, suffix, padding, which components appear,
+    // the year representation, and the format template itself.
+    for (const patch of [
+      { sequencePadding: 6 },
+      { prefix: 'STD' },
+      { suffix: 'X' },
+      { includeBranchCode: true },
+      { includeAcademicYear: true },
+      { format: '{prefix}-{sequence}' },
+      { yearFormat: 'FULL_START' as const },
+    ]) {
+      await expect(
+        numbering.updateConfig(config.id, patch, orgId),
+      ).rejects.toMatchObject({
+        response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' },
+      });
+    }
 
-    await expect(
-      numbering.updateConfig(config.id, { prefix: 'STD' }, orgId),
-    ).rejects.toMatchObject({
-      response: { error: 'SEQUENCE_WIDTH_IMMUTABLE' },
-    });
-
-    // A suffix does not change the counter's rendered width, so it stays open.
+    // isActive is not part of the rendered shape, so it stays open.
     await expect(
       numbering.updateConfig(config.id, { isActive: true }, orgId),
     ).resolves.toBeDefined();
+  });
+
+  it('leaves a YEARLY sequence free to change format after allocation', async () => {
+    // §6 of 03-numbering.md: a format change mid-life is permitted (if
+    // discouraged) for a sequence that already resets every year — only a
+    // NEVER-reset identity sequence freezes.
+    const config = await numbering.createConfig(
+      {
+        purpose: 'ADMISSION_FORM',
+        prefix: 'ADM',
+        sequencePadding: 4,
+        format: '{prefix}-{year}-{sequence}',
+      },
+      orgId,
+      branchId,
+    );
+    createdConfigIds.push(config.id);
+
+    await numbering.allocate(
+      {
+        purpose: 'ADMISSION_FORM',
+        organizationId: orgId,
+        branchId,
+        academicYearId,
+      },
+      prisma,
+    );
+
+    await expect(
+      numbering.updateConfig(
+        config.id,
+        { format: '{prefix}/{year}/{sequence}' },
+        orgId,
+      ),
+    ).resolves.toMatchObject({ format: '{prefix}/{year}/{sequence}' });
   });
 
   it('previews a format without consuming a value', async () => {
@@ -426,6 +468,303 @@ describe('Numbering engine (integration)', () => {
       where: { configId: config.id },
     });
     expect(counters).toHaveLength(0);
+  });
+
+  describe('the year component', () => {
+    // Fixture academicYearId is named '2026-27' with startDate 2026-04-01 and
+    // endDate 2027-03-31 — deliberately not matching its own name's shape, the
+    // same inconsistency this codebase's real data has ("2025-26" next to
+    // "2026-2027"), to prove the four computed modes read the dates and not
+    // the name.
+    const cases: Array<{ yearFormat: string; expected: string }> = [
+      { yearFormat: 'NAME', expected: '2026-27' },
+      { yearFormat: 'FULL_START', expected: '2026' },
+      { yearFormat: 'SHORT_START', expected: '26' },
+      { yearFormat: 'FULL_RANGE', expected: '20262027' },
+      { yearFormat: 'SHORT_RANGE', expected: '2627' },
+    ];
+
+    for (const { yearFormat, expected } of cases) {
+      it(`renders ${yearFormat} as ${expected}`, async () => {
+        const config = await numbering.createConfig(
+          {
+            purpose: 'ADMISSION_FORM',
+            prefix: 'ADM',
+            sequencePadding: 3,
+            format: '{prefix}-{year}-{sequence}',
+            yearFormat: yearFormat as never,
+          },
+          orgId,
+          branchId,
+        );
+        createdConfigIds.push(config.id);
+
+        const rendered = await numbering.allocate(
+          {
+            purpose: 'ADMISSION_FORM',
+            organizationId: orgId,
+            branchId,
+            academicYearId,
+          },
+          prisma,
+        );
+
+        expect(rendered).toBe(`ADM-${expected}-001`);
+      });
+    }
+
+    it('refuses to allocate a year-bearing format with no academic year supplied', async () => {
+      // STUDENT_CODE never resets, so nothing else forces an academic year to
+      // be passed — this is the one path that can still reach the allocator
+      // needing a year it was not given (03-numbering.md §7/§9).
+      const config = await numbering.createConfig(
+        {
+          purpose: 'STUDENT_CODE',
+          prefix: 'STU',
+          sequencePadding: 4,
+          format: '{prefix}{year}{sequence}',
+          yearFormat: 'FULL_START' as never,
+        },
+        orgId,
+        null,
+      );
+      createdConfigIds.push(config.id);
+
+      await expect(
+        numbering.allocate(
+          { purpose: 'STUDENT_CODE', organizationId: orgId },
+          prisma,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_YEAR_CONTEXT_REQUIRED' },
+      });
+    });
+
+    it('refuses to preview a year-bearing format with no sample year', async () => {
+      const config = await provisionStudentCode();
+      await numbering.updateConfig(
+        config.id,
+        { format: '{prefix}-{year}-{sequence}' },
+        orgId,
+      );
+
+      await expect(
+        numbering.preview(config.id, { sampleValue: 1 }, orgId),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_YEAR_CONTEXT_REQUIRED' },
+      });
+    });
+
+    it('allocates a STUDENT_CODE that embeds the admission year once one is supplied', async () => {
+      const config = await numbering.createConfig(
+        {
+          purpose: 'STUDENT_CODE',
+          prefix: 'STU',
+          sequencePadding: 4,
+          format: '{prefix}{year}{sequence}',
+          yearFormat: 'FULL_START' as never,
+        },
+        orgId,
+        null,
+      );
+      createdConfigIds.push(config.id);
+
+      const rendered = await numbering.allocate(
+        { purpose: 'STUDENT_CODE', organizationId: orgId, academicYearId },
+        prisma,
+      );
+
+      expect(rendered).toBe('STU20260001');
+    });
+  });
+
+  describe('format examples the engine must be able to express', () => {
+    // These are the illustrative formats an institution might configure —
+    // not a mandatory set. Proving the engine renders all of them from the
+    // same component vocabulary is the point.
+    const examples: Array<{
+      prefix: string;
+      format: string;
+      yearFormat: string;
+      padding: number;
+      expected: string;
+    }> = [
+      {
+        prefix: 'STU',
+        format: '{prefix}{year}{sequence}',
+        yearFormat: 'FULL_START',
+        padding: 2,
+        expected: 'STU202601',
+      },
+      {
+        prefix: 'STU',
+        format: '{prefix}{year}{sequence}',
+        yearFormat: 'FULL_START',
+        padding: 4,
+        expected: 'STU20260001',
+      },
+      {
+        prefix: 'STU',
+        format: '{prefix}-{year}-{sequence}',
+        yearFormat: 'FULL_START',
+        padding: 4,
+        expected: 'STU-2026-0001',
+      },
+      {
+        prefix: 'STU',
+        format: '{prefix}/{year}/{sequence}',
+        yearFormat: 'SHORT_START',
+        padding: 3,
+        expected: 'STU/26/001',
+      },
+      {
+        prefix: 'STU',
+        format: '{year}-{prefix}-{sequence}',
+        yearFormat: 'FULL_START',
+        padding: 3,
+        expected: '2026-STU-001',
+      },
+    ];
+
+    for (const { prefix, format, yearFormat, padding, expected } of examples) {
+      it(`renders ${format} (${yearFormat}) as ${expected}`, async () => {
+        const config = await numbering.createConfig(
+          {
+            purpose: 'STUDENT_CODE',
+            prefix,
+            sequencePadding: padding,
+            format,
+            yearFormat: yearFormat as never,
+          },
+          orgId,
+          null,
+        );
+        createdConfigIds.push(config.id);
+
+        const rendered = await numbering.allocate(
+          { purpose: 'STUDENT_CODE', organizationId: orgId, academicYearId },
+          prisma,
+        );
+
+        expect(rendered).toBe(expected);
+      });
+    }
+  });
+
+  describe('format safety', () => {
+    it('rejects an unknown token', async () => {
+      await expect(
+        numbering.createConfig(
+          {
+            purpose: 'STUDENT_CODE',
+            prefix: 'STU',
+            sequencePadding: 4,
+            format: '{prefix}{programCode}{sequence}',
+          },
+          orgId,
+          null,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_FORMAT_UNKNOWN_TOKEN' },
+      });
+    });
+
+    it('rejects the same dynamic component used twice', async () => {
+      await expect(
+        numbering.createConfig(
+          {
+            purpose: 'STUDENT_CODE',
+            prefix: 'STU',
+            sequencePadding: 4,
+            format: '{prefix}{sequence}{sequence}',
+          },
+          orgId,
+          null,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_FORMAT_DUPLICATE_TOKEN' },
+      });
+    });
+
+    it('rejects illegal characters outside the placeholders', async () => {
+      await expect(
+        numbering.createConfig(
+          {
+            purpose: 'STUDENT_CODE',
+            prefix: 'STU',
+            sequencePadding: 4,
+            format: '{prefix}<{sequence}>',
+          },
+          orgId,
+          null,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_FORMAT_ILLEGAL_CHARACTERS' },
+      });
+    });
+
+    it('rejects a format longer than the configured maximum', async () => {
+      await expect(
+        numbering.createConfig(
+          {
+            purpose: 'STUDENT_CODE',
+            prefix: 'STU',
+            sequencePadding: 4,
+            format: '{prefix}' + '-'.repeat(60) + '{sequence}',
+          },
+          orgId,
+          null,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_FORMAT_TOO_LONG' },
+      });
+    });
+
+    it('rejects a prefix with illegal characters', async () => {
+      await expect(
+        numbering.createConfig(
+          {
+            purpose: 'STUDENT_CODE',
+            prefix: 'STU#',
+            sequencePadding: 4,
+            format: '{prefix}{sequence}',
+          },
+          orgId,
+          null,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_LITERAL_ILLEGAL_CHARACTERS' },
+      });
+    });
+
+    it('does not truncate a value that overflows its configured padding', async () => {
+      const config = await numbering.createConfig(
+        {
+          purpose: 'STUDENT_CODE',
+          prefix: 'STU',
+          sequencePadding: 1,
+          format: '{prefix}{sequence}',
+        },
+        orgId,
+        null,
+      );
+      createdConfigIds.push(config.id);
+
+      for (let i = 0; i < 12; i += 1) {
+        await numbering.allocate(
+          { purpose: 'STUDENT_CODE', organizationId: orgId },
+          prisma,
+        );
+      }
+      const rendered = await numbering.allocate(
+        { purpose: 'STUDENT_CODE', organizationId: orgId },
+        prisma,
+      );
+
+      // padStart never truncates: the 13th value overflows a width-1
+      // configuration by simply widening, not by losing a digit.
+      expect(rendered).toBe('STU13');
+    });
   });
 
   afterEach(async () => {

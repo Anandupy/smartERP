@@ -109,6 +109,27 @@ describe('StudentService', () => {
       );
     });
 
+    it('forwards admissionAcademicYearId to the numbering engine as allocation context', async () => {
+      mockPrisma.student.create.mockResolvedValue({
+        id: 's-1',
+        studentCode: 'STU0000000001',
+      });
+
+      await students.createControlled({
+        ...baseInput,
+        admissionAcademicYearId: 'year-1',
+      });
+
+      expect(allocate).toHaveBeenCalledWith(
+        {
+          purpose: 'STUDENT_CODE',
+          organizationId: 'org-1',
+          academicYearId: 'year-1',
+        },
+        expect.anything(),
+      );
+    });
+
     it('derives the display name rather than accepting one', async () => {
       mockPrisma.student.create.mockResolvedValue({
         id: 's-1',
