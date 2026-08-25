@@ -107,7 +107,14 @@ export class StudentService {
     );
 
     const studentCode = await this.numbering.allocate(
-      { purpose: 'STUDENT_CODE', organizationId: input.organizationId },
+      {
+        purpose: 'STUDENT_CODE',
+        organizationId: input.organizationId,
+        // Only consumed if the organization's STUDENT_CODE format renders a
+        // {year} — see CreateStudentInput.admissionAcademicYearId. Harmless
+        // to pass for every organization that has not opted into one.
+        academicYearId: input.admissionAcademicYearId,
+      },
       client,
     );
 

@@ -272,6 +272,9 @@ export class AdmissionConversionService {
         penNo: applicant.penNo,
         createdVia: 'ADMISSION',
         sourceApplicantId: applicant.id,
+        // Numbering context only, per admissionAcademicYearId's own doc —
+        // this is the applicant's academic year, not a field Student stores.
+        admissionAcademicYearId: applicant.academicYearId,
         createdBy: actor.userId ?? null,
       },
       tx,

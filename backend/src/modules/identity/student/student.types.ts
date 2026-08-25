@@ -47,6 +47,20 @@ export interface CreateStudentInput {
   /** Required unless `createdVia` is `MIGRATION`; a CHECK enforces it. */
   sourceApplicantId?: string | null;
 
+  /**
+   * The academic year this student is first admitted in.
+   *
+   * Not a Student field — Student holds no academic context, ever (see the
+   * model's own doc) — and not persisted here either. Its only use is
+   * numbering context: **if** an organization has configured `STUDENT_CODE`
+   * to render a `{year}`, that year means the academic year of first
+   * admission, a permanent historical fact, never the counter's reset year
+   * (`STUDENT_CODE` never resets). Omit it and a year-bearing format fails
+   * loudly at allocation rather than rendering blank; omit it and a
+   * year-free format (the default) is unaffected.
+   */
+  admissionAcademicYearId?: string | null;
+
   createdBy?: string | null;
 }
 
