@@ -105,7 +105,11 @@ function Details({
         description={range ?? "The date range was not reported."}
         actions={
           <>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              data-guide="academic-year-details-lifecycle-link"
+            >
               <Link href={ROUTES.app.academicYears.lifecycle(year.id)}>
                 <Power />
                 Lifecycle

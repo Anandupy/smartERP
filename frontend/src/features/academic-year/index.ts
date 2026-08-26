@@ -129,6 +129,9 @@ export {
   type TimelinePhase,
 } from "./utils/academic-year-timeline";
 
+// Guide
+export { academicYearsGuide } from "./guide/academic-years.guide";
+
 // Contracts
 export {
   ACADEMIC_YEAR_TRANSITIONS,

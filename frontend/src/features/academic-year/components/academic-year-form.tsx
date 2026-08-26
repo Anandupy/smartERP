@@ -39,6 +39,9 @@ export interface AcademicYearFormProps {
   existingYears?: readonly AcademicYearDto[];
   /** The record being edited, so it does not overlap itself. */
   editingId?: string;
+  /** `data-guide` id for the submit button, for the Academic Years guide.
+   * Omitted on Edit — only Create is part of that walkthrough. */
+  submitGuideTarget?: string;
 }
 
 /**
@@ -72,6 +75,7 @@ export function AcademicYearForm({
   branchName,
   existingYears,
   editingId,
+  submitGuideTarget,
 }: AcademicYearFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -206,7 +210,11 @@ export function AcademicYearForm({
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            data-guide={submitGuideTarget}
+          >
             {isSubmitting ? <Spinner size="sm" label="Saving" /> : null}
             {isSubmitting ? "Saving…" : submitLabel}
           </Button>

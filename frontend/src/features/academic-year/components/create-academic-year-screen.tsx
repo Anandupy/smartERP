@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { School } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants";
+import { useGuide } from "@/core/guides";
 import { Banner, EmptyState } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
 
@@ -42,6 +43,7 @@ export function CreateAcademicYearScreen() {
   const branch = useAcademicYearBranch();
   const create = useCreateAcademicYear();
   const { academicYears, isPending } = useAcademicYears(branch?.id ?? null);
+  const guide = useGuide("academic-years");
 
   if (!branch) {
     return (
@@ -86,6 +88,7 @@ export function CreateAcademicYearScreen() {
         branchName={branch.name}
         existingYears={academicYears}
         submitLabel="Create academic year"
+        submitGuideTarget="academic-year-create-submit"
         onCancel={() => router.push(ROUTES.app.academicYears.directory)}
         onSubmit={async (values) => {
           const created = await create.mutateAsync(
@@ -100,6 +103,11 @@ export function CreateAcademicYearScreen() {
               ? ROUTES.app.academicYears.detail(created.id)
               : ROUTES.app.academicYears.directory,
           );
+          // Additive only — the existing toast/invalidate (in the mutation
+          // hook) and the redirect above are untouched. Passing the new id
+          // scopes every later step in the guide to *this* year, so browsing
+          // to an unrelated year mid-guide can never be mistaken for progress.
+          if (created?.id) guide.reportEvent({ entityId: created.id });
         }}
       />
     </div>

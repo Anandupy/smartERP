@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
+import { useGuide } from "@/core/guides";
 import { cn } from "@/lib/utils";
 import {
   BackendPendingBadge,
@@ -131,10 +132,14 @@ function ActionRow({
   action,
   isPending,
   onRun,
+  guideTarget,
 }: {
   action: LifecycleAction;
   isPending: boolean;
   onRun: () => void;
+  /** `data-guide` id, for the one transition (Activate) the Academic Years
+   * guide targets. `undefined` for Select and Lock. */
+  guideTarget?: string;
 }) {
   const Icon = TRANSITION_ICON[action.transition];
   const isBlocked = action.blockedReason !== null;
@@ -153,6 +158,7 @@ function ActionRow({
         className="shrink-0"
         disabled={isBlocked || isPending}
         onClick={onRun}
+        data-guide={guideTarget}
       >
         <Icon />
         {action.label}
@@ -172,6 +178,7 @@ function Lifecycle({
   const router = useRouter();
   const transition = useAcademicYearTransition(branchId);
   const deleteYear = useDeleteAcademicYear(branchId);
+  const guide = useGuide("academic-years");
   const [pendingAction, setPendingAction] = useState<LifecycleAction | null>(
     null,
   );
@@ -256,6 +263,11 @@ function Lifecycle({
               action={action}
               isPending={transition.isPending}
               onRun={() => setPendingAction(action)}
+              guideTarget={
+                action.transition === "activate"
+                  ? "academic-year-activate"
+                  : undefined
+              }
             />
           ))}
         </CardContent>
@@ -373,6 +385,10 @@ function Lifecycle({
         onConfirm={async (target, name) => {
           await transition.mutateAsync({ id: target.id, transition: name });
           setPendingAction(null);
+          // Additive only — the existing toast/invalidate above is
+          // untouched. Activate is the guide's last step; the other two
+          // transitions are outside its scope.
+          if (name === "activate") guide.completeGuide();
         }}
       />
 

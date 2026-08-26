@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
+import { GuideHelpTrigger } from "@/core/guides";
 import { LinkCard, StatCard } from "@/shared/components/data-display";
 import {
   ApiErrorState,
@@ -109,12 +110,13 @@ export function AcademicYearDashboardScreen({
         description={`The administrative timeframes ${branch.name} operates in — their span, status and progress.`}
         actions={
           <>
+            <GuideHelpTrigger guideId="academic-years" />
             <Button asChild variant="outline">
               <Link href={ROUTES.app.academicYears.directory}>
                 View directory
               </Link>
             </Button>
-            <Button asChild>
+            <Button asChild data-guide="academic-year-dashboard-create-link">
               <Link href={ROUTES.app.academicYears.create}>
                 <Plus />
                 New academic year
