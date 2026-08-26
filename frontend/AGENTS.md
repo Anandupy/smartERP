@@ -59,8 +59,8 @@ app  →  features  →  components / shared  →  core  →  config / constants
                        ↘ hooks / lib / utils / services / schemas / store ↗
 ```
 
-- **core** = cross-cutting platform (api, auth, query, startup, theme, workspace)
-  with zero business logic.
+- **core** = cross-cutting platform (api, auth, query, startup, theme, workspace,
+  guides) with zero business logic.
 - **features** = the only place domain logic lives; fully isolated.
 - **shared / components** = generic, presentational; no business logic.
 
@@ -77,7 +77,7 @@ module docs for the area you touch
   (docs/api-layer.md, docs/response-handling.md, docs/core-platform.md,
    docs/providers.md, docs/layouts.md, docs/state-management.md,
    docs/forms.md, docs/error-handling.md, docs/authentication.md,
-   docs/workspace.md, docs/dashboard-shell.md,
+   docs/workspace.md, docs/dashboard-shell.md, docs/guides.md,
    docs/administration-modules.md, docs/backend-gaps.md,
    docs/theme-integration.md)
       ↓
@@ -111,7 +111,7 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
 | `src/components/{ui,form,layouts}`                  | Design-system primitives, form infra, layout shells.                                                                                                                              |
 | `src/shared/components/{data,data-display,overlay}` | Table system, tiles/badges/cards, dialogs and drawers.                                                                                                                            |
 | `src/shared`                                        | Cross-feature presentational building blocks + error boundary.                                                                                                                    |
-| `src/core/{api,auth,query,startup,theme,workspace}` | Platform infrastructure; no business logic.                                                                                                                                       |
+| `src/core/{api,auth,query,startup,theme,workspace,guides}` | Platform infrastructure; no business logic.                                                                                                                                       |
 | `src/providers`                                     | Client provider composition root.                                                                                                                                                 |
 | `src/services`                                      | Transport service factories features build on.                                                                                                                                    |
 | `src/store`                                         | Platform-only Zustand stores (UI + preferences).                                                                                                                                  |
