@@ -39,6 +39,13 @@
   --panel: oklch(0.9584 0.0381 85.35 / 0.7);
   --panel-border: oklch(1 0 0 / 0.5);
 
+  /**
+   * Full-page scrim behind a focused overlay (currently: the guide
+   * walkthrough's dimmed backdrop). Distinct from `--panel`, which tints a
+   * glass surface rather than dims what is behind it.
+   */
+  --overlay-scrim: oklch(0.2 0 0 / 0.55);
+
   /* Animation */
   --duration-fast: 150ms;
   --duration-normal: 250ms;
@@ -85,4 +92,5 @@
   --canvas-accent: oklch(0.3092 0.065 238.47); /* inverse-surface #05344d */
   --panel: oklch(0.19 0.028 238.47 / 0.7);
   --panel-border: oklch(0.956 0.0217 250.21 / 0.12);
+  --overlay-scrim: oklch(0.1 0 0 / 0.7);
 }

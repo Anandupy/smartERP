@@ -43,6 +43,8 @@ export interface SurfaceTokens {
   panel: string;
   /** Glassmorphic overlay hairline. */
   panelBorder: string;
+  /** Full-page scrim behind a focused overlay (e.g. the guide walkthrough). */
+  overlayScrim: string;
 }
 
 export interface TypographyScaleToken {

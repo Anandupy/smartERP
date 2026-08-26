@@ -22,6 +22,11 @@ export const STORAGE_KEYS = Object.freeze({
    * contract fixes this exact key — see `core/startup`.
    */
   onboardingCompleted: `${NAMESPACE}.onboarding.completed`,
+  /**
+   * Which page guides a visitor has completed, and at which version. See
+   * `core/guides`.
+   */
+  guideProgress: key("guides.progress"),
 });
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

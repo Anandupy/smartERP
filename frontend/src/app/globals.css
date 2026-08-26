@@ -61,6 +61,7 @@
   --color-canvas-accent: var(--canvas-accent);
   --color-panel: var(--panel);
   --color-panel-border: var(--panel-border);
+  --color-overlay-scrim: var(--overlay-scrim);
 
   --animate-duration-fast: var(--duration-fast);
   --animate-duration-normal: var(--duration-normal);
