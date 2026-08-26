@@ -22,6 +22,7 @@ import { DIRECTORY_PAGE_SIZE, filterNumberingConfigs } from "../constants";
 import { useNumberingConfigs } from "../hooks/use-numbering";
 import type { NumberingConfigDto } from "../types/numbering.dto";
 import { NumberingConfigsTable } from "./numbering-configs-table";
+import { NumberingSummaryCards } from "./numbering-summary-cards";
 import { PreviewNumberingDialog } from "./preview-numbering-dialog";
 
 const ANY_STATUS = "ANY";
@@ -70,7 +71,7 @@ export function NumberingConfigListScreen() {
     <div className="space-y-6">
       <PageHeader
         title="Numbering"
-        description="Configure the format of every human-facing identifier the platform generates — student codes, admission numbers and more."
+        description="Configure how CampusFlow generates identifiers for supported records."
         actions={
           <Button asChild>
             <Link href={ROUTES.app.settings.numbering.create}>
@@ -80,6 +81,8 @@ export function NumberingConfigListScreen() {
           </Button>
         }
       />
+
+      <NumberingSummaryCards configs={configs} isLoading={isPending} />
 
       <div className="space-y-3">
         <DataTableToolbar
@@ -141,8 +144,8 @@ export function NumberingConfigListScreen() {
             ) : (
               <EmptyState
                 icon={Hash}
-                title="No numbering sequences configured"
-                description="Configure how student codes, admission numbers and other identifiers are formatted."
+                title="No numbering configurations yet"
+                description="Create a configuration to define how CampusFlow generates supported identifiers."
                 action={
                   <Button asChild>
                     <Link href={ROUTES.app.settings.numbering.create}>

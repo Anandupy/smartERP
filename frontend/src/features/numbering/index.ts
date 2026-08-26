@@ -43,9 +43,27 @@ export {
   type NumberingConfigsTableProps,
 } from "./components/numbering-configs-table";
 export {
+  NumberingPreviewPanel,
+  type NumberingPreviewPanelProps,
+} from "./components/numbering-preview-panel";
+export {
   PreviewNumberingDialog,
   type PreviewNumberingDialogProps,
 } from "./components/preview-numbering-dialog";
+export {
+  NumberingSummaryCards,
+  type NumberingSummaryCardsProps,
+} from "./components/numbering-summary-cards";
+export {
+  FormatBreakdown,
+  parseFormatSegments,
+  type FormatBreakdownProps,
+} from "./components/format-breakdown";
+export {
+  FormatPlaceholderChips,
+  type FormatPlaceholderChipsProps,
+} from "./components/format-placeholder-chips";
+export { FormatExplanation } from "./components/format-explanation";
 
 // Backend integration
 export { numberingService } from "./api/numbering.service";
@@ -85,9 +103,14 @@ export {
 export {
   ALLOCATION_MODE_LABEL,
   DIRECTORY_PAGE_SIZE,
+  FORMAT_PLACEHOLDERS,
+  FORMAT_PLACEHOLDER_TOKENS,
   PURPOSE_LABEL,
   RESET_STRATEGY_LABEL,
   SCOPE_LABEL,
+  YEAR_FORMAT_EXAMPLE,
+  YEAR_FORMAT_LABEL,
   filterNumberingConfigs,
   purposeLabel,
+  type FormatPlaceholder,
 } from "./constants";

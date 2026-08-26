@@ -4,14 +4,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
-import { EllipsisVertical, Eye, Pencil } from "@/assets/icons";
+import { Eye, Pencil } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ROUTES } from "@/constants";
 import { StatusBadge } from "@/shared/components/data-display";
 import { DataTable, DataTableColumnHeader } from "@/shared/components/data";
@@ -24,6 +18,7 @@ import {
   purposeLabel,
 } from "../constants";
 import type { NumberingConfigDto } from "../types/numbering.dto";
+import { FormatBreakdown } from "./format-breakdown";
 
 export interface NumberingConfigsTableProps {
   configs: NumberingConfigDto[];
@@ -67,8 +62,9 @@ export function NumberingConfigsTable({
           const config = row.original;
           const rendersYear = config.includeAcademicYear || config.format.includes("{year}");
           return (
-            <div className="min-w-0">
-              <code className="text-muted-foreground text-xs">{config.format}</code>
+            <div className="min-w-0 space-y-1.5">
+              <code className="bg-muted rounded px-1.5 py-0.5 text-xs">{config.format}</code>
+              <FormatBreakdown format={config.format} variant="compact" />
               {rendersYear ? (
                 <p className="text-muted-foreground/70 truncate text-xs">
                   Year: {YEAR_FORMAT_LABEL[config.yearFormat]}
@@ -124,34 +120,30 @@ export function NumberingConfigsTable({
           const config = row.original;
           return (
             <div
-              className="flex justify-end"
+              className="flex justify-end gap-1"
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
             >
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Actions for ${purposeLabel(config.purpose)}`}
-                  >
-                    <EllipsisVertical />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => onPreview(config)}>
-                    <Eye aria-hidden="true" />
-                    Preview
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => router.push(ROUTES.app.settings.numbering.edit(config.id))}
-                  >
-                    <Pencil aria-hidden="true" />
-                    Edit
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Preview ${purposeLabel(config.purpose)}`}
+                title="Preview"
+                onClick={() => onPreview(config)}
+              >
+                <Eye aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Edit ${purposeLabel(config.purpose)}`}
+                title="Edit"
+                onClick={() => router.push(ROUTES.app.settings.numbering.edit(config.id))}
+              >
+                <Pencil aria-hidden="true" />
+              </Button>
             </div>
           );
         },

@@ -93,8 +93,24 @@ describe("Numbering directory", () => {
     render(<NumberingConfigListScreen />);
 
     expect(
-      await screen.findByText("No numbering sequences configured"),
+      await screen.findByText("No numbering configurations yet"),
     ).toBeVisible();
+  });
+
+  it("summarizes active, purposes, and scope from the loaded list", async () => {
+    withActiveWorkspace();
+    withConfigs(numberingConfigDto(), secondNumberingConfigDto());
+
+    render(<NumberingConfigListScreen />);
+
+    await screen.findByText("Student Code");
+
+    expect(screen.getByText("Active configurations")).toBeInTheDocument();
+    // One of the two fixtures is active, the other inactive.
+    expect(screen.getByText("of 2 configured")).toBeInTheDocument();
+    expect(screen.getByText("Purposes configured")).toBeInTheDocument();
+    expect(screen.getByText("Branch scoped")).toBeInTheDocument();
+    expect(screen.getByText("Organization scoped")).toBeInTheDocument();
   });
 
   it("renders a failed list through the shared error state", async () => {
@@ -135,8 +151,7 @@ describe("Numbering directory", () => {
 
     render(<NumberingConfigListScreen />);
 
-    await user.click(await screen.findByRole("button", { name: /Actions for/ }));
-    await user.click(await screen.findByRole("menuitem", { name: /Preview/ }));
+    await user.click(await screen.findByRole("button", { name: /Preview Student Code/ }));
     await user.click(screen.getByRole("button", { name: "Render preview" }));
 
     await waitFor(() => expect(previewCalled).toBe(true));
@@ -221,6 +236,24 @@ describe("Creating a sequence", () => {
     ).toBeInTheDocument();
   });
 
+  it("inserts a placeholder token into the format field via its helper chip", async () => {
+    const user = userEvent.setup();
+    withActiveWorkspace();
+
+    render(<CreateNumberingConfigScreen />);
+
+    await screen.findByRole("combobox", { name: "Purpose" });
+    // `fireEvent.change`, not `user.type` — userEvent's keyboard parser reads
+    // consecutive `{token}{token}` runs as special-key sequences rather than
+    // literal text (see the "rejects an unsupported placeholder" test above).
+    fireEvent.change(screen.getByLabelText("Format"), {
+      target: { value: "{prefix}{sequence}" },
+    });
+    await user.click(screen.getByRole("button", { name: "{suffix}" }));
+
+    expect(screen.getByLabelText("Format")).toHaveValue("{prefix}{sequence}{suffix}");
+  });
+
   it("sends the selected yearFormat in the Create body", async () => {
     const user = userEvent.setup();
     withActiveWorkspace();
@@ -292,6 +325,49 @@ describe("Editing a sequence", () => {
     await waitFor(() =>
       expect(routerMock.push).toHaveBeenCalledWith("/app/settings/numbering"),
     );
+  });
+
+  it("shows the loaded record's system behavior as read-only", async () => {
+    withActiveWorkspace();
+    withConfigs(numberingConfigDto());
+
+    render(<EditNumberingConfigScreen id="config-1" />);
+
+    await screen.findByLabelText("Prefix");
+
+    expect(screen.getByText("System behavior")).toBeInTheDocument();
+    expect(screen.getByText("Organization-wide")).toBeInTheDocument();
+    expect(screen.getByText("Monotonic — increasing, gaps permitted")).toBeInTheDocument();
+    expect(screen.getByText("Never resets")).toBeInTheDocument();
+  });
+
+  it("embeds a Preview panel directly on the edit screen", async () => {
+    const user = userEvent.setup();
+    withActiveWorkspace();
+    withConfigs(numberingConfigDto());
+    let previewCalled = false;
+
+    server.use(
+      http.post(`${CONFIGS_PATH}/:id/preview`, async ({ request }) => {
+        previewCalled = true;
+        const body = (await request.json()) as { sampleValue: number };
+        return HttpResponse.json(
+          successEnvelope({
+            purpose: "STUDENT_CODE",
+            sampleValue: body.sampleValue,
+            rendered: "STU0000000123",
+          }),
+        );
+      }),
+    );
+
+    render(<EditNumberingConfigScreen id="config-1" />);
+
+    await screen.findByLabelText("Prefix");
+    await user.click(screen.getByRole("button", { name: "Render preview" }));
+
+    await waitFor(() => expect(previewCalled).toBe(true));
+    expect(await screen.findByText("STU0000000123")).toBeInTheDocument();
   });
 
   it("treats a record absent from the list as not found", async () => {
@@ -381,8 +457,7 @@ describe("Previewing a sequence", () => {
 
     render(<NumberingConfigListScreen />);
 
-    await user.click(await screen.findByRole("button", { name: /Actions for/ }));
-    await user.click(await screen.findByRole("menuitem", { name: /Preview/ }));
+    await user.click(await screen.findByRole("button", { name: /Preview Student Code/ }));
     await user.click(screen.getByRole("button", { name: "Render preview" }));
 
     await waitFor(() => expect(previewBody).not.toBeNull());

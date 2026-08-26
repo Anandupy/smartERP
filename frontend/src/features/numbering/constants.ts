@@ -65,6 +65,38 @@ export const YEAR_FORMAT_EXAMPLE: Record<NumberingYearFormat, string> = {
   SHORT_RANGE: '"2627"',
 };
 
+/**
+ * The format layer's closed placeholder vocabulary (design spec §12.5,
+ * `KNOWN_PLACEHOLDERS`). Single source of truth for validation
+ * (`schemas/numbering.schema.ts`), the format-field helper chips, and the
+ * "how this format works" explanation — one list, so a placeholder can never
+ * be offered in the UI without also being accepted by validation, or
+ * explained without being offered.
+ */
+export interface FormatPlaceholder {
+  token: string;
+  label: string;
+  description: string;
+}
+
+export const FORMAT_PLACEHOLDERS: FormatPlaceholder[] = [
+  { token: "{prefix}", label: "Prefix", description: "The sequence's configured prefix" },
+  { token: "{suffix}", label: "Suffix", description: "The sequence's configured suffix" },
+  { token: "{branchCode}", label: "Branch Code", description: "The current branch's code" },
+  {
+    token: "{year}",
+    label: "Year",
+    description: "The academic year, rendered per the selected year format",
+  },
+  {
+    token: "{sequence}",
+    label: "Sequence",
+    description: "The generated, zero-padded sequence number",
+  },
+];
+
+export const FORMAT_PLACEHOLDER_TOKENS = FORMAT_PLACEHOLDERS.map((p) => p.token);
+
 /** Rows per page — client-side, since the list endpoint takes no paging params. */
 export const DIRECTORY_PAGE_SIZE = 10;
 

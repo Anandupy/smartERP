@@ -144,14 +144,65 @@ Information.
 
 ---
 
+## UX layer: explaining the format, not changing it
+
+The R7 UX refinement (this pass) reorganizes how the same four documented
+endpoints are presented — no new endpoint, request field, or business rule
+was added. Everything below is presentation/documentation over the existing
+contract, driven by one shared vocabulary in `constants.ts`
+(`FORMAT_PLACEHOLDERS`): the format field's Zod validation
+(`schemas/numbering.schema.ts`), the insertable placeholder chips
+(`FormatPlaceholderChips`), and the "how this format works" explanation
+(`FormatExplanation`) all read from the same list, so a placeholder can never
+be offered without being valid, or explained without being offered.
+
+- **`FormatBreakdown`** (`components/format-breakdown.tsx`) parses a format
+  string into its literal and `{placeholder}` segments and renders each
+  placeholder as a labelled chip. It is a *structural* explainer, never a
+  claimed generated identifier: `{prefix}`/`{suffix}` show the record's real
+  configured value, `{sequence}` shows a zero string the width of
+  `sequencePadding` (an honest implication of the configured padding, not an
+  invented number), and `{branchCode}`/`{year}` — values this module cannot
+  know without calling the real allocator — show what they resolve to
+  (`{year}` reuses `YEAR_FORMAT_EXAMPLE`, already documented as illustrative
+  only) styled with a dashed border to visually distinguish "example" from
+  "configured value." A `compact` variant renders one line of label badges
+  for table cells; the default `full` variant renders the two-tier
+  sample-then-label chips for the create/edit form and the Edit screen's
+  configuration summary.
+- **The one real generated example still only ever comes from
+  `POST /numbering/configs/:id/preview`.** `NumberingPreviewPanel`
+  (`components/numbering-preview-panel.tsx`) holds that call and is shared by
+  the directory's `PreviewNumberingDialog` (quick action) and the Edit
+  screen, which embeds it inline in a dedicated "Preview" card — since Edit
+  is also this module's closest thing to a detail view (there is no
+  `GET /:id`, so no separate detail route), embedding Preview there was
+  judged more prominent than leaving it reachable only through a dialog.
+  Create cannot embed a real preview: the endpoint needs an existing `:id`,
+  so a not-yet-created sequence only ever gets the structural
+  `FormatBreakdown`, never a value claiming to be a real generated identifier.
+- **The directory's summary tiles** (`NumberingSummaryCards`) count Active,
+  Purposes configured, Branch scoped, and Organization scoped directly from
+  the same list already fetched for the table — no dedicated summary
+  endpoint exists, and none is called to produce these. There is
+  deliberately no "generated today/this month," "remaining," or counter tile
+  — nothing in the documented contract exposes allocation counts.
+- **System behavior** (`scope`, `allocationMode`, `resetStrategy`) is now
+  also shown on the Edit screen itself, not only the directory table — a
+  read-only card labelled "Determined automatically from Purpose. Not
+  editable here," so the user understands *why* no input exists for these
+  three fields without having to infer it from their absence.
+
 ## Testing
 
 `tests/mocks/numbering-handlers.ts` provides default CRUD + preview
 handlers; `tests/integration/numbering.test.tsx` drives the directory
-(list/search/empty/error/preview, plus the year-format hint and the
-`{year}`-without-`includeAcademicYear` preview case), create
-(documented-fields-only, format validation including the mirrored §12.5
-rules, `yearFormat` sent, no Active toggle) and edit (purpose locked,
-`yearFormat` seeded and backward-compatible for a `NAME` record, `isActive`
-sent, `SEQUENCE_WIDTH_IMMUTABLE` locks the format fields, not-found
-handling) flows.
+(list/search/empty/error/preview via the row's own Preview button, summary
+tiles, plus the year-format hint and the `{year}`-without-
+`includeAcademicYear` preview case), create (documented-fields-only, format
+validation including the mirrored §12.5 rules, `yearFormat` sent, no Active
+toggle, placeholder chips insert into the format field) and edit (purpose
+locked, system behavior card renders the loaded record's scope/allocation/
+reset, embedded Preview card, `yearFormat` seeded and backward-compatible
+for a `NAME` record, `isActive` sent, `SEQUENCE_WIDTH_IMMUTABLE` locks the
+format fields, not-found handling) flows.

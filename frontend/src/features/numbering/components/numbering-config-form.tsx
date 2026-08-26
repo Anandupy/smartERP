@@ -24,6 +24,9 @@ import {
   numberingConfigFormSchema,
   type NumberingConfigFormValues,
 } from "../schemas/numbering.schema";
+import { FormatBreakdown } from "./format-breakdown";
+import { FormatExplanation } from "./format-explanation";
+import { FormatPlaceholderChips } from "./format-placeholder-chips";
 
 /**
  * The error the backend raises when a `NEVER`-reset sequence has already
@@ -97,6 +100,15 @@ export function NumberingConfigForm({
   const isSubmitting = form.formState.isSubmitting;
   const isFormatLocked = isSubmitting || isLocked;
 
+  const insertPlaceholder = (token: string) => {
+    const current = form.getValues("format") ?? "";
+    form.setValue("format", `${current}${token}`, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
@@ -149,58 +161,83 @@ export function NumberingConfigForm({
           <CardHeader className="border-b">
             <CardTitle>Format</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-5 pt-4 sm:grid-cols-2">
-            <TextField
-              control={form.control}
-              name="prefix"
-              label="Prefix"
-              description="Optional. e.g. STU"
-              disabled={isFormatLocked}
-            />
-            <TextField
-              control={form.control}
-              name="suffix"
-              label="Suffix"
-              description="Optional."
-              disabled={isFormatLocked}
-            />
-            <TextField
-              control={form.control}
-              name="sequencePadding"
-              type="number"
-              label="Sequence padding"
-              description="How many digits the sequence number is padded to."
-              disabled={isFormatLocked}
-            />
-            <SelectField
-              control={form.control}
-              name="yearFormat"
-              label="Year format"
-              options={YEAR_FORMAT_OPTIONS}
-              disabled={isFormatLocked}
-              description={`Only used where the format renders {year}. Example: ${YEAR_FORMAT_EXAMPLE[form.watch("yearFormat")]}`}
-            />
-            <div className="sm:col-span-2">
+          <CardContent className="space-y-6 pt-4">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <TextField
+                control={form.control}
+                name="prefix"
+                label="Prefix"
+                description="Optional. e.g. STU"
+                disabled={isFormatLocked}
+              />
+              <TextField
+                control={form.control}
+                name="suffix"
+                label="Suffix"
+                description="Optional."
+                disabled={isFormatLocked}
+              />
+              <TextField
+                control={form.control}
+                name="sequencePadding"
+                type="number"
+                label="Sequence padding"
+                description="How many digits the sequence number is padded to."
+                disabled={isFormatLocked}
+              />
+              <SelectField
+                control={form.control}
+                name="yearFormat"
+                label="Year format"
+                options={YEAR_FORMAT_OPTIONS}
+                disabled={isFormatLocked}
+                description={`Only used where the format renders {year}. Example: ${YEAR_FORMAT_EXAMPLE[form.watch("yearFormat")]}`}
+              />
+            </div>
+
+            <div className="space-y-3">
               <TextField
                 control={form.control}
                 name="format"
                 label="Format"
-                description="Must include {sequence}. Other placeholders: {prefix}, {suffix}, {year}, {branchCode} — each usable at most once."
+                description="Must include {sequence}. Each placeholder is usable at most once."
+                disabled={isFormatLocked}
+              />
+              <FormatPlaceholderChips onInsert={insertPlaceholder} disabled={isFormatLocked} />
+              <FormatExplanation />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-foreground text-sm font-medium">Format preview</p>
+              <div className="border-border rounded-lg border p-4">
+                <FormatBreakdown
+                  format={form.watch("format")}
+                  prefix={form.watch("prefix")}
+                  suffix={form.watch("suffix")}
+                  sequencePadding={Number(form.watch("sequencePadding")) || undefined}
+                  yearFormat={form.watch("yearFormat")}
+                />
+              </div>
+              <p className="text-muted-foreground text-xs">
+                A structural guide only — the exact generated identifier can be checked with the
+                real Preview once this sequence is saved.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SwitchField
+                control={form.control}
+                name="includeBranchCode"
+                label="Include branch code"
+                disabled={isFormatLocked}
+              />
+              <SwitchField
+                control={form.control}
+                name="includeAcademicYear"
+                label="Include academic year"
                 disabled={isFormatLocked}
               />
             </div>
-            <SwitchField
-              control={form.control}
-              name="includeBranchCode"
-              label="Include branch code"
-              disabled={isFormatLocked}
-            />
-            <SwitchField
-              control={form.control}
-              name="includeAcademicYear"
-              label="Include academic year"
-              disabled={isFormatLocked}
-            />
           </CardContent>
         </Card>
 

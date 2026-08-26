@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { nonEmptyString } from "@/schemas";
 
+import { FORMAT_PLACEHOLDER_TOKENS } from "../constants";
 import { NUMBERING_YEAR_FORMATS } from "../types/numbering.dto";
 
 /**
@@ -10,9 +11,11 @@ import { NUMBERING_YEAR_FORMATS } from "../types/numbering.dto";
  * `SAFE_LITERAL_PATTERN`, `MAX_FORMAT_LENGTH`, `MAX_PREFIX_SUFFIX_LENGTH`).
  * A UX nicety only: the server re-validates and remains authoritative, and a
  * rejection it raises for a rule not mirrored here still surfaces through
- * the form's own error handling.
+ * the form's own error handling. `KNOWN_PLACEHOLDERS` itself lives in
+ * `constants.ts` (`FORMAT_PLACEHOLDER_TOKENS`) so validation, the format
+ * field's helper chips, and its explanation text can never drift apart.
  */
-const KNOWN_PLACEHOLDERS = ["{prefix}", "{suffix}", "{branchCode}", "{year}", "{sequence}"];
+const KNOWN_PLACEHOLDERS = FORMAT_PLACEHOLDER_TOKENS;
 const SAFE_LITERAL_PATTERN = /^[A-Za-z0-9\-_./ ]*$/;
 const MAX_FORMAT_LENGTH = 64;
 const MAX_PREFIX_SUFFIX_LENGTH = 20;
