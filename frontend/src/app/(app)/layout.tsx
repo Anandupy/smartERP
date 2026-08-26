@@ -1,5 +1,6 @@
 import { AppLayout } from "@/components/layouts";
 import { ProtectedRoute } from "@/core/auth";
+import { GuideProvider } from "@/core/guides";
 import { RequireWorkspace } from "@/core/workspace";
 import { SignOutButton } from "@/features/auth";
 import {
@@ -9,6 +10,8 @@ import {
   CommandPalette,
   WorkspaceSwitcher,
 } from "@/features/navigation";
+
+import "./guide-registrations";
 
 /**
  * Layout for the authenticated application route group.
@@ -23,6 +26,12 @@ import {
  * navigation supplies the chrome, authentication supplies the way out, and
  * neither imports the other — the sign-out control is passed through as a slot,
  * the same arrangement the workspace selection screen uses.
+ *
+ * `GuideProvider` mounts inside `RequireWorkspace` so a page guide can never
+ * even attempt to find a target before the active workspace — and therefore
+ * the page's data — is ready. `./guide-registrations` is imported once here
+ * for its side effect (populating `core/guides`' registry); see
+ * `docs/guides.md`.
  */
 export default function AppGroupLayout({
   children,
@@ -32,20 +41,22 @@ export default function AppGroupLayout({
   return (
     <ProtectedRoute>
       <RequireWorkspace>
-        <AppLayout
-          sidebar={<AppSidebar workspaceSwitcher={<WorkspaceSwitcher />} />}
-          header={
-            <AppHeader
-              signOut={
-                <SignOutButton className="w-full justify-start" size="sm" />
-              }
-            />
-          }
-          footer={<AppFooter />}
-        >
-          {children}
-        </AppLayout>
-        <CommandPalette />
+        <GuideProvider>
+          <AppLayout
+            sidebar={<AppSidebar workspaceSwitcher={<WorkspaceSwitcher />} />}
+            header={
+              <AppHeader
+                signOut={
+                  <SignOutButton className="w-full justify-start" size="sm" />
+                }
+              />
+            }
+            footer={<AppFooter />}
+          >
+            {children}
+          </AppLayout>
+          <CommandPalette />
+        </GuideProvider>
       </RequireWorkspace>
     </ProtectedRoute>
   );
