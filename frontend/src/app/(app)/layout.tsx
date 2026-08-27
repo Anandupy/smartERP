@@ -11,7 +11,7 @@ import {
   WorkspaceSwitcher,
 } from "@/features/navigation";
 
-import "./guide-registrations";
+import { GuideRegistrations } from "./guide-registrations";
 
 /**
  * Layout for the authenticated application route group.
@@ -29,9 +29,10 @@ import "./guide-registrations";
  *
  * `GuideProvider` mounts inside `RequireWorkspace` so a page guide can never
  * even attempt to find a target before the active workspace — and therefore
- * the page's data — is ready. `./guide-registrations` is imported once here
- * for its side effect (populating `core/guides`' registry); see
- * `docs/guides.md`.
+ * the page's data — is ready. `<GuideRegistrations />` populates
+ * `core/guides`' registry with every shipped page guide; it must be rendered
+ * (not bare-imported) so the registration runs in the browser, not just on
+ * the server — see that module's own comment and `docs/guides.md`.
  */
 export default function AppGroupLayout({
   children,
@@ -42,6 +43,7 @@ export default function AppGroupLayout({
     <ProtectedRoute>
       <RequireWorkspace>
         <GuideProvider>
+          <GuideRegistrations />
           <AppLayout
             sidebar={<AppSidebar workspaceSwitcher={<WorkspaceSwitcher />} />}
             header={
