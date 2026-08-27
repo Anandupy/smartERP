@@ -30,6 +30,13 @@ export const test = base.extend<AuthFixtures>({
     await page.goto("/login");
     await page.getByLabel("Institutional email").fill(email!);
     await page.getByLabel("Password", { exact: true }).fill(password!);
+    // Without this, the access token lives in memory only (core/auth's
+    // default for an unchecked "remember me") and does not survive a hard
+    // navigation — including a spec's own `page.goto("/app/...")` right
+    // after this fixture hands back `page`, which every guide spec built on
+    // this fixture does as its first line. Checking it is also simply what
+    // a real user leaving a browser open across the test would do.
+    await page.getByLabel(/remember me/i).check();
     await page.getByRole("button", { name: "Sign in" }).click();
 
     // A role entitled to more than one organization/branch/academic-year
@@ -37,10 +44,21 @@ export const test = base.extend<AuthFixtures>({
     // straight to the app. Continue is enabled even before a full selection
     // (see `workspace-selection-form.tsx`), so this only fires it when the
     // screen is actually showing.
+    //
+    // `isVisible()` alone does not wait — it is an immediate, one-shot DOM
+    // check, not a polling assertion — so calling it right after the Sign in
+    // click reliably raced the screen's own render and always resolved
+    // `false` before this was changed to `waitFor`. Confirmed live: the
+    // network-mocked reproduction in `branch-guide-target-reliability.spec.ts`
+    // hit the exact same bug in an equivalent hand-rolled check before that
+    // fix, landing on `/workspace` while this fixture believed sign-in had
+    // gone straight to `/app`.
     const continueButton = page.getByRole("button", { name: "Continue" });
-    if (await continueButton.isVisible().catch(() => false)) {
-      await continueButton.click();
-    }
+    const continueAppeared = await continueButton
+      .waitFor({ state: "visible", timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (continueAppeared) await continueButton.click();
 
     await expect(page).toHaveURL(/\/app(\/|$)/, { timeout: 15_000 });
 

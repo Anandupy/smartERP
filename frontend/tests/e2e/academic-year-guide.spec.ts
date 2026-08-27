@@ -28,7 +28,7 @@ test.describe("Academic Years guide", () => {
       page.getByRole("heading", { name: "Academic Years" }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Help for this page" }).click();
+    await page.getByRole("button", { name: /guide for this page/i }).click();
     await page.getByRole("button", { name: /start guided tour/i }).click();
 
     // Step 1: the dashboard's real "New academic year" link is the target —
