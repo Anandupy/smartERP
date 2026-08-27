@@ -20,10 +20,6 @@ import { useGuide } from "./use-guide";
 
 const NO_ACTIVE_GUIDE = "__campusflow-no-active-guide__";
 
-/** A visible ring the guide adds to the real target element, alongside
- * Joyride's own dimmed-overlay cutout (which masks the backdrop, not the
- * element). Written as literal class names so Tailwind's scanner keeps them
- * in the build despite the dynamic `classList` call below. */
 const GUIDE_TARGET_RING_CLASSES = [
   "ring-2",
   "ring-primary",
@@ -122,11 +118,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
           spotlightRadius: 12,
           targetWaitTimeout: 6000,
           overlayColor: "var(--overlay-scrim)",
-          // The highlighted control remains a real application control.
           blockTargetInteraction: false,
-          // Clicking outside the guide closes it and restores the page. ESC
-          // and the tooltip X do the same; none of these actions advances the
-          // business workflow or leaves a stuck overlay behind.
           overlayClickAction: "close",
           dismissKeyAction: "close",
           closeButtonAction: "close",
@@ -147,7 +139,13 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
             return;
           }
 
-          if (data.type === EVENTS.TOUR_END) {
+          // Joyride can emit TOUR_END after the feature has already marked
+          // the guide completed. Only turn an actually-running tour into a
+          // skipped state; never overwrite a successful completion.
+          if (
+            data.type === EVENTS.TOUR_END &&
+            useGuideStore.getState().status === "running"
+          ) {
             stop("skipped");
             return;
           }
