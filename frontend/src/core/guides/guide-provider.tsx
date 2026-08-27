@@ -6,6 +6,7 @@ import {
   ACTIONS,
   EVENTS,
   Joyride,
+  ORIGIN,
   type EventData,
   type Step,
 } from "react-joyride";
@@ -31,15 +32,6 @@ const GUIDE_TARGET_RING_CLASSES = [
   "rounded-md",
 ];
 
-/**
- * Whether a step is reachable at the current pathname.
- *
- * A step whose route carries a dynamic segment (`:id`) only matches once the
- * guide has actually captured that id — see `entityId` on the store — and
- * only when the pathname's id is that exact one. Without this, a guide that
- * has not yet created its record could be fooled into treating an unrelated
- * existing record's page as "the next step."
- */
 function stepMatchesPathname(
   step: GuideStep,
   pathname: string,
@@ -54,16 +46,9 @@ function stepMatchesPathname(
 /**
  * Mounts the one Joyride instance for the authenticated app.
  *
- * Renders at most one step at a time — the current logical step, and only
- * once its route matches where the user actually is. A guide's steps almost
- * always span more than one route (see `docs/guides.md`), so on every
- * navigation this also catches the stored step index up to whichever step (at
- * or after it) the new pathname satisfies, which is what lets a step like
- * "now activate it" appear automatically once the user follows a real link
- * there — no synthetic "Next" button standing in for the actual UI control.
- *
- * Does not decide *when* a guide starts; that is always an explicit
- * `useGuide(id).startGuide()` call from feature UI (the Help drawer today).
+ * A guide is additive: the real page remains usable through the spotlight,
+ * and dismissing the tour always returns control to the page. Route-aware
+ * steps can therefore span the real application's existing navigation.
  */
 export function GuideProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
@@ -77,8 +62,6 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
 
   const definition = activeGuideId ? getGuide(activeGuideId) : undefined;
 
-  // Catch the floor up to whichever step the current route satisfies. Runs
-  // on every navigation; a no-op once the stored step already matches.
   useEffect(() => {
     if (!definition || status !== "running") return;
     for (let index = stepIndex; index < definition.steps.length; index += 1) {
@@ -135,23 +118,40 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
         options={{
           skipBeacon: true,
           showProgress: false,
-          spotlightPadding: 6,
-          spotlightRadius: 10,
+          spotlightPadding: 8,
+          spotlightRadius: 12,
           targetWaitTimeout: 6000,
           overlayColor: "var(--overlay-scrim)",
+          // The highlighted control remains a real application control.
+          blockTargetInteraction: false,
+          // Clicking outside the guide closes it and restores the page. ESC
+          // and the tooltip X do the same; none of these actions advances the
+          // business workflow or leaves a stuck overlay behind.
+          overlayClickAction: "close",
+          dismissKeyAction: "close",
+          closeButtonAction: "close",
         }}
         onEvent={(data: EventData) => {
           if (data.type === EVENTS.STEP_AFTER && data.action === ACTIONS.NEXT) {
             guide.reportEvent();
             return;
           }
+
           if (
-            data.type === EVENTS.TOUR_END &&
-            (data.action === ACTIONS.SKIP || data.action === ACTIONS.CLOSE)
+            data.type === EVENTS.STEP_AFTER &&
+            (data.origin === ORIGIN.OVERLAY ||
+              data.origin === ORIGIN.KEYBOARD ||
+              data.origin === ORIGIN.BUTTON_CLOSE)
           ) {
             stop("skipped");
             return;
           }
+
+          if (data.type === EVENTS.TOUR_END) {
+            stop("skipped");
+            return;
+          }
+
           if (data.type === EVENTS.TARGET_NOT_FOUND) {
             if (process.env.NODE_ENV !== "production") {
               console.warn(
