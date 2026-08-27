@@ -7,19 +7,32 @@ already-shipped flow — never an invented one. Ships once, as reusable
 infrastructure in `core/guides`; a page gets a guide by a feature module
 authoring one `GuideDefinition` and the app layer registering it.
 
-Three guides ship today, covering the start of the core setup journey
-(`Organization → Branch → Academic Year → …`, per `docs/administration-modules.md`):
+Five guides ship today, covering the setup journey from tenant creation
+through the start of academic configuration
+(`Organization → Branch → Academic Year → Program → Academic Unit → …`,
+per `docs/administration-modules.md`, `docs/program-module.md` and
+`docs/academic-unit-module.md`):
 
-| Guide           | File                                                          | Pattern it demonstrates                                         |
-| ---------------- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `organizations`  | `src/features/organization/guide/organizations.guide.ts`       | Create → an explanatory last step (no real "activate" exists)     |
-| `branches`       | `src/features/branch/guide/branches.guide.ts`                  | Create → cross-route "action" step → explanatory last step        |
-| `academic-years` | `src/features/academic-year/guide/academic-years.guide.ts`     | Create → cross-route "action" steps all the way through Activate  |
+| Guide             | File                                                          | Pattern it demonstrates                                              |
+| ----------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `organizations`   | `src/features/organization/guide/organizations.guide.ts`       | Create → an explanatory last step (no real "activate" exists)          |
+| `branches`        | `src/features/branch/guide/branches.guide.ts`                  | Create → cross-route "action" step → explanatory last step             |
+| `academic-years`  | `src/features/academic-year/guide/academic-years.guide.ts`     | Create → cross-route "action" steps all the way through Activate       |
+| `programs`        | `src/features/program/guide/programs.guide.ts`                 | Same explanatory-last-step shape as `organizations`; feeds `academic-units` |
+| `academic-units`  | `src/features/academic-unit/guide/academic-units.guide.ts`     | Two-level workspace scope; flexible hierarchy — never hardcodes "class" |
 
 `academic-years` is the fullest worked example (every step is `advanceOn:
 "action"`, including the final one) and is referenced throughout this
-document; `organizations` and `branches` are the reference for the
-**explanatory last step** pattern — see §12.
+document; `organizations`, `branches` and `programs` are the reference for
+the **explanatory last step** pattern — see §12.
+
+**`programs` and `academic-units` real dependency order matters.** An
+academic unit's request body names a `programId` — `docs/academic-unit-module.md` —
+so a program must exist before a unit can be created under it. This is the
+*reverse* of what "Academic Year → Academic Unit → Program" reads like at a
+glance; `guide-registrations.ts` registers `programsGuide` before
+`academicUnitsGuide` for exactly this reason, and each guide's own copy
+explains the real order to the user, not the intuitive-sounding one.
 
 ---
 
@@ -430,9 +443,14 @@ reason — any new button added to the tooltip that spreads a Joyride
     that the drawer fully closes (not merely gets covered by) before the
     tour starts (§3).
   - `tests/integration/organizations-guide.test.tsx`,
-    `tests/integration/branches-guide.test.tsx` — the Type B / explanatory
+    `tests/integration/branches-guide.test.tsx`,
+    `tests/integration/programs-guide.test.tsx` — the Type B / explanatory
     last-step pattern (§7): completing the guide via the tooltip's own Next
     button, with **no mutation involved at all** for that step.
+  - `tests/integration/academic-units-guide.test.tsx` — the second
+    entity-scoping example (§8), and the second module needing the
+    cross-feature `ProgramPicker` slot (§8's "the Program seam" in
+    `docs/academic-unit-module.md`) composed into a guide's own create step.
   - Every spec calls `registerGuide()` itself (via
     `__resetGuideRegistryForTests()` + `registerGuide(<theGuide>)` in
     `beforeEach`) — registration is normally a side effect of rendering the
@@ -441,7 +459,8 @@ reason — any new button added to the tooltip that spreads a Joyride
   `tests/e2e/fixtures/auth.ts`): see `tests/e2e/README.md` for the
   `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` it needs and the known cost of running
   it repeatedly (a real, irreversible activation against a real backend).
-- **E2E, network-mocked** (`tests/e2e/branch-guide-target-reliability.spec.ts`):
+- **E2E, network-mocked** (`tests/e2e/branch-guide-target-reliability.spec.ts`,
+  `tests/e2e/academic-structure-guide-reliability.spec.ts`):
   the target-resolution regression suite (§15/§16) — no live backend, no
   credentials. Drives the real `/login` UI and real app code end to end;
   only responses from the mocked backend origin are faked, the same
@@ -449,7 +468,12 @@ reason — any new button added to the tooltip that spreads a Joyride
   to test against a *real* backend). Prefer this pattern for any future
   guide-platform regression that doesn't specifically need to prove a real
   backend contract — it is what actually found the five defects §15
-  documents; static reasoning about the source did not.
+  documents, and later the form-target defect the same section also covers;
+  static reasoning about the source did not, for either. The Programs/
+  Academic Units spec also carries a documented, known residual flake (a
+  rare, unreproduced-on-demand race specific to clicking a nav link in the
+  instant right after a guide completes) — read its own header comment
+  before assuming a red run there is a fresh regression.
 
 **Deliberately not built this pass:** a bespoke `target-readiness.ts`
 polling/`MutationObserver` utility. Joyride 3.x's own `targetWaitTimeout` +
@@ -574,6 +598,28 @@ it — indefinitely.
 entity match (the point above), a same-selector element on an unrelated
 record's page could otherwise still get rung, even though no tooltip shows
 for it.
+
+**A `"action"` step's target must cover every field the real workflow needs,
+not just the button that ends it.** Joyride's dimmed overlay blocks pointer
+events on everything *outside* its spotlight cutout — that is how outside-
+click-to-dismiss works at all. A create-submit step whose target is only the
+submit button therefore traps the user the moment the form has any other
+required field that itself needs a click to operate (a `<Select>`, a
+combobox, a checkbox — anything that isn't satisfied by focus-and-type
+alone): the field sits in the dimmed region, and the user cannot reach it.
+Found live, not by inspection — `programs`' and `academic-units`' own
+create-submit steps originally targeted their submit buttons, and
+Academic Unit's required `ProgramPicker` combobox (§8's cross-feature seam)
+was unreachable while that step was active. The fix in both is the same:
+target the surrounding `<form>` element (`data-guide` on the `<form>` tag,
+not the `<Button>`), so the cutout covers the whole form and every field in
+it stays genuinely interactive; only the placement hint (`placement: "top"`,
+sized for a small button) had to be dropped, since Joyride's own auto-
+placement handles a large, variable-height target better than a fixed guess.
+A step whose real target only ever needs its own single click (a link with
+no accompanying fields, `organizations`'/`branches`' create-*link* steps)
+does not need this — the trap only exists when the step's advancement
+depends on the user first doing something *else* the overlay would block.
 
 ---
 
