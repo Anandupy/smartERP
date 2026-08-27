@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useState } from "react";
+
 import { CircleHelp } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,25 +21,43 @@ export interface GuideHelpTriggerProps {
 }
 
 /**
- * A page's guide entry point: a `?` icon that opens "About this page" and a
- * "Start guided tour" action. Drop into a screen's `PageHeader actions` —
- * nothing renders if the guide is unavailable to the current user (no
- * registered definition, or its `requirement` fails).
+ * A page's guide entry point: a compact "Guide" control that opens "About
+ * this page" and a "Start guided tour" action. Drop into a screen's
+ * `PageHeader actions` — nothing renders if the guide is unavailable to the
+ * current user (no registered definition, or its `requirement` fails).
  */
 export function GuideHelpTrigger({ guideId }: GuideHelpTriggerProps) {
   const guide = useGuide(guideId);
   const definition = getGuide(guideId);
+  const [open, setOpen] = useState(false);
+  // Set on click, consumed (and cleared) once the sheet's own close
+  // animation and focus restoration actually finish — see `onCloseAutoFocus`
+  // below. Never call `startGuide()` from the click handler itself: Joyride's
+  // overlay must never be mounted underneath a still-open (or still-closing)
+  // Sheet, which is exactly the "drawer + tour at once" state this avoids.
+  const pendingStartRef = useRef(false);
 
   if (!definition || !guide.isAvailable) return null;
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Help for this page">
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={`Guide for this page: ${definition.title}`}
+        >
           <CircleHelp />
+          Guide
         </Button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent
+        onCloseAutoFocus={() => {
+          if (!pendingStartRef.current) return;
+          pendingStartRef.current = false;
+          guide.startGuide();
+        }}
+      >
         <SheetHeader>
           <SheetTitle>{definition.title}</SheetTitle>
           <SheetDescription>{definition.description}</SheetDescription>
@@ -53,7 +73,13 @@ export function GuideHelpTrigger({ guideId }: GuideHelpTriggerProps) {
               ))}
             </ol>
           </div>
-          <Button onClick={() => guide.startGuide()} disabled={guide.isActive}>
+          <Button
+            onClick={() => {
+              pendingStartRef.current = true;
+              setOpen(false);
+            }}
+            disabled={guide.isActive}
+          >
             {guide.hasSeen ? "Restart guided tour" : "Start guided tour"}
           </Button>
         </div>

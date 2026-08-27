@@ -90,7 +90,16 @@ export function GuideTooltip({
           Skip guide
         </Button>
         {showNext ? (
-          <Button {...primaryProps} type="button" size="sm">
+          // `primaryProps.aria-label` is Joyride's own title for this
+          // control ("Next", but "Last" on a guide's final step) — always
+          // overridden here so the accessible name matches the button's
+          // always-static visible text, the same fix `skipProps` needed.
+          <Button
+            {...primaryProps}
+            type="button"
+            size="sm"
+            aria-label="Next"
+          >
             Next
             <ArrowRight />
           </Button>

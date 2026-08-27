@@ -308,7 +308,7 @@ describe("skipping", () => {
 });
 
 describe("the Help drawer trigger", () => {
-  it("starts the guide on click", async () => {
+  it("closes the drawer before starting the guide, never both at once", async () => {
     const user = userEvent.setup();
     withActiveWorkspace();
     setPathname("/app/academic-years");
@@ -320,14 +320,22 @@ describe("the Help drawer trigger", () => {
     );
 
     await user.click(
-      await screen.findByRole("button", { name: /help for this page/i }),
+      await screen.findByRole("button", { name: /guide for this page/i }),
     );
+    const drawer = await screen.findByRole("dialog", {
+      name: "Academic Years",
+    });
     await user.click(
-      await screen.findByRole("button", { name: /start guided tour/i }),
+      within(drawer).getByRole("button", { name: /start guided tour/i }),
     );
 
+    // The drawer must fully close — not merely appear to, behind the tour —
+    // before the guide is considered started (docs/guides.md §7).
     await waitFor(() => {
-      expect(useGuideStore.getState().activeGuideId).toBe("academic-years");
+      expect(
+        screen.queryByRole("dialog", { name: "Academic Years" }),
+      ).not.toBeInTheDocument();
     });
+    expect(useGuideStore.getState().activeGuideId).toBe("academic-years");
   });
 });

@@ -134,6 +134,37 @@ describe("GuideTooltip", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps the Next button's accessible name stable even on the last step", () => {
+    // Joyride's own `primaryProps` carries `aria-label: "Last"` (not "Next")
+    // when this is the tour's final step — an explicit override is required
+    // or the accessible name silently stops matching the visible text.
+    render(
+      <GuideTooltip
+        {...tooltipProps({
+          isLastStep: true,
+          step: {
+            ...tooltipProps().step,
+            data: { advanceOn: "next-button", position: 3, total: 3 },
+          } as TooltipRenderProps["step"],
+          primaryProps: {
+            "aria-label": "Last",
+            "data-action": "primary",
+            onClick: () => {},
+            role: "button",
+            title: "Last",
+          },
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /^next$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^last$/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("wires the skip control through to skipProps.onClick", () => {
     const onClick = vi.fn();
     render(
