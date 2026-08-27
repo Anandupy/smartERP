@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
+import { GuideHelpTrigger } from "@/core/guides";
 import { useWorkspace } from "@/core/workspace";
 import { LinkCard, StatCard } from "@/shared/components/data-display";
 import {
@@ -84,10 +85,11 @@ function Dashboard({
         description={`The operational structure of ${branch?.name ?? "this branch"} for ${academicYear?.name ?? "the active year"} — departments, classes, divisions and batches.`}
         actions={
           <>
+            <GuideHelpTrigger guideId="academic-units" />
             <Button asChild variant="outline">
               <Link href={ROUTES.app.academicUnits.tree}>View hierarchy</Link>
             </Button>
-            <Button asChild>
+            <Button asChild data-guide="academic-unit-dashboard-create-link">
               <Link href={ROUTES.app.academicUnits.create}>
                 <Plus />
                 New unit

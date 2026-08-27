@@ -52,6 +52,9 @@ export interface AcademicUnitFormProps {
   editingId?: string;
   /** Names the workspace scope in the caption. */
   scopeLabel?: string;
+  /** `data-guide` target for the submit button — set only by the create
+   * screen, whose guide step points at it. */
+  submitGuideTarget?: string;
 }
 
 /**
@@ -84,6 +87,7 @@ export function AcademicUnitForm({
   existingUnits,
   editingId,
   scopeLabel,
+  submitGuideTarget,
 }: AcademicUnitFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -126,7 +130,12 @@ export function AcademicUnitForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-6"
+        data-guide={submitGuideTarget}
+      >
         {submitError ? (
           <Alert variant="destructive">
             <TriangleAlert aria-hidden="true" />

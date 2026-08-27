@@ -42,6 +42,9 @@
  * exists.
  */
 
+// Guide
+export { academicUnitsGuide } from "./guide/academic-units.guide";
+
 // Screens
 export {
   AcademicUnitDashboardScreen,

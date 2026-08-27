@@ -120,6 +120,7 @@ function Details({
             <Button
               type="button"
               variant="outline"
+              data-guide="academic-unit-details-move-button"
               onClick={() => setIsMovingOpen(true)}
             >
               <ArrowLeftRight />

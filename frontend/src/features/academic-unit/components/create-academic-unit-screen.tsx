@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { ROUTES } from "@/constants";
+import { useGuide } from "@/core/guides";
 import { useWorkspace } from "@/core/workspace";
 import { PageHeader } from "@/shared/components/layout";
 
@@ -39,6 +40,7 @@ function CreateForm({
   const { branch, academicYear } = useWorkspace();
   const create = useCreateAcademicUnit(scope);
   const { units } = useAcademicUnits(scope);
+  const guide = useGuide("academic-units");
 
   return (
     <div className="space-y-6">
@@ -58,6 +60,7 @@ function CreateForm({
           .filter(Boolean)
           .join(" · ")}
         submitLabel="Create unit"
+        submitGuideTarget="academic-unit-create-submit"
         onCancel={() => router.push(ROUTES.app.academicUnits.tree)}
         onSubmit={async (values) => {
           const created = await create.mutateAsync(
@@ -71,6 +74,7 @@ function CreateForm({
               ? ROUTES.app.academicUnits.detail(created.id)
               : ROUTES.app.academicUnits.tree,
           );
+          if (created?.id) guide.reportEvent({ entityId: created.id });
         }}
       />
     </div>
