@@ -437,10 +437,19 @@ reason — any new button added to the tooltip that spreads a Joyride
     `__resetGuideRegistryForTests()` + `registerGuide(<theGuide>)` in
     `beforeEach`) — registration is normally a side effect of rendering the
     app layer's `<GuideRegistrations />` (§4), which these specs never mount.
-- **E2E** (`tests/e2e/academic-year-guide.spec.ts` +
+- **E2E, credentialed** (`tests/e2e/academic-year-guide.spec.ts` +
   `tests/e2e/fixtures/auth.ts`): see `tests/e2e/README.md` for the
   `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` it needs and the known cost of running
   it repeatedly (a real, irreversible activation against a real backend).
+- **E2E, network-mocked** (`tests/e2e/branch-guide-target-reliability.spec.ts`):
+  the target-resolution regression suite (§15/§16) — no live backend, no
+  credentials. Drives the real `/login` UI and real app code end to end;
+  only responses from the mocked backend origin are faked, the same
+  technique the credentialed spec's fixture cannot use (it exists precisely
+  to test against a *real* backend). Prefer this pattern for any future
+  guide-platform regression that doesn't specifically need to prove a real
+  backend contract — it is what actually found the five defects §15
+  documents; static reasoning about the source did not.
 
 **Deliberately not built this pass:** a bespoke `target-readiness.ts`
 polling/`MutationObserver` utility. Joyride 3.x's own `targetWaitTimeout` +
@@ -481,3 +490,142 @@ warns against.
   event fires after `targetWaitTimeout`; `GuideProvider`'s `onEvent` handler
   logs a `console.warn` in development (never in production, never a
   user-facing error) and ends the guide gracefully via `stop("skipped")`.
+
+---
+
+## 15. Guide target reliability
+
+A guide is only as trustworthy as its weakest target resolution. This
+section is normative, not aspirational — every rule below closes a real,
+reproduced bug (§16), found by driving the real app in a real browser
+against the real dev server, with only the network boundary mocked (the
+same technique `branch-guide-target-reliability.spec.ts` uses, precisely so
+it needs no live backend or test credentials to keep proving it).
+
+**Targets must resolve to exactly one real, visible, on-route element.**
+`[data-guide="..."]` is the only selector convention (§6); it must never be
+duplicated across a page, including a hidden responsive counterpart (a
+mobile-only or desktop-only duplicate of the same control). In development,
+`GuideProvider` logs `matchCount` for the active step on every relevant
+state change and `console.warn`s if it is ever greater than 1 — see §16 for
+what to do next when it fires.
+
+**A guide never falls back to the wrong target.** If the intended selector
+doesn't match, or matches an element on an unrelated record's page (the
+entity-scoping hazard, §8), the guide shows nothing and waits — never a
+"nearest button," never a generic fallback, never body. `stepMatchesPathname`
+(route + entity match) gates what Joyride is even told exists; Joyride's own
+`targetWaitTimeout` gates how long it waits before giving up gracefully via
+`TARGET_NOT_FOUND` → `stop("skipped")`.
+
+**Off-screen targets must auto-scroll — accounting for permanent chrome.**
+Joyride's own scrolling (via the `scrollparent` package) correctly finds the
+real scrollable ancestor (`window`/`document` today; this app has no nested
+scroll container). What it does *not* know about on its own is
+`AppLayout`'s sticky header: scrolling a target to the literal top of the
+viewport can leave it numerically "visible" while actually rendered behind
+that header. `useStickyChromeClearance` measures the header's real rendered
+height (via `ResizeObserver`, not a hard-coded class-derived pixel value)
+and feeds it to Joyride as `scrollOffset`, so a scrolled-to target always
+clears the header with room to spare.
+
+**Every logical step gets a clean Joyride lifecycle, every time.** Our
+`<Joyride>` is a single controlled instance showing exactly one step object
+at Joyride's own internal index 0 — our multi-step guide's *content* changes
+underneath that fixed index as `stepIndex`/`isOnCurrentStep` change, rather
+than Joyride's own index ever incrementing. Two consequences this forces:
+
+- `scrollToFirstStep` must be set. It defaults to `false` on the (correct,
+  for normal usage) assumption that only a tour's true first step is ever at
+  index 0; here, *every* step looks like Joyride's first step, so without it
+  Joyride would scroll once, for the guide's real first step, and silently
+  never again.
+- `<Joyride>` is `key`ed on the logical step
+  (`` `${activeGuideId}:${currentStep?.id}:${isOnCurrentStep}` ``), forcing a
+  full remount — and therefore a real `INIT` lifecycle, and therefore a real
+  scroll/target check — every time the step actually changes, including the
+  moment a cross-route step's target first becomes reachable. Changing a
+  same-index step's content in place, without remounting, does not reliably
+  re-trigger Joyride's own scroll logic (confirmed by tracing its emitted
+  events: `scroll:start`/`scroll:end` fired for the guide's true first step,
+  then never again, until the `key` was added).
+
+**`run` must never depend on whether a step currently matches the route.**
+It flickering `true → false → true` — which naturally happens for one render
+on every cross-route transition, before the route-catch-up effect corrects
+`stepIndex` — reads to Joyride as "the tour ended," not "wait a moment," and
+silently discards the guide. `run` is `status === "running"` alone; whether
+there is currently anything to show is `steps.length`, which Joyride already
+handles as a graceful wait.
+
+**Dismissal must actually dismiss.** ESC and the tooltip's own close button
+both resolve to Joyride's `close()` control, which — unlike `skip()` —
+advances Joyride's *internal* index by one rather than emitting a dedicated
+"dismissed" signal. That reliably also produced a `TOUR_END` right behind it
+under the old always-index-0 approach; it no longer reliably does once a
+step can arrive via a fresh mount. `GuideProvider`'s `onEvent` therefore
+handles `STEP_AFTER`/`close` directly, calling `stop()` itself rather than
+depending on `TOUR_END` following it. Without this, the dimmed overlay stays
+mounted — and keeps intercepting pointer events on the real page underneath
+it — indefinitely.
+
+**The target ring must never render for the wrong record.** It is gated on
+`isOnCurrentStep`, not merely `run`: once `run` stopped implying a route/
+entity match (the point above), a same-selector element on an unrelated
+record's page could otherwise still get rung, even though no tooltip shows
+for it.
+
+---
+
+## 16. Common failure: guide highlights the wrong element
+
+A guide pointing at the wrong thing is worse than a guide that shows
+nothing — a user trusts what's highlighted. If this happens, work through
+these in order; each is a real, previously-reproduced cause, not a
+hypothetical:
+
+1. **Duplicate `data-guide` value.** Search the page for the same value on
+   more than one element — a responsive duplicate (mobile nav vs. desktop
+   nav) is the most common shape. In development, `GuideProvider` logs
+   `matchCount` and warns when it exceeds 1 (§15) — check the console first.
+2. **Target obscured by permanent chrome.** The target resolves correctly,
+   but a sticky/fixed element (the app header today) sits visually on top of
+   it after scrolling. Check `document.elementFromPoint()` at the target's
+   own center — if it returns something other than the target (or an
+   ancestor of it), this is it. §15's `scrollOffset` fix is what prevents
+   this for the app's one piece of permanent chrome; a new one (a second
+   sticky bar, a persistent bottom nav) would need the same treatment.
+3. **Stale target from the previous step.** The tooltip shows the right
+   *text* but is positioned over the *previous* step's element. This means
+   the step transitioned without a clean Joyride remount — check the `key`
+   on `<Joyride>` actually changed (§15); a step id that repeats, or an
+   `isOnCurrentStep` that didn't flip when expected, would silently reuse
+   the old mount.
+4. **Target exists but on the wrong route/entity.** `document.querySelector`
+   would find it, but it belongs to a different record than the one the
+   guide is tracking. This is exactly what `stepMatchesPathname`'s entity
+   scoping (§8) exists to prevent — if it's happening, either a step's route
+   pattern is missing its `:id`, or `reportEvent({ entityId })` was never
+   called (or called with the wrong id) after the step that should have
+   captured it.
+5. **Target-readiness race across a route change.** The step visually
+   flashes empty, or never appears, right after a real navigation. Check
+   whether the destination screen's data is still loading when the step
+   *should* activate — Joyride's own polling (`targetWaitTimeout`) should
+   absorb this, but a target that only renders after a specific query
+   resolves needs that query's loading state to not gate the element's
+   presence in the DOM entirely (a skeleton with no `data-guide` attribute
+   at all, swapped for the real content later, works fine; an element that
+   doesn't exist until the *user* does something else first would not).
+6. **Plain wrong selector.** The mundane case — a typo, or a `data-guide`
+   value that was renamed on the target but not in the `GuideStep`
+   definition (or vice versa). `matchCount: 0` in the development console
+   log, indefinitely, is this.
+
+Diagnosing any of these without a live backend: drive the real app with a
+real browser against the real dev server, and intercept only the network
+boundary — see `branch-guide-target-reliability.spec.ts` for the working
+pattern (a real login, real token handling, real workspace resolution;
+only what the mocked backend origin returns is faked). This is what
+actually found all six causes above; reasoning from source alone did not
+reproduce several of them.
