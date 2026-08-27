@@ -112,16 +112,44 @@ the spotlight cutout, so the highlighted control stays clickable).
 
 ```ts
 // src/app/(app)/guide-registrations.ts
+"use client";
+
 import { registerGuide } from "@/core/guides";
 import { academicYearsGuide } from "@/features/academic-year";
 
 registerGuide(academicYearsGuide);
+
+export function GuideRegistrations() {
+  return null;
+}
+```
+
+```tsx
+// src/app/(app)/layout.tsx
+<GuideProvider>
+  <GuideRegistrations />
+  {children}
+</GuideProvider>
 ```
 
 `registerGuide` is safe to call more than once for the same id (a duplicate
 is logged in development and ignored — never thrown) so a Fast Refresh
 re-evaluation of this module can never crash the app it exists to help
 explain.
+
+**This module must be `"use client"` and rendered as JSX — never a bare
+`import "./guide-registrations"`.** `layout.tsx` is a Server Component, and
+Next's RSC/client split gives the server bundle and the browser bundle their
+own separate module instance of `core/guides`' registry `Map`. A bare
+side-effect import from a Server Component only ever reaches the *server's*
+copy — the one used while producing the initial HTML — never the browser's.
+`useGuide()`/`GuideHelpTrigger` run client-side after hydration and read the
+*client's* copy, which would stay permanently empty, so every guide would
+silently report itself unavailable forever with no error anywhere. Rendering
+`<GuideRegistrations />` forces Next to ship this chunk to, and execute it
+in, the browser as well. The registration call still runs exactly once, at
+module evaluation, regardless of how many times the (no-op) component itself
+re-renders.
 
 ---
 
@@ -351,9 +379,19 @@ warns against.
   (§11); if that's not what happened, something else cleared `completed`.
 - **Guide doesn't start on a fresh page load / a totally new guide never
   shows up anywhere.** Confirm its `registerGuide()` call is actually reached
-  — the registration import lives only in `src/app/(app)/guide-registrations.ts`;
+  — the registration line lives only in `src/app/(app)/guide-registrations.ts`;
   a guide whose module is never imported from there is never registered, and
   `getGuide()`/`useGuide()` will just report it unavailable, silently.
+- **The Help (`?`) trigger never appears on any page, for any guide, even
+  though the definition, the `data-guide` targets and everything else look
+  right.** This is the registry client/server split, not a per-guide bug —
+  see §4. Confirm `guide-registrations.ts` still has `"use client"` at the
+  top and is rendered as `<GuideRegistrations />` inside `layout.tsx`, not
+  bare-imported. Verifying it: check the route's
+  `.next/**/page_client-reference-manifest.js` (dev) actually lists
+  `guide-registrations` — if it's missing, the registration chunk never
+  reaches the browser and every guide reports `isAvailable: false` with no
+  console error, because nothing actually threw.
 - **Target genuinely isn't in the DOM.** Joyride's own `TARGET_NOT_FOUND`
   event fires after `targetWaitTimeout`; `GuideProvider`'s `onEvent` handler
   logs a `console.warn` in development (never in production, never a
