@@ -1,9 +1,11 @@
 "use client";
 
 import { registerGuide } from "@/core/guides";
+import { academicUnitsGuide } from "@/features/academic-unit";
 import { academicYearsGuide } from "@/features/academic-year";
 import { branchesGuide } from "@/features/branch";
 import { organizationsGuide } from "@/features/organization";
+import { programsGuide } from "@/features/program";
 
 /**
  * Registers every page guide the authenticated app ships.
@@ -29,6 +31,11 @@ import { organizationsGuide } from "@/features/organization";
 registerGuide(organizationsGuide);
 registerGuide(branchesGuide);
 registerGuide(academicYearsGuide);
+// Programs before Academic Units: an academic unit's request body names a
+// programId, so the real setup journey requires a program to exist first —
+// see `features/program/guide/programs.guide.ts`.
+registerGuide(programsGuide);
+registerGuide(academicUnitsGuide);
 
 export function GuideRegistrations() {
   return null;
