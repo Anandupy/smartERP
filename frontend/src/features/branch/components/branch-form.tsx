@@ -37,6 +37,9 @@ export interface BranchFormProps {
   onCancel: () => void;
   /** Locks the owning organization. Editing never moves a branch between them. */
   lockOrganization?: boolean;
+  /** `data-guide` target for the submit button — set only by the create
+   * screen, whose guide step points at it. */
+  submitGuideTarget?: string;
 }
 
 /** Affiliation options, with the documented "no affiliation" case first. */
@@ -72,6 +75,7 @@ export function BranchForm({
   onSubmit,
   onCancel,
   lockOrganization = false,
+  submitGuideTarget,
 }: BranchFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
   const { options } = useWorkspace();
@@ -307,7 +311,11 @@ export function BranchForm({
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            data-guide={submitGuideTarget}
+          >
             {isSubmitting ? <Spinner size="sm" label="Saving" /> : null}
             {isSubmitting ? "Saving…" : submitLabel}
           </Button>

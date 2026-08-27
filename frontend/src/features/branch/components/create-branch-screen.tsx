@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { ROUTES } from "@/constants";
+import { useGuide } from "@/core/guides";
 import { useWorkspace } from "@/core/workspace";
 import { PageHeader } from "@/shared/components/layout";
 
@@ -27,6 +28,7 @@ export function CreateBranchScreen() {
   const router = useRouter();
   const create = useCreateBranch();
   const { organization } = useWorkspace();
+  const guide = useGuide("branches");
 
   return (
     <div className="space-y-6">
@@ -38,10 +40,12 @@ export function CreateBranchScreen() {
       <BranchForm
         defaultValues={branchFormDefaults(organization?.id ?? "")}
         submitLabel="Create branch"
+        submitGuideTarget="branch-create-submit"
         onCancel={() => router.push(ROUTES.app.branches.directory)}
         onSubmit={async (values) => {
           const created = await create.mutateAsync(toBranchRequest(values));
           router.push(ROUTES.app.branches.detail(created.id));
+          guide.reportEvent({ entityId: created.id });
         }}
       />
     </div>

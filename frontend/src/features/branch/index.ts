@@ -24,6 +24,9 @@
  * trail, composed at the route.
  */
 
+// Guide
+export { branchesGuide } from "./guide/branches.guide";
+
 // Screens
 export { BranchDashboardScreen } from "./components/branch-dashboard-screen";
 export type { BranchDashboardScreenProps } from "./components/branch-dashboard-screen";

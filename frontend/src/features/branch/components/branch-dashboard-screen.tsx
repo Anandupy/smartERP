@@ -6,6 +6,7 @@ import { Blocks, CircleCheckBig, Plus, Power, School } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
+import { GuideHelpTrigger } from "@/core/guides";
 import { StatCard } from "@/shared/components/data-display";
 import {
   ApiErrorState,
@@ -69,10 +70,11 @@ export function BranchDashboardScreen({
         description="Campuses across the platform: their classification, contact details and operating status."
         actions={
           <>
+            <GuideHelpTrigger guideId="branches" />
             <Button asChild variant="outline">
               <Link href={ROUTES.app.branches.directory}>View directory</Link>
             </Button>
-            <Button asChild>
+            <Button asChild data-guide="branch-dashboard-create-link">
               <Link href={ROUTES.app.branches.create}>
                 <Plus />
                 New branch

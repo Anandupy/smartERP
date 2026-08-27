@@ -99,7 +99,11 @@ function Details({
                 Settings
               </Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              data-guide="branch-details-lifecycle-link"
+            >
               <Link href={ROUTES.app.branches.lifecycle(branch.id)}>
                 <Power />
                 Lifecycle

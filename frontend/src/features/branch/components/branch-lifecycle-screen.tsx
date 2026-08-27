@@ -137,7 +137,7 @@ function Lifecycle({ branch }: { branch: BranchDto }) {
         />
       )}
 
-      <Card>
+      <Card data-guide="branch-lifecycle-status-timeline">
         <CardHeader className="border-b">
           <CardTitle className="flex flex-wrap items-center justify-between gap-2">
             Operational status
