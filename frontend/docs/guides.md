@@ -7,10 +7,19 @@ already-shipped flow — never an invented one. Ships once, as reusable
 infrastructure in `core/guides`; a page gets a guide by a feature module
 authoring one `GuideDefinition` and the app layer registering it.
 
-The reference implementation is the **Academic Years** guide
-(`src/features/academic-year/guide/academic-years.guide.ts`): create an
-academic year, then follow the guide across three routes to activate it. Use
-it as the worked example throughout this document.
+Three guides ship today, covering the start of the core setup journey
+(`Organization → Branch → Academic Year → …`, per `docs/administration-modules.md`):
+
+| Guide           | File                                                          | Pattern it demonstrates                                         |
+| ---------------- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `organizations`  | `src/features/organization/guide/organizations.guide.ts`       | Create → an explanatory last step (no real "activate" exists)     |
+| `branches`       | `src/features/branch/guide/branches.guide.ts`                  | Create → cross-route "action" step → explanatory last step        |
+| `academic-years` | `src/features/academic-year/guide/academic-years.guide.ts`     | Create → cross-route "action" steps all the way through Activate  |
+
+`academic-years` is the fullest worked example (every step is `advanceOn:
+"action"`, including the final one) and is referenced throughout this
+document; `organizations` and `branches` are the reference for the
+**explanatory last step** pattern — see §12.
 
 ---
 
@@ -190,6 +199,35 @@ Deselect, Unlock, Archive, Restore or Permanent-delete — none of them exist
 in the documented contract (`docs/academic-year-module.md`), and the UI
 already marks them `BackendPendingBadge`.
 
+### When *not* to build a guide
+
+A guide is not owed to every page. Before authoring one, check:
+
+- **Does the module's `docs/*-module.md` describe a real, multi-step
+  workflow** (a create-then-configure flow, a lifecycle with a genuine
+  transition, a cross-route journey)? A single form with nothing to explain
+  beyond its own field labels does not need a walkthrough — the form is
+  already the whole workflow.
+- **Is there a real business-meaning explanation to give**, beyond "click
+  here"? If the only thing a step could say is the button's own visible
+  label, it isn't adding anything. §5's copy standard (business meaning, not
+  button location) is the bar; a step that can't clear it shouldn't exist.
+- **Does the page's real state already communicate what's needed?** An
+  `EmptyState` with a "Create the first X" action (every dashboard in this
+  codebase already has one) *is* the contextual hint — a guide is for
+  teaching the multi-step workflow behind that button, not for restating
+  that the button exists.
+
+This is why, of the ~20 shipped feature modules, only three have a guide so
+far: Organizations, Branches and Academic Years form one connected,
+real setup journey (§1's table) with genuine cross-route steps and
+non-obvious business rules (soft delete, a non-idempotent toggle, a one-way
+activation) worth explaining. A module with no comparable workflow — a flat
+settings page, a single-endpoint CRUD screen with no lifecycle — is not
+missing a guide; it never needed one. Extending the journey (Academic Units,
+Programs, Admissions, …) is the natural next step, each following this same
+checklist rather than being added wholesale.
+
 ---
 
 ## 6. Adding `data-guide` targets
@@ -242,6 +280,34 @@ finds the step, only what the card offers the user):
 
 `reportEvent({ entityId })` matters whenever the *next* step's route carries
 a dynamic segment (`:id`) — see §8.
+
+### Type A vs Type B steps — and when to use `"next-button"`
+
+Every step is one of two kinds, and `advanceOn` is how a step declares which:
+
+- **Type A — action.** The next thing the user needs to do is click a real,
+  already-shipped control (`advanceOn: "action"`). No Next button; the
+  tooltip says "Complete this step in the app to continue." This is the
+  default, and every Academic Years step uses it.
+- **Type B — explanatory.** The user only needs to understand something —
+  there is no further real action to demonstrate, or the real action exists
+  but has a genuine consequence a first-time walkthrough should not perform
+  on the user's behalf (`advanceOn: "next-button"`). The tooltip shows Next,
+  and clicking it calls `reportEvent()`/`completeGuide()` automatically —
+  **no screen-side wiring is needed for a Type B step at all**, only its
+  `data-guide` target.
+
+Both `organizations` and `branches` end on a Type B step, and for the same
+reason: neither has a safe, idempotent "next action" to demonstrate.
+Deactivating an organization is a soft delete with no reverse; flipping a
+branch's status toggle sets no target state, so firing it programmatically on
+the user's behalf — even at their request — is exactly the "guide lied about
+completing something the user didn't actually do" failure mode this platform
+exists to avoid. A guide never simulates a consequential action just to give
+itself a Next button to skip past it. When a real workflow's last reachable
+point is "here's what this screen can do, nothing needs changing right now,"
+end there, honestly, on a Type B step — don't invent one more action to make
+the guide feel longer.
 
 ---
 
@@ -330,6 +396,19 @@ platform `Button` (focus rings, keyboard operability) used throughout
 animation beyond Joyride's own tooltip transition and a non-animated class
 toggle for the ring, so there is nothing extra to disable.
 
+**Every `*Props` Joyride spreads onto a button carries its own
+`aria-label`/`title`, and it is not always what the visible text says.**
+`skipProps.aria-label` is `"Skip"` (our button reads "Skip guide"), and —
+easy to miss, since it depends on step *position* rather than the step
+itself — `primaryProps.aria-label` is `"Next"` on every step **except the
+guide's last one, where Joyride sets it to `"Last"`**. An explicit
+`aria-label` always wins over visible text for the accessible name, so
+without an override a screen reader announces "Last" on a button that
+visibly says "Next." `guide-tooltip.tsx` sets `aria-label="Next"` (and
+`aria-label="Skip guide"`) explicitly, after spreading, for exactly this
+reason — any new button added to the tooltip that spreads a Joyride
+`*Props` needs the same treatment if its visible text is static.
+
 ---
 
 ## 13. Testing
@@ -338,20 +417,26 @@ toggle for the ring, so there is nothing extra to disable.
   `guide-registry.test.ts`, `guide-store.test.ts`): the pure pieces —
   route/param matching, registry lookup and duplicate handling, store
   transitions and the persistence round-trip (only `completed` survives).
-- **Integration** (`tests/integration/academic-years-guide.test.tsx`): the
-  real screens, mounted under `<GuideProvider>`, using the existing `render`
-  helper from `@tests/setup/render` (no separate `renderWithGuides` export
-  was added — one spec file wrapping its own tree in `<GuideProvider>` was
-  simpler than growing the shared helper for a single consumer; revisit if a
-  second guide's tests need the same wrapper). Covers: no tooltip when
-  nothing is running; no tooltip when the running step's route doesn't match
-  the page; automatic route catch-up; a real mutation success capturing the
-  entity id and advancing; **the entity-scoping regression itself** (§8); a
-  real activation completing the guide; skip; and the Help drawer starting
-  it. Each spec must call `registerGuide()` itself (via
-  `__resetGuideRegistryForTests()` + `registerGuide(academicYearsGuide)` in
-  `beforeEach`) — registration is normally a side effect of importing the app
-  layer's `guide-registrations.ts`, which these specs never mount.
+- **Integration** — one spec file per guide, mounting the real screens under
+  `<GuideProvider>` with the existing `render` helper from
+  `@tests/setup/render` (no separate `renderWithGuides` export exists; each
+  file wraps its own tree):
+  - `tests/integration/academic-years-guide.test.tsx` — the fullest example:
+    no tooltip when nothing is running; no tooltip when the running step's
+    route doesn't match the page; automatic route catch-up; a real mutation
+    success capturing the entity id and advancing; **the entity-scoping
+    regression itself** (§8); a real activation completing the guide; skip;
+    and — since this is also where the Help trigger itself is exercised —
+    that the drawer fully closes (not merely gets covered by) before the
+    tour starts (§3).
+  - `tests/integration/organizations-guide.test.tsx`,
+    `tests/integration/branches-guide.test.tsx` — the Type B / explanatory
+    last-step pattern (§7): completing the guide via the tooltip's own Next
+    button, with **no mutation involved at all** for that step.
+  - Every spec calls `registerGuide()` itself (via
+    `__resetGuideRegistryForTests()` + `registerGuide(<theGuide>)` in
+    `beforeEach`) — registration is normally a side effect of rendering the
+    app layer's `<GuideRegistrations />` (§4), which these specs never mount.
 - **E2E** (`tests/e2e/academic-year-guide.spec.ts` +
   `tests/e2e/fixtures/auth.ts`): see `tests/e2e/README.md` for the
   `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` it needs and the known cost of running
