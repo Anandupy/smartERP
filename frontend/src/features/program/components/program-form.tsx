@@ -36,6 +36,9 @@ export interface ProgramFormProps {
   existingPrograms?: readonly ProgramDto[];
   /** The record being edited, so it cannot parent or duplicate itself. */
   editingId?: string;
+  /** `data-guide` target for the submit button — set only by the create
+   * screen, whose guide step points at it. */
+  submitGuideTarget?: string;
 }
 
 /**
@@ -72,6 +75,7 @@ export function ProgramForm({
   branchName,
   existingPrograms,
   editingId,
+  submitGuideTarget,
 }: ProgramFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -112,7 +116,12 @@ export function ProgramForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-6"
+        data-guide={submitGuideTarget}
+      >
         {submitError ? (
           <Alert variant="destructive">
             <TriangleAlert aria-hidden="true" />

@@ -34,6 +34,9 @@
  * `useFormContext()`, so nothing crosses the boundary but a `ReactNode`.
  */
 
+// Guide
+export { programsGuide } from "./guide/programs.guide";
+
 // Screens
 export {
   ProgramDashboardScreen,

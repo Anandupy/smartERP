@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
+import { GuideHelpTrigger } from "@/core/guides";
 import { LinkCard, StatCard } from "@/shared/components/data-display";
 import {
   ApiErrorState,
@@ -94,10 +95,11 @@ export function ProgramDashboardScreen({
         description={`How ${branch.name} organises students and curriculum — its verticals, their grouping and their status.`}
         actions={
           <>
+            <GuideHelpTrigger guideId="programs" />
             <Button asChild variant="outline">
               <Link href={ROUTES.app.programs.directory}>View directory</Link>
             </Button>
-            <Button asChild>
+            <Button asChild data-guide="program-dashboard-create-link">
               <Link href={ROUTES.app.programs.create}>
                 <Plus />
                 New program

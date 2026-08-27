@@ -269,7 +269,12 @@ function Details({
             their request body, and are additionally scoped to one academic
             year. They are managed in their own module.
           </p>
-          <Button asChild variant="outline" size="sm">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            data-guide="program-details-unit-hierarchy-link"
+          >
             <Link href={ROUTES.app.academicUnits.tree}>
               View the unit hierarchy
             </Link>

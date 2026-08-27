@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { School } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants";
+import { useGuide } from "@/core/guides";
 import { EmptyState } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
 
@@ -36,6 +37,7 @@ export function CreateProgramScreen() {
   const branch = useProgramBranch();
   const create = useCreateProgram();
   const { programs } = usePrograms(branch?.id ?? null);
+  const guide = useGuide("programs");
 
   if (!branch) {
     return (
@@ -70,6 +72,7 @@ export function CreateProgramScreen() {
         branchName={branch.name}
         existingPrograms={programs}
         submitLabel="Create program"
+        submitGuideTarget="program-create-submit"
         onCancel={() => router.push(ROUTES.app.programs.directory)}
         onSubmit={async (values) => {
           const created = await create.mutateAsync(toProgramRequest(values));
@@ -82,6 +85,7 @@ export function CreateProgramScreen() {
               ? ROUTES.app.programs.detail(created.id)
               : ROUTES.app.programs.directory,
           );
+          if (created?.id) guide.reportEvent({ entityId: created.id });
         }}
       />
     </div>
