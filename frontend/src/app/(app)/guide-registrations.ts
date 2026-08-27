@@ -2,6 +2,8 @@
 
 import { registerGuide } from "@/core/guides";
 import { academicYearsGuide } from "@/features/academic-year";
+import { branchesGuide } from "@/features/branch";
+import { organizationsGuide } from "@/features/organization";
 
 /**
  * Registers every page guide the authenticated app ships.
@@ -24,6 +26,8 @@ import { academicYearsGuide } from "@/features/academic-year";
  * `registerGuide` already ignores a duplicate id if this module is ever
  * evaluated more than once (e.g. Fast Refresh).
  */
+registerGuide(organizationsGuide);
+registerGuide(branchesGuide);
 registerGuide(academicYearsGuide);
 
 export function GuideRegistrations() {
