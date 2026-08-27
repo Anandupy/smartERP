@@ -37,21 +37,6 @@ vi.mock("next/navigation", async () => {
 const { resetRouterMock, setPathname } =
   await import("@tests/mocks/next-navigation");
 
-/**
- * The Academic Years reference guide, wired into its real screens.
- *
- * Covers the properties the plan called out specifically: the guide only
- * ever renders its tooltip once the current route matches the active step
- * (never a stray tooltip on an unrelated page); a "link" step advances purely
- * by the user following the real link to the next step's route, with no
- * synthetic "Next" button; an "action" step advances only once the real
- * mutation this screen already performs succeeds; and — the correctness
- * property `guide-provider.tsx` is built around — a step scoped to a
- * dynamic `:id` route never activates for a record other than the one the
- * guide's own create step captured, even if the user happens to browse to an
- * unrelated existing record's page mid-guide.
- */
-
 function resetGuideStore() {
   useGuideStore.setState({
     activeGuideId: null,
@@ -86,10 +71,6 @@ beforeEach(() => {
     reason: null,
   });
   resetGuideStore();
-  // Registration normally happens once, as a side effect of importing
-  // `src/app/(app)/guide-registrations.ts` from the authenticated layout —
-  // these specs mount feature screens directly, so they register (and reset)
-  // the same real definition themselves.
   __resetGuideRegistryForTests();
   registerGuide(academicYearsGuide);
 });
@@ -191,9 +172,6 @@ describe("creating the year", () => {
     await waitFor(() => {
       expect(useGuideStore.getState().stepIndex).toBe(2);
     });
-    // The default MSW handler echoes the request back as `academicYearDto`,
-    // whose fixture id is "ay-1" — asserting on it, not a literal, would
-    // couple this spec to that fixture's internals for no real benefit here.
     expect(useGuideStore.getState().entityId).toEqual(expect.any(String));
     expect(useGuideStore.getState().status).toBe("running");
   });
@@ -201,10 +179,6 @@ describe("creating the year", () => {
 
 describe("the id-scoped steps", () => {
   it("does not activate for a record other than the one the guide captured", async () => {
-    // Regression coverage for the hazard `guide-provider.tsx` is built to
-    // close: sitting at the create-submit step (no entity captured yet) and
-    // landing on *some other* existing year's detail page must not be
-    // mistaken for "the year I just created" and jump the guide ahead.
     withActiveWorkspace();
     useGuideStore.getState().start("academic-years");
     useGuideStore.getState().setStep(1);
@@ -242,9 +216,6 @@ describe("activating the year", () => {
   it("completes the guide once the real activation succeeds", async () => {
     const user = userEvent.setup();
     withActiveWorkspace();
-    // Activate is only offered when the year isn't already active — the
-    // default fixture (id "ay-1") is, so this uses the upcoming-year fixture
-    // (id "ay-3") the module's own lifecycle tests use for the same reason.
     server.use(
       http.get(`${API_BASE}/academic-years`, () =>
         HttpResponse.json(successEnvelope([upcomingAcademicYearDto()])),
@@ -262,10 +233,6 @@ describe("activating the year", () => {
 
     await screen.findByText(/lifecycle actions/i);
     await user.click(screen.getByRole("button", { name: /activate year/i }));
-    // Two `alertdialog`s can legitimately be on screen at once here — the
-    // guide's own tooltip (Joyride marks its tooltip `role="alertdialog"` for
-    // assistive tech) and the real confirmation dialog this click opens —
-    // so the query is scoped by the confirmation's own accessible name.
     const dialog = await screen.findByRole("alertdialog", {
       name: /activate year\?/i,
     });
@@ -308,7 +275,7 @@ describe("skipping", () => {
 });
 
 describe("the Help drawer trigger", () => {
-  it("closes the drawer before starting the guide, never both at once", async () => {
+  it("shows a discoverable Guide button and closes the drawer before starting the tour", async () => {
     const user = userEvent.setup();
     withActiveWorkspace();
     setPathname("/app/academic-years");

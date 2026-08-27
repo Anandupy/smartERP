@@ -2,7 +2,7 @@
 
 import type { TooltipRenderProps } from "react-joyride";
 
-import { ArrowRight, X } from "@/assets/icons";
+import { ArrowRight, CircleHelp, X } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
 
 import type { GuideStepAdvanceMode } from "./types";
@@ -24,12 +24,8 @@ function isGuideStepData(value: unknown): value is GuideStepData {
 }
 
 /**
- * CampusFlow's guide card — replaces Joyride's default tooltip entirely.
- *
- * Styled with the same surface/ring/shadow tokens as `PopoverContent`, so a
- * guide reads as a native part of the product rather than a plugin. Buttons
- * are the platform `Button`, spread with Joyride's own `*Props` so focus
- * rings, `aria-label`s and keyboard operability come for free.
+ * CampusFlow's guide card — intentionally richer than a generic plugin
+ * tooltip while staying inside the product's existing design language.
  */
 export function GuideTooltip({
   step,
@@ -40,70 +36,112 @@ export function GuideTooltip({
 }: TooltipRenderProps) {
   const data = isGuideStepData(step.data) ? step.data : null;
   const showNext = data?.advanceOn === "next-button";
+  const progress = data
+    ? Math.min(100, Math.max(0, (data.position / data.total) * 100))
+    : 0;
 
   return (
     <div
       {...tooltipProps}
-      className="bg-popover text-popover-foreground ring-foreground/10 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-lg p-4 text-sm shadow-lg ring-1"
+      className="bg-popover text-popover-foreground ring-foreground/10 w-88 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl p-0 text-sm shadow-xl ring-1"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          {data ? (
-            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Step {data.position} of {data.total}
-            </p>
-          ) : null}
-          {step.title ? (
-            <p className="text-foreground font-heading text-sm font-medium">
-              {step.title}
-            </p>
-          ) : null}
+      <div className="bg-primary/5 border-primary/10 border-b px-4 pt-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-primary flex min-w-0 items-center gap-2 text-xs font-semibold tracking-wide uppercase">
+            <span className="bg-primary/10 flex size-6 shrink-0 items-center justify-center rounded-full">
+              <CircleHelp aria-hidden="true" className="size-3.5" />
+            </span>
+            <span>Guided tour</span>
+          </div>
+          <button
+            {...closeProps}
+            type="button"
+            aria-label="Close guide"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground -mr-1 -mt-1 shrink-0 rounded-md p-1.5 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring"
+          >
+            <X className="size-4" />
+          </button>
         </div>
-        <button
-          {...closeProps}
-          type="button"
-          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -m-1 shrink-0 rounded-md p-1 outline-none focus-visible:ring-3"
-        >
-          <X className="size-3.5" />
-        </button>
+
+        {data ? (
+          <div className="pt-3 pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-muted-foreground text-xs font-medium">
+                Step {data.position} of {data.total}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {Math.round(progress)}% complete
+              </p>
+            </div>
+            <div
+              className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full"
+              aria-hidden="true"
+            >
+              <div
+                className="bg-primary h-full rounded-full transition-[width] duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {step.content ? (
-        <p className="text-muted-foreground text-sm">{step.content}</p>
-      ) : null}
-
-      {!showNext ? (
-        <p className="text-muted-foreground text-xs italic">
-          Complete this step in the app to continue.
-        </p>
-      ) : null}
-
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <Button
-          {...skipProps}
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
-          aria-label="Skip guide"
-        >
-          Skip guide
-        </Button>
-        {showNext ? (
-          // `primaryProps.aria-label` is Joyride's own title for this
-          // control ("Next", but "Last" on a guide's final step) — always
-          // overridden here so the accessible name matches the button's
-          // always-static visible text, the same fix `skipProps` needed.
-          <Button
-            {...primaryProps}
-            type="button"
-            size="sm"
-            aria-label="Next"
-          >
-            Next
-            <ArrowRight />
-          </Button>
+      <div className="space-y-3 p-4">
+        {step.title ? (
+          <div className="space-y-1">
+            <p className="text-foreground text-base font-semibold tracking-tight">
+              {step.title}
+            </p>
+            {showNext ? (
+              <p className="text-primary text-xs font-medium">Next step</p>
+            ) : (
+              <p className="text-primary text-xs font-medium">Your turn</p>
+            )}
+          </div>
         ) : null}
+
+        {step.content ? (
+          <p className="text-muted-foreground text-sm leading-6">
+            {step.content}
+          </p>
+        ) : null}
+
+        {!showNext ? (
+          <div className="bg-muted/50 ring-border/60 rounded-lg p-2.5 ring-1">
+            <p className="text-muted-foreground text-xs leading-5">
+              Complete the highlighted action in CampusFlow. I&apos;ll guide you
+              to the next step automatically.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <Button
+            {...skipProps}
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            aria-label="Skip guide"
+          >
+            Skip guide
+          </Button>
+          {showNext ? (
+            // `primaryProps.aria-label` is Joyride's own title for this
+            // control ("Next", but "Last" on a guide's final step) — always
+            // overridden here so the accessible name matches the button's
+            // always-static visible text, the same fix `skipProps` needed.
+            <Button
+              {...primaryProps}
+              type="button"
+              size="sm"
+              aria-label="Next"
+            >
+              Next
+              <ArrowRight />
+            </Button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

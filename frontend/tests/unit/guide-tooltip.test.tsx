@@ -102,7 +102,7 @@ describe("GuideTooltip", () => {
       screen.queryByRole("button", { name: /^next$/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/complete this step in the app/i),
+      screen.getByText(/complete the highlighted action/i),
     ).toBeInTheDocument();
   });
 
@@ -201,7 +201,10 @@ describe("GuideTooltip", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    // guide-tooltip.tsx sets an explicit aria-label="Close guide" on this
+    // button (overriding closeProps' own "Close", the same accessible-name
+    // pattern the Next/Skip buttons already use), so it's queried by that.
+    fireEvent.click(screen.getByRole("button", { name: "Close guide" }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 

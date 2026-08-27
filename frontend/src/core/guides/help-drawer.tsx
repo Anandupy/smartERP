@@ -21,7 +21,7 @@ export interface GuideHelpTriggerProps {
 }
 
 /**
- * A page's guide entry point: a compact "Guide" control that opens "About
+ * A page's guide entry point: a visible "Guide" control that opens "About
  * this page" and a "Start guided tour" action. Drop into a screen's
  * `PageHeader actions` — nothing renders if the guide is unavailable to the
  * current user (no registered definition, or its `requirement` fails).
@@ -43,12 +43,13 @@ export function GuideHelpTrigger({ guideId }: GuideHelpTriggerProps) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           aria-label={`Guide for this page: ${definition.title}`}
+          className="gap-1.5"
         >
-          <CircleHelp />
-          Guide
+          <CircleHelp aria-hidden="true" />
+          <span>Guide</span>
         </Button>
       </SheetTrigger>
       <SheetContent
@@ -62,16 +63,30 @@ export function GuideHelpTrigger({ guideId }: GuideHelpTriggerProps) {
           <SheetTitle>{definition.title}</SheetTitle>
           <SheetDescription>{definition.description}</SheetDescription>
         </SheetHeader>
-        <div className="flex flex-col gap-4 px-4 pb-4">
-          <div className="space-y-1">
-            <p className="text-foreground text-sm font-medium">
-              Quick start
-            </p>
-            <ol className="text-muted-foreground list-inside list-decimal space-y-1 text-sm">
+        <div className="flex flex-col gap-5 px-4 pb-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-foreground text-sm font-medium">
+                Quick start
+              </p>
+              <span className="text-muted-foreground text-xs">
+                {definition.steps.length} guided steps
+              </span>
+            </div>
+            <ol className="text-muted-foreground list-inside list-decimal space-y-2 text-sm">
               {definition.steps.map((step) => (
                 <li key={step.id}>{step.title}</li>
               ))}
             </ol>
+          </div>
+          <div className="bg-muted/50 ring-border/60 rounded-lg p-3 ring-1">
+            <p className="text-foreground text-sm font-medium">
+              Want to see it in action?
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs leading-5">
+              The tour will dim the page, spotlight the exact control you need,
+              and wait for you to complete each real action before moving on.
+            </p>
           </div>
           <Button
             onClick={() => {

@@ -6,6 +6,7 @@ import {
   ACTIONS,
   EVENTS,
   Joyride,
+  ORIGIN,
   type EventData,
   type Step,
 } from "react-joyride";
@@ -69,15 +70,6 @@ const GUIDE_TARGET_RING_CLASSES = [
   "rounded-md",
 ];
 
-/**
- * Whether a step is reachable at the current pathname.
- *
- * A step whose route carries a dynamic segment (`:id`) only matches once the
- * guide has actually captured that id — see `entityId` on the store — and
- * only when the pathname's id is that exact one. Without this, a guide that
- * has not yet created its record could be fooled into treating an unrelated
- * existing record's page as "the next step."
- */
 function stepMatchesPathname(
   step: GuideStep,
   pathname: string,
@@ -92,16 +84,9 @@ function stepMatchesPathname(
 /**
  * Mounts the one Joyride instance for the authenticated app.
  *
- * Renders at most one step at a time — the current logical step, and only
- * once its route matches where the user actually is. A guide's steps almost
- * always span more than one route (see `docs/guides.md`), so on every
- * navigation this also catches the stored step index up to whichever step (at
- * or after it) the new pathname satisfies, which is what lets a step like
- * "now activate it" appear automatically once the user follows a real link
- * there — no synthetic "Next" button standing in for the actual UI control.
- *
- * Does not decide *when* a guide starts; that is always an explicit
- * `useGuide(id).startGuide()` call from feature UI (the Help drawer today).
+ * A guide is additive: the real page remains usable through the spotlight,
+ * and dismissing the tour always returns control to the page. Route-aware
+ * steps can therefore span the real application's existing navigation.
  */
 export function GuideProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
@@ -116,8 +101,6 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
 
   const definition = activeGuideId ? getGuide(activeGuideId) : undefined;
 
-  // Catch the floor up to whichever step the current route satisfies. Runs
-  // on every navigation; a no-op once the stored step already matches.
   useEffect(() => {
     if (!definition || status !== "running") return;
     for (let index = stepIndex; index < definition.steps.length; index += 1) {
@@ -274,8 +257,8 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
         options={{
           skipBeacon: true,
           showProgress: false,
-          spotlightPadding: 6,
-          spotlightRadius: 10,
+          spotlightPadding: 8,
+          spotlightRadius: 12,
           targetWaitTimeout: 6000,
           overlayColor: "var(--overlay-scrim)",
           // Without this, Joyride scrolls a target to just inside the raw
@@ -283,6 +266,13 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
           // AppLayout's sticky header, not actually visible. See
           // `useStickyChromeClearance`.
           scrollOffset,
+          // Explicit even though these match Joyride's own defaults: the
+          // spotlight cutout stays interactive, and ESC/overlay-click/the
+          // tooltip's own X all resolve to the same dismissal path.
+          blockTargetInteraction: false,
+          overlayClickAction: "close",
+          dismissKeyAction: "close",
+          closeButtonAction: "close",
         }}
         onEvent={(data: EventData) => {
           if (process.env.NODE_ENV !== "production") {
@@ -295,32 +285,43 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
             guide.reportEvent();
             return;
           }
-          // ESC and the tooltip's own X both fire `closeButtonAction`/
-          // `dismissKeyAction: "close"`, which Joyride resolves as
-          // `controls.close()` — advancing its *internal* index by one
-          // rather than a dedicated "dismissed" action. With our
-          // always-exactly-one-step controlled array, that internal index
-          // then exceeds the array's size, which — before the `key`-based
-          // remount above existed — reliably also produced a `TOUR_END`
-          // right behind it, so only that was ever handled. It no longer
+
+          // ESC, the tooltip's own X, and clicking the dimmed overlay all
+          // resolve to Joyride's `close()` control, which advances its
+          // *internal* index by one rather than emitting a dedicated
+          // "dismissed" signal — under our always-exactly-one-step
+          // controlled array, that reliably also produced a `TOUR_END`
+          // right behind it, so only that needed handling. It no longer
           // reliably does once a step can arrive via a fresh mount (a
           // cross-route step reaching its own page): traced directly, a
-          // `STEP_AFTER`/`close` fires with no `TOUR_END` behind it, and
-          // without this, `stop()` is never called — the overlay stays
-          // mounted (and pointer-events-blocking) indefinitely. Handling the
-          // dismissal here, directly, does not depend on that emergent
-          // "index overflow" side effect at all.
-          if (data.type === EVENTS.STEP_AFTER && data.action === ACTIONS.CLOSE) {
-            stop("skipped");
-            return;
-          }
+          // `STEP_AFTER` can fire with no `TOUR_END` behind it, and without
+          // handling it here, `stop()` is never called — the dimmed overlay
+          // stays mounted (and pointer-events-blocking) indefinitely.
+          // `data.origin` is the precise signal (as opposed to matching on
+          // `ACTIONS.CLOSE`, which `close()` also reports for reasons other
+          // than a user dismissal): only ESC, the overlay, and the tooltip's
+          // own close button count.
           if (
-            data.type === EVENTS.TOUR_END &&
-            (data.action === ACTIONS.SKIP || data.action === ACTIONS.CLOSE)
+            data.type === EVENTS.STEP_AFTER &&
+            (data.origin === ORIGIN.OVERLAY ||
+              data.origin === ORIGIN.KEYBOARD ||
+              data.origin === ORIGIN.BUTTON_CLOSE)
           ) {
             stop("skipped");
             return;
           }
+
+          // Joyride can emit TOUR_END after the feature has already marked
+          // the guide completed. Only turn an actually-running tour into a
+          // skipped state; never overwrite a successful completion.
+          if (
+            data.type === EVENTS.TOUR_END &&
+            useGuideStore.getState().status === "running"
+          ) {
+            stop("skipped");
+            return;
+          }
+
           if (data.type === EVENTS.TARGET_NOT_FOUND) {
             if (process.env.NODE_ENV !== "production") {
               console.warn(
