@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { ROUTES } from "@/constants";
+import { useGuide } from "@/core/guides";
 import { PageHeader } from "@/shared/components/layout";
 
 import { useCreateOrganization } from "../hooks/use-organizations";
@@ -20,6 +21,7 @@ import { OrganizationForm } from "./organization-form";
 export function CreateOrganizationScreen() {
   const router = useRouter();
   const create = useCreateOrganization();
+  const guide = useGuide("organizations");
 
   return (
     <div className="space-y-6">
@@ -31,12 +33,14 @@ export function CreateOrganizationScreen() {
       <OrganizationForm
         defaultValues={organizationFormDefaults()}
         submitLabel="Create organization"
+        submitGuideTarget="organization-create-submit"
         onCancel={() => router.push(ROUTES.app.organizations.directory)}
         onSubmit={async (values) => {
           const created = await create.mutateAsync(
             toOrganizationRequest(values),
           );
           router.push(ROUTES.app.organizations.detail(created.id));
+          guide.reportEvent({ entityId: created.id });
         }}
       />
     </div>

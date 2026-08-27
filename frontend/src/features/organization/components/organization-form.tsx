@@ -25,6 +25,9 @@ export interface OrganizationFormProps {
   submitLabel: string;
   onSubmit: (values: OrganizationFormValues) => Promise<unknown>;
   onCancel: () => void;
+  /** `data-guide` target for the submit button — set only by the create
+   * screen, whose guide step points at it. */
+  submitGuideTarget?: string;
 }
 
 /**
@@ -49,6 +52,7 @@ export function OrganizationForm({
   submitLabel,
   onSubmit,
   onCancel,
+  submitGuideTarget,
 }: OrganizationFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -235,7 +239,11 @@ export function OrganizationForm({
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            data-guide={submitGuideTarget}
+          >
             {isSubmitting ? <Spinner size="sm" label="Saving" /> : null}
             {isSubmitting ? "Saving…" : submitLabel}
           </Button>

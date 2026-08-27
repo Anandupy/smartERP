@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
+import { GuideHelpTrigger } from "@/core/guides";
 import { StatCard } from "@/shared/components/data-display";
 import {
   ApiErrorState,
@@ -73,12 +74,13 @@ export function OrganizationDashboardScreen({
         description="Tenants on the platform: their identity, subscription and status."
         actions={
           <>
+            <GuideHelpTrigger guideId="organizations" />
             <Button asChild variant="outline">
               <Link href={ROUTES.app.organizations.directory}>
                 View directory
               </Link>
             </Button>
-            <Button asChild>
+            <Button asChild data-guide="organization-dashboard-create-link">
               <Link href={ROUTES.app.organizations.create}>
                 <Plus />
                 New organization

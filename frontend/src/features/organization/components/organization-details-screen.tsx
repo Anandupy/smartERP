@@ -155,7 +155,11 @@ function Details({
         description={formatAddress(organization) || undefined}
         actions={
           <>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              data-guide="organization-details-lifecycle-link"
+            >
               <Link href={ROUTES.app.organizations.lifecycle(organization.id)}>
                 <Power />
                 Lifecycle

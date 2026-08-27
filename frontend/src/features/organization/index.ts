@@ -23,6 +23,9 @@
  * neither feature imports the other.
  */
 
+// Guide
+export { organizationsGuide } from "./guide/organizations.guide";
+
 // Screens
 export { OrganizationDashboardScreen } from "./components/organization-dashboard-screen";
 export type { OrganizationDashboardScreenProps } from "./components/organization-dashboard-screen";
