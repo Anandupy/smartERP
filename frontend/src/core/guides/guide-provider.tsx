@@ -15,6 +15,10 @@ import { GuideTooltip } from "./guide-tooltip";
 import { useGuideStore } from "./guide-store";
 import { getGuide } from "./registry";
 import { extractRouteParam, matchesRoute } from "./route-match";
+import {
+  buildSafeAreaPadding,
+  createSafeViewportClampMiddleware,
+} from "./tooltip-viewport";
 import type { GuideStep } from "./types";
 import { useGuide } from "./use-guide";
 
@@ -171,12 +175,28 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   // is genuinely reachable.
   const steps = useMemo<Step[]>(() => {
     if (!definition || !currentStep || !isOnCurrentStep) return [];
+    // `scrollOffset` doubles as the tooltip's safe-area top clearance —
+    // see `tooltip-viewport.ts`. `flipOptions`/`shiftOptions` give Floating
+    // UI's own placement math the same sticky-header-aware boundary the
+    // scroll math already uses, so the *preferred* placement already
+    // respects app chrome; `middleware` is the unconditional backstop that
+    // guarantees it regardless — required because a step's target can
+    // legitimately be much taller than the viewport (a whole `<form>`; see
+    // "Guide target reliability"), which can defeat flip/shift's own
+    // placement choice on its own. See docs/guides.md "Tooltip Positioning
+    // Contract."
+    const safeAreaPadding = buildSafeAreaPadding(scrollOffset);
     return [
       {
         target: currentStep.target,
         title: currentStep.title,
         content: currentStep.description,
         placement: currentStep.placement ?? "bottom",
+        floatingOptions: {
+          flipOptions: { padding: safeAreaPadding },
+          shiftOptions: { padding: safeAreaPadding },
+          middleware: [createSafeViewportClampMiddleware(scrollOffset)],
+        },
         data: {
           advanceOn: currentStep.advanceOn,
           position: stepIndex + 1,
@@ -184,7 +204,7 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
         },
       },
     ];
-  }, [definition, currentStep, isOnCurrentStep, stepIndex]);
+  }, [definition, currentStep, isOnCurrentStep, stepIndex, scrollOffset]);
 
   // `run`, in contrast, must never depend on `steps.length` (i.e. never on
   // `isOnCurrentStep`). Joyride is a controlled, continuous instance
