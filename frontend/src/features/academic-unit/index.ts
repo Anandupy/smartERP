@@ -102,6 +102,7 @@ export {
 } from "./components/academic-unit-dialogs";
 export {
   AcademicUnitPicker,
+  academicUnitDisplayPath,
   type AcademicUnitPickerProps,
 } from "./components/academic-unit-picker";
 
@@ -147,6 +148,7 @@ export {
 // Contracts
 export {
   ACADEMIC_UNIT_TYPES,
+  type AcademicUnitAncestorDto,
   type AcademicUnitDto,
   type AcademicUnitType,
   type CreateAcademicUnitRequest,
@@ -171,5 +173,7 @@ export {
   STATE_FILTER_OPTIONS,
   UNIT_STATE_PRESENTATION,
   academicUnitState,
+  placementTargetState,
   type AcademicUnitState,
+  type PlacementTargetState,
 } from "./constants";

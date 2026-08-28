@@ -50,6 +50,23 @@ export const UNIT_STATE_PRESENTATION: Record<
   },
 };
 
+/**
+ * Whether a unit is a valid Enrollment/admission placement target, derived
+ * from the one field the backend computes for exactly this purpose.
+ *
+ * `unknown` covers the create/update/move/status-toggle responses, which
+ * don't return `isPlacementTarget` at all (see the DTO) — never guessed as
+ * `true`, since offering a structural node as a placement target is the
+ * defect this field exists to prevent.
+ */
+export type PlacementTargetState = "target" | "structural" | "unknown";
+
+export function placementTargetState(unit: AcademicUnitDto): PlacementTargetState {
+  if (unit.isPlacementTarget === true) return "target";
+  if (unit.isPlacementTarget === false) return "structural";
+  return "unknown";
+}
+
 /** Filter value meaning "don't narrow on state". */
 export const ANY_STATE = "ANY";
 

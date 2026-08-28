@@ -28,6 +28,19 @@
  *    "auto-calculated starting at 0 for roots… maintained across moves
  *    dynamically… Do not update manually." It is absent from every request body
  *    in the collection, and it is absent from this module's request types.
+ *
+ * A fourth fact, **not** from Postman: `GET /academic-units`, `/tree` and
+ * `/:id` now also return `displayPath`, `isPlacementTarget` and — on `/:id`
+ * only — `ancestors`. Unlike everything else in this file, these three are
+ * sourced from direct, verified backend code
+ * (`backend/docs/planning/academic-placement-refinement.md`), not a Postman
+ * transcription — that document is itself the record of the backend change
+ * that added them. They exist because nothing previously distinguished "Grade
+ * 1" (a structural node) from "Grade 1 → Division A" (an actual placement
+ * target) on the wire; a picker built only from `name`/`parentId` could offer
+ * either with no way to tell them apart. They are **absent from create,
+ * update, move and the status-toggle responses** — those return the bare
+ * record, as before.
  */
 
 /**
@@ -86,6 +99,39 @@ export interface AcademicUnitDto {
    * screen builds its hierarchy from the flat list with the shared `buildTree`.
    */
   children?: AcademicUnitDto[] | null;
+  /**
+   * The full path from the root, e.g. `"Grade 1 → Division A"`.
+   *
+   * Present on `GET /academic-units`, `/tree` and `/:id`; **absent** on
+   * create/update/move/status-toggle responses, which return the bare record.
+   * Computed by the backend at read time from the current hierarchy — never
+   * sent, never stored client-side beyond the query cache.
+   */
+  displayPath?: string | null;
+  /**
+   * Whether this unit is a valid Enrollment/admission placement target: it has
+   * no active child units. A unit with children ("Grade 1") is structural
+   * only — the backend refuses it as an `academicUnitId` with
+   * `ACADEMIC_UNIT_NOT_PLACEMENT_TARGET`. Same presence rule as `displayPath`.
+   */
+  isPlacementTarget?: boolean | null;
+  /**
+   * Root-first ancestor chain, excluding this unit itself. Present only on
+   * `GET /academic-units/:id`. Every ancestor is structural by construction
+   * (it has at least this unit as a descendant), so its own
+   * `isPlacementTarget` is always `false`.
+   */
+  ancestors?: AcademicUnitAncestorDto[] | null;
+}
+
+/** One ancestor in `AcademicUnitDto.ancestors` — see there for sourcing. */
+export interface AcademicUnitAncestorDto {
+  id: string;
+  name: string;
+  unitType: string;
+  level: number;
+  displayPath: string;
+  isPlacementTarget: false;
 }
 
 /**
