@@ -108,7 +108,7 @@ this audit — see the document for the full carry-forward classification.
 | **S2** | Address | `implemented` ✅ 2026-08-15 — `Address` + `PersonAddress`, no `Household` (§9.2 DECIDED); see the reference §10 | [`03-address/01-address.md`](03-address/01-address.md) |
 | **S3** | Document | `implemented` ✅ 2026-08-17 — foundation only: `DocumentType`/`DocumentRequirement`/`Document`/`DocumentVersion`, storage+scan ports, `DOCUMENT_CHECKLIST_SATISFIED` wired for real. Real virus scanning, cloud storage and direct parent upload `DEFERRED`, see the spec. Re-verified 2026-08-21 against numbering, Postman and the Applicant document workflow — no functional gaps; `DocumentRequirement` now rejects an exact duplicate (same type/branch/program/quota/category/stage) the same way `DocumentType` already did | [`document-management-specification.md`](document-management-specification.md) |
 | **S4** | Employee / staff | `planned` ⚠️ 3 open questions | [`05-employee/01-employee.md`](05-employee/01-employee.md) |
-| **A1** | Program & academic unit *(exists)* | `not started` | `06-academic-structure/` |
+| **A1** | Program & academic unit *(exists)* | `not started` ⚠️ placement semantics reconciled 2026-08-28 — see below | `06-academic-structure/` |
 | **A2** | Academic year & calendar *(exists, calendar missing)* | `not started` | `06-academic-structure/` |
 | **A3** | Subject & curriculum | `planned` ⚠️ 3 open questions | [`06-academic-structure/03-subject-curriculum.md`](06-academic-structure/03-subject-curriculum.md) |
 | **A4** | Timetable | `not started` | `07-timetable/` |
@@ -384,6 +384,21 @@ reporting error:
   `Enrollment` have no such column and no event or audit payload carries the
   value — asserted by test. Migrating the columns out belongs with the Guardian
   work, which needs `Guardian → Person` first.
+
+## Academic placement refinement
+
+[`academic-placement-refinement.md`](academic-placement-refinement.md)
+(2026-08-28) audits the Program → AcademicYear → AcademicUnit → Enrollment
+model against the brief's placement-clarity requirements. Eleven of twelve
+checked invariants already held; the twelfth — nothing enforced that an
+Enrollment's `academicUnitId` names a **leaf** of the hierarchy, despite
+`EnrollmentDto` documenting that intent — was a genuine, HTTP-reachable defect
+and is now closed in `EnrollmentService` and `AdmissionConversionService`,
+using the existing parent/child structure rather than a new field. AcademicUnit's
+read endpoints now also return a computed `displayPath` ("Grade 1 → Division
+A") and `isPlacementTarget`. Capacity remains `DEFERRED` (unchanged
+`REQUIRES BUSINESS DECISION`); roll number and the class-list lock were
+confirmed to already match specification. No schema change.
 
 ## Background — reasoning archive
 
