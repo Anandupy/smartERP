@@ -222,9 +222,17 @@ test.skip(
 test("the Branches guide resolves every target correctly across the real flow", async ({
   page,
 }) => {
+  // One long sequential flow through six distinct routes on a freshly
+  // started dev server (see `webServer` in playwright.config.ts) — each
+  // route's *first* visit pays Next dev's on-demand compile cost, which on
+  // this app has been observed to occasionally exceed 15s for a single
+  // route. The default 30s test timeout is too tight for that compounded
+  // across six routes; every cross-route assertion below also carries its
+  // own generous explicit timeout for the same reason.
+  test.setTimeout(90_000);
   await signIn(page);
   await page.getByRole("link", { name: "Branches" }).first().click();
-  await expect(page).toHaveURL(/\/app\/branches$/);
+  await expect(page).toHaveURL(/\/app\/branches$/, { timeout: 10_000 });
 
   // ---- Step 1: target must be unique, real, and not behind the header ----
   await page.getByRole("button", { name: /guide for this page/i }).click();
@@ -258,7 +266,7 @@ test("the Branches guide resolves every target correctly across the real flow", 
   const newBranchLink = page.getByRole("link", { name: "New branch" });
   await expect(newBranchLink).toBeInViewport();
   await newBranchLink.click();
-  await expect(page).toHaveURL(/\/app\/branches\/new$/);
+  await expect(page).toHaveURL(/\/app\/branches\/new$/, { timeout: 10_000 });
 
   // ---- Step 2: target below the fold must auto-scroll into view ----
   await expect(tooltip.getByText("Save the new branch")).toBeVisible({
@@ -306,11 +314,11 @@ test("the Branches guide resolves every target correctly across the real flow", 
   const lifecycleLink = page.getByRole("link", { name: "Lifecycle" }).first();
   await expect(lifecycleLink).toBeEnabled();
   await lifecycleLink.click();
-  await expect(page).toHaveURL(/\/lifecycle$/, { timeout: 5000 });
+  await expect(page).toHaveURL(/\/lifecycle$/, { timeout: 10_000 });
 
   // ---- Outside click also dismisses cleanly, on a fresh restart ----
   await page.getByRole("link", { name: "Branches" }).first().click();
-  await expect(page).toHaveURL(/\/app\/branches$/);
+  await expect(page).toHaveURL(/\/app\/branches$/, { timeout: 10_000 });
   await page.getByRole("button", { name: /guide for this page/i }).click();
   // Skipped earlier, never completed — "Start", not "Restart" (guide
   // completion is never marked on a skip).
@@ -324,5 +332,5 @@ test("the Branches guide resolves every target correctly across the real flow", 
   const orgsLink = page.getByRole("link", { name: "Organizations" });
   await expect(orgsLink).toBeVisible({ timeout: 5000 });
   await orgsLink.click();
-  await expect(page).toHaveURL(/\/app\/organizations$/, { timeout: 5000 });
+  await expect(page).toHaveURL(/\/app\/organizations$/, { timeout: 10_000 });
 });
