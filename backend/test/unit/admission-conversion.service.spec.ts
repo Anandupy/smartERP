@@ -80,7 +80,7 @@ describe('Admission conversion', () => {
 
   const mockPrisma: any = {
     applicant: { findFirst: jest.fn() },
-    academicUnit: { findFirst: jest.fn() },
+    academicUnit: { findFirst: jest.fn(), count: jest.fn() },
     academicYear: { findFirst: jest.fn() },
     numberSequenceConfig: { findMany: jest.fn() },
     student: { findFirst: jest.fn().mockResolvedValue(null) },
@@ -113,6 +113,7 @@ describe('Admission conversion', () => {
 
     mockPrisma.applicant.findFirst.mockResolvedValue({ ...APPLICANT });
     mockPrisma.academicUnit.findFirst.mockResolvedValue({ ...UNIT });
+    mockPrisma.academicUnit.count.mockResolvedValue(0);
     mockPrisma.academicYear.findFirst.mockResolvedValue({
       id: 'year-1',
       isLocked: false,
@@ -577,6 +578,18 @@ describe('Admission conversion', () => {
       await expect(
         conversion.admit('app-1', REQUEST, SCOPE, ACTOR),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('refuses a unit that has child units — a structural node, not a placement target', async () => {
+      mockPrisma.academicUnit.count.mockResolvedValue(2);
+
+      await expect(
+        conversion.admit('app-1', REQUEST, SCOPE, ACTOR),
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_NOT_PLACEMENT_TARGET' },
+      });
+
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('refuses an application with no programme', async () => {

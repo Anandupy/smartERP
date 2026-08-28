@@ -173,6 +173,8 @@ export class EnrollmentService {
       input.branchId,
     );
 
+    await this.assertPlacementTarget(client, input.academicUnitId);
+
     if (input.rollNumber !== undefined && input.rollNumber !== null) {
       this.assertRollNumberShape(input.rollNumber);
     }
@@ -300,6 +302,8 @@ export class EnrollmentService {
       if (input.rollNumber !== undefined && input.rollNumber !== null) {
         this.assertRollNumberShape(input.rollNumber);
       }
+
+      await this.assertPlacementTarget(client, academicUnitId);
 
       // The replacement's id is generated here rather than by the database,
       // because the old row has to be closed *before* the new one is inserted
@@ -982,6 +986,64 @@ export class EnrollmentService {
     }
 
     return trimmed;
+  }
+
+  /**
+   * A placement must land on a leaf of the academic-unit hierarchy.
+   *
+   * `EnrollmentDto.academicUnitId` already documents the intent — "the leaf
+   * placement node, the section, not the class above it" — but nothing
+   * enforced it: the composite foreign key proves the unit belongs to this
+   * branch, programme and year, never that it is the *specific* place a
+   * learner sits rather than the structural node above it. Placing a student
+   * on "Grade 1" while "Grade 1 → Division A/B" exist is exactly the
+   * ambiguity a full placement path is meant to remove, so it is refused here
+   * rather than left for a report to notice later.
+   *
+   * Deliberately **not** keyed off `unitType`: an institution with no
+   * intermediate level places students directly on "Grade 1", and one with a
+   * deeper tree places them on "B.Sc CS → Year 1 → Division A". A unit with no
+   * active children is the placement target either way — the rule reuses the
+   * hierarchy that already exists rather than a name or a new schema field.
+   */
+  private async assertPlacementTarget(
+    client: PrismaTransactionClient,
+    academicUnitId: string,
+  ): Promise<void> {
+    const unit = await client.academicUnit.findFirst({
+      where: { id: academicUnitId, isDeleted: false },
+      select: { isActive: true },
+    });
+
+    if (!unit) {
+      // The composite foreign key already guarantees a live enrolment names a
+      // unit that exists within its branch, programme and year. This only
+      // fires for a unit soft-deleted after that check, which the FK cannot
+      // see.
+      throw new BadRequestException({
+        error: 'ACADEMIC_UNIT_NOT_FOUND',
+        message: 'The academic unit does not exist.',
+      });
+    }
+
+    if (!unit.isActive) {
+      throw new BadRequestException({
+        error: 'ACADEMIC_UNIT_INACTIVE',
+        message: 'The academic unit is not active.',
+      });
+    }
+
+    const childCount = await client.academicUnit.count({
+      where: { parentId: academicUnitId, isDeleted: false },
+    });
+
+    if (childCount > 0) {
+      throw new BadRequestException({
+        error: 'ACADEMIC_UNIT_NOT_PLACEMENT_TARGET',
+        message:
+          'This academic unit has child units and is not a valid placement target. Place the student in the specific division, section or batch instead.',
+      });
+    }
   }
 
   private assertRollNumberShape(rollNumber: string): void {

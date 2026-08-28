@@ -499,6 +499,22 @@ export class AdmissionConversionService {
       });
     }
 
+    // A unit with children is a structural node — "Grade 1" — not the place a
+    // learner actually sits. EnrollmentService enforces this too, inside the
+    // transaction; checked here as well so a caller gets the same named error
+    // without an unnecessary transaction being opened first.
+    const childCount = await this.prisma.academicUnit.count({
+      where: { parentId: unit.id, isDeleted: false },
+    });
+
+    if (childCount > 0) {
+      throw new BadRequestException({
+        error: 'ACADEMIC_UNIT_NOT_PLACEMENT_TARGET',
+        message:
+          'This academic unit has child units and is not a valid placement target. Select the specific division, section or batch the student joins.',
+      });
+    }
+
     const year = await this.prisma.academicYear.findFirst({
       where: { id: applicant.academicYearId, isDeleted: false },
       select: { id: true, isLocked: true, branchId: true },

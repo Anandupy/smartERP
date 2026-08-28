@@ -63,6 +63,10 @@ describe('Enrollment', () => {
       findMany: jest.fn().mockResolvedValue([]),
       count: jest.fn().mockResolvedValue(0),
     },
+    academicUnit: {
+      findFirst: jest.fn().mockResolvedValue({ isActive: true }),
+      count: jest.fn().mockResolvedValue(0),
+    },
     workflowHistory: {
       create: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
@@ -231,6 +235,10 @@ describe('Enrollment', () => {
         enrollment: {
           create: jest.fn().mockResolvedValue({ id: 'enr-tx', ...PLACEMENT }),
         },
+        academicUnit: {
+          findFirst: jest.fn().mockResolvedValue({ isActive: true }),
+          count: jest.fn().mockResolvedValue(0),
+        },
         outboxEvent: { create: jest.fn().mockResolvedValue({}) },
         $queryRawUnsafe: rawQuery,
       };
@@ -251,6 +259,42 @@ describe('Enrollment', () => {
       ).rejects.toMatchObject({ response: { error: 'ACADEMIC_YEAR_LOCKED' } });
 
       expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses a unit with active children', async () => {
+      mockPrisma.academicUnit.count.mockResolvedValueOnce(2);
+
+      await expect(
+        enrollments.createInitialEnrollment({ ...PLACEMENT }),
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_NOT_PLACEMENT_TARGET' },
+      });
+
+      expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses an inactive unit', async () => {
+      mockPrisma.academicUnit.findFirst.mockResolvedValueOnce({
+        isActive: false,
+      });
+
+      await expect(
+        enrollments.createInitialEnrollment({ ...PLACEMENT }),
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_INACTIVE' },
+      });
+
+      expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses a unit that does not exist', async () => {
+      mockPrisma.academicUnit.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        enrollments.createInitialEnrollment({ ...PLACEMENT }),
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_NOT_FOUND' },
+      });
     });
 
     it('refuses an origin that must replace something', async () => {
@@ -512,6 +556,24 @@ describe('Enrollment', () => {
         expect(mockPrisma.enrollment.update).not.toHaveBeenCalled();
       },
     );
+
+    it('refuses to move a placement onto a unit with active children', async () => {
+      inState(S.ACTIVE);
+      mockPrisma.academicUnit.count.mockResolvedValueOnce(1);
+
+      await expect(
+        enrollments.correctPlacement(
+          'enr-1',
+          { academicUnitId: 'unit-2', reason: 'wrong class' },
+          SCOPE,
+          ACTOR,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'ACADEMIC_UNIT_NOT_PLACEMENT_TARGET' },
+      });
+
+      expect(mockPrisma.enrollment.create).not.toHaveBeenCalled();
+    });
 
     it('refuses a correction that changes nothing', async () => {
       inState(S.ACTIVE);
