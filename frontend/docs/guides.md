@@ -460,20 +460,35 @@ reason — any new button added to the tooltip that spreads a Joyride
   `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` it needs and the known cost of running
   it repeatedly (a real, irreversible activation against a real backend).
 - **E2E, network-mocked** (`tests/e2e/branch-guide-target-reliability.spec.ts`,
-  `tests/e2e/academic-structure-guide-reliability.spec.ts`):
-  the target-resolution regression suite (§15/§16) — no live backend, no
-  credentials. Drives the real `/login` UI and real app code end to end;
-  only responses from the mocked backend origin are faked, the same
-  technique the credentialed spec's fixture cannot use (it exists precisely
-  to test against a *real* backend). Prefer this pattern for any future
-  guide-platform regression that doesn't specifically need to prove a real
-  backend contract — it is what actually found the five defects §15
-  documents, and later the form-target defect the same section also covers;
-  static reasoning about the source did not, for either. The Programs/
-  Academic Units spec also carries a documented, known residual flake (a
-  rare, unreproduced-on-demand race specific to clicking a nav link in the
-  instant right after a guide completes) — read its own header comment
-  before assuming a red run there is a fresh regression.
+  `tests/e2e/academic-structure-guide-reliability.spec.ts`,
+  `tests/e2e/guide-tooltip-viewport.spec.ts`):
+  the target-resolution and tooltip-positioning regression suite
+  (§15/§16/§17/§18) — no live backend, no credentials. Drives the real
+  `/login` UI and real app code end to end; only responses from the mocked
+  backend origin are faked, the same technique the credentialed spec's
+  fixture cannot use (it exists precisely to test against a *real*
+  backend). Prefer this pattern for any future guide-platform regression
+  that doesn't specifically need to prove a real backend contract — it is
+  what actually found the five target-resolution defects §15 documents, the
+  form-target defect the same section also covers, and the tooltip-clipping
+  bug §17 covers; static reasoning about the source did not, for any of
+  them. The Programs/Academic Units spec also carries a documented, known
+  residual flake (a rare, unreproduced-on-demand race specific to clicking a
+  nav link in the instant right after a guide completes) — read its own
+  header comment before assuming a red run there is a fresh regression. A
+  fresh dev server's first-ever compile of a given route can occasionally
+  take well over the Playwright default 5s assertion timeout on this app —
+  every cross-route assertion in these files carries an explicit, generous
+  timeout for exactly that reason; a red run on an *un-timed* assertion
+  elsewhere is worth checking for the same cause before assuming a real
+  regression.
+- **Unit, tooltip positioning math** (`tests/unit/tooltip-viewport.test.ts`):
+  §17's `clampToSafeViewport` covered with property-style assertions across
+  a matrix of positions/sizes/viewports (no browser, no DOM), plus
+  integration-of-pure-logic tests that run the real `@floating-ui/dom`
+  pipeline against virtual elements — the same library Joyride bundles,
+  not a reimplementation — reproducing the reported bug's exact shape and
+  proving the fix holds through the genuine algorithm.
 
 **Deliberately not built this pass:** a bespoke `target-readiness.ts`
 polling/`MutationObserver` utility. Joyride 3.x's own `targetWaitTimeout` +
@@ -675,3 +690,134 @@ pattern (a real login, real token handling, real workspace resolution;
 only what the mocked backend origin returns is faked). This is what
 actually found all six causes above; reasoning from source alone did not
 reproduce several of them.
+
+---
+
+## 17. Tooltip Positioning Contract
+
+Finding the target and scrolling it into view (§15) is only half the
+positioning story. The other half — where the *tooltip itself* renders,
+relative to the target and the viewport — has its own contract, closed by a
+real, reported, reproduced bug: on `/app/academic-units/new`, the guide's
+create-submit tooltip rendered with `boundingBox().y: -344` at 1280×720 —
+mostly above the top of the browser window, only its bottom sliver (the
+Skip button) actually visible.
+
+**Why the earlier scroll fix (§15) didn't also fix this.** Scrolling makes
+the *target* visible; it has nothing to say about where the *tooltip*
+lands once it's there. Joyride positions the tooltip via `@floating-ui/dom`
+(`flip` + `shift` + `arrow`), which by default reasons only about the raw
+browser window — it has no notion of `AppLayout`'s sticky header (the same
+blind spot §15's `scrollOffset` fix closes for scrolling, unaddressed here)
+and, more subtly, no protection against a **target taller than the
+viewport**. The Academic Unit and Program create-submit steps target the
+whole `<form>`, not the submit button — deliberately, per §15's own
+"action step target must cover every field" rule, so the overlay never
+blocks a required field elsewhere in the form. Floating UI's `flip`
+middleware picks whichever placement *overflows least* against a target
+that tall — which can still overflow, badly. That is exactly what happened:
+`flip` picked "top" against a target whose own top edge sat right below the
+header, so the ~390px-tall tooltip rendered mostly off the top of the
+screen.
+
+**The hard rule.** At no point may any part of the tooltip render outside
+the safe viewport — the browser window, minus whatever app chrome occupies
+real screen space (the sticky header today), minus a small edge margin. No
+exceptions for a large target, a small viewport, or a step near an edge of
+the page.
+
+**The fix: `core/guides/tooltip-viewport.ts`, wired once in
+`guide-provider.tsx`'s `steps` builder — every step gets it, automatically.**
+Two layers, not one:
+
+1. **`buildSafeAreaPadding(topClearance)`** feeds the *same*
+   `useStickyChromeClearance()` measurement §15 already computes for
+   scrolling into `flip`'s and `shift`'s own `padding` option. This makes
+   the *preferred* placement already respect the header — flip won't choose
+   "top" against a target whose top edge has no real room above it, because
+   its own overflow math now says so. One ResizeObserver-backed
+   measurement, two consumers (scrolling and placement).
+2. **`createSafeViewportClampMiddleware(topClearance)`** is the
+   unconditional backstop, appended as the *last* Floating UI middleware —
+   after Joyride's own `offset`/`flip`/`shift`/`arrow` have all already run.
+   Layer 1 alone is not sufficient for the pathological case that caused
+   the bug: a target taller than the viewport can still defeat `flip`'s
+   "least-bad" placement choice. This middleware reads the floating
+   element's actual computed `x`/`y` and clamps it into the safe viewport
+   rectangle (`clampToSafeViewport` — pure, DOM-free, unit-tested on its
+   own), converting through the current scroll position since Joyride's
+   `strategy: "absolute"` coordinates are document-relative, not
+   viewport-relative.
+
+**In the ordinary case — a normally-sized target, nearly every step —
+layer 2 is a no-op.** Layer 1 already lands inside the safe viewport, so
+the clamp changes nothing and Floating UI's own `arrow` middleware (which
+ran *before* the clamp) still points exactly at the target. It only moves
+the tooltip in the pathological case layer 1 couldn't fully solve, where
+the alternative is breaking the hard rule instead of tolerating a moment of
+imprecise arrow alignment in that one edge case.
+
+**No guide-specific hack, and no redesign.** The fix lives entirely in
+`guide-provider.tsx`'s one `steps` builder (§3) and a new, self-contained,
+guide-content-agnostic module — no `if (guideId === "academic-units")`
+anywhere, no change to how any guide is authored (§5), and every existing
+guide inherits it automatically, including three (`organizations`,
+`branches`, `academic-years`) whose own targets happen to be small enough
+that they were never actually clipped — the fix protects them the same way
+regardless.
+
+**No magic timeout, no hardcoded pixel offset.** The clearance is measured
+(`useStickyChromeClearance`'s `ResizeObserver`), the clamp math reads the
+real, current `window.innerWidth`/`innerHeight` and the floating element's
+real, current size at the moment Floating UI computes its position —
+nothing here is a fixed guess or a `setTimeout`-based retry.
+
+**Resize and scroll during an active tour already work**, for free: Floating
+UI's own `autoUpdate` (wired in `guide-provider.tsx`'s existing effect,
+gated on the tooltip's `TOOLTIP` lifecycle) already re-runs the whole
+pipeline — including this clamp — on window resize, ancestor scroll and
+target layout changes. No separate resize/scroll handling was added; the
+existing `autoUpdate` wiring already covers it, confirmed live by resizing
+the viewport from 1280×720 down to 390×844 and 320×568 with a guide's
+tooltip on screen (`tests/e2e/guide-tooltip-viewport.spec.ts`).
+
+Testing: `tests/unit/tooltip-viewport.test.ts` covers the positioning math
+two ways — pure property-style assertions on `clampToSafeViewport` alone
+(no browser, no DOM), and integration-of-pure-logic tests that run the
+*real* `@floating-ui/dom` pipeline (the exact engine react-joyride bundles)
+against virtual elements, reproducing the giant-target bug shape and
+proving the fix holds through the genuine algorithm, not a
+reimplementation of it. `tests/e2e/guide-tooltip-viewport.spec.ts` is the
+browser-level proof — the exact reported bug, a live resize down to a small
+phone, and a no-regression check across every other shipped guide's first
+step.
+
+---
+
+## 18. Common failure: tooltip clipped, jumping, or misaligned
+
+- **Tooltip clipped at the top.** The step's target is unusually tall (a
+  whole `<form>`, per §15's "cover every field" rule) or sits close to the
+  top of the page. Confirm `buildSafeAreaPadding`/
+  `createSafeViewportClampMiddleware` are still wired into the `steps`
+  builder in `guide-provider.tsx` (§17) — if that wiring was ever removed
+  or bypassed for one guide's steps, this is what comes back.
+- **Tooltip clipped at the bottom, left or right.** Same cause, opposite
+  edge — the clamp math (`clampToSafeViewport`) is symmetric across all four
+  sides; a regression here means the same wiring gap as above, not a
+  separate bug.
+- **Tooltip points to the wrong place, or the arrow looks off.** Almost
+  always §16's causes (stale target, wrong route/entity), not a positioning
+  bug — the arrow is Floating UI's own `arrow` middleware, which runs
+  *before* this feature's clamp and only gets overridden by it in the rare
+  case the clamp actually had to move the tooltip (§17's "ordinary case is
+  a no-op" — check whether the target is unusually large first).
+- **Tooltip renders behind the header, not above it.** Check
+  `useStickyChromeClearance` is actually measuring a real `<header>` element
+  — a page that renders no `<header>` (should not happen in `(app)` routes)
+  silently falls back to the small default margin, not the header's real
+  height.
+- **A resize or scroll during an active tour leaves the tooltip in a stale
+  position.** Check the `autoUpdate` effect in `guide-provider.tsx` is still
+  gated correctly on `lifecycle === LIFECYCLE.TOOLTIP` — this is Floating
+  UI's own responsibility once wired, not something this feature re-polls.
