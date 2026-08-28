@@ -1101,6 +1101,53 @@ rewrite of either:
 
 ---
 
+## 14. Frontend implementation — Academic Placement Refinement milestone
+
+Aligns the Admit dialog and the post-admit success card with
+`backend/docs/planning/academic-placement-refinement.md` — the backend change
+that added `displayPath`/`isPlacementTarget`/`ancestors` to `AcademicUnit`
+reads and started refusing a structural node (one with active children) as an
+Enrollment or admission `academicUnitId`. Full detail in
+[Academic Unit Module §6](./academic-unit-module.md#6-placement-targets--displaypath-and-isplacementtarget);
+this section covers only what changed at the Admissions boundary.
+
+- **`AcademicUnitPicker` now offers only placement targets by default**
+  (`placementTargetsOnly`, on unless a caller opts out) and labels every
+  option with `displayPath` — "Grade 1 → Division A" — never the bare `name`.
+  "Division A" alone is ambiguous the moment a program has more than one
+  class, and a structural node ("Grade 1" itself, with live divisions under
+  it) would be refused by the backend with `ACADEMIC_UNIT_NOT_PLACEMENT_TARGET`
+  regardless of what the picker offered, so the frontend narrows the same way
+  §28's "a rule the UI can make unexpressible beats a rule it validates"
+  already applies to `eligibleParents`.
+- **`useAcademicUnitSlot` (the route composition) filters the same way**, so
+  "is there anything to choose" matches what the picker itself would show.
+  Its empty state now distinguishes two cases a registrar needs to tell
+  apart: no academic units configured at all, versus a program whose
+  structure exists but is **entirely structural** — every unit has children,
+  none is a leaf yet — which reads as "add a leaf unit under the existing
+  structure" rather than "configure academic units" from scratch.
+- **The post-admit "Academic placement" section now shows the full picture**:
+  Program (as before), Academic Year (from `useWorkspace()`, the same seam
+  the Admit dialog's own review already used), Placement (the `displayPath`
+  of the unit the admit form submitted — resolved without a second read,
+  since `admit()`'s response carries no placement id at all, §8.6), and Roll
+  Number ("Not yet assigned" — accurate, not a placeholder: `MANUAL` is the
+  only implemented roll-number policy and it is left unset at `admit()` by
+  design, per the backend's own Enrollment contract).
+- **Nothing here duplicates the backend's rule.** `displayPath` is rendered
+  exactly as returned, both in the picker and in the post-admit section — the
+  frontend narrows *choices* to match the backend's rule; it does not
+  recompute the rule itself. The backend remains the sole authority, verified
+  by its own test suite (`backend/docs/planning/academic-placement-refinement.md`
+  §13).
+- **Capacity, roll-number policy and the class-list lock are unchanged** —
+  the backend audit found all three already matched its own reasoning and
+  made no code change to any of them, so neither does this milestone. No
+  capacity field exists anywhere in this frontend, and none was added.
+
+---
+
 ## Related
 
 - [Backend Contract Gaps §M](./backend-gaps.md#m-applicant-admission-lifecycle) —

@@ -6,6 +6,7 @@ batches. `src/features/academic-unit`, wired from
 
 Related: [Program Module](./program-module.md) ·
 [Academic Year Module](./academic-year-module.md) ·
+[Applicant Admission Lifecycle](./admission-lifecycle-module.md) ·
 [Workspace Scope Platform](./workspace.md) ·
 [Backend Contract Gaps](./backend-gaps.md)
 
@@ -49,7 +50,7 @@ All eight are wired.
 
 ---
 
-## Five facts that shape the module
+## Six facts that shape the module
 
 ### 1. It needs two levels of workspace scope
 
@@ -128,6 +129,38 @@ is built from the **flat list** with the shared `buildTree`;
 `readAcademicUnitTree` narrows the endpoint defensively and reports
 `isUnrecognized` when it cannot, so a wrong guess is a note rather than a broken
 screen.
+
+### 6. Placement targets — `displayPath` and `isPlacementTarget`
+
+Unlike everything above, this fact is **not** from Postman. `GET
+/academic-units`, `/tree` and `/:id` now also return `displayPath` (the full
+path from the root, `"Grade 1 → Division A"`) and `isPlacementTarget` (whether
+the unit has no active children); `/:id` additionally returns the root-first
+`ancestors` chain. The source is direct, verified backend code —
+`backend/docs/planning/academic-placement-refinement.md` §4–§7 — not a Postman
+transcription, and that document is itself the record of the backend change
+that added the fields.
+
+**Why it exists.** Nothing previously distinguished "Grade 1" (a structural
+node with children) from "Grade 1 → Division A" (an actual place a learner
+sits) on the wire — a picker built from `name`/`parentId` alone could offer
+either, and "Division A" read on its own is ambiguous the moment a program has
+more than one class. The backend refuses a structural node as an Enrollment or
+admission `academicUnitId` with `ACADEMIC_UNIT_NOT_PLACEMENT_TARGET`; this
+module's `AcademicUnitPicker` is the UI half of the same rule — it filters to
+`isPlacementTarget === true` by default (`placementTargetsOnly`, on unless a
+caller explicitly needs the raw hierarchy) and labels every option with
+`displayPath`, never the bare `name`. `placementTargetState` (mirroring the
+existing `academicUnitState`) reads the field defensively: `"unknown"` for the
+create/update/move/status-toggle responses, which return the bare record and
+never carry these three fields at all — never guessed as a placement target,
+since offering a structural node is exactly the defect the field exists to
+prevent.
+
+Nothing is recomputed client-side: `displayPath` is rendered exactly as the
+backend returns it, both in the picker and anywhere else a unit's path is
+shown (`academicUnitDisplayPath`), so it can never disagree with the rule the
+backend itself enforces.
 
 ---
 
