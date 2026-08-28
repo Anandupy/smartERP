@@ -46,7 +46,13 @@ export interface AdmitApplicantDialogProps {
   documentsSummary: React.ReactNode;
   /** `PersonPanel` from `features/person`, slotted in by the route composition. */
   renderPersonPanel: (personId: string, compact?: boolean) => React.ReactNode;
-  onAdmitted: (result: AdmitApplicantResponse) => void;
+  /**
+   * `academicUnitId` is the value this dialog's own form submitted — never
+   * returned by `admit()` itself (the response is exactly six identifiers,
+   * §8.6 — no placement id among them). Handed back alongside the response so
+   * the caller can resolve it to a display path without a second read.
+   */
+  onAdmitted: (result: AdmitApplicantResponse, academicUnitId: string) => void;
 }
 
 /**
@@ -93,7 +99,7 @@ export function AdmitApplicantDialog({
       const result = await admit.mutateAsync({
         academicUnitId: values.academicUnitId,
       });
-      onAdmitted(result);
+      onAdmitted(result, values.academicUnitId);
       onOpenChange(false);
       form.reset();
     } catch (error) {

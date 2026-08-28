@@ -5,7 +5,9 @@ import { useMemo } from "react";
 
 import {
   AcademicUnitPicker,
+  academicUnitDisplayPath,
   academicUnitState,
+  placementTargetState,
   useAcademicUnitScope,
   useAcademicUnits,
 } from "@/features/academic-unit";
@@ -171,14 +173,16 @@ function RelationTypePicker() {
 
 /**
  * The Admit dialog's academic-unit slot: the real picker when the
- * applicant's program has at least one academic unit in the active branch
- * and year, otherwise a structured empty state — never a picker silently
- * offering nothing (task: "do not silently allow final admission").
+ * applicant's program has at least one *placement-target* academic unit in
+ * the active branch and year, otherwise a structured empty state — never a
+ * picker silently offering nothing (task: "do not silently allow final
+ * admission").
  *
- * Filters the same way `AcademicUnitPicker` does internally
- * (`programId` + active-only) so "is there anything to choose" matches what
- * the picker itself would show — this composition owns that decision
- * because the picker is an opaque `ReactNode` once handed to Admissions.
+ * Filters the same way `AcademicUnitPicker` does internally (`programId` +
+ * active-only + placement-targets-only) so "is there anything to choose"
+ * matches what the picker itself would show — this composition owns that
+ * decision because the picker is an opaque `ReactNode` once handed to
+ * Admissions.
  */
 function useAcademicUnitSlot(programId: string) {
   const scope = useAcademicUnitScope();
@@ -187,7 +191,10 @@ function useAcademicUnitSlot(programId: string) {
   const available = useMemo(
     () =>
       units.filter(
-        (unit) => unit.programId === programId && academicUnitState(unit) !== "inactive",
+        (unit) =>
+          unit.programId === programId &&
+          academicUnitState(unit) !== "inactive" &&
+          placementTargetState(unit) === "target",
       ),
     [units, programId],
   );
@@ -202,11 +209,19 @@ function useAcademicUnitSlot(programId: string) {
   }
 
   if (available.length === 0) {
+    const hasStructuralOnly = units.some(
+      (unit) => unit.programId === programId && academicUnitState(unit) !== "inactive",
+    );
+
     return (
       <EmptyState
         icon={Hash}
-        title="No academic unit available"
-        description="This program currently has no academic units configured for the selected branch and academic year."
+        title="No academic placement available"
+        description={
+          hasStructuralOnly
+            ? "This program's academic units are all structural — they have divisions, sections or batches under them, and none is itself a placement target. Add a leaf unit under the existing structure before admitting into this program."
+            : "This program currently has no academic units configured for the selected branch and academic year."
+        }
         action={
           <Button asChild variant="outline" size="sm">
             <Link href={ROUTES.app.academicUnits.create}>Configure academic units</Link>
@@ -222,6 +237,27 @@ function useAcademicUnitSlot(programId: string) {
       description="Which section the applicant actually joins — not recorded until this moment."
     />
   );
+}
+
+/**
+ * Placement display paths by academic-unit id, for one program — plain data
+ * (`ReadonlyMap<string, string>`), the same shape `useProgramNames` already
+ * hands to Admissions. Backs the post-admit "Placement" row: `admit()`'s
+ * response carries no placement id at all, so the Journey Hub resolves the id
+ * its own admit form submitted through this map rather than a second read.
+ */
+function useAcademicUnitDisplayPaths(programId: string): ReadonlyMap<string, string> {
+  const scope = useAcademicUnitScope();
+  const { units } = useAcademicUnits(scope);
+
+  return useMemo(() => {
+    const paths = new Map<string, string>();
+    for (const unit of units) {
+      if (unit.programId !== programId) continue;
+      paths.set(unit.id, academicUnitDisplayPath(unit));
+    }
+    return paths;
+  }, [units, programId]);
 }
 
 /** Primary/financial guardian names for the Admit review — derived from data the Guardians tab already fetches. */
@@ -362,12 +398,14 @@ function ApplicantJourneyHubInner({
   relationTypeNames: ReadonlyMap<string, string>;
 }) {
   const academicUnitSlot = useAcademicUnitSlot(applicant.programId);
+  const academicUnitPaths = useAcademicUnitDisplayPaths(applicant.programId);
 
   return (
     <ApplicantJourneyHubScreen
       applicant={applicant}
       programName={programName}
       academicUnitPicker={academicUnitSlot}
+      academicUnitPaths={academicUnitPaths}
       guardiansPanel={
         <ApplicantGuardiansPanel
           applicantId={applicant.id}

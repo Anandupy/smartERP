@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROUTES } from "@/constants";
+import { useWorkspace } from "@/core/workspace";
 import { DescriptionList } from "@/shared/components/data-display";
 import { BackendPendingNote, EmptyState } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
@@ -40,6 +41,15 @@ export interface ApplicantJourneyHubScreenProps {
   programName: string | null;
   /** Slotted in for the Admit dialog's academic-unit selection — the real picker, or its empty-state. */
   academicUnitPicker: React.ReactNode;
+  /**
+   * Placement display path by academic-unit id, for the applicant's own
+   * programme — plain data, not the AcademicUnit feature's types (AGENTS.md
+   * §28). Used only after `admit()` succeeds, to show *where* the student was
+   * placed ("Grade 1 → Division A") without a second read: `admit()`'s
+   * response carries no placement id at all (§8.6), so this resolves the id
+   * the dialog's own form submitted.
+   */
+  academicUnitPaths: ReadonlyMap<string, string>;
   /** The full Guardians workspace, composed at the route (features/guardians). */
   guardiansPanel: React.ReactNode;
   /** The full Documents workspace, composed at the route (features/documents). */
@@ -75,6 +85,7 @@ export function ApplicantJourneyHubScreen({
   applicant,
   programName,
   academicUnitPicker,
+  academicUnitPaths,
   guardiansPanel,
   documentsPanel,
   guardianSummary,
@@ -84,8 +95,13 @@ export function ApplicantJourneyHubScreen({
   const [isAdmitOpen, setIsAdmitOpen] = useState(false);
   const [admitResult, setAdmitResult] =
     useState<AdmitApplicantResponse | null>(null);
+  const [placementUnitId, setPlacementUnitId] = useState<string | null>(null);
+  const { academicYear } = useWorkspace();
 
   const canAdmit = isAdmitEligible(applicant.admissionStatus);
+  const placementPath = placementUnitId
+    ? (academicUnitPaths.get(placementUnitId) ?? null)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -182,7 +198,33 @@ export function ApplicantJourneyHubScreen({
                 Academic placement
               </h3>
               <DescriptionList
-                items={[{ key: "program", label: "Program", value: programName ?? "—" }]}
+                items={[
+                  { key: "program", label: "Program", value: programName ?? "—" },
+                  {
+                    key: "academicYear",
+                    label: "Academic year",
+                    value: academicYear?.name ?? "—",
+                  },
+                  {
+                    key: "placement",
+                    label: "Placement",
+                    // Never the bare "Division A" — see AcademicUnitPicker.
+                    // `placementUnitId` is the value this screen's own admit
+                    // form submitted; a `null` here means the picker used an
+                    // id this map doesn't have an entry for, not that the
+                    // student has no placement.
+                    value: placementPath ?? "—",
+                  },
+                  {
+                    key: "rollNumber",
+                    label: "Roll number",
+                    // Left unset at admission by design — MANUAL is the only
+                    // implemented policy, and inventing one here would be the
+                    // exact "auto-generated number nobody can explain" the
+                    // backend already refuses to do.
+                    value: "Not yet assigned",
+                  },
+                ]}
                 columns={2}
               />
             </div>
@@ -207,10 +249,13 @@ export function ApplicantJourneyHubScreen({
               </Button>
             </div>
             <BackendPendingNote>
-              no Student, Admission or Enrollment read endpoint is wired into
+              no Student, Admission or Enrollment detail screen is built into
               this frontend yet, so View Student, View Admission and View
               Enrollment have nowhere to link — the identifiers above are
-              shown as returned, not as clickable destinations.
+              shown as returned, not as clickable destinations. The placement
+              and academic-year rows above are resolved from this screen&apos;s
+              own admit form and the active workspace, not from a read
+              endpoint.
             </BackendPendingNote>
           </CardContent>
         </Card>
@@ -325,7 +370,10 @@ export function ApplicantJourneyHubScreen({
         guardianSummary={guardianSummary}
         documentsSummary={documentsSummary}
         renderPersonPanel={renderPersonPanel}
-        onAdmitted={setAdmitResult}
+        onAdmitted={(result, academicUnitId) => {
+          setAdmitResult(result);
+          setPlacementUnitId(academicUnitId);
+        }}
       />
     </div>
   );
