@@ -108,12 +108,26 @@ export class AcademicUnitService {
     if (branchId) where.branchId = branchId;
     if (academicYearId) where.academicYearId = academicYearId;
 
-    return this.prisma.academicUnit.findMany({
+    const units = await this.prisma.academicUnit.findMany({
       where,
       orderBy: [{ level: 'asc' }, { displayOrder: 'asc' }, { name: 'asc' }],
     });
+
+    // Every ancestor of a unit in this result is itself scoped to the same
+    // branch and year (enforced at create/move), so the full hierarchy needed
+    // to compute each path is already in memory — no per-unit round trip.
+    return this.decoratePlacementList(units);
   }
 
+  /**
+   * One unit with its full ancestor chain — root first, immediate parent
+   * last — and the same placement facts `getAllAcademicUnits` computes.
+   *
+   * `parent` stays as the one-level relation it always was; `ancestors` is
+   * the addition, because "Division A" on its own is exactly the ambiguity
+   * a placement path exists to remove. A client building "Grade 1 → Division
+   * A" reads `displayPath` directly rather than walking `ancestors` itself.
+   */
   async getAcademicUnitById(id: string) {
     const unit = await this.prisma.academicUnit.findUnique({
       where: { id, isDeleted: false },
@@ -124,12 +138,127 @@ export class AcademicUnitService {
     });
 
     if (!unit) throw new NotFoundException('Academic unit not found');
-    return unit;
+
+    const ancestors = await this.getAncestorChain(unit.parentId);
+    const displayPath = ancestors.length
+      ? `${ancestors[ancestors.length - 1].displayPath} → ${unit.name}`
+      : unit.name;
+
+    return {
+      ...unit,
+      ancestors,
+      displayPath,
+      // Already loaded as `children`, filtered to the live ones — no extra
+      // query needed for the same rule `assertPlacementTarget` enforces on
+      // write: a unit with an active child is structural, not a target.
+      isPlacementTarget: unit.children.length === 0,
+    };
   }
 
   async getAcademicTree(branchId: string, academicYearId?: string) {
     const units = await this.getAllAcademicUnits(branchId, academicYearId);
     return buildAcademicTree(units);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Placement path — read-side only. Nothing here is persisted: it is
+  // recomputed from the current hierarchy on every read, so a renamed unit or
+  // a re-parented one is reflected immediately rather than needing a backfill.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Decorate a flat list already scoped to one branch and year with the two
+   * facts a placement picker needs: the human-readable path, and whether the
+   * unit is a valid Enrollment target at all (§6 — a unit with no active
+   * children, not a name or a `unitType` guess).
+   */
+  private decoratePlacementList<
+    T extends { id: string; parentId: string | null; name: string },
+  >(
+    units: T[],
+  ): Array<T & { displayPath: string; isPlacementTarget: boolean }> {
+    const byId = new Map(units.map((unit) => [unit.id, unit]));
+    const childCounts = new Map<string, number>();
+    for (const unit of units) {
+      if (unit.parentId) {
+        childCounts.set(
+          unit.parentId,
+          (childCounts.get(unit.parentId) ?? 0) + 1,
+        );
+      }
+    }
+
+    const pathCache = new Map<string, string>();
+    const resolvePath = (unit: T): string => {
+      const cached = pathCache.get(unit.id);
+      if (cached) return cached;
+
+      const parent = unit.parentId ? byId.get(unit.parentId) : undefined;
+      const path = parent ? `${resolvePath(parent)} → ${unit.name}` : unit.name;
+      pathCache.set(unit.id, path);
+      return path;
+    };
+
+    return units.map((unit) => ({
+      ...unit,
+      displayPath: resolvePath(unit),
+      isPlacementTarget: (childCounts.get(unit.id) ?? 0) === 0,
+    }));
+  }
+
+  /**
+   * Root-first ancestor chain for one unit. Every ancestor here has at least
+   * one descendant by construction — the unit this walk started from — so
+   * none of them can be a placement target; that does not need a query.
+   *
+   * The cycle guard is defensive: `moveAcademicUnit` already refuses to
+   * create one, so `seen` exists to bound a walk against corrupted data
+   * rather than a state this service can produce itself.
+   */
+  private async getAncestorChain(parentId: string | null): Promise<
+    Array<{
+      id: string;
+      name: string;
+      unitType: string;
+      level: number;
+      displayPath: string;
+      isPlacementTarget: false;
+    }>
+  > {
+    const chain: {
+      id: string;
+      name: string;
+      unitType: string;
+      level: number;
+    }[] = [];
+    const seen = new Set<string>();
+    let currentId = parentId;
+
+    while (currentId && !seen.has(currentId)) {
+      seen.add(currentId);
+
+      const node = await this.prisma.academicUnit.findUnique({
+        where: { id: currentId },
+        select: {
+          id: true,
+          name: true,
+          unitType: true,
+          level: true,
+          parentId: true,
+        },
+      });
+
+      if (!node) break;
+
+      chain.unshift(node);
+      currentId = node.parentId;
+    }
+
+    let path = '';
+    return chain.map((node) => {
+      path = path ? `${path} → ${node.name}` : node.name;
+      return { ...node, displayPath: path, isPlacementTarget: false as const };
+    });
   }
 
   async updateAcademicUnit(

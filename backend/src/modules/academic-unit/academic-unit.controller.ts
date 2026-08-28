@@ -33,6 +33,7 @@ import {
 import {
   AcademicUnitDetailDto,
   AcademicUnitDto,
+  AcademicUnitPlacementDto,
   AcademicUnitTreeNodeDto,
 } from './dto/academic-unit-response.dto';
 
@@ -86,9 +87,10 @@ export class AcademicUnitController {
   @RequirePermission(PERMISSIONS.Settings.View)
   @ApiOperation({
     summary: 'Get all academic units',
-    description: 'Flat list ordered by level, then display order, then name.',
+    description:
+      'Flat list ordered by level, then display order, then name. Each unit carries `displayPath` ("Grade 1 → Division A") and `isPlacementTarget`, computed from the current hierarchy — enough to build a placement picker without a further lookup per unit.',
   })
-  @ApiOkEnvelope(AcademicUnitDto, {
+  @ApiOkEnvelope(AcademicUnitPlacementDto, {
     isArray: true,
     message: 'Academic units retrieved successfully',
   })
