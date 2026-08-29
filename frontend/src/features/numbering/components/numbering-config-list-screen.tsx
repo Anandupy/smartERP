@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ROUTES } from "@/constants";
+import { GuideHelpTrigger } from "@/core/guides";
 import { useDebouncedValue } from "@/hooks";
 import { DataTablePagination, DataTableToolbar } from "@/shared/components/data";
 import { BackendPendingNote, EmptyState } from "@/shared/components/feedback";
@@ -73,12 +74,15 @@ export function NumberingConfigListScreen() {
         title="Numbering"
         description="Configure how CampusFlow generates identifiers for supported records."
         actions={
-          <Button asChild>
-            <Link href={ROUTES.app.settings.numbering.create}>
-              <Plus />
-              New sequence
-            </Link>
-          </Button>
+          <>
+            <GuideHelpTrigger guideId="numbering" />
+            <Button asChild data-guide="numbering-list-create-link">
+              <Link href={ROUTES.app.settings.numbering.create}>
+                <Plus />
+                New sequence
+              </Link>
+            </Button>
+          </>
         }
       />
 

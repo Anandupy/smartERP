@@ -51,6 +51,12 @@ export interface NumberingConfigFormProps {
   purposeEditable?: boolean;
   /** Hides the Active switch — `POST /numbering/configs` does not document it. */
   showActiveToggle?: boolean;
+  /** `data-guide` target for the whole form — set only by the create screen,
+   * for the guide's submit step. Targets the `<form>`, not the submit button:
+   * the guide highlights this step while the Purpose/format fields still need
+   * to stay interactive, and Joyride's dimmed overlay would otherwise block
+   * them (see `docs/guides.md` "Guide target reliability"). */
+  submitGuideTarget?: string;
 }
 
 const PURPOSE_OPTIONS = NUMBERING_PURPOSES.map((purpose) => ({
@@ -71,6 +77,7 @@ export function NumberingConfigForm({
   onCancel,
   purposeEditable = true,
   showActiveToggle = true,
+  submitGuideTarget,
 }: NumberingConfigFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [isLocked, setIsLocked] = useState(false);
@@ -111,7 +118,12 @@ export function NumberingConfigForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-6"
+        data-guide={submitGuideTarget}
+      >
         {isLocked ? (
           <Alert>
             <Lock aria-hidden="true" />

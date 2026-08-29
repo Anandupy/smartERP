@@ -25,6 +25,9 @@
  * System Information.
  */
 
+// Guide
+export { numberingGuide } from "./guide/numbering.guide";
+
 // Screens
 export { NumberingConfigListScreen } from "./components/numbering-config-list-screen";
 export { CreateNumberingConfigScreen } from "./components/create-numbering-config-screen";
