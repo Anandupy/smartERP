@@ -4,8 +4,14 @@ import { registerGuide } from "@/core/guides";
 import { academicUnitsGuide } from "@/features/academic-unit";
 import { academicYearsGuide } from "@/features/academic-year";
 import { branchesGuide } from "@/features/branch";
+import { numberingGuide } from "@/features/numbering";
 import { organizationsGuide } from "@/features/organization";
 import { programsGuide } from "@/features/program";
+import {
+  workspaceConfigurationGuide,
+  workspaceMenusGuide,
+  workspaceModulesGuide,
+} from "@/features/workspace-admin";
 
 /**
  * Registers every page guide the authenticated app ships.
@@ -36,6 +42,10 @@ registerGuide(academicYearsGuide);
 // see `features/program/guide/programs.guide.ts`.
 registerGuide(programsGuide);
 registerGuide(academicUnitsGuide);
+registerGuide(numberingGuide);
+registerGuide(workspaceModulesGuide);
+registerGuide(workspaceMenusGuide);
+registerGuide(workspaceConfigurationGuide);
 
 export function GuideRegistrations() {
   return null;

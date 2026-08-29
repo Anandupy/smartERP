@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePermissions } from "@/core/auth";
+import { useGuide, GuideHelpTrigger } from "@/core/guides";
 import { useWorkspace } from "@/core/workspace";
 import { getErrorMessage } from "@/lib";
 import {
@@ -67,6 +68,7 @@ export function ConfigurationEditorScreen() {
   const isSuperAdmin = hasRole("SUPER_ADMIN");
   const { options } = useWorkspace();
   const upsert = useUpsertConfiguration();
+  const guide = useGuide("workspace-configuration");
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
 
@@ -107,6 +109,7 @@ export function ConfigurationEditorScreen() {
     try {
       const saved = await upsert.mutateAsync(toConfigurationRequest(values));
       setLastSaved(saved.id);
+      guide.completeGuide();
     } catch (error) {
       const boundToFields = applyServerFieldErrors(error, form.setError);
       if (!boundToFields) setSubmitError(error);
@@ -118,6 +121,7 @@ export function ConfigurationEditorScreen() {
       <PageHeader
         title="Configuration Layer Editor"
         description="Define or extend one layer of the workspace's presentation configuration."
+        actions={<GuideHelpTrigger guideId="workspace-configuration" />}
       />
 
       <SetupStatusBanner enabled={isSuperAdmin} />
@@ -156,7 +160,7 @@ export function ConfigurationEditorScreen() {
         />
       )}
 
-      <Card>
+      <Card data-guide="workspace-configuration-merge-order">
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2">
             <Layers aria-hidden="true" className="size-4" />
@@ -192,7 +196,12 @@ export function ConfigurationEditorScreen() {
       </Card>
 
       <Form {...form}>
-        <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="space-y-6"
+          data-guide="workspace-configuration-submit"
+        >
           {submitError ? (
             <Alert variant="destructive">
               <TriangleAlert aria-hidden="true" />

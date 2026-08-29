@@ -80,7 +80,11 @@ function Details({ module }: { module: ModuleDetailDto }) {
         description={module.description || undefined}
         actions={
           <>
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              variant="outline"
+              data-guide="workspace-modules-detail-view-menus"
+            >
               <Link
                 href={`${ROUTES.app.workspaceAdmin.menus.root}?module=${module.id}`}
               >

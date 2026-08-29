@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ROUTES } from "@/constants";
 import { usePermissions } from "@/core/auth";
+import { GuideHelpTrigger } from "@/core/guides";
 import { useDebouncedValue } from "@/hooks";
 import { DataTableToolbar } from "@/shared/components/data";
 import { EmptyState, ForbiddenState } from "@/shared/components/feedback";
@@ -92,12 +93,15 @@ export function ModulesScreen() {
         title="Navigation Modules"
         description="Top-level ERP capabilities, and the menus registered beneath each one."
         actions={
-          <Button asChild>
-            <Link href={ROUTES.app.workspaceAdmin.modules.create}>
-              <Plus />
-              New module
-            </Link>
-          </Button>
+          <>
+            <GuideHelpTrigger guideId="workspace-modules" />
+            <Button asChild data-guide="workspace-modules-list-create-link">
+              <Link href={ROUTES.app.workspaceAdmin.modules.create}>
+                <Plus />
+                New module
+              </Link>
+            </Button>
+          </>
         }
       />
 

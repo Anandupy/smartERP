@@ -25,6 +25,10 @@ export interface ModuleFormProps {
   onCancel: () => void;
   /** System modules ship with the product: `create-module.dto.ts`'s validator still applies, but the code should not invite a rename. */
   lockCode?: boolean;
+  /** `data-guide` target for the whole form — set only by the create screen.
+   * Targets the `<form>`, not the submit button, so the guide's spotlight
+   * never blocks the other fields the user still needs to fill in. */
+  submitGuideTarget?: string;
 }
 
 /**
@@ -40,6 +44,7 @@ export function ModuleForm({
   onSubmit,
   onCancel,
   lockCode = false,
+  submitGuideTarget,
 }: ModuleFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -65,7 +70,12 @@ export function ModuleForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-6"
+        data-guide={submitGuideTarget}
+      >
         {submitError ? (
           <Alert variant="destructive">
             <TriangleAlert aria-hidden="true" />

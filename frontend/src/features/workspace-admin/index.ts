@@ -32,6 +32,11 @@
  */
 
 // Screens
+// Guides
+export { workspaceModulesGuide } from "./guide/workspace-modules.guide";
+export { workspaceMenusGuide } from "./guide/workspace-menus.guide";
+export { workspaceConfigurationGuide } from "./guide/workspace-configuration.guide";
+
 export { ModulesScreen } from "./components/modules/modules-screen";
 export { ModuleDetailScreen } from "./components/modules/module-detail-screen";
 export { CreateModuleScreen } from "./components/modules/create-module-screen";

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { ROUTES } from "@/constants";
 import { usePermissions } from "@/core/auth";
+import { useGuide } from "@/core/guides";
 import { ForbiddenState } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
 
@@ -17,6 +18,7 @@ export function CreateModuleScreen() {
   const router = useRouter();
   const { hasRole } = usePermissions();
   const create = useCreateModule();
+  const guide = useGuide("workspace-modules");
 
   if (!hasRole("SUPER_ADMIN")) {
     return (
@@ -34,10 +36,12 @@ export function CreateModuleScreen() {
       <ModuleForm
         defaultValues={moduleFormDefaults()}
         submitLabel="Create module"
+        submitGuideTarget="workspace-modules-create-submit"
         onCancel={() => router.push(ROUTES.app.workspaceAdmin.modules.root)}
         onSubmit={async (values) => {
           const created = await create.mutateAsync(toModuleRequest(values));
           router.push(ROUTES.app.workspaceAdmin.modules.detail(created.id));
+          guide.reportEvent({ entityId: created.id });
         }}
       />
     </div>

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePermissions } from "@/core/auth";
+import { GuideHelpTrigger } from "@/core/guides";
 import { useDebouncedValue } from "@/hooks";
 import { DataTableToolbar } from "@/shared/components/data";
 import { EmptyState, ForbiddenState, PageSkeleton } from "@/shared/components/feedback";
@@ -127,16 +128,27 @@ export function MenusScreen({ initialMenuId }: MenusScreenProps = {}) {
         title="Menu Details"
         description="The menu hierarchy of one module — module, menu, submenu, up to three levels deep."
         actions={
-          <Button onClick={() => setCreating(true)} disabled={!moduleId}>
-            <Plus />
-            New menu
-          </Button>
+          <>
+            <GuideHelpTrigger guideId="workspace-menus" />
+            <Button
+              onClick={() => setCreating(true)}
+              disabled={!moduleId}
+              data-guide="workspace-menus-create-link"
+            >
+              <Plus />
+              New menu
+            </Button>
+          </>
         }
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Select value={moduleId} onValueChange={setManualModuleId}>
-          <SelectTrigger className="w-full sm:w-64" aria-label="Module">
+          <SelectTrigger
+            className="w-full sm:w-64"
+            aria-label="Module"
+            data-guide="workspace-menus-module-select"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
