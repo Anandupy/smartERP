@@ -32,6 +32,7 @@ sequenceDiagram
 2. **Context Enrichment**: `DomainEvent` represents **WHAT** happened (`eventId`, `eventName`, `occurredAt`, `aggregateId`, `aggregateType`, `version`, `metadata`). Context information (**WHO** performed it: `userId`, `requestId`, `role`, `organizationId`, `branchId`, `academicYearId`, `ipAddress`) is supplied by `RequestContextService` using Node's `AsyncLocalStorage`.
 3. **Historical Data Integrity**: The `AuditLog` table does **NOT** enforce foreign key constraints on business tables (`User`, `Branch`, `Organization`). Audit history survives deletion of business entities.
 4. **Field-Level Diff Support**: `AuditLog` supports field-level diffs (`changes` JSONB field containing array of `{ field, oldValue, newValue }`).
+5. **No Live Credentials**: `AuditEventMapper` replaces credential-bearing payload keys (`rawOtp`, `otp`, `resetToken`, `token`, `refreshToken`, `accessToken`, `password`, `passwordHash`, `twoFactorSecret`) with `[REDACTED]` at any depth before a row is written. Recovery events carry the raw reset token and OTP to the communication subscriber; the audit copy must not.
 
 ---
 

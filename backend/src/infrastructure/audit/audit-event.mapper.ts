@@ -4,6 +4,39 @@ import { RequestContext } from '@/common/logger/request-context.middleware';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { CreateAuditLogInput, FieldChange } from './audit.types';
 
+/**
+ * Payload keys that carry live credentials. Recovery events hand the raw reset
+ * token and OTP to the communication subscriber through the payload, and the
+ * audit row is a durable copy readable through `/audit-logs` — so the secret
+ * must not survive into it.
+ */
+const SECRET_PAYLOAD_KEYS = new Set([
+  'rawOtp',
+  'otp',
+  'resetToken',
+  'token',
+  'refreshToken',
+  'accessToken',
+  'password',
+  'passwordHash',
+  'twoFactorSecret',
+]);
+
+const REDACTED = '[REDACTED]';
+
+function redactSecrets(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactSecrets);
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, v]) => [
+        key,
+        SECRET_PAYLOAD_KEYS.has(key) ? REDACTED : redactSecrets(v),
+      ]),
+    );
+  }
+  return value;
+}
+
 @Injectable()
 export class AuditEventMapper {
   constructor(
@@ -76,7 +109,9 @@ export class AuditEventMapper {
       status: event.metadata?.status || 'SUCCESS',
       metadata: {
         ...(event.metadata || {}),
-        payload: (event as any).payload || undefined,
+        payload: (event as any).payload
+          ? redactSecrets((event as any).payload)
+          : undefined,
       },
       changes,
     };

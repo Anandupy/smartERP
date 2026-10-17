@@ -2,6 +2,10 @@ import { AuditEventMapper } from '@/infrastructure/audit/audit-event.mapper';
 import { StudentCreatedEvent } from '@/common/events/student.events';
 import { BranchCreatedEvent } from '@/common/events/examples/branch-created.event';
 import { UserLoggedInEvent } from '@/common/events/examples/user-logged-in.event';
+import {
+  OtpSentEvent,
+  PasswordResetRequestedEvent,
+} from '@/common/events/auth-recovery.events';
 import { RequestContext } from '@/common/logger/request-context.middleware';
 import { buildRequestContext } from '../factories/request-context.factory';
 
@@ -157,5 +161,31 @@ describe('AuditEventMapper', () => {
     expect(auditData.action).toBe('CREATE');
     expect(auditData.aggregateId).toBe('stud-1');
     expect(auditData.status).toBe('SUCCESS');
+  });
+
+  it('should never persist a raw reset token or OTP into the audit payload', () => {
+    const reset = mapper.mapToAuditLog(
+      new PasswordResetRequestedEvent({
+        userId: 'user-1',
+        email: 'user@example.com',
+        resetToken: 'live-reset-token',
+        userName: 'User',
+        expiresInMinutes: 15,
+      }),
+    );
+    const otp = mapper.mapToAuditLog(
+      new OtpSentEvent({
+        identifier: 'user@example.com',
+        purpose: 'LOGIN',
+        rawOtp: '123456',
+        userId: 'user-1',
+      }),
+    );
+
+    expect(reset.metadata?.payload?.resetToken).toBe('[REDACTED]');
+    expect(reset.metadata?.payload?.email).toBe('user@example.com');
+    expect(otp.metadata?.payload?.rawOtp).toBe('[REDACTED]');
+    expect(JSON.stringify(reset)).not.toContain('live-reset-token');
+    expect(JSON.stringify(otp)).not.toContain('123456');
   });
 });
