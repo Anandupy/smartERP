@@ -168,6 +168,34 @@ describe('AuditRepository', () => {
       );
     });
 
+    it('ORG_ADMIN without an organization should be confined to their own rows, never IS NULL', async () => {
+      mockPrisma.auditLog.count.mockResolvedValueOnce(0);
+      mockPrisma.auditLog.findMany.mockResolvedValueOnce([]);
+
+      await repository.queryAuditLogs(
+        { id: 'admin-1', role: 'ORG_ADMIN', organizationId: null },
+        {},
+      );
+
+      const where = mockPrisma.auditLog.findMany.mock.calls.at(-1)[0].where;
+      expect(where.userId).toBe('admin-1');
+      expect(where).not.toHaveProperty('organizationId');
+    });
+
+    it('BRANCH_ADMIN without a branch should be confined to their own rows, never IS NULL', async () => {
+      mockPrisma.auditLog.count.mockResolvedValueOnce(0);
+      mockPrisma.auditLog.findMany.mockResolvedValueOnce([]);
+
+      await repository.queryAuditLogs(
+        { id: 'admin-2', role: 'BRANCH_ADMIN', branchId: null },
+        {},
+      );
+
+      const where = mockPrisma.auditLog.findMany.mock.calls.at(-1)[0].where;
+      expect(where.userId).toBe('admin-2');
+      expect(where).not.toHaveProperty('branchId');
+    });
+
     it('STAFF should be restricted to their own userId and ignore other scoping parameters', async () => {
       mockPrisma.auditLog.count.mockResolvedValueOnce(0);
       mockPrisma.auditLog.findMany.mockResolvedValueOnce([]);
@@ -356,6 +384,19 @@ describe('AuditRepository', () => {
       mockPrisma.auditLog.findFirst.mockResolvedValueOnce(logData);
       const res = await repository.getAuditLogById(
         { role: 'BRANCH_ADMIN', branchId: 'other-branch' },
+        'log-id',
+      );
+      expect(res).toBe('FORBIDDEN');
+    });
+
+    it('BRANCH_ADMIN without a branch should be denied an unscoped log of another user', async () => {
+      mockPrisma.auditLog.findFirst.mockResolvedValueOnce({
+        ...logData,
+        organizationId: null,
+        branchId: null,
+      });
+      const res = await repository.getAuditLogById(
+        { id: 'admin-2', role: 'BRANCH_ADMIN', branchId: null },
         'log-id',
       );
       expect(res).toBe('FORBIDDEN');

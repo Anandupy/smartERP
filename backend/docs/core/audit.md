@@ -212,8 +212,8 @@ All query endpoints are protected under `JwtAuthGuard` and `RolesGuard`. The API
 | User Role | Access Boundaries | enforce Scoping |
 | :--- | :--- | :--- |
 | `SUPER_ADMIN` | Global Access | None. Can search across all organizations, branches, and users. |
-| `ORG_ADMIN` | Organization Boundary | Restricted strictly to logs matching their own `organizationId`. |
-| `BRANCH_ADMIN` | Branch Boundary | Restricted strictly to logs matching their own `branchId`. |
+| `ORG_ADMIN` | Organization Boundary | Restricted strictly to logs matching their own `organizationId`. Without an assigned organization, falls back to self-access. |
+| `BRANCH_ADMIN` | Branch Boundary | Restricted strictly to logs matching their own `branchId`. Without an assigned branch, falls back to self-access. |
 | `STAFF` | Self-Access | Restricted strictly to logs matching their own `userId`. |
 | `STUDENT` | Self-Access | Restricted strictly to logs matching their own `userId`. |
 | `PARENT` | Self-Access | Restricted strictly to logs matching their own `userId`. |
