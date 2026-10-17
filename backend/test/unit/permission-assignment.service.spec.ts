@@ -5,7 +5,11 @@ import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { LoggerService } from '@/common/logger/logger.service';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { RoleType, OverrideType } from '@/generated/client';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 describe('PermissionAssignmentService', () => {
   let service: PermissionAssignmentService;
@@ -47,6 +51,7 @@ describe('PermissionAssignmentService', () => {
   const mockRequestContextService = {
     getContext: jest.fn().mockReturnValue({
       userId: 'admin-1',
+      role: RoleType.ORG_ADMIN,
       organizationId: 'org-1',
       branchId: 'branch-1',
     }),
@@ -122,7 +127,10 @@ describe('PermissionAssignmentService', () => {
 
   it('should grant user permission override', async () => {
     const p1 = '019183ab-1234-7111-a111-111111111111';
-    mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      organizationId: 'org-1',
+    });
     mockPrisma.permission.findUnique.mockResolvedValue({
       id: p1,
       name: 'fees.collect',
@@ -147,7 +155,10 @@ describe('PermissionAssignmentService', () => {
 
   it('should deny user permission override', async () => {
     const p1 = '019183ab-1234-7111-a111-111111111111';
-    mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      organizationId: 'org-1',
+    });
     mockPrisma.permission.findUnique.mockResolvedValue({
       id: p1,
       name: 'student.delete',
@@ -192,5 +203,40 @@ describe('PermissionAssignmentService', () => {
     await expect(
       service.removeUserOverride('user-1', 'invalid-id', 'admin-1'),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should refuse an override for a user in another organization', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-2',
+      organizationId: 'org-2',
+    });
+
+    await expect(
+      service.grantUserOverride('user-2', 'perm-1', 'reason', 'admin-1'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(mockPrisma.userPermissionOverride.upsert).not.toHaveBeenCalled();
+  });
+
+  it('should refuse removing an override for a user in another organization', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-2',
+      organizationId: 'org-2',
+    });
+
+    await expect(
+      service.removeUserOverride('user-2', 'perm-1', 'admin-1'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(mockPrisma.userPermissionOverride.delete).not.toHaveBeenCalled();
+  });
+
+  it('should refuse reading overrides of a user in another organization', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-2',
+      organizationId: 'org-2',
+    });
+
+    await expect(service.getUserOverrides('user-2')).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 });
