@@ -107,6 +107,18 @@ describe('ContextValidatorService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
     });
+
+    it('should throw ForbiddenException when a non-Super Admin has no organization', async () => {
+      prisma.organization.findUnique.mockResolvedValue(mockOrg);
+      await expect(
+        validator.validateOrganization(
+          'org-1',
+          'user-1',
+          RoleType.ORG_ADMIN,
+          null,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 
   describe('validateBranch', () => {
