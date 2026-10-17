@@ -42,6 +42,15 @@ export function AppLayout({
 }: AppLayoutProps) {
   return (
     <AppShellProvider>
+      {/* First focusable element: lets keyboard users bypass the sidebar and
+          header instead of tabbing through every navigation item. */}
+      <a
+        href="#main-content"
+        className="bg-background text-foreground focus-visible:ring-ring/50 sr-only z-50 rounded-lg border px-3 py-2 text-sm font-medium shadow-md outline-none focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus-visible:ring-[3px]"
+      >
+        Skip to main content
+      </a>
+
       {sidebar}
 
       <SidebarInset className="min-w-0">
@@ -51,7 +60,11 @@ export function AppLayout({
           </header>
         ) : null}
 
-        <main className={cn("flex-1", className)}>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className={cn("flex-1 outline-none", className)}
+        >
           <Container size={size} className="py-4 sm:py-6 lg:py-8">
             {children}
           </Container>
