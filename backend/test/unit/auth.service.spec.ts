@@ -175,7 +175,12 @@ describe('AuthService', () => {
 
   it('should refresh token and rotate (revoke old, create new)', async () => {
     const oldToken = 'old-token';
-    const user = { id: 'user-1', email: 'test@test.com', role: 'STAFF' };
+    const user = {
+      id: 'user-1',
+      email: 'test@test.com',
+      role: 'STAFF',
+      status: 'ACTIVE',
+    };
     const refreshTokenRecord = {
       id: 'rt-1',
       userId: 'user-1',
@@ -187,19 +192,16 @@ describe('AuthService', () => {
 
     // The service looks the session up by hash, which is now unique.
     mockPrisma.refreshToken.findUnique.mockResolvedValue(refreshTokenRecord);
-    mockPrisma.refreshToken.update.mockResolvedValue({
-      ...refreshTokenRecord,
-      isRevoked: true,
-    });
+    mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.refreshToken.create.mockResolvedValue({ id: 'rt-2' });
 
     const result = await service.refreshToken(oldToken);
 
     expect(result).toHaveProperty('accessToken');
     expect(result).toHaveProperty('refreshToken');
-    expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith(
+    expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'rt-1' },
+        where: { id: 'rt-1', isRevoked: false },
         data: { isRevoked: true, revokedAt: expect.any(Date) },
       }),
     );
@@ -210,6 +212,58 @@ describe('AuthService', () => {
         }),
       }),
     );
+  });
+
+  it('should refuse a refresh that lost the rotation race', async () => {
+    mockPrisma.refreshToken.findUnique.mockResolvedValue({
+      id: 'rt-1',
+      userId: 'user-1',
+      isRevoked: false,
+      expiresAt: new Date(Date.now() + 10000),
+      user: { id: 'user-1', email: 'a@b.c', role: 'STAFF', status: 'ACTIVE' },
+    });
+    mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.refreshToken.create.mockClear();
+
+    await expect(service.refreshToken('old-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(mockPrisma.refreshToken.create).not.toHaveBeenCalled();
+  });
+
+  it('should refuse to refresh a session for an inactive user', async () => {
+    mockPrisma.refreshToken.findUnique.mockResolvedValue({
+      id: 'rt-1',
+      userId: 'user-1',
+      isRevoked: false,
+      expiresAt: new Date(Date.now() + 10000),
+      user: {
+        id: 'user-1',
+        email: 'a@b.c',
+        role: 'STAFF',
+        status: 'SUSPENDED',
+      },
+    });
+    mockPrisma.refreshToken.updateMany.mockClear();
+
+    await expect(service.refreshToken('old-token')).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(mockPrisma.refreshToken.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('should ignore a logout with a refresh token owned by another user', async () => {
+    mockPrisma.refreshToken.findUnique.mockResolvedValue({
+      id: 'rt-9',
+      userId: 'victim',
+    });
+    mockPrisma.refreshToken.updateMany.mockClear();
+    mockPrisma.refreshToken.update.mockClear();
+
+    await service.logout('attacker', 'victim-token', true);
+
+    expect(mockPrisma.refreshToken.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.refreshToken.update).not.toHaveBeenCalled();
   });
 
   it('should revoke all sessions', async () => {
