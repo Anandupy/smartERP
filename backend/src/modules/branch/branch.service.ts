@@ -14,7 +14,10 @@ import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
 import { RequestContextService } from '@/common/logger/request-context.service';
 import { RoleType } from '@/generated/client';
-import { assertOrganizationInScope } from '@/common/scope/resource-scope';
+import {
+  assertOrganizationInScope,
+  isOrganizationInScope,
+} from '@/common/scope/resource-scope';
 import type { RequestContext } from '@/common/logger/request-context.types';
 
 @Injectable()
@@ -104,16 +107,24 @@ export class BranchService {
     const isSuperAdmin = context?.role === RoleType.SUPER_ADMIN;
     const organizationId = context?.organizationId ?? null;
 
+    // A non-SUPER_ADMIN with no resolved organization sees nothing; it must
+    // not fall through to the unfiltered, every-tenant list.
+    if (!isSuperAdmin && !organizationId) {
+      return [];
+    }
+
     return this.prisma.branch.findMany({
       where: {
         isDeleted: false,
-        ...(isSuperAdmin || !organizationId ? {} : { organizationId }),
+        ...(isSuperAdmin ? {} : { organizationId: organizationId as string }),
       },
       include: { organization: true },
     });
   }
 
   async getBranchesByOrganization(orgId: string) {
+    assertOrganizationInScope(this.requestContext.getContext(), orgId);
+
     return this.prisma.branch.findMany({
       where: { organizationId: orgId, isDeleted: false },
     });
@@ -125,7 +136,17 @@ export class BranchService {
       include: { organization: true },
     });
 
-    if (!branch || branch.isDeleted) {
+    // Another tenant's branch is reported exactly like a missing one. Every
+    // write path (update, delete, status toggle) loads through here, so this
+    // also confines them to the caller's organization.
+    if (
+      !branch ||
+      branch.isDeleted ||
+      !isOrganizationInScope(
+        this.requestContext.getContext(),
+        branch.organizationId,
+      )
+    ) {
       throw new NotFoundException('Branch not found or has been deleted');
     }
 
