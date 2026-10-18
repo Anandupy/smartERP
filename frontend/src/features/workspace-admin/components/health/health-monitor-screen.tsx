@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DescriptionList,
-  StatCard,
   StatusBadge,
 } from "@/shared/components/data-display";
 import { Banner, BackendPendingNote, Spinner } from "@/shared/components/feedback";
@@ -94,7 +93,9 @@ export function HealthMonitorScreen() {
         }
       />
 
-      {overall === "unknown" ? (
+      {/* Only once the probes settle: before then every probe has no data and
+          maps to "unknown", which would flash a false outage on each load. */}
+      {!isLoading && overall === "unknown" ? (
         <Banner
           tone="warning"
           title="Unable to reach the health endpoints"
@@ -119,7 +120,7 @@ export function HealthMonitorScreen() {
               },
               {
                 key: "latency",
-                label: "Response time (slowest probe)",
+                label: "Slowest response (measured in this browser)",
                 value: `${Math.round(slowestLatency)} ms`,
               },
               {
@@ -212,21 +213,6 @@ export function HealthMonitorScreen() {
           <DependencyTable details={healthDetails} />
         </CardContent>
       </Card>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Application" value={overallPresentation.label} isLoading={isLoading} />
-        <StatCard
-          label="Slowest response"
-          value={`${Math.round(slowestLatency)} ms`}
-          hint="Measured in this browser — not backend execution time"
-          isLoading={isLoading}
-        />
-        <StatCard
-          label="Process uptime"
-          value={uptimeSeconds !== undefined ? formatUptime(uptimeSeconds) : "—"}
-          isLoading={isLoading}
-        />
-      </div>
 
       <Card>
         <CardHeader className="border-b">

@@ -76,6 +76,19 @@ describe("System Health Monitor", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("does not warn that the endpoints are unreachable while they are still loading", async () => {
+    render(<HealthMonitorScreen />);
+
+    // Before any probe settles, every probe has no data yet.
+    expect(
+      screen.queryByText("Unable to reach the health endpoints"),
+    ).not.toBeInTheDocument();
+    await screen.findAllByText("Healthy");
+    expect(
+      screen.queryByText("Unable to reach the health endpoints"),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders the uptime the process reports", async () => {
     server.use(
       http.get(`${ROOT}/live`, () =>

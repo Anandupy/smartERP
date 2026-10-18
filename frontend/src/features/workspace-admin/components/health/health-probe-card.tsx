@@ -48,10 +48,12 @@ export function HealthProbeCard({
     <Card>
       <CardHeader className="border-b">
         <CardTitle className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-2">
+          {/* A real heading, named by the probe alone — the status badge sits
+              beside it so screen-reader heading navigation lists each probe. */}
+          <h2 className="flex items-center gap-2">
             <Icon aria-hidden="true" className="text-muted-foreground size-4" />
             {title}
-          </span>
+          </h2>
           {isLoading ? (
             <Skeleton className="h-5 w-16" />
           ) : (
