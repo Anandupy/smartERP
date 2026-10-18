@@ -271,7 +271,11 @@ export const ROUTES = Object.freeze({
         create: "/app/admissions/applicants/new",
         detail: (id: string) => `/app/admissions/applicants/${id}`,
         edit: (id: string) => `/app/admissions/applicants/${id}/edit`,
+        /** After a SIMPLE_ADMISSION registration: open the one-step admission. */
+        admit: (id: string) => `/app/admissions/applicants/${id}?next=admit`,
       },
+      /** The admission process for the active organization and branch. */
+      workflow: "/app/admissions/workflow",
     },
     /**
      * Documents — the generic, owner-polymorphic document module: what a

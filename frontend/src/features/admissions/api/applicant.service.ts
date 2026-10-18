@@ -13,6 +13,14 @@ import type {
   WorkflowHistoryEntry,
   WorkflowTransitionRequest,
 } from "../types/applicant.dto";
+import type {
+  AdmissionPolicyDto,
+  ApplicantChecklistDto,
+  ClearConfigValueRequest,
+  DirectAdmitApplicantResponse,
+  SetConfigValueRequest,
+  WorkflowActionsDto,
+} from "../types/workflow-policy.dto";
 
 /**
  * Transport for `/v1/admissions/applicants` and the workflow/admit endpoints
@@ -95,6 +103,56 @@ export const applicantService = {
     api.post<AdmitApplicantResponse, AdmitApplicantRequest>(
       `/admissions/applicants/${id}/admit`,
       body,
+    ),
+
+  /**
+   * `GET /admissions/applicants/:applicantId/workflow/actions` — the actions
+   * legal for this applicant and caller, with every blocking guard. The
+   * authoritative list: the UI never computes its own.
+   */
+  workflowActions: (id: string) =>
+    api.get<WorkflowActionsDto>(
+      `/admissions/applicants/${id}/workflow/actions`,
+    ),
+
+  /**
+   * `GET /admissions/applicants/:applicantId/checklist` — every document
+   * requirement binding this applicant, by the rules the guards enforce.
+   */
+  checklist: (id: string) =>
+    api.get<ApplicantChecklistDto>(`/admissions/applicants/${id}/checklist`),
+
+  /**
+   * `POST /admissions/applicants/:applicantId/direct-admit` — the
+   * SIMPLE_ADMISSION one-step admission: the remaining ordinary workflow
+   * steps and `admit`, in one backend transaction.
+   */
+  directAdmit: (id: string, body: AdmitApplicantRequest) =>
+    api.post<DirectAdmitApplicantResponse, AdmitApplicantRequest>(
+      `/admissions/applicants/${id}/direct-admit`,
+      body,
+    ),
+
+  /** `GET /admissions/workflow/policy` — the policy in force for the active branch. */
+  workflowPolicy: () =>
+    api.get<AdmissionPolicyDto>("/admissions/workflow/policy"),
+
+  /**
+   * `PUT /config/values/:key` — set a policy value for the active
+   * organization or branch. The scope id is the request's own scope; it is
+   * never sent.
+   */
+  setPolicyValue: (key: string, body: SetConfigValueRequest) =>
+    api.put<unknown, SetConfigValueRequest>(
+      `/config/values/${encodeURIComponent(key)}`,
+      body,
+    ),
+
+  /** `DELETE /config/values/:key` — clear an override; the tier above applies again. */
+  clearPolicyValue: (key: string, body: ClearConfigValueRequest) =>
+    api.delete<{ cleared: boolean }>(
+      `/config/values/${encodeURIComponent(key)}`,
+      { data: body },
     ),
 
   /**

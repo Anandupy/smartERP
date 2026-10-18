@@ -18,4 +18,12 @@ export const applicantKeys = {
     ["admission-applicants", "list", query] as const,
   workflowHistory: (id: string) =>
     ["admission-applicants", "detail", id, "workflow-history"] as const,
+  /** Legal actions — invalidated whenever the applicant or its documents change. */
+  workflowActions: (id: string) =>
+    ["admission-applicants", "detail", id, "workflow-actions"] as const,
+  checklist: (id: string) =>
+    ["admission-applicants", "detail", id, "checklist"] as const,
+  /** The effective policy, per active branch. */
+  workflowPolicy: (branchId: string) =>
+    ["admission-workflow-policy", branchId] as const,
 } as const;
