@@ -9,6 +9,8 @@ import {
   SystemSettingsScreen,
 } from "@/features/system-settings";
 
+import { formatDateTime } from "@/utils";
+
 import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
 import { systemSettingsDto } from "@tests/fixtures/system-settings";
 import { server } from "@tests/mocks/server";
@@ -45,6 +47,27 @@ describe("System Settings overview", () => {
     expect(await screen.findByText("Production")).toBeInTheDocument();
     expect(screen.getByText("4.2.1")).toBeInTheDocument();
     expect(screen.getByText("Online")).toBeInTheDocument();
+  });
+
+  it("shows when the record was last updated", async () => {
+    // B1: the record returns `updatedAt`.
+    server.use(
+      http.get(`${API_BASE}/system-settings`, () =>
+        HttpResponse.json(
+          successEnvelope(
+            systemSettingsDto({ updatedAt: "2026-10-01T12:00:00.000Z" }),
+          ),
+        ),
+      ),
+    );
+
+    render(<SystemSettingsScreen />);
+
+    const time = await screen.findByText(
+      formatDateTime("2026-10-01T12:00:00.000Z"),
+    );
+    expect(time.tagName).toBe("TIME");
+    expect(screen.getByText("Last updated")).toBeInTheDocument();
   });
 
   it("reports maintenance mode when it is on", async () => {
@@ -143,6 +166,10 @@ describe("General Settings", () => {
             systemSettingsDto({
               supportEmail: "help@campus.edu",
               maintenanceMessage: "Existing notice",
+              id: "settings-1",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-10-01T12:00:00.000Z",
+              updatedBy: "user-1",
             }),
           ),
         ),
@@ -165,6 +192,16 @@ describe("General Settings", () => {
       supportEmail: "help@campus.edu",
       maintenanceMessage: "Existing notice",
     });
+    // Read-only metadata is never written back.
+    for (const key of [
+      "id",
+      "createdAt",
+      "updatedAt",
+      "createdBy",
+      "updatedBy",
+    ]) {
+      expect(body).not.toHaveProperty(key);
+    }
   });
 
   it("reports a rejected save inline instead of losing the edit", async () => {

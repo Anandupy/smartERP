@@ -2,6 +2,7 @@
 
 import { CircleCheckBig, Server, Tag, Wrench } from "@/assets/icons";
 import { StatusBadge } from "@/shared/components/data-display";
+import { formatDateTime } from "@/utils";
 
 import { ENVIRONMENT_PRESENTATION } from "../constants";
 import type { SystemSettingsDto } from "../types/system-settings.dto";
@@ -16,10 +17,13 @@ export interface SettingsStatusStripProps {
  *
  * Every value comes from the settings record — nothing is derived from uptime,
  * health probes or build metadata, none of which this module has a documented
- * contract for.
+ * contract for. "Last updated" is the record's own `updatedAt` (B1).
  */
 export function SettingsStatusStrip({ settings }: SettingsStatusStripProps) {
   const environment = ENVIRONMENT_PRESENTATION[settings.environment];
+  const updatedAt = settings.updatedAt
+    ? formatDateTime(settings.updatedAt)
+    : "";
 
   return (
     <div className="border-border bg-card flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border p-4">
@@ -58,6 +62,20 @@ export function SettingsStatusStrip({ settings }: SettingsStatusStripProps) {
           </StatusBadge>
         )}
       </div>
+
+      {updatedAt ? (
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-xs tracking-wide uppercase">
+            Last updated
+          </span>
+          <time
+            dateTime={settings.updatedAt}
+            className="text-foreground text-sm"
+          >
+            {updatedAt}
+          </time>
+        </div>
+      ) : null}
     </div>
   );
 }
