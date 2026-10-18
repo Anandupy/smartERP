@@ -108,7 +108,10 @@ describe("Menu Details screen", () => {
     expect(
       await screen.findByText(/Hiding a menu here does not revoke access to its route/),
     ).toBeVisible();
-    expect(screen.getByText("/admissions/applicants")).toBeInTheDocument();
+    // The route is also the drawer's subtitle; this pins the Route field itself.
+    expect(
+      screen.getByText("/admissions/applicants", { selector: "code" }),
+    ).toBeInTheDocument();
   });
 
   it("creates a menu with the fields split from comma-separated text into arrays", async () => {
