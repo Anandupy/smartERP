@@ -1,15 +1,20 @@
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiConfig } from "@/config";
+import { useAuth } from "@/core/auth";
 import {
   createMemoryWorkspaceStorage,
   setWorkspaceStorage,
   useWorkspaceStore,
 } from "@/core/workspace";
 import { AcademicUnitPicker } from "@/features/academic-unit";
-import { ApplicantJourneyHubScreen } from "@/features/admissions";
+import {
+  AdmissionWorkflowSettingsScreen,
+  ApplicantJourneyHubScreen,
+} from "@/features/admissions";
 import { toWorkspaceAvailability } from "@/features/workspace";
 
 import {
@@ -18,13 +23,14 @@ import {
 } from "@tests/fixtures/academic-unit";
 import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
 import {
+  admissionPolicyDto,
   applicantDto,
   workflowActionDto,
   workflowActionsDto,
 } from "@tests/fixtures/applicant";
 import { identityDto } from "@tests/fixtures/workspace";
 import { server } from "@tests/mocks/server";
-import { render, screen, within } from "@tests/setup/render";
+import { render, screen, waitFor, within } from "@tests/setup/render";
 
 vi.mock("next/navigation", async () => {
   const { createNextNavigationMock } =
@@ -420,5 +426,140 @@ describe("SIMPLE_ADMISSION — one-step admission", () => {
       screen.queryByRole("button", { name: /admit student/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("Admission workflow settings", () => {
+  function SignedIn({
+    children,
+    roles,
+    permissions,
+  }: {
+    children: React.ReactNode;
+    roles: string[];
+    permissions: string[];
+  }) {
+    const { setSession, isAuthenticated } = useAuth();
+    useEffect(() => {
+      setSession(
+        { id: "user-1", name: "Admin", email: "a@b.c", roles, permissions },
+        { accessToken: "token" },
+      );
+    }, [setSession, roles, permissions]);
+    return isAuthenticated ? <>{children}</> : null;
+  }
+
+  it("shows the effective policy and where each value comes from, read-only without the permission", async () => {
+    server.use(
+      http.get(`${API_BASE}/admissions/workflow/policy`, () =>
+        HttpResponse.json(
+          successEnvelope(
+            admissionPolicyDto({
+              workflowProfile: "SIMPLE_ADMISSION",
+              waitlistEnabled: false,
+              sources: {
+                ...admissionPolicyDto().sources,
+                workflowProfile: "ORGANIZATION",
+                waitlistEnabled: "BRANCH",
+              },
+            }),
+          ),
+        ),
+      ),
+    );
+
+    render(
+      <SignedIn roles={["STAFF"]} permissions={["admissions.view"]}>
+        <AdmissionWorkflowSettingsScreen />
+      </SignedIn>,
+    );
+
+    const simple = await screen.findByRole("radio", {
+      name: /simple admission/i,
+    });
+    expect(simple).toHaveAttribute("aria-checked", "true");
+    expect(simple).toBeDisabled();
+    expect(screen.getByText("From the organization")).toBeInTheDocument();
+    expect(screen.getByText("Set for this branch")).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: /waitlist/i })).not.toBeChecked();
+    expect(screen.getByText(/read only/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /save changes/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("saves a change for this branch with a required reason", async () => {
+    const user = userEvent.setup();
+    const put = vi.fn();
+    server.use(
+      http.put(
+        `${API_BASE}/config/values/:key`,
+        async ({ request, params }) => {
+          put(String(params.key), await request.json());
+          return HttpResponse.json(successEnvelope({}));
+        },
+      ),
+    );
+
+    render(
+      <SignedIn
+        roles={["BRANCH_ADMIN"]}
+        permissions={["config.admissions.write"]}
+      >
+        <AdmissionWorkflowSettingsScreen />
+      </SignedIn>,
+    );
+
+    await user.click(
+      await screen.findByRole("radio", { name: /simple admission/i }),
+    );
+    const save = screen.getByRole("button", { name: /save changes/i });
+    expect(save).toBeDisabled();
+
+    await user.type(
+      screen.getByLabelText(/reason/i),
+      "Small branch, walk-in admissions",
+    );
+    await user.click(save);
+
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith("admissions.workflow_profile", {
+        scopeType: "BRANCH",
+        value: "SIMPLE_ADMISSION",
+        reason: "Small branch, walk-in admissions",
+      }),
+    );
+    // A branch administrator is never offered organization-wide scope.
+    expect(
+      screen.queryByRole("radio", { name: /every branch of/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the backend's refusal when a save is rejected", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.put(`${API_BASE}/config/values/:key`, () =>
+        HttpResponse.json(
+          errorEnvelope({
+            code: "ForbiddenException",
+            message: "You do not have permission to change this configuration.",
+          }),
+          { status: 403 },
+        ),
+      ),
+    );
+
+    render(
+      <SignedIn roles={["ORG_ADMIN"]} permissions={["config.admissions.write"]}>
+        <AdmissionWorkflowSettingsScreen />
+      </SignedIn>,
+    );
+
+    await user.click(await screen.findByRole("switch", { name: /waitlist/i }));
+    await user.type(screen.getByLabelText(/reason/i), "No waitlist this year");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeEnabled();
   });
 });

@@ -57,6 +57,10 @@ export {
   type EditApplicantScreenProps,
 } from "./components/edit-applicant-screen";
 export {
+  AdmissionWorkflowSettingsScreen,
+  ADMISSION_POLICY_WRITE_PERMISSION,
+} from "./components/admission-workflow-settings-screen";
+export {
   ApplicantJourneyHubScreen,
   type ApplicantJourneyHubScreenProps,
 } from "./components/applicant-journey-hub-screen";
