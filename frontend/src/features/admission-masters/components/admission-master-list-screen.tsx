@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ROUTES } from "@/constants";
-import { useWorkspace } from "@/core/workspace";
 import { useDebouncedValue } from "@/hooks";
 import {
   DataTablePagination,
@@ -57,7 +56,6 @@ export function AdmissionMasterListScreen({
 }: AdmissionMasterListScreenProps) {
   const config = admissionMasterConfig(masterType);
   const branch = useAdmissionMastersBranch();
-  const { isReady } = useWorkspace();
 
   const { masters, isPending, error, refetch } = useAdmissionMasterList(masterType);
   const toggleActive = useToggleAdmissionMasterActive(masterType);
@@ -94,7 +92,10 @@ export function AdmissionMasterListScreen({
 
   const createHref = ROUTES.app.admissionMasters.create(config.resource);
 
-  if (isReady && !branch) {
+  // `branch` is already null until the workspace is ready, so this also
+  // covers an unresolved workspace — the same guard the overview and create
+  // screens use. Without it the list query stays disabled and never settles.
+  if (!branch) {
     return (
       <div className="space-y-6">
         <PageHeader title={config.pluralLabel} description={config.description} />
