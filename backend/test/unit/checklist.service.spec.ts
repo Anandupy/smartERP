@@ -2,11 +2,16 @@ import {
   AdmissionApplicationStatus as S,
   DocumentOwnerType,
 } from '@/generated/client';
-import { ChecklistService } from '@/modules/documents/checklist.service';
+import {
+  ChecklistService,
+  ENFORCEABLE_REQUIREMENT_STAGES,
+} from '@/modules/documents/checklist.service';
+import { checklistEnforcedStages } from '@/modules/admissions/workflow/workflow.transitions';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 
 const APPLICANT = {
   applicantId: 'app-1',
+  branchId: 'branch-1',
   personId: 'person-1',
   programId: 'prog-1',
   quotaId: 'quota-1',
@@ -33,7 +38,7 @@ describe('ChecklistService', () => {
   beforeEach(() => {
     mockPrisma = {
       documentRequirement: { findMany: jest.fn() },
-      document: { findFirst: jest.fn() },
+      document: { findFirst: jest.fn(), findMany: jest.fn() },
     };
     service = new ChecklistService(mockPrisma as PrismaService);
   });
@@ -321,6 +326,153 @@ describe('ChecklistService', () => {
           currentVersion: { verificationStatus: 'VERIFIED' },
         }),
       }),
+    );
+  });
+
+  describe('branch scoping (D1)', () => {
+    it("binds organization-wide requirements and only this branch's own", async () => {
+      mockPrisma.documentRequirement.findMany.mockResolvedValue([]);
+
+      await service.isSatisfied(APPLICANT, [S.UNDER_REVIEW], 'org-1');
+
+      expect(mockPrisma.documentRequirement.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: 'org-1',
+            OR: [{ branchId: null }, { branchId: 'branch-1' }],
+          }),
+        }),
+      );
+    });
+
+    it('never consults another organization', async () => {
+      mockPrisma.documentRequirement.findMany.mockResolvedValue([]);
+
+      await service.isSatisfied(APPLICANT, [S.UNDER_REVIEW], 'org-1');
+
+      const where =
+        mockPrisma.documentRequirement.findMany.mock.calls[0][0].where;
+      expect(where.organizationId).toBe('org-1');
+    });
+
+    it('uses the same branch filter for the checklist read model', async () => {
+      mockPrisma.documentRequirement.findMany.mockResolvedValue([]);
+
+      await service.describe(APPLICANT, 'org-1');
+
+      expect(mockPrisma.documentRequirement.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [{ branchId: null }, { branchId: 'branch-1' }],
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('describe — the checklist read model', () => {
+    const req = (id: string, documentTypeId: string, over = {}) => ({
+      id,
+      branchId: null,
+      requiredByStage: S.UNDER_REVIEW,
+      isMandatory: true,
+      ...requirement({
+        documentTypeId,
+        documentType: {
+          id: documentTypeId,
+          code: documentTypeId,
+          name: documentTypeId,
+        },
+      }),
+      ...over,
+    });
+
+    it('reports VERIFIED, PENDING_VERIFICATION, REJECTED and MISSING, and only VERIFIED satisfies', async () => {
+      mockPrisma.documentRequirement.findMany.mockResolvedValue([
+        req('r-1', 'verified'),
+        req('r-2', 'pending'),
+        req('r-3', 'rejected'),
+        req('r-4', 'missing'),
+      ]);
+      mockPrisma.document.findMany.mockResolvedValue([
+        {
+          id: 'd-1',
+          documentTypeId: 'verified',
+          currentVersion: { verificationStatus: 'VERIFIED' },
+        },
+        {
+          id: 'd-2',
+          documentTypeId: 'pending',
+          currentVersion: { verificationStatus: 'PENDING' },
+        },
+        {
+          id: 'd-3',
+          documentTypeId: 'rejected',
+          currentVersion: { verificationStatus: 'REJECTED' },
+        },
+      ]);
+
+      const items = await service.describe(APPLICANT, 'org-1');
+      const byType = Object.fromEntries(
+        items.map((i) => [i.documentTypeId, i]),
+      );
+
+      expect(byType.verified).toMatchObject({
+        status: 'VERIFIED',
+        satisfied: true,
+        documentId: 'd-1',
+      });
+      expect(byType.pending).toMatchObject({
+        status: 'PENDING_VERIFICATION',
+        satisfied: false,
+      });
+      expect(byType.rejected).toMatchObject({
+        status: 'REJECTED',
+        satisfied: false,
+      });
+      expect(byType.missing).toMatchObject({
+        status: 'MISSING',
+        satisfied: false,
+        documentId: null,
+      });
+    });
+
+    it('prefers a verified copy when several documents of the type exist', async () => {
+      mockPrisma.documentRequirement.findMany.mockResolvedValue([
+        req('r-1', 'birth'),
+      ]);
+      mockPrisma.document.findMany.mockResolvedValue([
+        {
+          id: 'old',
+          documentTypeId: 'birth',
+          currentVersion: { verificationStatus: 'REJECTED' },
+        },
+        {
+          id: 'new',
+          documentTypeId: 'birth',
+          currentVersion: { verificationStatus: 'VERIFIED' },
+        },
+      ]);
+
+      const [item] = await service.describe(APPLICANT, 'org-1');
+      expect(item).toMatchObject({ status: 'VERIFIED', documentId: 'new' });
+    });
+
+    it('applies the same programme filter as the guard', async () => {
+      mockPrisma.documentRequirement.findMany.mockResolvedValue([
+        req('r-1', 'mine', { appliesToProgramId: 'prog-1' }),
+        req('r-2', 'other', { appliesToProgramId: 'prog-2' }),
+      ]);
+      mockPrisma.document.findMany.mockResolvedValue([]);
+
+      const items = await service.describe(APPLICANT, 'org-1');
+      expect(items.map((i) => i.documentTypeId)).toEqual(['mine']);
+    });
+  });
+
+  it('the enforceable stages are exactly the stages a checklist-guarded transition touches', () => {
+    expect([...ENFORCEABLE_REQUIREMENT_STAGES].sort()).toEqual(
+      [...checklistEnforcedStages()].sort(),
     );
   });
 });

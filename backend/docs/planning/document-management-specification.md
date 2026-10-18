@@ -197,6 +197,16 @@ No rules engine: an institution expresses policy as a set of
 `DocumentRequirement` rows via `POST /document-requirements`, not as
 configurable logic.
 
+**2026-10-17 — scope and stage enforcement.** `ChecklistService` now binds a
+requirement only to its own branch (or every branch when `branchId` is null);
+it previously ignored `branchId`. A requirement is enforced when a
+checklist-guarded transition leaves or enters its stage, and the guard now
+also runs on `submit`, `confirmSeat` and inside `admit()` (and on
+`startReview` under VERIFIED_ADMISSION). A stage no transition touches —
+`DEFERRED`, `REJECTED`, `WITHDRAWN`, `CANCELLED` — is refused with
+`400 UNSUPPORTED_REQUIREMENT_STAGE`. `GET /admissions/applicants/:id/checklist`
+exposes the result. See [`../modules/admissions.md` §12.3](../modules/admissions.md#123-document-stage-enforcement).
+
 ---
 
 ## 9. Versioning

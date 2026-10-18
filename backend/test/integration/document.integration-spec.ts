@@ -203,6 +203,7 @@ describe('Document Management (integration)', () => {
       const result = await checklist.isSatisfied(
         {
           applicantId: 'nonexistent-applicant',
+          branchId: branchA,
           personId: personA,
           programId: null,
           quotaId: null,

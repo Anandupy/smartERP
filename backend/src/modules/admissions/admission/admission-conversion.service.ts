@@ -24,8 +24,14 @@ import { AuthorizationService } from '@/modules/authorization/authorization.serv
 import { PERMISSIONS } from '@/common/constants/permission.constants';
 import { ResourceScope } from '@/common/scope/resource-scope';
 import { AdmissionService } from './admission.service';
-import { WorkflowService } from '../workflow/workflow.service';
-import { WorkflowAction } from '../workflow/workflow.transitions';
+import {
+  DIRECT_ADMISSION_PERMISSIONS,
+  WorkflowService,
+} from '../workflow/workflow.service';
+import {
+  DIRECT_ADMISSION_PLAN,
+  WorkflowAction,
+} from '../workflow/workflow.transitions';
 
 /** Who is admitting, and with what authority. */
 export interface AdmitActor {
@@ -59,6 +65,11 @@ export interface AdmitResult {
   admissionNo: string;
   enrollmentId: string;
   applicantId: string;
+}
+
+export interface DirectAdmitResult extends AdmitResult {
+  /** The workflow actions walked before `admit`, in order. */
+  walked: WorkflowAction[];
 }
 
 /**
@@ -150,15 +161,7 @@ export class AdmissionConversionService {
     actor: AdmitActor,
   ): Promise<AdmitResult> {
     await this.assertPermitted(actor);
-
-    const admissionType = request.admissionType ?? 'REGULAR';
-    if (!FIRST_ENTRY_TYPES.includes(admissionType)) {
-      throw new BadRequestException({
-        error: 'ADMISSION_TYPE_NOT_A_FIRST_ENTRY',
-        message: `${admissionType} begins from an existing student and a previous spell of study. It is its own operation, not an admission type this one accepts.`,
-        allowed: FIRST_ENTRY_TYPES,
-      });
-    }
+    const admissionType = this.firstEntryType(request);
 
     // Read-only and cheap to repeat, so it stays outside: every statement in
     // here would otherwise extend the lock hold on the applicant row.
@@ -178,6 +181,117 @@ export class AdmissionConversionService {
     }
   }
 
+  /**
+   * SIMPLE_ADMISSION: take an application from wherever it is on the spine
+   * to `ADMITTED` in one transaction.
+   *
+   * It is `admit()` preceded by the ordinary workflow steps it would
+   * otherwise need — submit, startReview, approve, confirmSeat, whichever
+   * remain — each run through `WorkflowService.transition` on the same
+   * transaction client. Nothing is skipped: every step checks its own
+   * permission and guards (the document checklist included), stamps its
+   * timestamps, writes its history row and enqueues its event; Person
+   * resolution happens in `submit` exactly as it always does; and the
+   * conversion is the same `convert()` that `admit()` runs. There is no edge
+   * from DRAFT to ADMITTED and none was added.
+   *
+   * Any failure anywhere rolls back every step, so the applicant is left
+   * exactly as it was found.
+   */
+  async directAdmit(
+    applicantId: string,
+    request: AdmitRequest,
+    scope: ResourceScope,
+    actor: AdmitActor,
+  ): Promise<DirectAdmitResult> {
+    await this.assertPermitted(actor, DIRECT_ADMISSION_PERMISSIONS);
+    const admissionType = this.firstEntryType(request);
+
+    // Pre-flight, outside the lock — the same checks admit() makes, plus the
+    // profile. All of it is repeated or re-derived under the lock below.
+    const applicant = await this.loadApplicant(applicantId, scope);
+    await this.assertDirectAdmissionProfile(applicant, applicant.submittedAt);
+    if (DIRECT_ADMISSION_PLAN[applicant.admissionStatus] === undefined) {
+      throw await this.explainNotDirectlyAdmissible(
+        this.prisma,
+        applicant.id,
+        applicant.admissionStatus,
+      );
+    }
+    await this.resolvePlacement(applicant, request);
+    await this.assertNumberingProvisioned(applicant);
+
+    const lineage: ResourceScope = {
+      organizationId: applicant.organizationId,
+      branchId: applicant.branchId,
+      academicYearId: applicant.academicYearId,
+    };
+
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const locked = await this.rowLock.lockRow(tx, {
+            table: 'Applicant',
+            id: applicant.id,
+            scope: {
+              organizationId: applicant.organizationId,
+              branchId: applicant.branchId,
+            },
+            columns: ['admissionStatus', 'deletedAt', 'submittedAt'],
+          });
+
+          if (!locked || locked.deletedAt !== null) {
+            throw new NotFoundException('Applicant not found');
+          }
+
+          // The pre-flight read was a guess; this is the state that counts.
+          const current = locked.admissionStatus as AdmissionApplicationStatus;
+          await this.assertDirectAdmissionProfile(
+            applicant,
+            (locked.submittedAt as Date | null) ?? null,
+          );
+          const plan = DIRECT_ADMISSION_PLAN[current];
+          if (plan === undefined) {
+            throw await this.explainNotDirectlyAdmissible(
+              tx,
+              applicant.id,
+              current,
+            );
+          }
+
+          for (const action of plan) {
+            await this.workflow.transition(
+              applicant.id,
+              { action, orchestration: 'DIRECT_ADMISSION' },
+              lineage,
+              { userId: actor.userId, role: actor.role },
+              tx,
+            );
+          }
+
+          // A draft was editable until the lock was taken, and submission has
+          // just resolved its Person: convert from the row as it now stands.
+          const fresh = await this.loadApplicant(applicant.id, scope, tx);
+          const placement = await this.resolvePlacement(fresh, request);
+
+          const result = await this.convert(
+            tx,
+            fresh,
+            placement,
+            admissionType,
+            request,
+            actor,
+            'DIRECT_ADMISSION',
+          );
+          return { ...result, walked: [...plan] };
+        },
+        { timeout: 15_000 },
+      );
+    } catch (error) {
+      throw await this.translate(error, applicantId);
+    }
+  }
+
   // ---------------------------------------------------------------------------
 
   private async convert(
@@ -187,6 +301,7 @@ export class AdmissionConversionService {
     admissionType: AdmissionType,
     request: AdmitRequest,
     actor: AdmitActor,
+    orchestration?: 'DIRECT_ADMISSION',
   ): Promise<AdmitResult> {
     // 1. Lock first. Two registrars clicking Admit at the same moment both read
     //    SEAT_CONFIRMED without this, and both proceed.
@@ -342,6 +457,7 @@ export class AdmissionConversionService {
         action: WorkflowAction.ADMIT,
         remarks: request.remarks,
         orchestrated: true,
+        ...(orchestration ? { orchestration } : {}),
       },
       {
         organizationId: applicant.organizationId,
@@ -381,8 +497,9 @@ export class AdmissionConversionService {
   private async loadApplicant(
     applicantId: string,
     scope: ResourceScope,
+    client: PrismaTransactionClient | PrismaService = this.prisma,
   ): Promise<LoadedApplicant> {
-    const applicant = await this.prisma.applicant.findFirst({
+    const applicant = await client.applicant.findFirst({
       where: {
         id: applicantId,
         organizationId: scope.organizationId,
@@ -416,6 +533,7 @@ export class AdmissionConversionService {
         aadhaarNo: true,
         quotaId: true,
         admissionSourceId: true,
+        submittedAt: true,
       },
     });
 
@@ -580,7 +698,13 @@ export class AdmissionConversionService {
     }
   }
 
-  private async assertPermitted(actor: AdmitActor): Promise<void> {
+  private async assertPermitted(
+    actor: AdmitActor,
+    permissions: readonly string[] = [
+      PERMISSIONS.Admissions.Approve,
+      PERMISSIONS.Student.Create,
+    ],
+  ): Promise<void> {
     if (!actor.userId || !actor.role) {
       throw new ForbiddenException({
         error: 'ForbiddenException',
@@ -588,12 +712,10 @@ export class AdmissionConversionService {
       });
     }
 
-    // Both, not either. Approving a form and minting a permanent learner
-    // identity are different powers, and admission exercises both at once.
-    for (const permission of [
-      PERMISSIONS.Admissions.Approve,
-      PERMISSIONS.Student.Create,
-    ]) {
+    // All, not any. Approving a form and minting a permanent learner
+    // identity are different powers, and admission exercises both at once; a
+    // direct admission also submits and confirms, so it needs update too.
+    for (const permission of permissions) {
       const permitted = await this.authorization.hasPermission(
         actor.userId,
         actor.role as RoleType,
@@ -607,6 +729,61 @@ export class AdmissionConversionService {
         });
       }
     }
+  }
+
+  private firstEntryType(request: AdmitRequest): AdmissionType {
+    const admissionType = request.admissionType ?? 'REGULAR';
+    if (!FIRST_ENTRY_TYPES.includes(admissionType)) {
+      throw new BadRequestException({
+        error: 'ADMISSION_TYPE_NOT_A_FIRST_ENTRY',
+        message: `${admissionType} begins from an existing student and a previous spell of study. It is its own operation, not an admission type this one accepts.`,
+        allowed: FIRST_ENTRY_TYPES,
+      });
+    }
+    return admissionType;
+  }
+
+  /**
+   * Direct admission belongs to SIMPLE_ADMISSION alone, resolved from
+   * configuration as of the application's submission (or now, for a draft) —
+   * never from the request.
+   */
+  private async assertDirectAdmissionProfile(
+    applicant: LoadedApplicant,
+    submittedAt: Date | null,
+  ): Promise<void> {
+    const policy = await this.workflow.policyFor(
+      {
+        organizationId: applicant.organizationId,
+        branchId: applicant.branchId,
+        academicYearId: applicant.academicYearId,
+      },
+      submittedAt,
+    );
+    if (policy.workflowProfile !== 'SIMPLE_ADMISSION') {
+      throw new BadRequestException({
+        error: 'WORKFLOW_PROFILE_MISMATCH',
+        message: `Direct admission is available only under the SIMPLE_ADMISSION profile. This application follows ${policy.workflowProfile}; use the standard workflow.`,
+        profile: policy.workflowProfile,
+      });
+    }
+  }
+
+  private async explainNotDirectlyAdmissible(
+    client: PrismaTransactionClient | PrismaService,
+    applicantId: string,
+    current: AdmissionApplicationStatus,
+  ): Promise<Error> {
+    if (current === 'ADMITTED') {
+      return this.explainIneligible(client, applicantId, current);
+    }
+    return new BadRequestException({
+      error: 'INVALID_TRANSITION',
+      message: `An application in state ${current} cannot be directly admitted.`,
+      from: current,
+      action: 'directAdmit',
+      allowedFrom: Object.keys(DIRECT_ADMISSION_PLAN),
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -797,6 +974,7 @@ interface ResolvedPlacement {
 }
 
 interface LoadedApplicant {
+  submittedAt: Date | null;
   id: string;
   organizationId: string;
   branchId: string;

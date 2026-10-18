@@ -9,8 +9,14 @@ import { AuthorizationService } from '@/modules/authorization/authorization.serv
 import { WorkflowService } from '@/modules/admissions/workflow/workflow.service';
 import { AdmissionConfigProvider } from '@/modules/admissions/admission-config.provider';
 import { ChecklistService } from '@/modules/documents/checklist.service';
+import { ConfigurationService } from '@/modules/configuration/configuration.service';
+import {
+  ADMISSION_CONFIG_KEYS,
+  CONFIG_DEFINITIONS,
+} from '@/modules/configuration/config.registry';
 import {
   actionsFrom,
+  DIRECT_ADMISSION_PLAN,
   findRule,
   statesWithNoExit,
   TERMINAL_STATES,
@@ -46,6 +52,28 @@ describe('Applicant workflow', () => {
     .fn()
     .mockResolvedValue({ satisfied: true, missing: [] });
 
+  /** Configuration values in force, by key; anything absent is the default. */
+  let policyOverrides: Record<string, unknown> = {};
+  const resolveMany = jest.fn(
+    async (keys: readonly string[], _scope: unknown, asOf: Date) =>
+      new Map(
+        keys.map((key) => {
+          const spec = CONFIG_DEFINITIONS.find((d) => d.key === key)!;
+          const set = key in policyOverrides;
+          return [
+            key,
+            {
+              key,
+              value: set ? policyOverrides[key] : spec.defaultValue,
+              source: set ? 'BRANCH' : 'DEFAULT',
+              version: set ? 1 : null,
+              effectiveFrom: set ? asOf : null,
+            },
+          ];
+        }),
+      ),
+  );
+
   const mockPrisma: any = {
     applicant: {
       update: jest.fn().mockResolvedValue({ id: 'app-1' }),
@@ -56,6 +84,7 @@ describe('Applicant workflow', () => {
     workflowHistory: {
       create: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
     },
     outboxEvent: { create: jest.fn().mockResolvedValue({ id: 'ob-1' }) },
     $transaction: jest.fn((cb: any) => cb(mockPrisma)),
@@ -106,6 +135,7 @@ describe('Applicant workflow', () => {
           provide: ChecklistService,
           useValue: { isSatisfied: isChecklistSatisfied },
         },
+        { provide: ConfigurationService, useValue: { resolveMany } },
       ],
     }).compile();
 
@@ -117,6 +147,8 @@ describe('Applicant workflow', () => {
     jest.clearAllMocks();
     rawQuery.lockResult = [];
     hasPermission.mockResolvedValue(true);
+    policyOverrides = {};
+    mockPrisma.workflowHistory.findFirst.mockResolvedValue(null);
   });
 
   // ---------------------------------------------------------------------------
@@ -267,7 +299,7 @@ describe('Applicant workflow', () => {
         ),
       ).rejects.toMatchObject({ response: { error: 'DEFERMENT_DISABLED' } });
 
-      jest.spyOn(config, 'defermentEnabled').mockReturnValue(true);
+      policyOverrides[ADMISSION_CONFIG_KEYS.allowDeferment] = true;
       inState(S.APPROVED);
       mockPrisma.applicant.update.mockResolvedValue({ id: 'app-1' });
 
@@ -618,7 +650,7 @@ describe('Applicant workflow', () => {
     });
 
     it('takes the window length from configuration, not a constant', async () => {
-      jest.spyOn(config, 'offerValidityDays').mockReturnValue(7);
+      policyOverrides[ADMISSION_CONFIG_KEYS.offerValidityDays] = 7;
       inState(S.UNDER_REVIEW);
 
       await workflow.transition(
@@ -673,6 +705,7 @@ describe('Applicant workflow', () => {
       expect(isChecklistSatisfied).toHaveBeenCalledWith(
         expect.objectContaining({
           applicantId: 'app-1',
+          branchId: SCOPE.branchId,
           personId: 'person-1',
           programId: 'prog-1',
           quotaId: 'quota-1',
@@ -962,6 +995,488 @@ describe('Applicant workflow', () => {
       for (const state of TERMINAL_STATES) {
         expect(actionsFrom(state)).toHaveLength(0);
       }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Configurable admission workflows
+  // ---------------------------------------------------------------------------
+
+  describe('the graph is not configurable', () => {
+    it('keeps exactly the edges it had before workflow profiles existed', () => {
+      const edges = TRANSITIONS.map(
+        (t) => `${t.action}:${[...t.from].sort().join('|')}>${t.to}`,
+      ).sort();
+      expect(edges).toEqual(
+        [
+          'submit:DRAFT>SUBMITTED',
+          'startReview:SUBMITTED>UNDER_REVIEW',
+          'requestDocuments:UNDER_REVIEW>DOCUMENT_PENDING',
+          'documentsReceived:DOCUMENT_PENDING>UNDER_REVIEW',
+          'requestFee:UNDER_REVIEW>FEE_PENDING',
+          'waitlist:UNDER_REVIEW>WAITLISTED',
+          'approve:DOCUMENT_PENDING|FEE_PENDING|UNDER_REVIEW|WAITLISTED>APPROVED',
+          'confirmSeat:APPROVED>SEAT_CONFIRMED',
+          'defer:APPROVED>DEFERRED',
+          'expireOffer:APPROVED>CANCELLED',
+          'reject:DOCUMENT_PENDING|FEE_PENDING|SUBMITTED|UNDER_REVIEW|WAITLISTED>REJECTED',
+          'withdraw:APPROVED|DOCUMENT_PENDING|DRAFT|FEE_PENDING|SEAT_CONFIRMED|SUBMITTED|UNDER_REVIEW|WAITLISTED>WITHDRAWN',
+          'cancel:APPROVED|DOCUMENT_PENDING|DRAFT|FEE_PENDING|SEAT_CONFIRMED|SUBMITTED|UNDER_REVIEW|WAITLISTED>CANCELLED',
+          'admit:SEAT_CONFIRMED>ADMITTED',
+          'forceReopen:CANCELLED>UNDER_REVIEW',
+        ].sort(),
+      );
+    });
+
+    it('reaches ADMITTED by one orchestrated rule only', () => {
+      const intoAdmitted = TRANSITIONS.filter((t) => t.to === S.ADMITTED);
+      expect(intoAdmitted).toHaveLength(1);
+      expect(intoAdmitted[0].action).toBe(WorkflowAction.ADMIT);
+      expect(intoAdmitted[0].orchestratedOnly).toBe(true);
+    });
+
+    it('the direct-admission plan walks only legal edges and ends at SEAT_CONFIRMED', () => {
+      for (const [start, plan] of Object.entries(DIRECT_ADMISSION_PLAN)) {
+        let state = start as S;
+        for (const action of plan!) {
+          const rule = findRule(action)!;
+          expect(rule.from).toContain(state);
+          expect(rule.orchestratedOnly).toBeFalsy();
+          expect(rule.systemOnly).toBeFalsy();
+          state = rule.to;
+        }
+        expect(state).toBe(S.SEAT_CONFIRMED);
+      }
+    });
+
+    it('cannot directly admit from a terminal or deferred state', () => {
+      for (const state of [
+        S.ADMITTED,
+        S.REJECTED,
+        S.WITHDRAWN,
+        S.CANCELLED,
+        S.DEFERRED,
+      ]) {
+        expect(DIRECT_ADMISSION_PLAN[state]).toBeUndefined();
+      }
+    });
+  });
+
+  describe('policy resolution', () => {
+    it('defaults to STANDARD_ADMISSION with every optional step available', async () => {
+      const policy = await workflow.policyFor(SCOPE, null);
+      expect(policy).toMatchObject({
+        workflowProfile: 'STANDARD_ADMISSION',
+        offerValidityDays: 15,
+        allowDeferment: false,
+        waitlistEnabled: true,
+        feeStepEnabled: true,
+        documentRequestEnabled: true,
+      });
+      expect(policy.sources.workflowProfile).toBe('DEFAULT');
+    });
+
+    it('resolves an in-flight application as of its submission, not now', async () => {
+      const submittedAt = new Date('2026-06-01T10:00:00Z');
+      inState(S.UNDER_REVIEW, { submittedAt });
+
+      await workflow.transition(
+        'app-1',
+        { action: WorkflowAction.APPROVE },
+        SCOPE,
+        ACTOR,
+      );
+
+      expect(resolveMany).toHaveBeenCalledWith(
+        expect.any(Array),
+        { organizationId: 'org-1', branchId: 'branch-1' },
+        submittedAt,
+      );
+    });
+
+    it('resolves a draft as of now', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue({
+        id: 'app-1',
+        admissionStatus: S.DRAFT,
+        personId: null,
+        programId: 'prog-1',
+        quotaId: null,
+        categoryId: null,
+        offerExpiresAt: null,
+        academicYearId: 'year-1',
+        submittedAt: null,
+      });
+      const before = Date.now();
+
+      const result = await workflow.describeActions('app-1', SCOPE, ACTOR);
+
+      const asOf = resolveMany.mock.calls.at(-1)![2];
+      expect(asOf.getTime()).toBeGreaterThanOrEqual(before);
+      expect(result.policyAsOf.getTime()).toBe(asOf.getTime());
+    });
+  });
+
+  describe('policy switches are enforced by the engine', () => {
+    it.each([
+      [
+        WorkflowAction.WAITLIST,
+        ADMISSION_CONFIG_KEYS.waitlistEnabled,
+        'on the list',
+      ],
+      [
+        WorkflowAction.REQUEST_FEE,
+        ADMISSION_CONFIG_KEYS.feeStepEnabled,
+        undefined,
+      ],
+      [
+        WorkflowAction.REQUEST_DOCUMENTS,
+        ADMISSION_CONFIG_KEYS.documentRequestEnabled,
+        'need TC',
+      ],
+    ])(
+      'refuses %s with POLICY_DISABLED when switched off',
+      async (action, key, remarks) => {
+        policyOverrides[key] = false;
+        inState(S.UNDER_REVIEW);
+
+        await expect(
+          workflow.transition('app-1', { action, remarks }, SCOPE, ACTOR),
+        ).rejects.toMatchObject({
+          response: { error: 'POLICY_DISABLED', policy: key },
+        });
+        expect(mockPrisma.applicant.update).not.toHaveBeenCalled();
+        expect(mockPrisma.workflowHistory.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      [WorkflowAction.WAITLIST, 'on the list'],
+      [WorkflowAction.REQUEST_FEE, undefined],
+      [WorkflowAction.REQUEST_DOCUMENTS, 'need TC'],
+    ])('allows %s by default, as before', async (action, remarks) => {
+      inState(S.UNDER_REVIEW);
+      await expect(
+        workflow.transition('app-1', { action, remarks }, SCOPE, ACTOR),
+      ).resolves.toBeDefined();
+    });
+
+    it('still enforces the permission on an enabled step', async () => {
+      hasPermission.mockResolvedValue(false);
+      inState(S.UNDER_REVIEW);
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.WAITLIST, remarks: 'x' },
+          SCOPE,
+          ACTOR,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('document stage enforcement (D2)', () => {
+    it.each([
+      [S.DRAFT, WorkflowAction.SUBMIT, [S.DRAFT, S.SUBMITTED]],
+      [S.APPROVED, WorkflowAction.CONFIRM_SEAT, [S.APPROVED, S.SEAT_CONFIRMED]],
+    ])(
+      'checks the checklist when leaving %s via %s',
+      async (state, action, stages) => {
+        inState(state);
+        isChecklistSatisfied.mockResolvedValueOnce({
+          satisfied: false,
+          missing: [{ documentTypeId: 'dt-1', code: 'TC', name: 'TC' }],
+        });
+
+        await expect(
+          workflow.transition('app-1', { action }, SCOPE, ACTOR),
+        ).rejects.toMatchObject({
+          response: { error: 'DOCUMENTS_INCOMPLETE' },
+        });
+        expect(isChecklistSatisfied).toHaveBeenCalledWith(
+          expect.objectContaining({ branchId: SCOPE.branchId }),
+          stages,
+          SCOPE.organizationId,
+          expect.anything(),
+        );
+        expect(mockPrisma.applicant.update).not.toHaveBeenCalled();
+      },
+    );
+
+    it('checks SEAT_CONFIRMED and ADMITTED requirements inside admit', async () => {
+      inState(S.SEAT_CONFIRMED);
+      isChecklistSatisfied.mockResolvedValueOnce({
+        satisfied: false,
+        missing: [],
+      });
+
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.ADMIT, orchestrated: true },
+          SCOPE,
+          ACTOR,
+        ),
+      ).rejects.toMatchObject({ response: { error: 'DOCUMENTS_INCOMPLETE' } });
+      expect(isChecklistSatisfied).toHaveBeenCalledWith(
+        expect.anything(),
+        [S.SEAT_CONFIRMED, S.ADMITTED],
+        SCOPE.organizationId,
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('VERIFIED_ADMISSION', () => {
+    beforeEach(() => {
+      policyOverrides[ADMISSION_CONFIG_KEYS.workflowProfile] =
+        'VERIFIED_ADMISSION';
+    });
+
+    it('requires SUBMITTED and UNDER_REVIEW documents before review starts', async () => {
+      inState(S.SUBMITTED);
+      isChecklistSatisfied.mockResolvedValueOnce({
+        satisfied: false,
+        missing: [],
+      });
+
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.START_REVIEW },
+          SCOPE,
+          ACTOR,
+        ),
+      ).rejects.toMatchObject({ response: { error: 'DOCUMENTS_INCOMPLETE' } });
+      expect(isChecklistSatisfied).toHaveBeenCalledWith(
+        expect.anything(),
+        [S.SUBMITTED, S.UNDER_REVIEW],
+        SCOPE.organizationId,
+        expect.anything(),
+      );
+    });
+
+    it('refuses an approval by the user who started the review, read from history', async () => {
+      inState(S.UNDER_REVIEW);
+      mockPrisma.workflowHistory.findFirst.mockResolvedValue({
+        actionBy: ACTOR.userId,
+      });
+
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.APPROVE },
+          SCOPE,
+          ACTOR,
+        ),
+      ).rejects.toMatchObject({
+        response: { error: 'MAKER_CHECKER_VIOLATION' },
+      });
+      expect(mockPrisma.workflowHistory.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            entityId: 'app-1',
+            actionType: {
+              in: [WorkflowAction.START_REVIEW, WorkflowAction.FORCE_REOPEN],
+            },
+          }),
+          orderBy: { timestamp: 'desc' },
+        }),
+      );
+      expect(mockPrisma.applicant.update).not.toHaveBeenCalled();
+    });
+
+    it('allows a different approver', async () => {
+      inState(S.UNDER_REVIEW);
+      mockPrisma.workflowHistory.findFirst.mockResolvedValue({
+        actionBy: 'reviewer-2',
+      });
+
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.APPROVE },
+          SCOPE,
+          ACTOR,
+        ),
+      ).resolves.toBeDefined();
+    });
+  });
+
+  describe('STANDARD_ADMISSION keeps its previous behaviour', () => {
+    it('does not check documents at startReview', async () => {
+      inState(S.SUBMITTED);
+      await workflow.transition(
+        'app-1',
+        { action: WorkflowAction.START_REVIEW },
+        SCOPE,
+        ACTOR,
+      );
+      expect(isChecklistSatisfied).not.toHaveBeenCalled();
+    });
+
+    it('lets the reviewer approve', async () => {
+      inState(S.UNDER_REVIEW);
+      mockPrisma.workflowHistory.findFirst.mockResolvedValue({
+        actionBy: ACTOR.userId,
+      });
+      await expect(
+        workflow.transition(
+          'app-1',
+          { action: WorkflowAction.APPROVE },
+          SCOPE,
+          ACTOR,
+        ),
+      ).resolves.toBeDefined();
+    });
+  });
+
+  describe('orchestration marker', () => {
+    it('records a direct-admission step on its event and, without remarks, in history', async () => {
+      inState(S.SUBMITTED);
+      await workflow.transition(
+        'app-1',
+        {
+          action: WorkflowAction.START_REVIEW,
+          orchestration: 'DIRECT_ADMISSION',
+        },
+        SCOPE,
+        ACTOR,
+      );
+
+      expect(
+        mockPrisma.outboxEvent.create.mock.calls[0][0].data.payload,
+      ).toMatchObject({
+        orchestration: 'DIRECT_ADMISSION',
+      });
+      expect(
+        mockPrisma.workflowHistory.create.mock.calls[0][0].data.remarks,
+      ).toBe('Recorded as part of a direct admission.');
+    });
+  });
+
+  describe('describeActions', () => {
+    const applicantRow = (status: S, extra: Record<string, unknown> = {}) => ({
+      id: 'app-1',
+      admissionStatus: status,
+      personId: 'person-1',
+      programId: 'prog-1',
+      quotaId: null,
+      categoryId: null,
+      offerExpiresAt: null,
+      academicYearId: 'year-1',
+      submittedAt: new Date(),
+      ...extra,
+    });
+
+    it('lists the legal actions with permission and blockers, never a system action', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(
+        applicantRow(S.APPROVED, {
+          offerExpiresAt: new Date(Date.now() - 1000),
+        }),
+      );
+
+      const result = await workflow.describeActions('app-1', SCOPE, ACTOR);
+
+      expect(result.actions.map((a) => a.action)).not.toContain(
+        WorkflowAction.EXPIRE_OFFER,
+      );
+      const confirm = result.actions.find(
+        (a) => a.action === WorkflowAction.CONFIRM_SEAT,
+      )!;
+      expect(confirm.available).toBe(false);
+      expect(confirm.blockedBy.map((b) => b.code)).toContain('OFFER_EXPIRED');
+      const defer = result.actions.find(
+        (a) => a.action === WorkflowAction.DEFER,
+      )!;
+      expect(defer.blockedBy.map((b) => b.code)).toContain(
+        'DEFERMENT_DISABLED',
+      );
+    });
+
+    it('explains missing documents with the documents', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(
+        applicantRow(S.UNDER_REVIEW),
+      );
+      const missing = [
+        { documentTypeId: 'dt-1', code: 'TC', name: 'Transfer certificate' },
+      ];
+      isChecklistSatisfied.mockResolvedValue({ satisfied: false, missing });
+
+      const result = await workflow.describeActions('app-1', SCOPE, ACTOR);
+      const approve = result.actions.find(
+        (a) => a.action === WorkflowAction.APPROVE,
+      )!;
+
+      expect(approve.blockedBy).toEqual([
+        expect.objectContaining({ code: 'DOCUMENTS_INCOMPLETE', missing }),
+      ]);
+      isChecklistSatisfied.mockResolvedValue({ satisfied: true, missing: [] });
+    });
+
+    it('marks an action the caller lacks permission for as not available', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(
+        applicantRow(S.UNDER_REVIEW),
+      );
+      hasPermission.mockImplementation(
+        async (_u: string, _r: string, p: string) => p !== 'admissions.approve',
+      );
+
+      const result = await workflow.describeActions('app-1', SCOPE, ACTOR);
+      const approve = result.actions.find(
+        (a) => a.action === WorkflowAction.APPROVE,
+      )!;
+
+      expect(approve).toMatchObject({ permitted: false, available: false });
+      expect(result.directAdmission.permitted).toBe(false);
+    });
+
+    it('offers direct admission only under SIMPLE_ADMISSION', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(
+        applicantRow(S.DRAFT, { submittedAt: null }),
+      );
+
+      expect(
+        (await workflow.describeActions('app-1', SCOPE, ACTOR)).directAdmission,
+      ).toMatchObject({
+        offered: false,
+        available: false,
+      });
+
+      policyOverrides[ADMISSION_CONFIG_KEYS.workflowProfile] =
+        'SIMPLE_ADMISSION';
+      const simple = await workflow.describeActions('app-1', SCOPE, ACTOR);
+      expect(simple.profile).toBe('SIMPLE_ADMISSION');
+      expect(simple.directAdmission).toMatchObject({
+        offered: true,
+        fromCurrentState: true,
+        permitted: true,
+        available: true,
+      });
+    });
+
+    it("is scoped: another branch's applicant is not found", async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(null);
+      await expect(
+        workflow.describeActions('app-1', OTHER_BRANCH, ACTOR),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockPrisma.applicant.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            branchId: 'branch-2',
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+    });
+
+    it('writes nothing', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(
+        applicantRow(S.UNDER_REVIEW),
+      );
+      await workflow.describeActions('app-1', SCOPE, ACTOR);
+      expect(mockPrisma.applicant.update).not.toHaveBeenCalled();
+      expect(mockPrisma.workflowHistory.create).not.toHaveBeenCalled();
+      expect(mockPrisma.outboxEvent.create).not.toHaveBeenCalled();
     });
   });
 });

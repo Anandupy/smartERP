@@ -388,6 +388,20 @@ SEC-01 – SEC-09.
 
 ---
 
+### BP-17 — Cancelling or withdrawing a DRAFT fails at the database
+- **Module:** Admissions / workflow
+- **Status:** `OPEN` — found 2026-10-17 while testing configurable workflows; not changed.
+- **Evidence:** `cancel` and `withdraw` include `DRAFT` in their from-states
+  (`workflow.transitions.ts`), but a draft has no `personId` (Person is
+  resolved at `submit`) and `applicant_person_from_submitted_check` requires
+  one for every status except `DRAFT`. The update is refused with a raw
+  `23514`, surfaced as a 500.
+- **Required action:** business decision — permit `CANCELLED`/`WITHDRAWN`
+  without a person in the CHECK (they are terminal and never reach Student),
+  or remove `DRAFT` from both rules and let a draft be deleted instead.
+
+---
+
 ## Infrastructure Dependencies
 
 None identified in this pass beyond BP-10's redaction/retention policy

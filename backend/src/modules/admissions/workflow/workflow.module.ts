@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
 import { WorkflowService } from './workflow.service';
 import { WorkflowController } from './workflow.controller';
+import {
+  ApplicantChecklistController,
+  WorkflowPolicyController,
+} from './workflow-read.controller';
 import { OfferExpiryJob } from './offer-expiry.job';
 import { AdmissionConfigProvider } from '../admission-config.provider';
 import { IdentityModule } from '@/modules/identity/identity.module';
 import { AuthorizationModule } from '@/modules/authorization/authorization.module';
+import { ConfigurationModule } from '@/modules/configuration/configuration.module';
 import { DocumentsModule } from '@/modules/documents/documents.module';
 
 /**
@@ -18,8 +23,17 @@ import { DocumentsModule } from '@/modules/documents/documents.module';
  * Documents has no import back.
  */
 @Module({
-  imports: [IdentityModule, AuthorizationModule, DocumentsModule],
-  controllers: [WorkflowController],
+  imports: [
+    IdentityModule,
+    AuthorizationModule,
+    DocumentsModule,
+    ConfigurationModule,
+  ],
+  controllers: [
+    WorkflowController,
+    WorkflowPolicyController,
+    ApplicantChecklistController,
+  ],
   providers: [WorkflowService, OfferExpiryJob, AdmissionConfigProvider],
   exports: [WorkflowService, OfferExpiryJob, AdmissionConfigProvider],
 })

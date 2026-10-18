@@ -8,6 +8,12 @@ export interface ApplicantWorkflowPayload {
   action: string;
   fromStatus: string;
   toStatus: string;
+  /**
+   * Present when the transition was one step of a larger operation — today
+   * only `DIRECT_ADMISSION` — so a report can tell a direct admission from a
+   * walked one. Absent for an ordinary, individually requested transition.
+   */
+  orchestration?: 'DIRECT_ADMISSION';
 }
 
 /**
