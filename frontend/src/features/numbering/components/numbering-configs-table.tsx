@@ -44,10 +44,14 @@ export function NumberingConfigsTable({
     () => [
       {
         id: "purpose",
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Purpose" />,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Purpose" />
+        ),
         cell: ({ row }) => (
           <div className="min-w-0">
-            <p className="truncate font-medium">{purposeLabel(row.original.purpose)}</p>
+            <p className="truncate font-medium">
+              {purposeLabel(row.original.purpose)}
+            </p>
             <p className="text-muted-foreground truncate text-xs">
               <code>{row.original.purpose}</code>
             </p>
@@ -57,13 +61,18 @@ export function NumberingConfigsTable({
       {
         id: "format",
         enableSorting: false,
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Format" />,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Format" />
+        ),
         cell: ({ row }) => {
           const config = row.original;
-          const rendersYear = config.includeAcademicYear || config.format.includes("{year}");
+          const rendersYear =
+            config.includeAcademicYear || config.format.includes("{year}");
           return (
             <div className="min-w-0 space-y-1.5">
-              <code className="bg-muted rounded px-1.5 py-0.5 text-xs">{config.format}</code>
+              <code className="bg-muted rounded px-1.5 py-0.5 text-xs">
+                {config.format}
+              </code>
               <FormatBreakdown format={config.format} variant="compact" />
               {rendersYear ? (
                 <p className="text-muted-foreground/70 truncate text-xs">
@@ -77,35 +86,51 @@ export function NumberingConfigsTable({
       {
         id: "scope",
         enableSorting: false,
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Scope" />,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Scope" />
+        ),
         cell: ({ row }) => (
-          <span className="text-sm">{SCOPE_LABEL[row.original.scope] ?? row.original.scope}</span>
+          <span className="text-sm">
+            {SCOPE_LABEL[row.original.scope] ?? row.original.scope}
+          </span>
         ),
       },
       {
         id: "allocationMode",
         enableSorting: false,
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Allocation" />,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Allocation" />
+        ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground text-sm">
-            {ALLOCATION_MODE_LABEL[row.original.allocationMode] ?? row.original.allocationMode}
+          // Wraps instead of forcing the table wider than the page, which
+          // pushed Reset, Status and Actions out of view.
+          <span className="text-muted-foreground block min-w-36 text-sm whitespace-normal">
+            {ALLOCATION_MODE_LABEL[row.original.allocationMode] ??
+              row.original.allocationMode}
           </span>
         ),
       },
       {
         id: "resetStrategy",
         enableSorting: false,
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Reset" />,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Reset" />
+        ),
         cell: ({ row }) => (
-          <span className="text-muted-foreground text-sm">
-            {RESET_STRATEGY_LABEL[row.original.resetStrategy] ?? row.original.resetStrategy}
+          // Wraps instead of forcing the table wider than the page, which
+          // pushed Reset, Status and Actions out of view.
+          <span className="text-muted-foreground block min-w-36 text-sm whitespace-normal">
+            {RESET_STRATEGY_LABEL[row.original.resetStrategy] ??
+              row.original.resetStrategy}
           </span>
         ),
       },
       {
         id: "status",
         enableSorting: false,
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Status" />
+        ),
         cell: ({ row }) => (
           <StatusBadge tone={row.original.isActive ? "success" : "neutral"} dot>
             {row.original.isActive ? "Active" : "Inactive"}
@@ -140,7 +165,9 @@ export function NumberingConfigsTable({
                 size="icon-sm"
                 aria-label={`Edit ${purposeLabel(config.purpose)}`}
                 title="Edit"
-                onClick={() => router.push(ROUTES.app.settings.numbering.edit(config.id))}
+                onClick={() =>
+                  router.push(ROUTES.app.settings.numbering.edit(config.id))
+                }
               >
                 <Pencil aria-hidden="true" />
               </Button>
@@ -162,7 +189,9 @@ export function NumberingConfigsTable({
       onRetry={onRetry}
       emptyState={emptyState}
       getRowId={(config) => config.id}
-      onRowClick={(config) => router.push(ROUTES.app.settings.numbering.edit(config.id))}
+      onRowClick={(config) =>
+        router.push(ROUTES.app.settings.numbering.edit(config.id))
+      }
     />
   );
 }
