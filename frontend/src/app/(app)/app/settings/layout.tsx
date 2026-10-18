@@ -1,4 +1,5 @@
 import { SettingsNav } from "@/features/system-settings";
+import { SectionLayout } from "@/shared/components/layout";
 
 /**
  * Layout for the System Settings section.
@@ -13,10 +14,5 @@ export default function SettingsSectionLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="lg:grid lg:grid-cols-[14rem_1fr] lg:gap-8">
-      <SettingsNav className="lg:sticky lg:top-20 lg:self-start" />
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
+  return <SectionLayout nav={<SettingsNav />}>{children}</SectionLayout>;
 }

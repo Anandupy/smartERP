@@ -1,4 +1,5 @@
 import { SecurityNav } from "@/features/security";
+import { SectionLayout } from "@/shared/components/layout";
 
 /**
  * Layout for the Account & Security Center. Mirrors the System Settings
@@ -9,10 +10,5 @@ export default function SecuritySectionLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="lg:grid lg:grid-cols-[16rem_1fr] lg:gap-8">
-      <SecurityNav className="lg:sticky lg:top-20 lg:self-start" />
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
+  return <SectionLayout nav={<SecurityNav />}>{children}</SectionLayout>;
 }

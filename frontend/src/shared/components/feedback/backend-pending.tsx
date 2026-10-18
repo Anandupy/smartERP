@@ -7,6 +7,12 @@ export const BACKEND_PENDING_LABEL = "Backend Pending";
 
 export interface BackendPendingBadgeProps {
   className?: string;
+  /**
+   * Icon only, for tight spaces such as a section navigation item, where the
+   * full pill would truncate the label it annotates. The label stays in the
+   * accessible name and the tooltip, so the state is never visual-only.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -19,7 +25,25 @@ export interface BackendPendingBadgeProps {
  * declared to the user, and searching for `BACKEND_PENDING_LABEL` enumerates
  * every place still waiting on the backend.
  */
-export function BackendPendingBadge({ className }: BackendPendingBadgeProps) {
+export function BackendPendingBadge({
+  className,
+  compact = false,
+}: BackendPendingBadgeProps) {
+  if (compact) {
+    return (
+      <span
+        title={BACKEND_PENDING_LABEL}
+        className={cn(
+          "text-muted-foreground inline-flex shrink-0 items-center",
+          className,
+        )}
+      >
+        <Clock aria-hidden="true" className="size-3.5" />
+        <span className="sr-only">{BACKEND_PENDING_LABEL}</span>
+      </span>
+    );
+  }
+
   return (
     <Badge variant="outline" className={cn("gap-1", className)}>
       <Clock aria-hidden="true" />

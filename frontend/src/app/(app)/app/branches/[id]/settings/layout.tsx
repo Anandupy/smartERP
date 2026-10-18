@@ -1,4 +1,5 @@
 import { BranchSettingsNav } from "@/features/branch";
+import { SectionLayout } from "@/shared/components/layout";
 
 /**
  * Layout for a branch's settings section.
@@ -18,12 +19,8 @@ export default async function BranchSettingsLayout({
   const { id } = await params;
 
   return (
-    <div className="lg:grid lg:grid-cols-[15rem_1fr] lg:gap-8">
-      <BranchSettingsNav
-        branchId={id}
-        className="lg:sticky lg:top-20 lg:self-start"
-      />
-      <div className="min-w-0">{children}</div>
-    </div>
+    <SectionLayout nav={<BranchSettingsNav branchId={id} />}>
+      {children}
+    </SectionLayout>
   );
 }
