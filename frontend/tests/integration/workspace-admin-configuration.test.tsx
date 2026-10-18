@@ -28,9 +28,14 @@ const { resetRouterMock } = await import("@tests/mocks/next-navigation");
 
 const API_BASE = apiConfig.baseURL.replace(/\/$/, "");
 
+// Hoisted so the default is one stable array: an inline `= ["SUPER_ADMIN"]`
+// is a new array on every render, which re-fires the effect below, whose
+// setSession re-renders this component — an infinite loop.
+const SUPER_ADMIN_ROLES = ["SUPER_ADMIN"];
+
 function SignedIn({
   children,
-  roles = ["SUPER_ADMIN"],
+  roles = SUPER_ADMIN_ROLES,
 }: {
   children: React.ReactNode;
   roles?: string[];
