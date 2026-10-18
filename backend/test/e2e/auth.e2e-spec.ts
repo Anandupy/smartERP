@@ -50,6 +50,8 @@ describe('AuthController (e2e)', () => {
           phone: '123' + Date.now(),
           passwordHash: hash,
           role: 'STAFF',
+          organizationId: ctx.organizationId,
+          branchId: ctx.branchId,
         },
       });
 
@@ -81,6 +83,8 @@ describe('AuthController (e2e)', () => {
           phone: '999' + Date.now(),
           passwordHash: hash,
           role: 'STAFF',
+          organizationId: ctx.organizationId,
+          branchId: ctx.branchId,
         },
       });
 
@@ -130,6 +134,8 @@ describe('AuthController (e2e)', () => {
           phone: '888' + Date.now(),
           passwordHash: hash,
           role: 'STAFF',
+          organizationId: ctx.organizationId,
+          branchId: ctx.branchId,
         },
       });
       userId = user.id;
