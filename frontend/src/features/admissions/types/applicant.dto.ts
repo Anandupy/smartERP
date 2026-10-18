@@ -270,9 +270,11 @@ export interface WorkflowTransitionRequest {
 }
 
 /**
- * One row from `GET .../workflow/history`. The shape of a history entry is
- * not confirmed field-by-field by any captured Postman example (the example
- * response is an unexpanded array placeholder) — read defensively.
+ * One row from `GET .../workflow/history` — `WorkflowHistoryDto` in the
+ * OpenAPI document (the Postman example is an unexpanded placeholder, so the
+ * schema is the source). The event time is **`timestamp`**; there is no
+ * `createdAt` on a history row. Fields stay optional so a row that lacks one
+ * degrades to an honest gap rather than a crash.
  */
 export interface WorkflowHistoryEntry {
   id?: string;
@@ -280,8 +282,10 @@ export interface WorkflowHistoryEntry {
   newStatus?: AdmissionApplicationStatus;
   actionType?: string;
   remarks?: string | null;
+  /** A user id, or `SYSTEM` for the scheduled sweep. Never a name. */
   actionBy?: string | null;
-  createdAt?: string;
+  /** ISO 8601 date-time the transition was recorded. */
+  timestamp?: string;
   [key: string]: unknown;
 }
 

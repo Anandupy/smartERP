@@ -260,3 +260,60 @@ export function nextActionSummary(status: AdmissionApplicationStatus): string {
       return "This application was cancelled.";
   }
 }
+
+/**
+ * How a recorded transition reads in the workflow history — past tense,
+ * because it has happened. Covers every action the engine can record,
+ * including the orchestrated `admit` and the system sweep's `expireOffer`,
+ * neither of which is a button and so neither has an `ACTION_PRESENTATION`.
+ */
+const HISTORY_ACTION_LABEL: Record<
+  WorkflowAction | "admit" | "expireOffer",
+  string
+> = {
+  submit: "Application submitted",
+  startReview: "Review started",
+  requestDocuments: "Documents requested",
+  documentsReceived: "Documents received",
+  requestFee: "Fee requested",
+  waitlist: "Waitlisted",
+  approve: "Offer issued",
+  confirmSeat: "Seat confirmed",
+  defer: "Deferred",
+  reject: "Rejected",
+  withdraw: "Withdrawn",
+  cancel: "Cancelled",
+  forceReopen: "Reopened",
+  admit: "Admitted",
+  expireOffer: "Offer expired",
+};
+
+/**
+ * A history row's action in the user's terms. An action this file does not
+ * know is shown as its own words ("someNewAction" → "Some new action") —
+ * the recorded value, made readable, never replaced by a guess.
+ */
+export function historyActionLabel(actionType: string): string {
+  const known = (HISTORY_ACTION_LABEL as Record<string, string>)[actionType];
+  if (known) return known;
+  const words = actionType.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/**
+ * Who performed a recorded transition, as far as the history row itself
+ * says. The row carries a user id or the literal `SYSTEM` — no name — and no
+ * endpoint in this module resolves a user id to a name, so another user is
+ * identified by id rather than by an invented name.
+ */
+export function describeHistoryActor(
+  actionBy: string | null | undefined,
+  currentUserId: string | null | undefined,
+): { label: string; isId: boolean } | null {
+  if (!actionBy) return null;
+  if (actionBy === "SYSTEM") return { label: "System", isId: false };
+  if (currentUserId && actionBy === currentUserId) {
+    return { label: "You", isId: false };
+  }
+  return { label: actionBy, isId: true };
+}
