@@ -211,7 +211,15 @@ The backend documents the scope headers unanimously — `backend/docs/core/conte
 ("Priority 1: Header Resolution"), `execution-context.md`, `guard-pipeline.md`,
 `academic-year.md`, and **18 requests in the Postman collection**:
 
-| Backend documents    | `src/constants/headers.ts` sends | Verdict     |
+> **RESOLVED 2026-10-18.** `src/constants/headers.ts` now sends the documented
+> names — `X-Organization-Id`, `X-Branch-Id`, `X-Academic-Year-Id` — verified
+> against the OpenAPI `@ApiHeader` declarations and
+> `backend/docs/core/frontend-contract-answers.md` §2. Pinned by
+> `tests/unit/workspace-headers.test.ts`. The backend had meanwhile accepted the
+> old names as aliases (`backend pending.md` BP-01), so nothing was failing in
+> practice; the finding below is the original record.
+
+| Backend documents    | `src/constants/headers.ts` sent (until 2026-10-18) | Verdict     |
 | -------------------- | -------------------------------- | ----------- |
 | `X-Organization-Id`  | `X-Tenant-Id`                    | ✗ mismatch  |
 | `X-Branch-Id`        | `X-Branch-Id`                    | ✓ agrees    |

@@ -56,9 +56,9 @@ placeholders (returning `null` until wired):
 | ----------------- | ------------------- | ------------------ |
 | `X-Request-Id`    | request tracing     | active (auto UUID) |
 | `Authorization`   | access token        | placeholder        |
-| `X-Tenant-Id`     | multi-tenancy       | placeholder        |
+| `X-Organization-Id` | organization scope | from `core/workspace` when `ready` |
 | `X-Branch-Id`     | branch scope        | placeholder        |
-| `X-Academic-Year` | academic-year scope | placeholder        |
+| `X-Academic-Year-Id` | academic-year scope | from `core/workspace` when `ready` |
 | `X-Workspace-Id`  | workspace scope     | placeholder        |
 
 Wire one later:

@@ -405,7 +405,8 @@ useWorkspace()` from `@/core/workspace`. Never re-fetch it, never prop-drill it.
 - **`context` from `/auth/me` is a default, not a command.** Seeding order is
   remembered selection → backend default → nothing, always clamped to what is
   currently offered.
-- **Scope headers (`X-Tenant-Id`, `X-Branch-Id`, `X-Academic-Year`) are sent
+- **Scope headers (`X-Organization-Id`, `X-Branch-Id`, `X-Academic-Year-Id` —
+  the documented names) are sent
   only when the scope is `ready`**, so a half-made selection never reaches the
   wire.
 - Sign-out must clear the scope — it is persisted and would otherwise carry to
