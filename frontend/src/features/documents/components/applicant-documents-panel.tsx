@@ -5,31 +5,41 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 
 import { useDocumentRequirements, useDocumentTypes, useOwnerDocuments } from "../hooks/use-documents";
-import { buildChecklist } from "../utils/checklist";
+import {
+  checklistFromServer,
+  type ServerChecklistItem,
+} from "../utils/checklist";
 import { DocumentChecklist } from "./document-checklist";
 
 export interface ApplicantDocumentsPanelProps {
   applicantId: string;
-  programId: string;
-  quotaId: string | null;
-  categoryId: string | null;
+  /**
+   * The applicant's checklist as the backend computes it — which
+   * requirements bind this applicant and where each stands. Supplied by the
+   * route composition from Admissions' checklist read, as plain data.
+   */
+  checklist: readonly ServerChecklistItem[] | undefined;
+  checklistPending: boolean;
+  checklistError: unknown;
+  onRetryChecklist: () => void;
 }
 
 /**
  * The Documents section of the Applicant Journey Hub.
  *
- * Requirements are scoped `programId × quotaId × categoryId` — the
- * `admissionType` axis in the original design is not implemented
- * (module doc §6.4). Documents themselves are owned by `ownerType:
+ * Which requirements apply — organization-wide or this branch's, matched on
+ * programme, quota and category — is the backend's answer, never computed
+ * here (see `checklistFromServer`). Documents themselves are owned by `ownerType:
  * "APPLICANT", ownerId: applicantId` while the applicant exists; once
  * admitted, the durable copies belong to `PERSON`/`ADMISSION`/`ENROLLMENT`
  * instead — this panel only ever shows the applicant's own.
  */
 export function ApplicantDocumentsPanel({
   applicantId,
-  programId,
-  quotaId,
-  categoryId,
+  checklist,
+  checklistPending,
+  checklistError,
+  onRetryChecklist,
 }: ApplicantDocumentsPanelProps) {
   const { requirements, isPending: requirementsPending } =
     useDocumentRequirements();
@@ -43,20 +53,29 @@ export function ApplicantDocumentsPanel({
     return map;
   }, [types]);
 
-  const checklist = useMemo(() => {
+  const items = useMemo(() => {
     const withTypeNames = requirements.map((requirement) => ({
       ...requirement,
       documentType: documentTypesById.get(requirement.documentTypeId),
     }));
-    return buildChecklist(withTypeNames, documents, {
-      programId,
-      quotaId,
-      categoryId,
-    });
-  }, [requirements, documents, documentTypesById, programId, quotaId, categoryId]);
+    return checklistFromServer(checklist ?? [], withTypeNames, documents);
+  }, [checklist, requirements, documents, documentTypesById]);
 
-  if (requirementsPending || documentsPending) {
+  if (requirementsPending || documentsPending || checklistPending) {
     return <p className="text-muted-foreground text-sm">Loading documents…</p>;
+  }
+
+  if (checklistError) {
+    return (
+      <div className="space-y-2">
+        <p className="text-destructive text-sm">
+          The document checklist could not be loaded.
+        </p>
+        <Button type="button" variant="outline" onClick={onRetryChecklist}>
+          Retry
+        </Button>
+      </div>
+    );
   }
 
   if (error) {
@@ -76,7 +95,7 @@ export function ApplicantDocumentsPanel({
     <DocumentChecklist
       ownerType="APPLICANT"
       ownerId={applicantId}
-      items={checklist}
+      items={items}
       documentTypesById={documentTypesById}
     />
   );

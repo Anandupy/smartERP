@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
@@ -21,9 +22,16 @@ import { AuthorizationService } from '@/modules/authorization/authorization.serv
 import { ApplicantWorkflowEvent } from '@/common/events';
 import { ResourceScope, scopedWhere } from '@/common/scope/resource-scope';
 import { ChecklistService } from '@/modules/documents/checklist.service';
-import { AdmissionConfigProvider } from '../admission-config.provider';
+import { ADMISSION_CONFIG_KEYS } from '@/modules/configuration/config.registry';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
 import {
+  AdmissionConfigProvider,
+  AdmissionPolicy,
+} from '../admission-config.provider';
+import {
+  DIRECT_ADMISSION_PLAN,
   findRule,
+  TRANSITIONS,
   TransitionGuard,
   TransitionRule,
   WorkflowAction,
@@ -50,7 +58,71 @@ export interface TransitionRequest {
    * assert that on its own.
    */
   orchestrated?: boolean;
+  /**
+   * The larger operation this transition is one step of, recorded on its
+   * event and, when no reason was given, in its history remarks. Set only by
+   * code — never by a DTO — exactly like `orchestrated`.
+   */
+  orchestration?: 'DIRECT_ADMISSION';
 }
+
+/** Why an offered action cannot be taken right now. */
+export interface WorkflowActionBlocker {
+  code: string;
+  message: string;
+  /** Present for `DOCUMENTS_INCOMPLETE`: the documents still owed. */
+  missing?: unknown;
+}
+
+export interface WorkflowActionDescriptor {
+  action: WorkflowAction;
+  /** The state the action leads to. */
+  to: AdmissionApplicationStatus;
+  remarks: 'REQUIRED' | 'OPTIONAL';
+  /** Whether the caller holds the action's permission. */
+  permitted: boolean;
+  /** Guard failures as of now. Re-checked, under lock, when the action runs. */
+  blockedBy: WorkflowActionBlocker[];
+  /** Permitted and unblocked. */
+  available: boolean;
+  /**
+   * Which operation performs it: the generic transition endpoint, or the
+   * admit operation (the only one that may reach ADMITTED).
+   */
+  via: 'TRANSITION' | 'ADMIT';
+}
+
+export interface WorkflowActionsResult {
+  applicantId: string;
+  status: AdmissionApplicationStatus;
+  profile: AdmissionPolicy['workflowProfile'];
+  /** The instant the policy was resolved for: submission, or now for a draft. */
+  policyAsOf: Date;
+  actions: WorkflowActionDescriptor[];
+  directAdmission: {
+    /** Whether the profile offers direct admission at all. */
+    offered: boolean;
+    /** Whether it can start from the current state. */
+    fromCurrentState: boolean;
+    /** Whether the caller holds every permission the walked steps need. */
+    permitted: boolean;
+    available: boolean;
+  };
+}
+
+/** What a guard needs beyond the locked row. */
+interface GuardContext {
+  actor: WorkflowActor;
+  /** Resolved once per transition, lazily, as of the application's submission. */
+  policy: () => Promise<AdmissionPolicy>;
+}
+
+/** Every permission a direct admission exercises, across all walked steps. */
+export const DIRECT_ADMISSION_PERMISSIONS: readonly string[] = [
+  PERMISSIONS.Admissions.Update,
+  PERMISSIONS.Admissions.Approve,
+  PERMISSIONS.Student.Create,
+];
 
 /**
  * The applicant state machine.
@@ -177,6 +249,7 @@ export class WorkflowService {
           'categoryId',
           'offerExpiresAt',
           'academicYearId',
+          'submittedAt',
         ],
       });
 
@@ -197,7 +270,8 @@ export class WorkflowService {
         });
       }
 
-      await this.assertGuards(rule, locked, scope, tx);
+      const context = this.guardContext(actor, scope, locked);
+      await this.assertGuards(rule, locked, scope, tx, context);
 
       const data: Record<string, unknown> = {
         admissionStatus: rule.to,
@@ -207,7 +281,12 @@ export class WorkflowService {
       const now = new Date();
       for (const column of rule.timestamps ?? []) {
         data[column] =
-          column === 'offerExpiresAt' ? this.offerDeadline(scope, now) : now;
+          column === 'offerExpiresAt'
+            ? this.offerDeadline(
+                (await context.policy()).offerValidityDays,
+                now,
+              )
+            : now;
       }
       if (rule.actorColumn) {
         data[rule.actorColumn] = actor.userId ?? null;
@@ -238,7 +317,11 @@ export class WorkflowService {
           oldStatus: current,
           newStatus: rule.to,
           actionType: rule.action,
-          remarks: request.remarks?.trim() || null,
+          remarks:
+            request.remarks?.trim() ||
+            (request.orchestration === 'DIRECT_ADMISSION'
+              ? 'Recorded as part of a direct admission.'
+              : null),
           actionBy: actor.system ? 'SYSTEM' : (actor.userId ?? 'SYSTEM'),
         },
       });
@@ -255,6 +338,9 @@ export class WorkflowService {
             action: rule.action,
             fromStatus: current,
             toStatus: rule.to,
+            ...(request.orchestration
+              ? { orchestration: request.orchestration }
+              : {}),
           },
           rule.event,
           rule.severity ? { severity: rule.severity } : undefined,
@@ -288,6 +374,169 @@ export class WorkflowService {
       },
       orderBy: { timestamp: 'desc' },
     });
+  }
+
+  /**
+   * The actions legal from an application's current state, for this caller,
+   * under the policy that governs it — the read contract the UI renders from.
+   *
+   * Guards are evaluated by the same code the transition runs, against an
+   * unlocked read: the answer is advice, accurate as of now. The transition
+   * re-evaluates everything under the row lock, so this endpoint can never be
+   * what authorizes an action.
+   */
+  async describeActions(
+    applicantId: string,
+    scope: ResourceScope,
+    actor: WorkflowActor,
+  ): Promise<WorkflowActionsResult> {
+    const applicant = await this.prisma.applicant.findFirst({
+      where: { id: applicantId, ...scopedWhere(scope), deletedAt: null },
+      select: {
+        id: true,
+        admissionStatus: true,
+        personId: true,
+        programId: true,
+        quotaId: true,
+        categoryId: true,
+        offerExpiresAt: true,
+        academicYearId: true,
+        submittedAt: true,
+      },
+    });
+
+    if (!applicant) {
+      throw new NotFoundException('Applicant not found');
+    }
+
+    const row = applicant as unknown as Record<string, unknown>;
+    const context = this.guardContext(actor, scope, row);
+    const policy = await context.policy();
+    const status = applicant.admissionStatus;
+
+    const permissionCache = new Map<string, Promise<boolean>>();
+    const holds = (permission: string) => {
+      if (!permissionCache.has(permission)) {
+        permissionCache.set(
+          permission,
+          actor.userId && actor.role
+            ? this.authorization.hasPermission(
+                actor.userId,
+                actor.role as RoleType,
+                permission,
+              )
+            : Promise.resolve(false),
+        );
+      }
+      return permissionCache.get(permission)!;
+    };
+
+    const actions: WorkflowActionDescriptor[] = [];
+    for (const rule of TRANSITIONS) {
+      if (!rule.from.includes(status) || rule.systemOnly) continue;
+
+      const blockedBy: WorkflowActionBlocker[] = [];
+      for (const guard of rule.guards ?? []) {
+        try {
+          await this.evaluateGuard(
+            guard,
+            rule,
+            row,
+            scope,
+            this.prisma,
+            context,
+          );
+        } catch (error) {
+          if (!(error instanceof HttpException)) throw error;
+          blockedBy.push(this.blockerOf(error));
+        }
+      }
+
+      const permitted = await holds(rule.permission);
+      actions.push({
+        action: rule.action,
+        to: rule.to,
+        remarks: rule.remarks,
+        permitted,
+        blockedBy,
+        available: permitted && blockedBy.length === 0,
+        via: rule.orchestratedOnly ? 'ADMIT' : 'TRANSITION',
+      });
+    }
+
+    const offered = policy.workflowProfile === 'SIMPLE_ADMISSION';
+    const fromCurrentState = DIRECT_ADMISSION_PLAN[status] !== undefined;
+    const permitted = (
+      await Promise.all(DIRECT_ADMISSION_PERMISSIONS.map(holds))
+    ).every(Boolean);
+
+    return {
+      applicantId: applicant.id,
+      status,
+      profile: policy.workflowProfile,
+      policyAsOf: policy.asOf,
+      actions,
+      directAdmission: {
+        offered,
+        fromCurrentState,
+        permitted,
+        available: offered && fromCurrentState && permitted,
+      },
+    };
+  }
+
+  /**
+   * Every document requirement that binds an application and where it stands
+   * on each — computed by the same matching rules the guard enforces, so the
+   * screen and the engine cannot disagree.
+   */
+  async describeChecklist(applicantId: string, scope: ResourceScope) {
+    const applicant = await this.prisma.applicant.findFirst({
+      where: { id: applicantId, ...scopedWhere(scope), deletedAt: null },
+      select: {
+        id: true,
+        admissionStatus: true,
+        personId: true,
+        programId: true,
+        quotaId: true,
+        categoryId: true,
+      },
+    });
+
+    if (!applicant) {
+      throw new NotFoundException('Applicant not found');
+    }
+
+    const items = await this.checklist.describe(
+      {
+        applicantId: applicant.id,
+        branchId: scope.branchId,
+        personId: applicant.personId,
+        programId: applicant.programId,
+        quotaId: applicant.quotaId,
+        categoryId: applicant.categoryId,
+      },
+      scope.organizationId,
+    );
+
+    return {
+      applicantId: applicant.id,
+      status: applicant.admissionStatus,
+      items,
+      outstandingMandatory: items.filter((i) => i.isMandatory && !i.satisfied)
+        .length,
+    };
+  }
+
+  /** The effective policy for an application: as of its submission, or now. */
+  async policyFor(
+    scope: ResourceScope,
+    submittedAt: Date | null,
+  ): Promise<AdmissionPolicy> {
+    return this.config.policy(
+      { organizationId: scope.organizationId, branchId: scope.branchId },
+      submittedAt ?? new Date(),
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -375,10 +624,47 @@ export class WorkflowService {
     locked: Record<string, unknown>,
     scope: ResourceScope,
     tx: PrismaTransactionClient,
+    context: GuardContext,
   ): Promise<void> {
     for (const guard of rule.guards ?? []) {
-      await this.evaluateGuard(guard, rule, locked, scope, tx);
+      await this.evaluateGuard(guard, rule, locked, scope, tx, context);
     }
+  }
+
+  /**
+   * Policy is resolved as of the moment the application entered the workflow
+   * — its `submittedAt` — so an administrator changing the profile or a
+   * switch mid-cycle never changes the process an in-flight application is
+   * following. A draft has not entered it yet and follows the current policy.
+   */
+  private guardContext(
+    actor: WorkflowActor,
+    scope: ResourceScope,
+    row: Record<string, unknown>,
+  ): GuardContext {
+    let policy: Promise<AdmissionPolicy> | undefined;
+    return {
+      actor,
+      policy: () =>
+        (policy ??= this.policyFor(
+          scope,
+          (row.submittedAt as Date | null) ?? null,
+        )),
+    };
+  }
+
+  private blockerOf(error: HttpException): WorkflowActionBlocker {
+    const response = error.getResponse();
+    if (typeof response === 'object' && response !== null) {
+      const body = response as Record<string, unknown>;
+      return {
+        code: typeof body.error === 'string' ? body.error : error.name,
+        message:
+          typeof body.message === 'string' ? body.message : error.message,
+        ...(body.missing !== undefined ? { missing: body.missing } : {}),
+      };
+    }
+    return { code: error.name, message: String(response) };
   }
 
   private async evaluateGuard(
@@ -387,6 +673,7 @@ export class WorkflowService {
     locked: Record<string, unknown>,
     scope: ResourceScope,
     tx: PrismaTransactionClient,
+    context: GuardContext,
   ): Promise<void> {
     const expiresAt = locked.offerExpiresAt as Date | null;
 
@@ -415,44 +702,92 @@ export class WorkflowService {
         return;
 
       case 'DEFERMENT_ENABLED':
-        if (
-          !this.config.defermentEnabled({
-            organizationId: scope.organizationId,
-            branchId: scope.branchId,
-          })
-        ) {
+        // Keeps its original error code: clients already branch on it.
+        if (!(await context.policy()).allowDeferment) {
           throw new BadRequestException({
             error: 'DEFERMENT_DISABLED',
             message: 'Deferment is not enabled for this institution.',
+            policy: ADMISSION_CONFIG_KEYS.allowDeferment,
           });
         }
         return;
 
+      case 'WAITLIST_ENABLED':
+      case 'FEE_STEP_ENABLED':
+      case 'DOCUMENT_REQUEST_ENABLED': {
+        const policy = await context.policy();
+        const [enabled, key] =
+          guard === 'WAITLIST_ENABLED'
+            ? [policy.waitlistEnabled, ADMISSION_CONFIG_KEYS.waitlistEnabled]
+            : guard === 'FEE_STEP_ENABLED'
+              ? [policy.feeStepEnabled, ADMISSION_CONFIG_KEYS.feeStepEnabled]
+              : [
+                  policy.documentRequestEnabled,
+                  ADMISSION_CONFIG_KEYS.documentRequestEnabled,
+                ];
+        if (!enabled) {
+          throw new BadRequestException({
+            error: 'POLICY_DISABLED',
+            message: `The ${rule.action} step is turned off for this branch's admission process.`,
+            policy: key,
+            action: rule.action,
+          });
+        }
+        return;
+      }
+
       case 'DOCUMENT_CHECKLIST_SATISFIED': {
-        // R5 supplies the service; this is the only change the guard ever
-        // needed. "Which stage" is the transition's own — the applicant's
-        // current status and the state it is about to enter — never an
-        // invented ordering over the whole state graph, which stays owned
-        // by workflow.transitions.ts, not the Documents module.
+        // "Which stage" is the transition's own — the applicant's current
+        // status and the state it is about to enter — never an invented
+        // ordering over the whole state graph, which stays owned by
+        // workflow.transitions.ts, not the Documents module.
         const current = locked.admissionStatus as AdmissionApplicationStatus;
-        const { satisfied, missing } = await this.checklist.isSatisfied(
-          {
-            applicantId: locked.id as string,
-            personId: (locked.personId as string | null) ?? null,
-            programId: (locked.programId as string | null) ?? null,
-            quotaId: (locked.quotaId as string | null) ?? null,
-            categoryId: (locked.categoryId as string | null) ?? null,
-          },
-          [current, rule.to],
-          scope.organizationId,
+        await this.assertChecklist(locked, scope, [current, rule.to], tx);
+        return;
+      }
+
+      case 'VERIFIED_REVIEW_CHECKLIST':
+        if ((await context.policy()).workflowProfile !== 'VERIFIED_ADMISSION') {
+          return;
+        }
+        await this.assertChecklist(
+          locked,
+          scope,
+          [
+            AdmissionApplicationStatus.SUBMITTED,
+            AdmissionApplicationStatus.UNDER_REVIEW,
+          ],
           tx,
         );
-        if (!satisfied) {
-          throw new ConflictException({
-            error: 'DOCUMENTS_INCOMPLETE',
+        return;
+
+      case 'DISTINCT_REVIEWER': {
+        if (context.actor.system) return;
+        if ((await context.policy()).workflowProfile !== 'VERIFIED_ADMISSION') {
+          return;
+        }
+        // The reviewer is whoever most recently put the application under
+        // review, read from the persisted history — never from the request.
+        const reviewStart = await tx.workflowHistory.findFirst({
+          where: {
+            entityType: 'APPLICANT',
+            entityId: locked.id as string,
+            organizationId: scope.organizationId,
+            actionType: {
+              in: [WorkflowAction.START_REVIEW, WorkflowAction.FORCE_REOPEN],
+            },
+          },
+          orderBy: { timestamp: 'desc' },
+          select: { actionBy: true },
+        });
+        if (
+          reviewStart?.actionBy &&
+          reviewStart.actionBy === context.actor.userId
+        ) {
+          throw new ForbiddenException({
+            error: 'MAKER_CHECKER_VIOLATION',
             message:
-              'One or more mandatory documents are missing or unverified.',
-            missing,
+              'You started the review of this application, so a different user must approve it.',
           });
         }
         return;
@@ -465,11 +800,36 @@ export class WorkflowService {
     }
   }
 
-  private offerDeadline(scope: ResourceScope, issuedAt: Date): Date {
-    const days = this.config.offerValidityDays(
-      { organizationId: scope.organizationId, branchId: scope.branchId },
-      issuedAt,
+  private async assertChecklist(
+    locked: Record<string, unknown>,
+    scope: ResourceScope,
+    stages: AdmissionApplicationStatus[],
+    tx: PrismaTransactionClient,
+  ): Promise<void> {
+    const { satisfied, missing } = await this.checklist.isSatisfied(
+      {
+        applicantId: locked.id as string,
+        branchId: scope.branchId,
+        personId: (locked.personId as string | null) ?? null,
+        programId: (locked.programId as string | null) ?? null,
+        quotaId: (locked.quotaId as string | null) ?? null,
+        categoryId: (locked.categoryId as string | null) ?? null,
+      },
+      stages,
+      scope.organizationId,
+      tx,
     );
+    if (!satisfied) {
+      throw new ConflictException({
+        error: 'DOCUMENTS_INCOMPLETE',
+        message: 'One or more mandatory documents are missing or unverified.',
+        missing,
+      });
+    }
+  }
+
+  /** The deadline is written once, at issue, and never recomputed. */
+  private offerDeadline(days: number, issuedAt: Date): Date {
     return new Date(issuedAt.getTime() + days * 24 * 60 * 60 * 1000);
   }
 

@@ -76,6 +76,8 @@ describe('Admission conversion', () => {
   const createAdmission = jest.fn();
   const createEnrollment = jest.fn();
   const transition = jest.fn();
+  let profile = 'STANDARD_ADMISSION';
+  const policyFor = jest.fn(async () => ({ workflowProfile: profile }));
   const syncFromApplicantMappings = jest.fn().mockResolvedValue(undefined);
 
   const mockPrisma: any = {
@@ -158,7 +160,7 @@ describe('Admission conversion', () => {
           provide: EnrollmentService,
           useValue: { createInitialEnrollment: createEnrollment },
         },
-        { provide: WorkflowService, useValue: { transition } },
+        { provide: WorkflowService, useValue: { transition, policyFor } },
         { provide: AuthorizationService, useValue: { hasPermission } },
         {
           provide: GuardianshipService,
@@ -173,6 +175,7 @@ describe('Admission conversion', () => {
   afterEach(() => {
     jest.clearAllMocks();
     hasPermission.mockResolvedValue(true);
+    profile = 'STANDARD_ADMISSION';
   });
 
   const errorCode = (e: unknown) =>
@@ -973,6 +976,193 @@ describe('Admission conversion', () => {
       for (const forbidden of ['readmit', 'transfer', 'promote', 'merge']) {
         expect(surface).not.toContain(forbidden);
       }
+    });
+  });
+
+  describe('directAdmit (SIMPLE_ADMISSION)', () => {
+    const draftApplicant = (status = 'DRAFT') => {
+      mockPrisma.applicant.findFirst.mockResolvedValue({
+        ...APPLICANT,
+        admissionStatus: status,
+        personId: null,
+        submittedAt: null,
+      });
+    };
+
+    beforeEach(() => {
+      profile = 'SIMPLE_ADMISSION';
+      transition.mockImplementation(
+        async (_id: string, request: { action: string }) => {
+          if (request.action === WorkflowAction.CONFIRM_SEAT) {
+            lockedAs('SEAT_CONFIRMED');
+          }
+          return { id: 'app-1' };
+        },
+      );
+    });
+
+    it('walks every remaining ordinary step on one transaction, then admits on it', async () => {
+      draftApplicant();
+      lockedAs('DRAFT');
+
+      const result = await conversion.directAdmit(
+        'app-1',
+        REQUEST,
+        SCOPE,
+        ACTOR,
+      );
+
+      expect(result.walked).toEqual([
+        WorkflowAction.SUBMIT,
+        WorkflowAction.START_REVIEW,
+        WorkflowAction.APPROVE,
+        WorkflowAction.CONFIRM_SEAT,
+      ]);
+      const calls = transition.mock.calls;
+      expect(calls.map((c) => c[1].action)).toEqual([
+        WorkflowAction.SUBMIT,
+        WorkflowAction.START_REVIEW,
+        WorkflowAction.APPROVE,
+        WorkflowAction.CONFIRM_SEAT,
+        WorkflowAction.ADMIT,
+      ]);
+      // The same transaction client for every step, the conversion included.
+      const clients = new Set(calls.map((c) => c[4]));
+      expect(clients.size).toBe(1);
+      expect(createStudent.mock.calls[0][1]).toBe(calls[0][4]);
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      // Every step is marked; only admit is orchestrated-only.
+      expect(
+        calls.every((c) => c[1].orchestration === 'DIRECT_ADMISSION'),
+      ).toBe(true);
+      expect(
+        calls.filter((c) => c[1].orchestrated).map((c) => c[1].action),
+      ).toEqual([WorkflowAction.ADMIT]);
+      expect(result.studentCode).toBe('STU0000000123');
+    });
+
+    it('derives the plan from the state read under the lock, not the pre-read', async () => {
+      draftApplicant('DRAFT');
+      lockedAs('UNDER_REVIEW');
+
+      const result = await conversion.directAdmit(
+        'app-1',
+        REQUEST,
+        SCOPE,
+        ACTOR,
+      );
+      expect(result.walked).toEqual([
+        WorkflowAction.APPROVE,
+        WorkflowAction.CONFIRM_SEAT,
+      ]);
+    });
+
+    it('refuses any profile but SIMPLE_ADMISSION before opening a transaction', async () => {
+      profile = 'STANDARD_ADMISSION';
+      draftApplicant();
+
+      await expect(
+        conversion.directAdmit('app-1', REQUEST, SCOPE, ACTOR),
+      ).rejects.toMatchObject({
+        response: { error: 'WORKFLOW_PROFILE_MISMATCH' },
+      });
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(transition).not.toHaveBeenCalled();
+    });
+
+    it('re-checks the profile under the lock', async () => {
+      draftApplicant();
+      lockedAs('DRAFT', { submittedAt: new Date('2026-01-01') });
+      policyFor
+        .mockResolvedValueOnce({ workflowProfile: 'SIMPLE_ADMISSION' })
+        .mockResolvedValueOnce({ workflowProfile: 'STANDARD_ADMISSION' });
+
+      await expect(
+        conversion.directAdmit('app-1', REQUEST, SCOPE, ACTOR),
+      ).rejects.toMatchObject({
+        response: { error: 'WORKFLOW_PROFILE_MISMATCH' },
+      });
+      expect(transition).not.toHaveBeenCalled();
+    });
+
+    it.each(['admissions.update', 'admissions.approve', 'student.create'])(
+      'requires %s',
+      async (missing) => {
+        draftApplicant();
+        hasPermission.mockImplementation(
+          async (_u: string, _r: string, p: string) => p !== missing,
+        );
+        await expect(
+          conversion.directAdmit('app-1', REQUEST, SCOPE, ACTOR),
+        ).rejects.toBeInstanceOf(ForbiddenException);
+        expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['REJECTED', 'WITHDRAWN', 'CANCELLED', 'DEFERRED'])(
+      'refuses an application in %s',
+      async (status) => {
+        draftApplicant(status);
+        await expect(
+          conversion.directAdmit('app-1', REQUEST, SCOPE, ACTOR),
+        ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
+      },
+    );
+
+    it('names the student when the application was already admitted', async () => {
+      draftApplicant('ADMITTED');
+      mockPrisma.student.findFirst.mockResolvedValue({
+        id: 'stu-9',
+        studentCode: 'STU9',
+      });
+
+      await expect(
+        conversion.directAdmit('app-1', REQUEST, SCOPE, ACTOR),
+      ).rejects.toMatchObject({
+        response: { error: 'APPLICANT_ALREADY_ADMITTED', studentId: 'stu-9' },
+      });
+    });
+
+    it('validates placement and numbering before taking the lock', async () => {
+      draftApplicant();
+      mockPrisma.numberSequenceConfig.findMany.mockResolvedValue([
+        { purpose: 'STUDENT_CODE' },
+      ]);
+
+      await expect(
+        conversion.directAdmit('app-1', REQUEST, SCOPE, ACTOR),
+      ).rejects.toMatchObject({
+        response: { error: 'NUMBERING_NOT_PROVISIONED' },
+      });
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('propagates a failed step so the whole transaction rolls back', async () => {
+      draftApplicant();
+      lockedAs('DRAFT');
+      transition.mockRejectedValueOnce(
+        Object.assign(new Error('docs'), {
+          response: { error: 'DOCUMENTS_INCOMPLETE' },
+        }),
+      );
+
+      await expect(
+        conversion.directAdmit('app-1', REQUEST, SCOPE, ACTOR),
+      ).rejects.toThrow('docs');
+      expect(createStudent).not.toHaveBeenCalled();
+    });
+
+    it('leaves the standard admit operation unchanged', async () => {
+      lockedAs('SEAT_CONFIRMED');
+      await conversion.admit('app-1', REQUEST, SCOPE, ACTOR);
+      expect(policyFor).not.toHaveBeenCalled();
+      expect(transition.mock.calls.map((c) => c[1])).toEqual([
+        {
+          action: WorkflowAction.ADMIT,
+          remarks: undefined,
+          orchestrated: true,
+        },
+      ]);
     });
   });
 });

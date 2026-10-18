@@ -136,12 +136,11 @@ export {
 
 // Domain logic
 export {
-  buildChecklist,
+  checklistFromServer,
   checklistSummary,
-  matchesRequirementScope,
   type ChecklistItem,
   type ChecklistItemState,
-  type RequirementScope,
+  type ServerChecklistItem,
 } from "./utils/checklist";
 export {
   toDocumentRequirementCreateRequest,

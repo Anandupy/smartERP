@@ -11,6 +11,7 @@ import {
   CreateDocumentRequirementDto,
   UpdateDocumentRequirementDto,
 } from './dto/document-requirement.dto';
+import { ENFORCEABLE_REQUIREMENT_STAGES } from './checklist.service';
 
 /**
  * The rule that a file must exist (§11.2). Deliberately thin: variance is
@@ -24,6 +25,8 @@ export class DocumentRequirementService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateDocumentRequirementDto, scope: OrganizationScope) {
+    this.assertEnforceableStage(dto.requiredByStage);
+
     if (dto.branchId) {
       await this.assertBranchInScope(dto.branchId, scope);
     }
@@ -49,6 +52,25 @@ export class DocumentRequirementService {
         isMandatory: dto.isMandatory ?? true,
       },
     });
+  }
+
+  /**
+   * Refuse a stage no workflow transition checks.
+   *
+   * A requirement at `DEFERRED`, `REJECTED`, `WITHDRAWN` or `CANCELLED` would
+   * be stored, listed and shown as policy while never blocking anything —
+   * the look of a control without the control. See
+   * `ENFORCEABLE_REQUIREMENT_STAGES`.
+   */
+  private assertEnforceableStage(stage: AdmissionApplicationStatus): void {
+    if (!ENFORCEABLE_REQUIREMENT_STAGES.includes(stage)) {
+      throw new BadRequestException({
+        error: 'UNSUPPORTED_REQUIREMENT_STAGE',
+        message: `No workflow step checks documents at ${stage}, so a requirement there would never be enforced.`,
+        requiredByStage: stage,
+        supportedStages: ENFORCEABLE_REQUIREMENT_STAGES,
+      });
+    }
   }
 
   async findAll(scope: OrganizationScope, branchId?: string) {
@@ -77,6 +99,10 @@ export class DocumentRequirementService {
     scope: OrganizationScope,
   ) {
     const existing = await this.findOne(id, scope);
+
+    if (dto.requiredByStage !== undefined) {
+      this.assertEnforceableStage(dto.requiredByStage);
+    }
 
     if (dto.branchId) {
       await this.assertBranchInScope(dto.branchId, scope);

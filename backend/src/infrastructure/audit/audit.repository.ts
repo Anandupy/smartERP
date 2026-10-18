@@ -147,10 +147,17 @@ export class AuditRepository {
     const where: any = {};
 
     // 1. RBAC Enforcements
+    //
+    // An admin missing the assignment their role is scoped by falls back to
+    // their own rows. Filtering on the missing value would become
+    // `organizationId IS NULL` / `branchId IS NULL`, which matches every
+    // unscoped row in every tenant — public auth and recovery events included.
     if (user.role === 'SUPER_ADMIN') {
       if (query.organizationId) where.organizationId = query.organizationId;
       if (query.branchId) where.branchId = query.branchId;
       if (query.userId) where.userId = query.userId;
+    } else if (!this.hasRoleScope(user)) {
+      where.userId = user.id;
     } else if (user.role === 'ORG_ADMIN') {
       where.organizationId = user.organizationId;
       if (query.branchId) where.branchId = query.branchId;
@@ -408,6 +415,10 @@ export class AuditRepository {
       return log;
     }
 
+    if (!this.hasRoleScope(user)) {
+      return log.userId === user.id ? log : 'FORBIDDEN';
+    }
+
     if (user.role === 'ORG_ADMIN') {
       if (log.organizationId !== user.organizationId) {
         return 'FORBIDDEN';
@@ -428,5 +439,12 @@ export class AuditRepository {
     }
 
     return log;
+  }
+
+  /** Whether an admin carries the assignment their audit scope is keyed by. */
+  private hasRoleScope(user: any): boolean {
+    if (user.role === 'ORG_ADMIN') return Boolean(user.organizationId);
+    if (user.role === 'BRANCH_ADMIN') return Boolean(user.branchId);
+    return true;
   }
 }

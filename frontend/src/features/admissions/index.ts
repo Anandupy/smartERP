@@ -57,6 +57,10 @@ export {
   type EditApplicantScreenProps,
 } from "./components/edit-applicant-screen";
 export {
+  AdmissionWorkflowSettingsScreen,
+  ADMISSION_POLICY_WRITE_PERMISSION,
+} from "./components/admission-workflow-settings-screen";
+export {
   ApplicantJourneyHubScreen,
   type ApplicantJourneyHubScreenProps,
 } from "./components/applicant-journey-hub-screen";
@@ -109,16 +113,41 @@ export {
   toApplicantRequest,
 } from "./mappers/applicant.mapper";
 
-// Domain logic
 export {
+  useAdmissionPolicy,
+  useApplicantChecklist,
+  useApplicantWorkflowActions,
+  useClearAdmissionPolicyValue,
+  useDirectAdmitApplicant,
+  useSetAdmissionPolicyValue,
+} from "./hooks/use-workflow-policy";
+
+// Presentation — which actions are legal is the backend's to say
+export {
+  ACTION_PRESENTATION,
+  PROFILE_META,
   STATUS_MEANING,
-  actionsFor,
-  isAdmitEligible,
+  describeBlocker,
   nextActionSummary,
-  type WorkflowActionDescriptor,
+  type WorkflowActionPresentation,
 } from "./utils/workflow";
 
 // Contracts
+export {
+  ADMISSION_POLICY_KEYS,
+  ADMISSION_WORKFLOW_PROFILES,
+  type AdmissionPolicyDto,
+  type AdmissionPolicyField,
+  type AdmissionWorkflowProfile,
+  type ApplicantChecklistDto,
+  type ApplicantChecklistItem,
+  type ChecklistItemStatus,
+  type DirectAdmitApplicantResponse,
+  type PolicySource,
+  type WorkflowActionAvailability,
+  type WorkflowActionBlocker,
+  type WorkflowActionsDto,
+} from "./types/workflow-policy.dto";
 export {
   ADMISSION_APPLICATION_STATUSES,
   WORKFLOW_ACTIONS,

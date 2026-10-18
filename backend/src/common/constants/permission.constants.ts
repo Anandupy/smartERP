@@ -151,6 +151,14 @@ export const PERMISSIONS = {
     View: 'settings.view',
     Manage: 'settings.manage',
   },
+  /**
+   * Writing business-policy configuration, one permission per category
+   * (F2 §10 Q2). Changing admission policy reshapes how every application in
+   * a branch is processed, so it is not implied by `settings.manage`.
+   */
+  Config: {
+    AdmissionsWrite: 'config.admissions.write',
+  },
   Reports: {
     View: 'reports.view',
     Export: 'reports.export',

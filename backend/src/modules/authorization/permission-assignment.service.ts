@@ -8,6 +8,8 @@ import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { RoleType, OverrideType } from '@/generated/client';
 import { LoggerService } from '@/common/logger/logger.service';
 import { RequestContextService } from '@/common/logger/request-context.service';
+import { RequestContext } from '@/common/logger/request-context.middleware';
+import { assertOrganizationInScope } from '@/common/scope/resource-scope';
 import {
   RolePermissionsUpdatedEvent,
   UserPermissionOverrideUpdatedEvent,
@@ -136,6 +138,14 @@ export class PermissionAssignmentService {
    * Get direct permission overrides for a user
    */
   async getUserOverrides(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true },
+    });
+    if (user) {
+      this.assertUserInScope(user, this.requestContextService.getContext());
+    }
+
     return this.prisma.userPermissionOverride.findMany({
       where: { userId },
       include: {
@@ -199,6 +209,7 @@ export class PermissionAssignmentService {
     if (!user) {
       throw new NotFoundException(`User with ID "${userId}" not found`);
     }
+    this.assertUserInScope(user, context);
 
     // Verify permission exists
     const permission = await this.prisma.permission.findUnique({
@@ -280,6 +291,14 @@ export class PermissionAssignmentService {
   ) {
     const context = this.requestContextService.getContext();
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true },
+    });
+    if (user) {
+      this.assertUserInScope(user, context);
+    }
+
     const existing = await this.prisma.userPermissionOverride.findUnique({
       where: {
         userId_permissionId: {
@@ -324,5 +343,18 @@ export class PermissionAssignmentService {
     );
 
     return { success: true, message: 'Override successfully removed' };
+  }
+
+  /**
+   * Overrides are keyed by user id alone, so without this an ORG_ADMIN could
+   * read, grant or deny permissions for a user in another organization —
+   * including that organization's own admins. SUPER_ADMIN and internal
+   * callers (no request context) are unrestricted, as elsewhere.
+   */
+  private assertUserInScope(
+    user: { organizationId: string | null },
+    context: RequestContext | undefined,
+  ): void {
+    assertOrganizationInScope(context, user.organizationId);
   }
 }

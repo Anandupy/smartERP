@@ -21,6 +21,7 @@ import { getErrorMessage } from "@/lib";
 import { Spinner } from "@/shared/components/feedback";
 
 import { useAdmitApplicant } from "../hooks/use-applicants";
+import { useDirectAdmitApplicant } from "../hooks/use-workflow-policy";
 import type {
   AdmitApplicantResponse,
   ApplicantDto,
@@ -53,6 +54,14 @@ export interface AdmitApplicantDialogProps {
    * the caller can resolve it to a display path without a second read.
    */
   onAdmitted: (result: AdmitApplicantResponse, academicUnitId: string) => void;
+  /**
+   * `admit` (default): the final step of the standard process, from a
+   * confirmed seat. `direct`: SIMPLE_ADMISSION's one-step admission — the
+   * same review, but `POST .../direct-admit`, which also runs the remaining
+   * submit, review, offer and seat-confirmation steps in the same backend
+   * transaction.
+   */
+  mode?: "admit" | "direct";
 }
 
 /**
@@ -83,9 +92,14 @@ export function AdmitApplicantDialog({
   documentsSummary,
   renderPersonPanel,
   onAdmitted,
+  mode = "admit",
 }: AdmitApplicantDialogProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
-  const admit = useAdmitApplicant(applicant.id);
+  const standardAdmit = useAdmitApplicant(applicant.id);
+  const directAdmit = useDirectAdmitApplicant(applicant.id);
+  const admit = mode === "direct" ? directAdmit : standardAdmit;
+  const isDirect = mode === "direct";
+  const actionLabel = isDirect ? "Admit student" : "Complete admission";
   const { branch, academicYear } = useWorkspace();
 
   const form = useZodForm(admitFormSchema, {
@@ -116,21 +130,26 @@ export function AdmitApplicantDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GraduationCap aria-hidden="true" />
-            Complete admission for {applicant.displayName}?
+            {isDirect ? "Admit" : "Complete admission for"}{" "}
+            {applicant.displayName}?
           </DialogTitle>
           <DialogDescription>
-            This will permanently complete the admission transaction. A
-            Student, Admission and initial Enrollment will be created, and
-            the applicant will move to Admitted — all in one backend
-            transaction. If any step fails, nothing is created.
+            {isDirect
+              ? "Review the details, choose the section and admit. Submission, review, the offer and seat confirmation are recorded automatically, then the Student, Admission and initial Enrollment are created — all in one backend transaction. Identity checks, required documents and numbering still apply; if any step fails, nothing is changed."
+              : "This will permanently complete the admission transaction. A Student, Admission and initial Enrollment will be created, and the applicant will move to Admitted — all in one backend transaction. If any step fails, nothing is created."}
           </DialogDescription>
         </DialogHeader>
 
         {isPending ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <Spinner size="lg" label="Completing admission" />
+            <Spinner
+              size="lg"
+              label={isDirect ? "Admitting student" : "Completing admission"}
+            />
             <div className="space-y-1">
-              <p className="text-sm font-medium">Completing admission…</p>
+              <p className="text-sm font-medium">
+                {isDirect ? "Admitting student…" : "Completing admission…"}
+              </p>
               <p className="text-muted-foreground text-xs">
                 Creating the student, admission and enrollment records in one
                 transaction. This will only take a moment.
@@ -186,8 +205,9 @@ export function AdmitApplicantDialog({
                     Admission could not be completed
                   </p>
                   <p className="text-muted-foreground mt-1 text-xs">
-                    {getErrorMessage(submitError)} No Student, Admission or
-                    Enrollment was created by the failed transaction.
+                    {getErrorMessage(submitError)} Nothing was changed: no
+                    Student, Admission or Enrollment was created
+                    {isDirect ? ", and the application is as it was" : ""}.
                   </p>
                 </div>
               ) : null}
@@ -202,7 +222,7 @@ export function AdmitApplicantDialog({
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isPending}>
-                  Complete admission
+                  {actionLabel}
                 </Button>
               </DialogFooter>
             </form>

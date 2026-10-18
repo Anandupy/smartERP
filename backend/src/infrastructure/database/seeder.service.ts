@@ -455,6 +455,12 @@ export class SeederService implements OnApplicationBootstrap {
         categoryCode: 'SETTINGS',
         description: 'Manage settings & permissions',
       },
+      {
+        name: PERMISSIONS.Config.AdmissionsWrite,
+        categoryCode: 'SETTINGS',
+        description:
+          'Change admission workflow policy (profile, offer window, optional steps)',
+      },
 
       // Audit
       {
@@ -569,6 +575,7 @@ export class SeederService implements OnApplicationBootstrap {
       PERMISSIONS.Attendance.Report,
       PERMISSIONS.Settings.View,
       PERMISSIONS.Settings.Manage,
+      PERMISSIONS.Config.AdmissionsWrite,
       PERMISSIONS.Audit.View,
       PERMISSIONS.Audit.Export,
       PERMISSIONS.Communication.View,

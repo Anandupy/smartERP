@@ -16,6 +16,7 @@ import { LoggerModule } from '@/common/logger/logger.module';
 import { RequestContextMiddleware } from '@/common/logger/request-context.middleware';
 
 import { AuthModule } from '@/modules/auth/auth.module';
+import { ConfigurationModule } from '@/modules/configuration/configuration.module';
 import { SystemSettingsModule } from '@/modules/system-settings/system-settings.module';
 import { OrganizationModule } from '@/modules/organization/organization.module';
 import { BranchModule } from '@/modules/branch/branch.module';
@@ -75,6 +76,7 @@ import { PublicRouteThrottlerGuard } from '@/common/throttling/public-route-thro
     WorkspaceModule,
     WorkspaceSetupModule,
     SystemSettingsModule,
+    ConfigurationModule,
     OrganizationModule,
     BranchModule,
     AcademicYearModule,

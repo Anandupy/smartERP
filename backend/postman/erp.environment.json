@@ -58,6 +58,11 @@
       "enabled": true
     },
     {
+      "key": "key",
+      "value": "",
+      "enabled": true
+    },
+    {
       "key": "orgId",
       "value": "",
       "enabled": true
@@ -273,12 +278,22 @@
       "enabled": true
     },
     {
+      "key": "documentTypeId",
+      "value": "",
+      "enabled": true
+    },
+    {
       "key": "entityId",
       "value": "",
       "enabled": true
     },
     {
-      "key": "documentTypeId",
+      "key": "requirementId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "documentId",
       "value": "",
       "enabled": true
     },
@@ -294,11 +309,6 @@
     },
     {
       "key": "appliesToCategoryId",
-      "value": "",
-      "enabled": true
-    },
-    {
-      "key": "documentId",
       "value": "",
       "enabled": true
     },
@@ -334,6 +344,6 @@
     }
   ],
   "_postman_variable_scope": "environment",
-  "_postman_exported_at": "2026-10-10T19:59:40.487Z",
+  "_postman_exported_at": "2026-10-17T18:33:25.691Z",
   "_postman_exported_using": "CampusFlow ERP Generator v2"
 }

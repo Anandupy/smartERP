@@ -32,6 +32,7 @@ sequenceDiagram
 2. **Context Enrichment**: `DomainEvent` represents **WHAT** happened (`eventId`, `eventName`, `occurredAt`, `aggregateId`, `aggregateType`, `version`, `metadata`). Context information (**WHO** performed it: `userId`, `requestId`, `role`, `organizationId`, `branchId`, `academicYearId`, `ipAddress`) is supplied by `RequestContextService` using Node's `AsyncLocalStorage`.
 3. **Historical Data Integrity**: The `AuditLog` table does **NOT** enforce foreign key constraints on business tables (`User`, `Branch`, `Organization`). Audit history survives deletion of business entities.
 4. **Field-Level Diff Support**: `AuditLog` supports field-level diffs (`changes` JSONB field containing array of `{ field, oldValue, newValue }`).
+5. **No Live Credentials**: `AuditEventMapper` replaces credential-bearing payload keys (`rawOtp`, `otp`, `resetToken`, `token`, `refreshToken`, `accessToken`, `password`, `passwordHash`, `twoFactorSecret`) with `[REDACTED]` at any depth before a row is written. Recovery events carry the raw reset token and OTP to the communication subscriber; the audit copy must not.
 
 ---
 
@@ -211,8 +212,8 @@ All query endpoints are protected under `JwtAuthGuard` and `RolesGuard`. The API
 | User Role | Access Boundaries | enforce Scoping |
 | :--- | :--- | :--- |
 | `SUPER_ADMIN` | Global Access | None. Can search across all organizations, branches, and users. |
-| `ORG_ADMIN` | Organization Boundary | Restricted strictly to logs matching their own `organizationId`. |
-| `BRANCH_ADMIN` | Branch Boundary | Restricted strictly to logs matching their own `branchId`. |
+| `ORG_ADMIN` | Organization Boundary | Restricted strictly to logs matching their own `organizationId`. Without an assigned organization, falls back to self-access. |
+| `BRANCH_ADMIN` | Branch Boundary | Restricted strictly to logs matching their own `branchId`. Without an assigned branch, falls back to self-access. |
 | `STAFF` | Self-Access | Restricted strictly to logs matching their own `userId`. |
 | `STUDENT` | Self-Access | Restricted strictly to logs matching their own `userId`. |
 | `PARENT` | Self-Access | Restricted strictly to logs matching their own `userId`. |

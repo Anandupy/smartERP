@@ -88,9 +88,16 @@ contract directly against the Postman collection and rebuilt the hook:
 `useDocumentRequirements()` now takes no arguments, fetches the complete
 branch-scoped list (from `useDocumentsBranch()`, mirroring
 `useAdmissionMastersBranch()`), and narrowing by program/quota/category
-happens client-side via `matchesRequirementScope()` in `utils/checklist.ts` —
-consumed by both `buildChecklist()` (the Applicant panel) and the new
-Document Requirements directory's filters.
+happened client-side via `matchesRequirementScope()` in `utils/checklist.ts`.
+
+> **Superseded 2026-10-17.** That client-side matching ignored a
+> requirement's branch, so the Applicant panel could list another branch's
+> requirements. The panel now renders the backend's own checklist
+> (`GET /admissions/applicants/:id/checklist`, the rules the workflow guards
+> enforce), handed in by the route composition as plain data;
+> `checklistFromServer()` only attaches the requirement and document records
+> the rows need to act. `matchesRequirementScope()` and `buildChecklist()`
+> were removed. See `docs/admission-lifecycle-module.md` §4.10.
 
 **2. Admin CRUD for both configuration resources.** The R5 foundation phase
 shipped `DocumentType` and `DocumentRequirement` as read-only — "a separate
@@ -189,7 +196,6 @@ them; tracked in full in [`backend-gaps.md`](./backend-gaps.md#documents):
 handlers; `tests/integration/document-types.test.tsx` and
 `tests/integration/document-requirements.test.tsx` drive the directory,
 create, edit, activate/deactivate and delete flows.
-`tests/unit/document-checklist.test.ts` covers `matchesRequirementScope()`
-and `buildChecklist()`'s scope-matching directly, since that is the one piece
-of logic this milestone moved from (assumed) server-side filtering to
-client-side.
+`tests/unit/document-checklist.test.ts` covers `checklistFromServer()` —
+that it renders exactly the server's requirements, maps each status, and
+attaches the right document — and `checklistSummary()`.

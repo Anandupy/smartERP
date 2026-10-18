@@ -61,7 +61,24 @@ export type TransitionGuard =
   | 'OFFER_NOT_EXPIRED'
   | 'OFFER_EXPIRED'
   | 'DEFERMENT_ENABLED'
-  | 'DOCUMENT_CHECKLIST_SATISFIED';
+  | 'DOCUMENT_CHECKLIST_SATISFIED'
+  /** `admissions.waitlist_enabled` — a policy switch, not an edge change. */
+  | 'WAITLIST_ENABLED'
+  /** `admissions.fee_step_enabled`. */
+  | 'FEE_STEP_ENABLED'
+  /** `admissions.document_request_enabled`. */
+  | 'DOCUMENT_REQUEST_ENABLED'
+  /**
+   * VERIFIED_ADMISSION only: documents owed at `SUBMITTED` and
+   * `UNDER_REVIEW` must be verified before review starts. A no-op under every
+   * other profile, where those documents are checked at approval as before.
+   */
+  | 'VERIFIED_REVIEW_CHECKLIST'
+  /**
+   * VERIFIED_ADMISSION only: the approver may not be the user who started
+   * the review. Read from `WorkflowHistory`, never from the request.
+   */
+  | 'DISTINCT_REVIEWER';
 
 export interface TransitionRule {
   action: WorkflowAction;
@@ -114,9 +131,13 @@ export interface TransitionRule {
 /**
  * Every legal edge.
  *
- * `SEAT_CONFIRMED → ADMITTED` is absent on purpose (see `WorkflowAction.ADMIT`),
- * so `ADMITTED` is currently unreachable — which is correct until Phase 5
- * exists to make it mean something.
+ * `SEAT_CONFIRMED → ADMITTED` is the one `orchestratedOnly` edge: it is
+ * reachable only through `AdmissionConversionService` (`admit` and, for the
+ * SIMPLE_ADMISSION profile, `directAdmit`), never through the generic
+ * workflow endpoint.
+ *
+ * Workflow profiles and policy switches add *guards* to these rows; they
+ * never add, remove or redirect an edge.
  */
 export const TRANSITIONS: readonly TransitionRule[] = [
   {
@@ -125,6 +146,9 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     to: S.SUBMITTED,
     permission: PERMISSIONS.Admissions.Update,
     remarks: 'OPTIONAL',
+    // Documents owed at DRAFT or SUBMITTED. Before this guard existed a
+    // requirement at either stage was accepted and never checked.
+    guards: ['DOCUMENT_CHECKLIST_SATISFIED'],
     timestamps: ['submittedAt'],
     event: 'applicant.submitted',
   },
@@ -134,6 +158,7 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     to: S.UNDER_REVIEW,
     permission: PERMISSIONS.Admissions.Update,
     remarks: 'OPTIONAL',
+    guards: ['VERIFIED_REVIEW_CHECKLIST'],
     event: 'applicant.review_started',
   },
   {
@@ -142,6 +167,7 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     to: S.DOCUMENT_PENDING,
     permission: PERMISSIONS.Admissions.Update,
     remarks: 'REQUIRED',
+    guards: ['DOCUMENT_REQUEST_ENABLED'],
     event: 'applicant.documents_requested',
   },
   {
@@ -159,6 +185,7 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     to: S.FEE_PENDING,
     permission: PERMISSIONS.Admissions.Update,
     remarks: 'OPTIONAL',
+    guards: ['FEE_STEP_ENABLED'],
     event: 'applicant.fee_requested',
   },
   {
@@ -167,6 +194,7 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     to: S.WAITLISTED,
     permission: PERMISSIONS.Admissions.Approve,
     remarks: 'REQUIRED',
+    guards: ['WAITLIST_ENABLED'],
     event: 'applicant.waitlisted',
   },
   {
@@ -176,7 +204,7 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     to: S.APPROVED,
     permission: PERMISSIONS.Admissions.Approve,
     remarks: 'OPTIONAL',
-    guards: ['DOCUMENT_CHECKLIST_SATISFIED'],
+    guards: ['DOCUMENT_CHECKLIST_SATISFIED', 'DISTINCT_REVIEWER'],
     timestamps: ['approvedAt', 'offerIssuedAt', 'offerExpiresAt'],
     actorColumn: 'approvedBy',
     event: 'applicant.offer_issued',
@@ -187,7 +215,9 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     to: S.SEAT_CONFIRMED,
     permission: PERMISSIONS.Admissions.Update,
     remarks: 'OPTIONAL',
-    guards: ['OFFER_NOT_EXPIRED'],
+    // Documents owed at APPROVED or SEAT_CONFIRMED — the latter had no check
+    // anywhere before this guard.
+    guards: ['OFFER_NOT_EXPIRED', 'DOCUMENT_CHECKLIST_SATISFIED'],
     timestamps: ['seatConfirmedAt'],
     event: 'applicant.seat_confirmed',
   },
@@ -285,6 +315,10 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     // creating a learner identity is a bigger power than approving a form.
     permission: PERMISSIONS.Admissions.Approve,
     remarks: 'OPTIONAL',
+    // Documents owed at SEAT_CONFIRMED or ADMITTED. Runs inside the admit
+    // transaction, under the applicant lock, after the student rows are
+    // written — so a refusal rolls all of them back.
+    guards: ['DOCUMENT_CHECKLIST_SATISFIED'],
     event: 'applicant.admitted',
     orchestratedOnly: true,
   },
@@ -342,3 +376,54 @@ export function actionsFrom(state: S): WorkflowAction[] {
 export function statesWithNoExit(): S[] {
   return Object.values(S).filter((state) => actionsFrom(state).length === 0);
 }
+
+/**
+ * Every stage a document requirement can be enforced at: the union of `from`
+ * and `to` over the rules that carry `DOCUMENT_CHECKLIST_SATISFIED`, because
+ * the engine evaluates requirements at `[current, target]`.
+ *
+ * Documents keeps its own copy (`ENFORCEABLE_REQUIREMENT_STAGES`) so the
+ * module dependency runs one way; a unit test asserts they are equal.
+ */
+export function checklistEnforcedStages(): S[] {
+  const stages = new Set<S>();
+  for (const rule of TRANSITIONS) {
+    if (!rule.guards?.includes('DOCUMENT_CHECKLIST_SATISFIED')) continue;
+    rule.from.forEach((state) => stages.add(state));
+    stages.add(rule.to);
+  }
+  return Object.values(S).filter((state) => stages.has(state));
+}
+
+/**
+ * The existing edges a SIMPLE_ADMISSION direct admission walks, by the state
+ * it starts from.
+ *
+ * Not a shortcut: every step is an ordinary rule run through the engine on
+ * one transaction — permission, guards, timestamps, history and event each
+ * time — and `admit` follows on the same transaction. A state not listed here
+ * (a detour that cannot reach `SEAT_CONFIRMED` directly, or a terminal state)
+ * cannot be directly admitted. A unit test asserts every consecutive pair is
+ * a legal edge.
+ */
+export const DIRECT_ADMISSION_PLAN: Readonly<
+  Partial<Record<S, readonly WorkflowAction[]>>
+> = {
+  [S.DRAFT]: [
+    WorkflowAction.SUBMIT,
+    WorkflowAction.START_REVIEW,
+    WorkflowAction.APPROVE,
+    WorkflowAction.CONFIRM_SEAT,
+  ],
+  [S.SUBMITTED]: [
+    WorkflowAction.START_REVIEW,
+    WorkflowAction.APPROVE,
+    WorkflowAction.CONFIRM_SEAT,
+  ],
+  [S.UNDER_REVIEW]: [WorkflowAction.APPROVE, WorkflowAction.CONFIRM_SEAT],
+  [S.DOCUMENT_PENDING]: [WorkflowAction.APPROVE, WorkflowAction.CONFIRM_SEAT],
+  [S.FEE_PENDING]: [WorkflowAction.APPROVE, WorkflowAction.CONFIRM_SEAT],
+  [S.WAITLISTED]: [WorkflowAction.APPROVE, WorkflowAction.CONFIRM_SEAT],
+  [S.APPROVED]: [WorkflowAction.CONFIRM_SEAT],
+  [S.SEAT_CONFIRMED]: [],
+};

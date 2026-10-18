@@ -1,0 +1,65 @@
+/// Where a configuration value applies. Resolution reads BRANCH, then
+/// ORGANIZATION, then SYSTEM, then the definition's default — most specific
+/// wins. See docs/planning/00-foundation/02-configuration.md (F2) §3.3.
+enum ConfigScope {
+  SYSTEM
+  ORGANIZATION
+  BRANCH
+}
+
+enum ConfigValueType {
+  STRING
+  INT
+  DECIMAL
+  BOOLEAN
+  ENUM
+  JSON
+}
+
+/// The typed key registry (F2 D1). Rows are written from the code that reads
+/// them — never created through the API (F2 D8) — so every key that can be set
+/// has a consumer and a validator.
+model ConfigDefinition {
+  key           String          @id
+  category      String
+  valueType     ConfigValueType
+  /// The SYSTEM fallback. Never null: resolution always has an answer.
+  defaultValue  Json
+  allowedScopes ConfigScope[]
+  /// Versioned keys are policy evidence: every change requires a reason.
+  isVersioned   Boolean         @default(true)
+  description   String
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  values ConfigValue[]
+}
+
+/// One effective-dated value of one key at one scope (F2 D3).
+///
+/// Append-only: a change closes the current row (`effectiveTo = now`) and
+/// inserts its successor, so `resolve(key, scope, asOf)` can always answer
+/// what the rule *was*. The invariants that make that trustworthy — one
+/// current row per key and scope, no overlapping windows, `scopeId` present
+/// exactly when the scope is not SYSTEM — live in the migration.
+model ConfigValue {
+  id            String      @id @default(uuid(7))
+  definitionKey String
+  scopeType     ConfigScope
+  /// Null exactly when `scopeType = SYSTEM`.
+  scopeId       String?
+  value         Json
+  effectiveFrom DateTime    @default(now())
+  /// Null while the value is in force.
+  effectiveTo   DateTime?
+  /// Increments per key and scope.
+  version       Int
+  setBy         String?
+  setAt         DateTime    @default(now())
+  reason        String?
+
+  definition ConfigDefinition @relation(fields: [definitionKey], references: [key])
+
+  @@index([definitionKey, scopeType, scopeId])
+}

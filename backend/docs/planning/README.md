@@ -90,6 +90,7 @@ this audit — see the document for the full carry-forward classification.
 | :--- | :--- | :--- | :--- |
 | **★** | **Admission → Enrollment → Student — build blueprint** | `planned` ⚠️ 12 open questions, 12 Phase-0 blockers | [`student-admission-enrollment-architecture.md`](student-admission-enrollment-architecture.md) |
 | **★★** | **Core admission lifecycle — operational reference** | `reconciled` ✅ guardian blockers closed 2026-08-16 (§8.7) — `BILLING` address resolution and Guardian→Person backfill for pre-existing rows remain `DEFERRED` | [`core-admission-lifecycle-specification.md`](core-admission-lifecycle-specification.md) |
+| **W1** | Configurable admission workflow — profiles & policy | `implemented` ✅ 2026-10-17 — three profiles, six policy keys, direct admission, D1–D3 fixed; eligibility and a separate approval state `DEFERRED` (BD3/BD4) | [`configurable-admission-workflow-research.md`](configurable-admission-workflow-research.md), [`../modules/admissions.md` §12](../modules/admissions.md#12-configurable-admission-workflows) |
 | **P0** | Foundation blockers *(numbering, BOLA, outbox, row locks)* | `implemented` ✅ 2026-08-09 | blueprint §47 Phase 0 |
 | **P1** | Identity foundation — Person, crypto, blind index | `implemented` ✅ 2026-08-09 ⚠️ recovery custody ceremony outstanding | [`../core/key-custody.md`](../core/key-custody.md) |
 | **P2** | Student identity | `implemented` ✅ 2026-08-10 | blueprint §11, §13, §39, §41 |
@@ -98,7 +99,7 @@ this audit — see the document for the full carry-forward classification.
 | **P5** | `admit()` — applicant → student conversion | `implemented` ✅ 2026-08-13 ⚠️ an existing Student is refused, not readmitted | blueprint §31.1, §33, §35, §38 |
 | **P5.5** | Pipeline verification & hardening | `verified` ✅ 2026-08-13 ⚠️ 2 carry-forward items | this document, *Pipeline verification* |
 | **F1** | Data protection & key custody | `planned` ⚠️ 1 legal question + backup-retention prerequisite | [`00-foundation/01-data-protection.md`](00-foundation/01-data-protection.md) |
-| **F2** | Configuration engine | `planned` ⚠️ 2 open questions | [`00-foundation/02-configuration.md`](00-foundation/02-configuration.md) |
+| **F2** | Configuration engine | `partially implemented` ✅ 2026-10-17 — registry, effective-dated values, resolution and writes; Q2 resolved (per-category permission); caching (Q1), future-dated changes and job binding `DEFERRED` | [`00-foundation/02-configuration.md`](00-foundation/02-configuration.md), [`../modules/configuration.md`](../modules/configuration.md) |
 | **F3** | Numbering & identity engine | `planned` ⚠️ 2 open questions | [`00-foundation/03-numbering.md`](00-foundation/03-numbering.md) |
 | — | Cross-cutting principles | `not started` | `00-foundation/00-principles.md` |
 | **I1** | Person | `planned` ⚠️ 2 open questions | [`01-identity-core/01-person.md`](01-identity-core/01-person.md) |
@@ -399,6 +400,22 @@ read endpoints now also return a computed `displayPath` ("Grade 1 → Division
 A") and `isPlacementTarget`. Capacity remains `DEFERRED` (unchanged
 `REQUIRES BUSINESS DECISION`); roll number and the class-list lock were
 confirmed to already match specification. No schema change.
+
+## Configurable admission workflow
+
+[`configurable-admission-workflow-research.md`](configurable-admission-workflow-research.md)
+(2026-10-17; **implemented the same day** — see
+[`../modules/admissions.md` §12](../modules/admissions.md#12-configurable-admission-workflows))
+asks whether an organization
+or branch can run a shorter or stricter admission process without changing the
+pipeline. Recommendation: three named profiles over six F2 policy keys,
+resolved SYSTEM → ORGANIZATION → BRANCH and effective-dated, with the thirteen
+states and their edges unchanged, plus one orchestrated `direct-admit`
+operation that walks the existing edges in a single transaction. It records
+three verified defects to fix first — the document checklist ignores
+`DocumentRequirement.branchId`; requirements at stages no transition guards
+are silently unenforced; and no endpoint exposes legal actions or checklist
+status, so the frontend mirrors both.
 
 ## Background — reasoning archive
 

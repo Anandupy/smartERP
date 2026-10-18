@@ -12,15 +12,23 @@ import { AcademicUnitPicker } from "@/features/academic-unit";
 import { ApplicantJourneyHubScreen } from "@/features/admissions";
 import { toWorkspaceAvailability } from "@/features/workspace";
 
-import { childUnitDto, secondChildUnitDto } from "@tests/fixtures/academic-unit";
+import {
+  childUnitDto,
+  secondChildUnitDto,
+} from "@tests/fixtures/academic-unit";
 import { successEnvelope } from "@tests/fixtures/api";
-import { applicantDto } from "@tests/fixtures/applicant";
+import {
+  applicantDto,
+  workflowActionDto,
+  workflowActionsDto,
+} from "@tests/fixtures/applicant";
 import { identityDto } from "@tests/fixtures/workspace";
 import { server } from "@tests/mocks/server";
 import { render, screen, within } from "@tests/setup/render";
 
 vi.mock("next/navigation", async () => {
-  const { createNextNavigationMock } = await import("@tests/mocks/next-navigation");
+  const { createNextNavigationMock } =
+    await import("@tests/mocks/next-navigation");
   return createNextNavigationMock();
 });
 
@@ -64,17 +72,24 @@ const noop = () => null;
 // screen directly rather than through the composition.
 const ACADEMIC_UNIT_PATHS = new Map([
   [childUnitDto().id, childUnitDto().displayPath ?? childUnitDto().name],
-  [secondChildUnitDto().id, secondChildUnitDto().displayPath ?? secondChildUnitDto().name],
+  [
+    secondChildUnitDto().id,
+    secondChildUnitDto().displayPath ?? secondChildUnitDto().name,
+  ],
 ]);
 
-function renderHub(overrides: Partial<Parameters<typeof applicantDto>[0]> = {}) {
+function renderHub(
+  overrides: Partial<Parameters<typeof applicantDto>[0]> = {},
+) {
   const applicant = applicantDto(overrides);
 
   render(
     <ApplicantJourneyHubScreen
       applicant={applicant}
       programName="Std 1"
-      academicUnitPicker={<AcademicUnitPicker programId={applicant.programId} />}
+      academicUnitPicker={
+        <AcademicUnitPicker programId={applicant.programId} />
+      }
       academicUnitPaths={ACADEMIC_UNIT_PATHS}
       guardiansPanel={<p>Guardians workspace</p>}
       documentsPanel={<p>Documents workspace</p>}
@@ -93,29 +108,43 @@ describe("Applicant Journey Hub — admission result", () => {
     const applicant = renderHub();
 
     server.use(
-      http.post(
-        `${API_BASE}/admissions/applicants/${applicant.id}/admit`,
+      // Admission eligibility comes from the backend's actions read.
+      http.get(
+        `${API_BASE}/admissions/applicants/${applicant.id}/workflow/actions`,
         () =>
           HttpResponse.json(
-            successEnvelope({
-              studentId: "student-1",
-              studentCode: "STU0000000123",
-              admissionId: "admission-1",
-              admissionNo: "AD-2026-0001",
-              enrollmentId: "enrollment-1",
-              applicantId: applicant.id,
-            }),
+            successEnvelope(
+              workflowActionsDto({
+                actions: [workflowActionDto("admit", { to: "ADMITTED" })],
+              }),
+            ),
           ),
+      ),
+      http.post(`${API_BASE}/admissions/applicants/${applicant.id}/admit`, () =>
+        HttpResponse.json(
+          successEnvelope({
+            studentId: "student-1",
+            studentCode: "STU0000000123",
+            admissionId: "admission-1",
+            admissionNo: "AD-2026-0001",
+            enrollmentId: "enrollment-1",
+            applicantId: applicant.id,
+          }),
+        ),
       ),
     );
 
-    await user.click(screen.getByRole("button", { name: /complete admission/i }));
+    await user.click(
+      await screen.findByRole("button", { name: /complete admission/i }),
+    );
 
     const dialog = await screen.findByRole("dialog");
     await user.click(
       within(dialog).getByRole("combobox", { name: /academic placement/i }),
     );
-    await user.click(await screen.findByRole("option", { name: /Std 1 → Div A/ }));
+    await user.click(
+      await screen.findByRole("option", { name: /Std 1 → Div A/ }),
+    );
     await user.click(
       within(dialog).getByRole("button", { name: /^complete admission$/i }),
     );

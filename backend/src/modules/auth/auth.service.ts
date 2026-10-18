@@ -167,22 +167,32 @@ export class AuthService {
       include: { user: true },
     });
 
+    // A suspended or deactivated account must not keep minting sessions;
+    // JwtStrategy would reject the access token, but the rotated refresh
+    // token would otherwise stay alive indefinitely.
     if (
       !refreshToken ||
       refreshToken.isRevoked ||
-      refreshToken.expiresAt < new Date()
+      refreshToken.expiresAt < new Date() ||
+      refreshToken.user.status !== 'ACTIVE'
     ) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Token Rotation: mark old token as revoked
-    await this.prisma.refreshToken.update({
-      where: { id: refreshToken.id },
+    // Token Rotation: mark old token as revoked. Conditional on it still being
+    // live, so two concurrent refreshes with the same token cannot both win
+    // and fork the session into two valid refresh tokens.
+    const { count } = await this.prisma.refreshToken.updateMany({
+      where: { id: refreshToken.id, isRevoked: false },
       data: {
         isRevoked: true,
         revokedAt: new Date(),
       },
     });
+
+    if (count === 0) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
 
     // Create new refresh token, maintaining session info
     return this.generateTokens(
@@ -197,14 +207,17 @@ export class AuthService {
     );
   }
 
-  async logout(token: string, allDevices = false) {
+  async logout(userId: string, token: string, allDevices = false) {
     const tokenHash = this.hashToken(token);
 
     const refreshToken = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },
     });
 
-    if (!refreshToken) return;
+    // The token must belong to the caller: otherwise any signed-in user
+    // holding someone else's refresh token could sign that account out of
+    // every device with `allDevices=true`.
+    if (!refreshToken || refreshToken.userId !== userId) return;
 
     if (allDevices) {
       await this.prisma.refreshToken.updateMany({

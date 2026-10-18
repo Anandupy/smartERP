@@ -6,7 +6,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AdmissionConversionService } from './admission-conversion.service';
-import { AdmitApplicantDto, AdmitResultDto } from './dto/admit.dto';
+import {
+  AdmitApplicantDto,
+  AdmitResultDto,
+  DirectAdmitResultDto,
+} from './dto/admit.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { RequireBranch } from '@/common/decorators/branch.decorator';
 import { RequireAcademicYear } from '@/common/decorators/academic-year.decorator';
@@ -70,6 +74,35 @@ export class AdmissionConversionController {
     @Req() req: AuthenticatedRequest,
   ) {
     const data = await this.conversion.admit(
+      applicantId,
+      dto,
+      resourceScopeOf(req.context, { requireAcademicYear: true }),
+      { userId: req.userId, role: req.context.role },
+    );
+
+    return { data, message: 'Applicant admitted successfully' };
+  }
+
+  @Post('direct-admit')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @RequirePermission(PERMISSIONS.Admissions.Approve)
+  @ApiOperation({
+    summary: 'Directly admit an applicant (SIMPLE_ADMISSION profile)',
+    description:
+      'For branches whose effective workflow profile is SIMPLE_ADMISSION. Runs the remaining ordinary workflow actions — submit, startReview, approve, confirmSeat — and then admit, all in one transaction through the same engine and conversion as the standard path: every permission, guard (document checklist included), Person resolution, numbering rule, placement check, history row and event still applies. ' +
+      'Requires admissions.update, admissions.approve and student.create. Any failure rolls everything back and leaves the applicant as it was. ' +
+      'Refused with WORKFLOW_PROFILE_MISMATCH under any other profile.',
+  })
+  @ApiCreatedEnvelope(DirectAdmitResultDto, {
+    message: 'Applicant admitted successfully',
+  })
+  @ApiStandardErrors(400, 403, 404, 409)
+  async directAdmit(
+    @Param('applicantId') applicantId: string,
+    @Body() dto: AdmitApplicantDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const data = await this.conversion.directAdmit(
       applicantId,
       dto,
       resourceScopeOf(req.context, { requireAcademicYear: true }),

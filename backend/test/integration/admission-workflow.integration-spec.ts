@@ -966,7 +966,7 @@ describe('Admission workflow (integration)', () => {
       expect(applicant.offerIssuedAt).not.toBeNull();
       expect(applicant.offerExpiresAt).not.toBeNull();
 
-      const days = config.offerValidityDays({
+      const days = await config.offerValidityDays({
         organizationId: orgId,
         branchId: branchAId,
       });

@@ -193,4 +193,56 @@ describe('DocumentRequirementService', () => {
       expect(mockPrisma.documentRequirement.update).not.toHaveBeenCalled();
     });
   });
+
+  describe('stage enforcement — a requirement must be one the workflow checks', () => {
+    it.each([S.DEFERRED, S.REJECTED, S.WITHDRAWN, S.CANCELLED])(
+      'refuses to create a requirement at %s, which no transition checks',
+      async (stage) => {
+        await expect(
+          service.create(dto({ requiredByStage: stage }), SCOPE),
+        ).rejects.toMatchObject({
+          response: {
+            error: 'UNSUPPORTED_REQUIREMENT_STAGE',
+            requiredByStage: stage,
+          },
+        });
+        expect(mockPrisma.documentRequirement.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([S.SUBMITTED, S.SEAT_CONFIRMED, S.ADMITTED])(
+      'accepts %s, which a checklist guard now enforces',
+      async (stage) => {
+        mockPrisma.documentRequirement.findFirst.mockResolvedValue(null);
+        mockPrisma.documentRequirement.create.mockResolvedValue({ id: 'r' });
+
+        await service.create(dto({ requiredByStage: stage }), SCOPE);
+
+        expect(mockPrisma.documentRequirement.create).toHaveBeenCalled();
+      },
+    );
+
+    it('refuses to move an existing requirement to an unenforced stage', async () => {
+      mockPrisma.documentRequirement.findFirst.mockResolvedValueOnce({
+        id: 'req-1',
+        organizationId: 'org-1',
+        branchId: null,
+        documentTypeId: 'dt-1',
+        appliesToProgramId: null,
+        appliesToQuotaId: null,
+        appliesToCategoryId: null,
+        requiredByStage: S.UNDER_REVIEW,
+        isMandatory: true,
+        isActive: true,
+        deletedAt: null,
+      });
+
+      await expect(
+        service.update('req-1', { requiredByStage: S.CANCELLED }, SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'UNSUPPORTED_REQUIREMENT_STAGE' },
+      });
+      expect(mockPrisma.documentRequirement.update).not.toHaveBeenCalled();
+    });
+  });
 });

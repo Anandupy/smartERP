@@ -69,8 +69,11 @@ export class ContextValidatorService {
       throw new BadRequestException(`Organization '${org.name}' is inactive.`);
     }
 
-    // User access check: non-SUPER_ADMIN must match assigned organizationId
-    if (role !== RoleType.SUPER_ADMIN && userOrgId && userOrgId !== org.id) {
+    // User access check: non-SUPER_ADMIN must match assigned organizationId.
+    // A non-SUPER_ADMIN with no organization is refused rather than waved
+    // through — discovery offers such a user nothing, so a header must not be
+    // able to grant what discovery withholds.
+    if (role !== RoleType.SUPER_ADMIN && (!userOrgId || userOrgId !== org.id)) {
       throw new ForbiddenException(
         `User does not have access to organization '${organizationId}'.`,
       );

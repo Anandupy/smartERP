@@ -1,7 +1,9 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef } from "react";
 
 import {
   AcademicUnitPicker,
@@ -18,17 +20,16 @@ import {
 import {
   ApplicantBoundary,
   ApplicantJourneyHubScreen,
+  applicantKeys,
   CreateApplicantScreen,
   EditApplicantScreen,
+  useApplicantChecklist,
 } from "@/features/admissions";
 import { Hash } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants";
 import {
   ApplicantDocumentsPanel,
-  buildChecklist,
-  checklistSummary,
-  useDocumentRequirements,
   useOwnerDocuments,
 } from "@/features/documents";
 import {
@@ -292,34 +293,36 @@ function GuardianSummary({ applicantId }: { applicantId: string }) {
   );
 }
 
-/** Required-document readiness for the Admit review — the same checklist the Documents tab computes. */
-function DocumentsSummary({ applicant }: { applicant: ApplicantDto }) {
-  const { requirements, isPending: requirementsPending } = useDocumentRequirements();
-  const { documents, isPending: documentsPending } = useOwnerDocuments(
-    "APPLICANT",
-    applicant.id,
-  );
-
-  const summary = useMemo(
-    () =>
-      checklistSummary(
-        buildChecklist(requirements, documents, {
-          programId: applicant.programId,
-          quotaId: applicant.quotaId,
-          categoryId: applicant.categoryId,
-        }),
-      ),
-    [requirements, documents, applicant.programId, applicant.quotaId, applicant.categoryId],
-  );
-
-  if (requirementsPending || documentsPending) {
+/**
+ * Required-document readiness for the Admit review — from the backend's
+ * checklist, the same answer the admission guards act on.
+ */
+function DocumentsSummary({
+  checklist,
+  isPending,
+}: {
+  checklist: ReturnType<typeof useApplicantChecklist>["data"];
+  isPending: boolean;
+}) {
+  if (isPending || !checklist) {
     return <p className="text-muted-foreground text-sm">Loading documents…</p>;
+  }
+
+  const mandatory = checklist.items.filter((item) => item.isMandatory);
+  const verified = mandatory.filter((item) => item.satisfied).length;
+
+  if (mandatory.length === 0) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        No documents are required for this application.
+      </p>
+    );
   }
 
   return (
     <p className="text-sm">
-      {summary.verified} of {summary.total} required documents verified
-      {summary.isSatisfied ? (
+      {verified} of {mandatory.length} required documents verified
+      {checklist.outstandingMandatory === 0 ? (
         <span className="text-chart-2 ml-1.5 font-medium">Complete</span>
       ) : null}
     </p>
@@ -399,6 +402,9 @@ function ApplicantJourneyHubInner({
 }) {
   const academicUnitSlot = useAcademicUnitSlot(applicant.programId);
   const academicUnitPaths = useAcademicUnitDisplayPaths(applicant.programId);
+  const checklist = useApplicantChecklist(applicant.id);
+  const autoOpenDirectAdmission = useSearchParams().get("next") === "admit";
+  useRefreshWorkflowOnDocumentChange(applicant.id);
 
   return (
     <ApplicantJourneyHubScreen
@@ -416,16 +422,48 @@ function ApplicantJourneyHubInner({
       documentsPanel={
         <ApplicantDocumentsPanel
           applicantId={applicant.id}
-          programId={applicant.programId}
-          quotaId={applicant.quotaId}
-          categoryId={applicant.categoryId}
+          checklist={checklist.data?.items}
+          checklistPending={checklist.isPending}
+          checklistError={checklist.error}
+          onRetryChecklist={() => void checklist.refetch()}
         />
       }
       guardianSummary={<GuardianSummary applicantId={applicant.id} />}
-      documentsSummary={<DocumentsSummary applicant={applicant} />}
+      documentsSummary={
+        <DocumentsSummary
+          checklist={checklist.data}
+          isPending={checklist.isPending}
+        />
+      }
+      autoOpenDirectAdmission={autoOpenDirectAdmission}
       renderPersonPanel={(personId, compact) => (
         <PersonPanel personId={personId} compact={compact} />
       )}
     />
   );
+}
+
+/**
+ * Uploading, verifying or rejecting a document changes what the checklist
+ * and the workflow guards answer. Documents cannot know Admissions' cache
+ * keys (features are isolated), so the join point — this route — refreshes
+ * them whenever the applicant's own documents are re-read.
+ */
+function useRefreshWorkflowOnDocumentChange(applicantId: string) {
+  const queryClient = useQueryClient();
+  const { dataUpdatedAt } = useOwnerDocuments("APPLICANT", applicantId);
+  const first = useRef(true);
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    void queryClient.invalidateQueries({
+      queryKey: applicantKeys.checklist(applicantId),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: applicantKeys.workflowActions(applicantId),
+    });
+  }, [dataUpdatedAt, applicantId, queryClient]);
 }

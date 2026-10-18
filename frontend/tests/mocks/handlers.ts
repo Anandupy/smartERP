@@ -4,6 +4,7 @@ import { apiConfig } from "@/config";
 
 import { successEnvelope } from "@tests/fixtures/api";
 import { adminHandlers } from "./admin-handlers";
+import { admissionsHandlers } from "./admissions-handlers";
 import { admissionMastersHandlers } from "./admission-masters-handlers";
 import { authHandlers } from "./auth-handlers";
 import { communicationHandlers } from "./communication-handlers";
@@ -24,6 +25,7 @@ export const handlers = [
   ...workspaceHandlers,
   ...adminHandlers,
   ...admissionMastersHandlers,
+  ...admissionsHandlers,
   ...documentHandlers,
   ...numberingHandlers,
   ...communicationHandlers,

@@ -99,10 +99,11 @@ export class AuthController {
   @ApiStandardErrors()
   async logout(
     @Body('refreshToken') token: string,
+    @Req() req: any,
     @Query('allDevices') allDevices?: string,
   ) {
     if (token) {
-      await this.authService.logout(token, allDevices === 'true');
+      await this.authService.logout(req.user.id, token, allDevices === 'true');
     }
     return { message: 'Logged out successfully' };
   }

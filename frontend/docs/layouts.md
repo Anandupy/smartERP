@@ -14,6 +14,10 @@ reusable; route layouts wire shells + guards into the router.
 | `AppShellProvider` | Client seam under `AppLayout`: binds the sidebar primitive's open state to `useUiStore`, keeping one source of truth. |
 | `PublicLayout`     | Public/marketing shell (future).                                                                                      |
 
+`AppLayout` renders a **"Skip to main content"** link as its first focusable
+element (visually hidden until focused) targeting `<main id="main-content"
+tabIndex={-1}>`, so keyboard users can bypass the sidebar and header.
+
 Shells own **structure only** — navigation content is injected by features. What
 goes into `AppLayout`'s slots is the navigation feature's business; see
 [Dashboard Shell](./dashboard-shell.md).

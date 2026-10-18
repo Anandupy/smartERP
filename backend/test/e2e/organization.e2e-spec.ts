@@ -56,6 +56,9 @@ describe('OrganizationController (e2e)', () => {
         phone: '555' + Date.now(),
         passwordHash: hash,
         role: UserRole.ORG_ADMIN,
+        // An organization administrator belongs to the organization it
+        // administers; one with none is refused any organization header.
+        organizationId: ctx.organizationId,
       },
     });
 

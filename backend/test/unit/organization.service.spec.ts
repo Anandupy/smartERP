@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrganizationService } from '@/modules/organization/organization.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
+import { RequestContextService } from '@/common/logger/request-context.service';
+import { NotFoundException } from '@nestjs/common';
 import {
   OrganizationCreatedEvent,
   OrganizationUpdatedEvent,
@@ -12,12 +14,15 @@ describe('OrganizationService (Unit)', () => {
   let service: OrganizationService;
   let mockPrisma: any;
   let mockEventBus: { publish: jest.Mock; subscribe: jest.Mock };
+  let mockRequestContext: { getContext: jest.Mock };
 
   beforeEach(async () => {
     mockEventBus = {
       publish: jest.fn().mockResolvedValue(undefined),
       subscribe: jest.fn(),
     };
+
+    mockRequestContext = { getContext: jest.fn().mockReturnValue(undefined) };
 
     mockPrisma = {
       organization: {
@@ -33,6 +38,7 @@ describe('OrganizationService (Unit)', () => {
         OrganizationService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EventBus, useValue: mockEventBus },
+        { provide: RequestContextService, useValue: mockRequestContext },
       ],
     }).compile();
 
@@ -100,5 +106,47 @@ describe('OrganizationService (Unit)', () => {
     expect(mockEventBus.publish).toHaveBeenCalledWith(
       expect.any(OrganizationDeletedEvent),
     );
+  });
+
+  describe('tenant scoping', () => {
+    it('lists only the caller organization for ORG_ADMIN', async () => {
+      mockRequestContext.getContext.mockReturnValue({
+        role: 'ORG_ADMIN',
+        organizationId: 'org-1',
+      });
+      mockPrisma.organization.findMany.mockResolvedValue([]);
+
+      await service.getAllOrganizations();
+
+      expect(mockPrisma.organization.findMany.mock.calls[0][0].where).toEqual(
+        expect.objectContaining({ id: 'org-1' }),
+      );
+    });
+
+    it('lists nothing for a non-super-admin without an organization', async () => {
+      mockRequestContext.getContext.mockReturnValue({
+        role: 'ORG_ADMIN',
+        organizationId: null,
+      });
+
+      await expect(service.getAllOrganizations()).resolves.toEqual([]);
+      expect(mockPrisma.organization.findMany).not.toHaveBeenCalled();
+    });
+
+    it('reports another tenant organization as not found', async () => {
+      mockRequestContext.getContext.mockReturnValue({
+        role: 'ORG_ADMIN',
+        organizationId: 'org-1',
+      });
+      mockPrisma.organization.findUnique.mockResolvedValue({ id: 'org-2' });
+
+      await expect(service.getOrganizationById('org-2')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(
+        service.updateOrganization('org-2', { name: 'Hijacked' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrisma.organization.update).not.toHaveBeenCalled();
+    });
   });
 });

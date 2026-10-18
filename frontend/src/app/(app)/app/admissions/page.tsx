@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { FileText, Landmark } from "@/assets/icons";
+import { FileText, Landmark, SlidersHorizontal } from "@/assets/icons";
 import { ROUTES } from "@/constants";
 import { LinkCard } from "@/shared/components/data-display";
 import { PageHeader } from "@/shared/components/layout";
@@ -38,6 +38,12 @@ export default function AdmissionsPage() {
           title="Admission Masters"
           description="Genders, religions, castes, categories, quotas and the other reference data applicant forms draw from."
           href={ROUTES.app.admissionMasters.root}
+        />
+        <LinkCard
+          icon={SlidersHorizontal}
+          title="Admission workflow"
+          description="Choose how this branch admits students — simple, standard or verified — and which optional steps it uses."
+          href={ROUTES.app.admissions.workflow}
         />
       </div>
     </div>

@@ -12,13 +12,16 @@ import {
 } from '@/common/events';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
-import { OrganizationStatus } from '@/generated/client';
+import { OrganizationStatus, RoleType } from '@/generated/client';
+import { RequestContextService } from '@/common/logger/request-context.service';
+import { isOrganizationInScope } from '@/common/scope/resource-scope';
 
 @Injectable()
 export class OrganizationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBus,
+    private readonly requestContext: RequestContextService,
   ) {}
 
   async createOrganization(dto: CreateOrganizationDto, userId?: string) {
@@ -53,8 +56,22 @@ export class OrganizationService {
   }
 
   async getAllOrganizations() {
+    const context = this.requestContext.getContext();
+    // ORG_ADMIN may call this route, but must only ever see their own
+    // tenant — listing every organization disclosed every tenant's ids.
+    const ownOnly = Boolean(context) && context?.role !== RoleType.SUPER_ADMIN;
+
+    // No resolved organization means nothing to list — and `id: undefined`
+    // would silently drop the filter, so it is never passed through.
+    if (ownOnly && !context?.organizationId) {
+      return [];
+    }
+
     return this.prisma.organization.findMany({
-      where: { status: { not: OrganizationStatus.INACTIVE } },
+      where: {
+        status: { not: OrganizationStatus.INACTIVE },
+        ...(ownOnly ? { id: context?.organizationId as string } : {}),
+      },
     });
   }
 
@@ -63,7 +80,12 @@ export class OrganizationService {
       where: { id },
     });
 
-    if (!organization) {
+    // Another tenant's organization is reported exactly like a missing one;
+    // update and delete load through here, so they are confined too.
+    if (
+      !organization ||
+      !isOrganizationInScope(this.requestContext.getContext(), organization.id)
+    ) {
       throw new NotFoundException('Organization not found');
     }
 

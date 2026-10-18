@@ -407,6 +407,12 @@ values," not "one endpoint per action."
 
 ### 4.4 The document checklist guard — now real (R5, 2026-08-17)
 
+> **Superseded 2026-10-17** (§4.10): the guard now also runs at `submit`,
+> `confirmSeat` and inside `admit`, and at `startReview` under
+> `VERIFIED_ADMISSION`; requirements are branch-scoped. The frontend no longer
+> reasons about guard placement at all — it renders the `blockedBy` the
+> backend reports. The paragraph below is the R5 record.
+
 The guard `DOCUMENT_CHECKLIST_SATISFIED` is attached to **exactly two
 transitions**: `documentsReceived` and `approve`. It is **not** evaluated at
 `submit`, `startReview`, `requestDocuments`, `confirmSeat`, or `admit`.
@@ -420,8 +426,8 @@ is `programId × quotaId × categoryId` (the design's fourth axis,
 `admissionType`, is **not implemented** — `Applicant` has no `admissionType`
 column at all).
 
-**Never claim "cannot proceed — documents incomplete" at any transition other
-than `documentsReceived` or `approve`.**
+**Never claim "cannot proceed — documents incomplete" unless the backend's
+actions read says so** (`blockedBy` contains `DOCUMENTS_INCOMPLETE`).
 
 ### 4.5 The other three guards
 
@@ -460,10 +466,52 @@ assumes a placement always has at least one history entry.
 
 ### 4.9 What the checklist and the transition engine do **not** do
 
-- `DOCUMENT_CHECKLIST_SATISFIED` never runs at `submit`, `startReview`,
-  `confirmSeat` or `admit` (§4.4).
+- ~~`DOCUMENT_CHECKLIST_SATISFIED` never runs at `submit`, `startReview`,
+  `confirmSeat` or `admit` (§4.4).~~ Superseded — see §4.10.
 - `admit()` never reads `ApplicantProgramPreference` (§3.5).
 - No seat-capacity check exists anywhere, by design — see §9.
+
+### 4.10 Configurable admission workflows — the frontend reads, never decides (2026-10-17)
+
+Contract: `backend/docs/modules/admissions.md` §12.
+
+| Concern | Backend source | Frontend |
+| :--- | :--- | :--- |
+| Which actions exist, whether the caller may take each, and what blocks it | `GET .../workflow/actions` | `useApplicantWorkflowActions` → `ApplicantWorkflowActions`. Not-permitted actions are not offered; blocked ones are disabled with `describeBlocker()` text. `utils/workflow.ts` holds **presentation only** (`ACTION_PRESENTATION`, `PROFILE_META`); the old client-side transition table, `actionsFor()` and `isAdmitEligible()` were removed. |
+| Whether admission can be completed | the `admit` entry (`via: "ADMIT"`) in the same read | "Complete admission" shows only when `permitted`, disabled with the reason when blocked |
+| Which documents bind the applicant | `GET .../checklist` | `useApplicantChecklist`, passed by the route composition into Documents' panel and the admit review (§6) |
+| The branch's profile | `GET /admissions/workflow/policy` | `useAdmissionPolicy` |
+| Changing policy | `PUT/DELETE /config/values/:key` | `AdmissionWorkflowSettingsScreen` at `/app/admissions/workflow` |
+
+**Journeys.**
+
+- **`SIMPLE_ADMISSION`** — New Admission says *Continue to admission*; on save
+  the hub opens (`?next=admit`) straight onto the admit review in **direct**
+  mode: choose the section, review, **Admit student** →
+  `POST .../direct-admit`. The forward steps (`submit`, `startReview`,
+  `approve`, `confirmSeat`) are not offered as separate buttons while direct
+  admission is available; withdraw/cancel still are. The result card shows
+  the identifiers the backend returned.
+- **`STANDARD_ADMISSION`** — unchanged status-driven hub.
+- **`VERIFIED_ADMISSION`** — same hub; the extra checks surface as
+  `blockedBy` (`DOCUMENTS_INCOMPLETE` before review, `MAKER_CHECKER_VIOLATION`
+  on approval).
+
+If the policy cannot be read, New Admission behaves as the standard process
+(saves a draft, opens the hub); the backend still decides whether direct
+admission is allowed.
+
+**Settings screen.** Bound to the **active** organization and branch, because
+the configuration API writes to the request's own scope and never accepts an
+id. Shows each value's source (branch, organization, platform, default).
+Editable only with `config.admissions.write`; organization-wide scope only for
+`ORG_ADMIN`/`SUPER_ADMIN`; a reason is required; "Use the organization
+setting" clears a branch override. Without the permission the same values are
+shown read-only — there is no local-state form.
+
+Tests: `tests/integration/configurable-admission-workflow.test.tsx`,
+`tests/integration/applicant-journey-hub.test.tsx`,
+`tests/unit/document-checklist.test.ts`.
 
 ---
 

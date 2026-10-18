@@ -87,3 +87,14 @@ export class AdmitResultDto {
   })
   applicantId!: string;
 }
+
+export class DirectAdmitResultDto extends AdmitResultDto {
+  @ApiProperty({
+    enum: ['submit', 'startReview', 'approve', 'confirmSeat'],
+    isArray: true,
+    description:
+      'The ordinary workflow actions run, in order, before admit — each with its own history row and event.',
+    example: ['submit', 'startReview', 'approve', 'confirmSeat'],
+  })
+  walked!: string[];
+}

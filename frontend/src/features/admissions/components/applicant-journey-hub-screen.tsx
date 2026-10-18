@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import {
+  CircleAlert,
   CalendarDays,
   Contact,
   GraduationCap,
@@ -13,6 +14,7 @@ import {
   Phone,
   User,
 } from "@/assets/icons";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,12 +30,29 @@ import { ApplicantIdentitySummary } from "./applicant-identity-summary";
 import { ApplicantStatusBadge } from "./applicant-status-badge";
 import { ApplicantWorkflowActions } from "./applicant-workflow-actions";
 import { ApplicantWorkflowTimeline } from "./applicant-workflow-timeline";
+import { useApplicantWorkflowActions } from "../hooks/use-workflow-policy";
 import { formatApplicantAddress } from "../mappers/applicant.mapper";
 import type {
   AdmitApplicantResponse,
   ApplicantDto,
+  WorkflowAction,
 } from "../types/applicant.dto";
-import { isAdmitEligible, nextActionSummary } from "../utils/workflow";
+import {
+  describeBlocker,
+  nextActionSummary,
+  PROFILE_META,
+} from "../utils/workflow";
+
+/**
+ * Under SIMPLE_ADMISSION these steps run inside the one-step admission, so
+ * they are not offered as separate buttons while it is available.
+ */
+const DIRECT_ADMISSION_STEPS: ReadonlySet<WorkflowAction> = new Set([
+  "submit",
+  "startReview",
+  "approve",
+  "confirmSeat",
+]);
 
 export interface ApplicantJourneyHubScreenProps {
   applicant: ApplicantDto;
@@ -60,6 +79,12 @@ export interface ApplicantJourneyHubScreenProps {
   documentsSummary: React.ReactNode;
   /** `PersonPanel` from `features/person`, slotted in by the route composition (AGENTS.md §28). */
   renderPersonPanel: (personId: string, compact?: boolean) => React.ReactNode;
+  /**
+   * Open the one-step admission as soon as it is available — set when a
+   * SIMPLE_ADMISSION registration has just saved this applicant, so the
+   * journey continues straight to section and review.
+   */
+  autoOpenDirectAdmission?: boolean;
 }
 
 /**
@@ -91,14 +116,40 @@ export function ApplicantJourneyHubScreen({
   guardianSummary,
   documentsSummary,
   renderPersonPanel,
+  autoOpenDirectAdmission = false,
 }: ApplicantJourneyHubScreenProps) {
   const [isAdmitOpen, setIsAdmitOpen] = useState(false);
+  const [admitMode, setAdmitMode] = useState<"admit" | "direct">("admit");
   const [admitResult, setAdmitResult] =
     useState<AdmitApplicantResponse | null>(null);
   const [placementUnitId, setPlacementUnitId] = useState<string | null>(null);
   const { academicYear } = useWorkspace();
 
-  const canAdmit = isAdmitEligible(applicant.admissionStatus);
+  const actionsQuery = useApplicantWorkflowActions(applicant.id);
+  const actions = actionsQuery.data;
+  const admitAction = actions?.actions.find((a) => a.action === "admit");
+  const canAdmit = Boolean(admitAction?.permitted);
+  const direct = actions?.directAdmission;
+  const directOffered = Boolean(direct?.offered && direct.fromCurrentState);
+  const profile = actions ? PROFILE_META[actions.profile] : null;
+
+  const openAdmit = (mode: "admit" | "direct") => {
+    setAdmitMode(mode);
+    setIsAdmitOpen(true);
+  };
+
+  // Derived rather than set from an effect: the review opens by itself once
+  // the backend says direct admission is available, and stays closed once
+  // the user has closed it.
+  const [autoDismissed, setAutoDismissed] = useState(false);
+  const autoOpen =
+    autoOpenDirectAdmission &&
+    Boolean(direct?.available) &&
+    !autoDismissed &&
+    admitResult === null;
+  const dialogOpen = isAdmitOpen || autoOpen;
+  const dialogMode = autoOpen ? "direct" : admitMode;
+
   const placementPath = placementUnitId
     ? (academicUnitPaths.get(placementUnitId) ?? null)
     : null;
@@ -115,6 +166,11 @@ export function ApplicantJourneyHubScreen({
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <ApplicantStatusBadge status={applicant.admissionStatus} />
+            {profile ? (
+              <Badge variant="outline" title={profile.description}>
+                {profile.label}
+              </Badge>
+            ) : null}
             {applicant.admissionStatus === "DRAFT" ? (
               <Button asChild variant="outline">
                 <Link
@@ -284,14 +340,66 @@ export function ApplicantJourneyHubScreen({
                 </CardHeader>
                 <CardContent className="space-y-4 pt-4">
                   <p className="text-sm">
-                    {nextActionSummary(applicant.admissionStatus)}
+                    {directOffered
+                      ? "Choose the section, review the details and admit the student. Submission, review, the offer and seat confirmation are recorded automatically."
+                      : nextActionSummary(applicant.admissionStatus)}
                   </p>
-                  <ApplicantWorkflowActions applicant={applicant} />
-                  {canAdmit ? (
-                    <Button onClick={() => setIsAdmitOpen(true)}>
-                      <GraduationCap />
-                      Complete admission
-                    </Button>
+                  {directOffered ? (
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => openAdmit("direct")}
+                        disabled={!direct?.available}
+                        aria-describedby={
+                          direct?.available ? undefined : "direct-admit-note"
+                        }
+                      >
+                        <GraduationCap />
+                        Admit student
+                      </Button>
+                      {!direct?.permitted ? (
+                        <p
+                          id="direct-admit-note"
+                          className="text-muted-foreground text-sm"
+                        >
+                          Admitting a student needs the admissions approval and
+                          student creation permissions.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <ApplicantWorkflowActions
+                    applicant={applicant}
+                    actions={actions}
+                    isPending={actionsQuery.isPending}
+                    error={actionsQuery.error}
+                    onRetry={() => void actionsQuery.refetch()}
+                    hidden={directOffered ? DIRECT_ADMISSION_STEPS : undefined}
+                  />
+                  {canAdmit && admitAction ? (
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => openAdmit("admit")}
+                        disabled={!admitAction.available}
+                        aria-describedby={
+                          admitAction.available ? undefined : "admit-blocked"
+                        }
+                      >
+                        <GraduationCap />
+                        Complete admission
+                      </Button>
+                      {!admitAction.available ? (
+                        <p
+                          id="admit-blocked"
+                          className="text-muted-foreground flex items-start gap-1.5 text-sm"
+                        >
+                          <CircleAlert
+                            aria-hidden="true"
+                            className="text-chart-4 mt-0.5 size-4 shrink-0"
+                          />
+                          {admitAction.blockedBy.map(describeBlocker).join(" ")}
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                 </CardContent>
               </Card>
@@ -363,13 +471,17 @@ export function ApplicantJourneyHubScreen({
 
       <AdmitApplicantDialog
         applicant={applicant}
-        open={isAdmitOpen}
-        onOpenChange={setIsAdmitOpen}
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setIsAdmitOpen(open);
+          if (!open) setAutoDismissed(true);
+        }}
         academicUnitPicker={academicUnitPicker}
         programName={programName}
         guardianSummary={guardianSummary}
         documentsSummary={documentsSummary}
         renderPersonPanel={renderPersonPanel}
+        mode={dialogMode}
         onAdmitted={(result, academicUnitId) => {
           setAdmitResult(result);
           setPlacementUnitId(academicUnitId);

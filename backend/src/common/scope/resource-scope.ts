@@ -166,6 +166,30 @@ export function assertOrganizationInScope(
 }
 
 /**
+ * Whether a row owned by `organizationId` is visible to the caller.
+ *
+ * The non-throwing counterpart of `assertOrganizationInScope`, for by-id
+ * lookups: a row outside the caller's tenant must surface as 404, never 403,
+ * so the caller learns nothing about whether it exists. Same exemptions —
+ * SUPER_ADMIN and internal callers with no context see everything — and the
+ * same fail-closed rule: a caller with no resolved organization sees nothing.
+ */
+export function isOrganizationInScope(
+  context: RequestContext | undefined,
+  organizationId: string | null | undefined,
+): boolean {
+  if (!context || context.role === UserRole.SUPER_ADMIN) {
+    return true;
+  }
+
+  return Boolean(
+    organizationId &&
+    context.organizationId &&
+    context.organizationId === organizationId,
+  );
+}
+
+/**
  * Asserts that a body-supplied branch id agrees with the caller's authorized
  * scope, for the roles that are scoped to one branch.
  *

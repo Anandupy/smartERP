@@ -18,10 +18,113 @@ Statuses: `OPEN` · `IN PROGRESS` · `DONE` · `DEFERRED` · `BUSINESS DECISION`
 
 ## P0 — Blocking / Security
 
-None found. The one item that looked P0 on paper — the scope-header
+The one item that looked P0 on paper in the first pass — the scope-header
 mismatch (`X-Tenant-Id`/`X-Academic-Year` vs documented
 `X-Organization-Id`/`X-Academic-Year-Id`) — turned out to be a non-issue;
-see **BP-01** below.
+see **BP-01** below. A later security review (2026-10-17) found the items
+SEC-01 – SEC-09.
+
+### SEC-01 — Cross-tenant organization/branch read and write (BOLA): DONE
+- **Module:** Organization, Branch
+- **Evidence:** `GET /organizations` returned every tenant to an ORG_ADMIN;
+  `GET /branches/organization/:orgId` listed any organization's branches to
+  any `Settings.View` holder; `GET/PATCH /branches/:id` and
+  `PATCH /branches/:id/status` loaded by id alone, as did
+  `GET/PATCH /organizations/:id`. Together: enumerate another tenant, then
+  edit or deactivate its branches. `getAllBranches` also returned every
+  tenant's branches to a non-SUPER_ADMIN with no resolved organization.
+- **Fix:** new `isOrganizationInScope` (`common/scope/resource-scope.ts`);
+  out-of-tenant rows 404 from `getBranchById` / `getOrganizationById` (every
+  write loads through them), lists fail closed, and
+  `getBranchesByOrganization` asserts the organization.
+- **Tests:** `test/unit/branch.service.spec.ts`, `test/unit/organization.service.spec.ts`.
+
+### SEC-02 — Header grants any organization to a user with none assigned: DONE
+- **Module:** Context
+- **Evidence:** `ContextValidatorService.validateOrganization` skipped the
+  ownership check when `userOrgId` was null, so a non-SUPER_ADMIN created
+  without an organization (allowed by `UserService.createUser`) could name any
+  organization in `X-Organization-Id`. Discovery already offered such a user
+  nothing.
+- **Fix:** non-SUPER_ADMIN with no organization is refused (403).
+- **Tests:** `test/unit/context/context-validator.service.spec.ts`.
+
+### SEC-03 — Cross-tenant user permission overrides: DONE
+- **Module:** Authorization
+- **Evidence:** `GET/POST /authorization/users/:userId/overrides` and the
+  `DELETE` acted on any user id, so an ORG_ADMIN could grant or deny
+  permissions for users — including admins — of other organizations.
+- **Fix:** `PermissionAssignmentService` asserts the target user's
+  organization against the caller's (`assertOrganizationInScope`).
+- **Tests:** `test/unit/permission-assignment.service.spec.ts`.
+
+### SEC-04 — Raw reset tokens and OTPs persisted in audit rows: DONE
+- **Module:** Audit
+- **Evidence:** `communication.password_reset_requested`, `otp_sent`,
+  `otp_resend_requested` and `email_verification_requested` are audited, and
+  `AuditEventMapper` copied the full payload (`resetToken`, `rawOtp`) into
+  `metadata`, readable via `GET /audit-logs?includeDetails=true` and
+  `GET /audit-logs/:id` — a live account-takeover token for 15 minutes.
+- **Fix:** credential keys are redacted before persistence (see `docs/core/audit.md`).
+- **Tests:** `test/unit/audit-event.mapper.spec.ts`.
+
+### SEC-05 — Audit scope became `IS NULL` for unassigned admins: DONE
+- **Module:** Audit
+- **Evidence:** `buildWhereClause` set `organizationId`/`branchId` from the
+  user; for an ORG_ADMIN/BRANCH_ADMIN whose assignment is null Prisma reads
+  that as `IS NULL`, matching every unscoped row in every tenant (public auth
+  and recovery events included). `getAuditLogById` had the same `null === null`
+  pass.
+- **Fix:** such admins fall back to self-access.
+- **Tests:** `test/unit/audit.repository.spec.ts`.
+
+### SEC-06 — Refresh rotation race, refresh for inactive users, foreign-token logout: DONE
+- **Module:** Auth
+- **Evidence:** `refreshToken` revoked the old row unconditionally, so two
+  concurrent refreshes with one token both minted sessions; it never checked
+  `user.status`; `logout` revoked whichever account owned the submitted
+  token, including all of its devices with `allDevices=true`.
+- **Fix:** conditional `updateMany` (`isRevoked: false`) with a count check;
+  non-ACTIVE users refused; logout ignores a token the caller does not own.
+- **Tests:** `test/unit/auth.service.spec.ts`.
+
+### SEC-07 — ORG_ADMIN can rewrite the platform-wide role permission matrix: OPEN
+- **Module:** Authorization
+- **Evidence:** `POST /authorization/roles/:role/permissions` allows
+  ORG_ADMIN, but `RolePermission` has no tenant column — one organization's
+  admin replaces the permission set of that role for every tenant (e.g.
+  strips BRANCH_ADMIN everywhere).
+- **Required action:** business decision — restrict the route to
+  SUPER_ADMIN, or make role permissions tenant-scoped (schema change). Not
+  changed: removing ORG_ADMIN access alters an intended capability.
+
+### SEC-08 — Program / Academic Unit / Academic Year by-id routes are not tenant-scoped: OPEN
+- **Module:** Program, Academic Unit, Academic Year
+- **Evidence:** `findById`/`update`/`softDelete`/`toggle…` (and Academic
+  Year `activate`/`select`/`lock`) load by id alone; Program and Academic Unit
+  `create` honor a body `branchId` without checking it against the caller's
+  scope. Exploitation needs another tenant's record id (UUIDv7 — not
+  enumerable now that SEC-01 closed branch/organization listing).
+- **Required action:** scope each by-id lookup with
+  `resourceScopeOf(req.context)` (404 on miss) and assert create targets with
+  `assertBranchInScope` + `assertOrganizationInScope`, as Academic Year's
+  `create` already does. Not done in this pass: it changes service signatures
+  across three modules whose e2e suites need a database to verify.
+
+### SEC-09 — Smaller items needing a decision: OPEN
+- `verify-email`, `resend-verification`, `send-otp` and `resend-otp` answer
+  `404 User not found …` (echoing the identifier), so they enumerate accounts
+  even though `forgot-password` deliberately does not. Changing the status
+  code is a contract change for the frontend.
+- `login` checks the lock before the password, so `403 Account locked`
+  confirms an account exists; a missing user also skips bcrypt (timing).
+- `GlobalExceptionFilter` returns a non-HTTP `Error`'s raw `message` as
+  `APPLICATION_ERROR` (e.g. a `TypeError`'s text) — internal detail leakage.
+- Swagger UI (`/docs`) and the raw spec (`/api-json`) are served
+  unauthenticated in every environment.
+- An access token stays valid until it expires (`JWT_EXPIRES_IN`, 15m
+  default) after logout or a password change; there is no token version or
+  deny-list. Suspension is immediate, because `JwtStrategy` re-reads `status`.
 
 ---
 
@@ -282,6 +385,20 @@ see **BP-01** below.
   `user.session_revoked` events. Not done in this pass — it touches three
   existing, working endpoints outside the specific change-password gap this
   audit was asked to close, and risks scope creep without an explicit ask.
+
+---
+
+### BP-17 — Cancelling or withdrawing a DRAFT fails at the database
+- **Module:** Admissions / workflow
+- **Status:** `OPEN` — found 2026-10-17 while testing configurable workflows; not changed.
+- **Evidence:** `cancel` and `withdraw` include `DRAFT` in their from-states
+  (`workflow.transitions.ts`), but a draft has no `personId` (Person is
+  resolved at `submit`) and `applicant_person_from_submitted_check` requires
+  one for every status except `DRAFT`. The update is refused with a raw
+  `23514`, surfaced as a 500.
+- **Required action:** business decision — permit `CANCELLED`/`WITHDRAWN`
+  without a person in the CHECK (they are terminal and never reach Student),
+  or remove `DRAFT` from both rules and let a draft be deleted instead.
 
 ---
 
