@@ -86,6 +86,9 @@ describe("the Configuration Layer Editor guide", () => {
     expect(await screen.findByText("Save the layer")).toBeInTheDocument();
     expect(screen.getByText("Step 2 of 2")).toBeInTheDocument();
 
+    // The default USER scope requires an id; without one the save fails
+    // validation and never reaches the backend.
+    await user.type(screen.getByLabelText("User id"), "user-42");
     await user.click(
       screen.getByRole("button", { name: /save configuration layer/i }),
     );
