@@ -86,6 +86,13 @@ export interface AcademicUnitDto {
    * interpreting any key.
    */
   metadata?: Record<string, unknown> | null;
+  /** Always `false` on a read: every list and `GET /:id` filter deleted ones. */
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  /** User ids. */
+  createdBy?: string | null;
+  updatedBy?: string | null;
   /**
    * **Server-computed.** Documented as auto-calculated, starting at 0 for
    * roots and maintained across moves. Never sent — see the request types.

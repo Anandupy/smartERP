@@ -141,12 +141,12 @@ function Dashboard({
             />
           </div>
 
+          <p className="text-muted-foreground text-sm">
+            These count the scope&apos;s live units — deleted units are
+            excluded.
+          </p>
           <BackendPendingNote>
-            these count what the scope&apos;s list endpoint returned. The
-            documentation describes soft deletes but no field marking one, so
-            whether deleted units are included is unknown and no figure here is
-            a total. Enrolled-student counts per unit have no documented
-            endpoint.
+            enrolled-student counts per unit have no documented endpoint.
           </BackendPendingNote>
 
           <Card>
@@ -265,12 +265,11 @@ function Dashboard({
           <h2 className="text-foreground text-sm font-medium">
             Recent academic activity
           </h2>
-          <BackendPendingNote>
-            the audit event map documents <code>academic_unit.created</code>,{" "}
-            <code>.updated</code> and <code>.deleted</code>, but no event for
-            the move or status endpoints — so re-parenting or deactivating a
-            unit will not appear below.
-          </BackendPendingNote>
+          <p className="text-muted-foreground text-sm">
+            Moving a unit or changing its status is recorded as an update, so
+            the trail shows <em>that</em> it changed rather than which action
+            changed it.
+          </p>
           {activityTrail}
         </section>
       ) : null}

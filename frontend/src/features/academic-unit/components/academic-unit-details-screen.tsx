@@ -24,7 +24,7 @@ import {
 } from "@/shared/components/data-display";
 import { BackendPendingNote, Banner } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
-import { ancestorPath } from "@/utils";
+import { ancestorPath, formatDateTime } from "@/utils";
 
 import type { AcademicUnitScope } from "../api/academic-unit.service";
 import { UNIT_STATE_PRESENTATION, academicUnitState } from "../constants";
@@ -84,10 +84,7 @@ function Details({
   const [isMovingOpen, setIsMovingOpen] = useState(false);
 
   const state = academicUnitState(unit);
-  const children = useMemo(
-    () => childrenOf(units, unit.id),
-    [units, unit.id],
-  );
+  const children = useMemo(() => childrenOf(units, unit.id), [units, unit.id]);
   const path = useMemo(
     () => ancestorPath(units, academicUnitAccessors, unit.id),
     [units, unit.id],
@@ -104,8 +101,7 @@ function Details({
     {
       key: "order",
       label: "Display order",
-      value:
-        typeof unit.displayOrder === "number" ? unit.displayOrder : "—",
+      value: typeof unit.displayOrder === "number" ? unit.displayOrder : "—",
     },
   ];
 
@@ -172,7 +168,10 @@ function Details({
                   {path.map((ancestor, index) => (
                     <li key={ancestor.id} className="flex items-center gap-1">
                       {index > 0 ? (
-                        <span aria-hidden="true" className="text-muted-foreground">
+                        <span
+                          aria-hidden="true"
+                          className="text-muted-foreground"
+                        >
                           /
                         </span>
                       ) : null}
@@ -274,7 +273,9 @@ function Details({
                   label: "Academic year",
                   value: (
                     <Link
-                      href={ROUTES.app.academicYears.detail(unit.academicYearId)}
+                      href={ROUTES.app.academicYears.detail(
+                        unit.academicYearId,
+                      )}
                       className="text-primary underline-offset-4 hover:underline"
                     >
                       <code>{unit.academicYearId}</code>
@@ -411,13 +412,21 @@ function Details({
                 value: <code>{unit.id}</code>,
                 wide: true,
               },
+              {
+                key: "created",
+                label: "Created",
+                value: unit.createdAt ? formatDateTime(unit.createdAt) : "—",
+              },
+              {
+                key: "updated",
+                label: "Last updated",
+                value: unit.updatedAt ? formatDateTime(unit.updatedAt) : "—",
+              },
             ]}
           />
-          <BackendPendingNote>
-            created and updated timestamps, and the author of the last change,
-            are not part of the academic unit contract — there is no data
-            structure table and no response body.
-          </BackendPendingNote>
+          <p className="text-muted-foreground text-sm">
+            Who made each change is recorded in the audit trail below.
+          </p>
         </CardContent>
       </Card>
 

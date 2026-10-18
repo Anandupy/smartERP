@@ -138,8 +138,8 @@ function Tree({
               Structure
             </span>
             <span className="text-muted-foreground text-xs font-normal">
-              {roots.length} top-level · {units.length} total ·{" "}
-              {programCount} {programCount === 1 ? "program" : "programs"}
+              {roots.length} top-level · {units.length} total · {programCount}{" "}
+              {programCount === 1 ? "program" : "programs"}
             </span>
           </CardTitle>
         </CardHeader>
@@ -202,11 +202,10 @@ function Tree({
                 </li>
               ))}
             </ul>
-            <BackendPendingNote>
-              the documentation describes soft deletes but no field marking one,
-              so a parent may have been deleted without the frontend being able
-              to tell.
-            </BackendPendingNote>
+            <p className="text-muted-foreground text-sm">
+              The list excludes deleted units, so a missing parent has most
+              likely been deleted.
+            </p>
           </CardContent>
         </Card>
       ) : null}

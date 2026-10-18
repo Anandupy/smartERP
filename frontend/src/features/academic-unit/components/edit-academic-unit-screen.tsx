@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 
 import { ROUTES } from "@/constants";
 import { useWorkspace } from "@/core/workspace";
-import { BackendPendingNote } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
 
 import type { AcademicUnitScope } from "../api/academic-unit.service";
@@ -64,13 +63,11 @@ function EditForm({
         }}
       />
 
-      <BackendPendingNote>
-        the update body carries <code>parentId</code> and a separate{" "}
-        <code>PATCH /:id/move</code> endpoint also exists. Which one the backend
-        treats as authoritative for a re-parent is not documented, so this form
-        saves the parent as loaded and re-parenting is done through the
-        dedicated Move action.
-      </BackendPendingNote>
+      <p className="text-muted-foreground text-sm">
+        To change the parent, use the Move action: it is the only path that
+        recalculates the level of every unit beneath this one. This form saves
+        the parent as loaded.
+      </p>
     </div>
   );
 }

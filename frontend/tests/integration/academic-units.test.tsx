@@ -18,6 +18,7 @@ import {
 } from "@/features/academic-unit";
 import { ProgramPicker } from "@/features/program";
 import { toWorkspaceAvailability } from "@/features/workspace";
+import { formatDateTime } from "@/utils";
 
 import {
   academicUnitDto,
@@ -269,7 +270,9 @@ describe("Academic unit hierarchy", () => {
 
     await user.click(screen.getByRole("button", { name: /move div a/i }));
     const dialog = await screen.findByRole("alertdialog");
-    await user.click(within(dialog).getByRole("button", { name: /move unit/i }));
+    await user.click(
+      within(dialog).getByRole("button", { name: /move unit/i }),
+    );
 
     await waitFor(() => expect(movedId).toBe("unit-2"));
     expect(body).toEqual({ parentId: null });
@@ -321,7 +324,9 @@ describe("Academic unit directory", () => {
     expect(
       within(rows[0]!).getByText("Higher Secondary Science"),
     ).toBeInTheDocument();
-    expect(within(rows[0]!).getByText("DIVISION · HHS-001-A")).toBeInTheDocument();
+    expect(
+      within(rows[0]!).getByText("DIVISION · HHS-001-A"),
+    ).toBeInTheDocument();
   });
 
   it("falls back to the program id when no names are supplied", async () => {
@@ -341,9 +346,9 @@ describe("Academic unit directory", () => {
     render(<AcademicUnitDirectoryScreen />);
 
     await screen.findByText("Std 1");
-    expect(
-      screen.getByText(/notably there is/i).textContent,
-    ).toMatch(/no.*programId.*filter/i);
+    expect(screen.getByText(/notably there is/i).textContent).toMatch(
+      /no.*programId.*filter/i,
+    );
   });
 
   it("filters by state in the client", async () => {
@@ -354,7 +359,9 @@ describe("Academic unit directory", () => {
     render(<AcademicUnitDirectoryScreen />);
     await screen.findByText("Div A");
 
-    await user.click(screen.getByRole("combobox", { name: /filter by status/i }));
+    await user.click(
+      screen.getByRole("combobox", { name: /filter by status/i }),
+    );
     await user.click(screen.getByRole("option", { name: "Inactive" }));
 
     // Asserted on rows rather than on the text: "Std 1" survives as the parent
@@ -388,11 +395,15 @@ describe("Academic unit directory", () => {
     render(<AcademicUnitDirectoryScreen />);
     await screen.findByText("Div A");
 
-    await user.click(screen.getByRole("button", { name: /actions for std 1/i }));
+    await user.click(
+      screen.getByRole("button", { name: /actions for std 1/i }),
+    );
     await user.click(screen.getByRole("menuitem", { name: /delete unit/i }));
 
     const dialog = await screen.findByRole("alertdialog");
-    expect(within(dialog).getByText(/cannot be deleted yet/i)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/cannot be deleted yet/i),
+    ).toBeInTheDocument();
     expect(within(dialog).getByText(/Div A/)).toBeInTheDocument();
   });
 
@@ -403,19 +414,26 @@ describe("Academic unit directory", () => {
 
     let body: string | null = null;
     server.use(
-      http.patch(`${API_BASE}/academic-units/:id/status`, async ({ request }) => {
-        body = await request.text();
-        return HttpResponse.json(
-          successEnvelope(academicUnitDto({ isActive: false })),
-        );
-      }),
+      http.patch(
+        `${API_BASE}/academic-units/:id/status`,
+        async ({ request }) => {
+          body = await request.text();
+          return HttpResponse.json(
+            successEnvelope(academicUnitDto({ isActive: false })),
+          );
+        },
+      ),
     );
 
     render(<AcademicUnitDirectoryScreen />);
     await screen.findByText("Std 1");
 
-    await user.click(screen.getByRole("button", { name: /actions for std 1/i }));
-    await user.click(screen.getByRole("menuitem", { name: /deactivate unit/i }));
+    await user.click(
+      screen.getByRole("button", { name: /actions for std 1/i }),
+    );
+    await user.click(
+      screen.getByRole("menuitem", { name: /deactivate unit/i }),
+    );
     const dialog = await screen.findByRole("alertdialog");
     await user.click(
       within(dialog).getByRole("button", { name: /deactivate unit/i }),
@@ -597,9 +615,7 @@ describe("Academic unit create — the Program seam", () => {
     await user.type(screen.getByLabelText(/metadata/i), "not json");
     await user.click(screen.getByRole("button", { name: /create unit/i }));
 
-    expect(
-      await screen.findByText(/enter a json object/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/enter a json object/i)).toBeInTheDocument();
   });
 
   it("offers the unit types as a closed list and sends the constant", async () => {
@@ -732,9 +748,9 @@ describe("Academic unit edit", () => {
     render(<EditAcademicUnitScreen id="unit-2" programPicker={picker()} />);
 
     await screen.findByDisplayValue("Div A");
-    expect(screen.getByRole("combobox", { name: /unit type/i })).toHaveTextContent(
-      "Division",
-    );
+    expect(
+      screen.getByRole("combobox", { name: /unit type/i }),
+    ).toHaveTextContent("Division");
 
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
@@ -749,9 +765,10 @@ describe("Academic unit edit", () => {
 
     render(<EditAcademicUnitScreen id="unit-2" programPicker={picker()} />);
 
+    // I4: `move` is the only path that recalculates descendants' levels.
     await screen.findByDisplayValue("Div A");
     expect(
-      await screen.findByText(/which one the backend treats as authoritative/i),
+      await screen.findByText(/only path that recalculates the level/i),
     ).toBeInTheDocument();
   });
 
@@ -783,6 +800,30 @@ describe("Academic unit edit", () => {
 });
 
 describe("Academic unit details", () => {
+  it("shows the record's created and updated times", async () => {
+    // I15: timestamps are returned on every read.
+    withActiveScope();
+    withUnits(academicUnitDto());
+    withUnit(
+      academicUnitDto({
+        createdAt: "2026-03-01T10:00:00.000Z",
+        updatedAt: "2026-03-02T11:15:00.000Z",
+      }),
+    );
+
+    render(<AcademicUnitDetailsScreen id="unit-1" />);
+
+    expect(
+      await screen.findByText(formatDateTime("2026-03-01T10:00:00.000Z")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(formatDateTime("2026-03-02T11:15:00.000Z")),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/not part of the academic unit contract/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows ancestry, children and the level", async () => {
     withActiveScope();
     withUnits(academicUnitDto(), childUnitDto(), secondChildUnitDto());
@@ -851,7 +892,9 @@ describe("Academic unit details", () => {
 
     await screen.findByText("Academic unit not found");
     expect(
-      screen.getByText(/different academic year than the one currently selected/i),
+      screen.getByText(
+        /different academic year than the one currently selected/i,
+      ),
     ).toBeInTheDocument();
   });
 });
@@ -877,15 +920,19 @@ describe("Academic unit dashboard", () => {
     expect(screen.getByText("Programs covered")).toBeInTheDocument();
   });
 
-  it("says the figures are not totals", async () => {
+  it("says the figures count live units, excluding deleted ones", async () => {
+    // I8: the list filters soft-deleted units.
     withActiveScope();
     withUnits(academicUnitDto());
 
     render(<AcademicUnitDashboardScreen />);
 
     expect(
-      await screen.findByText(/no figure here is a total/i),
+      await screen.findByText(/deleted units are\s+excluded/i),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/no figure here is a total/i),
+    ).not.toBeInTheDocument();
   });
 
   it("asks for the missing half of the scope", async () => {
