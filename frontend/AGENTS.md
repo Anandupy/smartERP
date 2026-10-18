@@ -443,9 +443,9 @@ inferred.
   the user's edits.
 - **A missing endpoint is never filled in.** Where a read the screens need is
   simply absent, satisfy it from a documented one and make the consequences
-  visible — Academic Year has no `GET /:id`, so a record is resolved out of the
-  branch list, which is why its detail screens need an active branch and say
-  "not in this branch's list" rather than implying a 404.
+  visible. (Academic Year once resolved a record out of its branch list for want
+  of `GET /:id`; once the read was built, the workaround was removed rather than
+  kept alongside it.)
 - **A lifecycle with no inverse says so.** Name the missing reverse transitions
   on screen (`UNSUPPORTED_ACADEMIC_YEAR_TRANSITIONS`) and warn in the
   confirmation, rather than letting an irreversible action look ordinary.

@@ -18,9 +18,8 @@ import { nonEmptyString } from "@/schemas";
  *
  * Rule 2 is checked here as a **courtesy**, not as an authority: the overlap
  * check runs against the years the list endpoint returned, which is not
- * necessarily every year that exists — the documentation does not say whether
- * soft-deleted years are excluded, and there is no `isDeleted` field to test.
- * So the client check catches the common mistake early, and the server remains
+ * necessarily every year the server compares against (the list excludes
+ * soft-deleted years, and may be stale). So the client check catches the common mistake early, and the server remains
  * the one that decides. It is a separate refinement (`withoutOverlap`) rather
  * than part of the base schema, so the base can be used where the list is not
  * loaded.

@@ -41,10 +41,11 @@ export interface AcademicYearLifecycleStage {
   /**
    * False when the stage can be *reached* but not *seen*.
    *
-   * Only Deleted is like this: `DELETE /academic-years/:id` is documented, but
-   * no `isDeleted` field is, so a soft-deleted year has no flag to read. The
-   * distinction matters — "we can do this but cannot show you the result" is a
-   * different gap from "we cannot do this".
+   * Only Deleted is like this: `isDeleted` is returned, but every read filters
+   * soft-deleted years out (G5) — the list omits them and `GET /:id` answers
+   * 404 — so no screen ever holds one to show. The distinction matters — "we
+   * can do this but cannot show you the result" is a different gap from "we
+   * cannot do this".
    */
   isObservable: boolean;
 }
@@ -104,7 +105,7 @@ export const ACADEMIC_YEAR_LIFECYCLE_STAGES: readonly AcademicYearLifecycleStage
       state: null,
       label: "Deleted",
       description:
-        "Soft-deleted. The documentation calls it a soft delete, so the record is retained — but no `isDeleted` field is documented, so the frontend cannot show a year in this state.",
+        "Soft-deleted. The record is retained, but every read excludes it — the list omits it and a direct read answers 404 — so no screen can show a year in this state.",
       transition:
         "DELETE /academic-years/:id, allowed only when the year is neither locked nor selected.",
       isSupported: true,
@@ -146,8 +147,7 @@ export const UNSUPPORTED_ACADEMIC_YEAR_TRANSITIONS: readonly {
 }[] = Object.freeze([
   {
     label: "Deactivate",
-    reason:
-      "No endpoint sets `isActive` back to false. Activation is one-way.",
+    reason: "No endpoint sets `isActive` back to false. Activation is one-way.",
   },
   {
     label: "Deselect",
@@ -182,11 +182,10 @@ export interface LifecycleAction {
  *
  * Two rules do the blocking, both quoted from the documentation:
  *
- * - **Rule 4** — "Locked academic years cannot be modified or deleted." All
- *   three transitions modify the record, so a locked year offers none of them.
- *   Whether the backend applies rule 4 to the lifecycle endpoints specifically
- *   is *not* documented; withholding is the conservative reading, and the gap
- *   is recorded in `docs/backend-gaps.md` rather than resolved by guessing.
+ * - **Rule 4** — "Locked academic years cannot be modified or deleted." The
+ *   backend applies it to `PATCH /:id` and `DELETE /:id` only (G4, confirmed in
+ *   `frontend-contract-answers.md`): `activate`, `select` and `lock` all remain
+ *   legal on a locked year, so the lock withholds none of them here.
  * - **Already there** — a year that reports the target flag is not offered the
  *   transition again. Not for safety (these are idempotent) but because an
  *   action with no effect is noise.
@@ -200,8 +199,6 @@ export function lifecycleActions(
   year: AcademicYearDto,
 ): readonly LifecycleAction[] {
   const isLocked = year.isLocked === true;
-  const lockedReason =
-    "The documentation states a locked year cannot be modified. No endpoint unlocks one.";
 
   return [
     {
@@ -210,11 +207,8 @@ export function lifecycleActions(
       description:
         "Marks the year valid and available for data entry. There is no documented way to deactivate it afterwards.",
       isIrreversible: true,
-      blockedReason: isLocked
-        ? lockedReason
-        : year.isActive === true
-          ? "This year is already active."
-          : null,
+      blockedReason:
+        year.isActive === true ? "This year is already active." : null,
     },
     {
       transition: "select",
@@ -222,9 +216,8 @@ export function lifecycleActions(
       description:
         "Makes this the branch's working year, which the rest of the system writes into by default. Only one year per branch can hold it, so the year that holds it now will be displaced.",
       isIrreversible: true,
-      blockedReason: isLocked
-        ? lockedReason
-        : year.isSelected === true
+      blockedReason:
+        year.isSelected === true
           ? "This year is already the current one."
           : null,
     },

@@ -44,30 +44,24 @@ The service is written out rather than built from `createResourceService`: the
 factory's `list` appends `?page=…&pageSize=…`, and the only query parameter
 documented anywhere here is `branchId`.
 
-**There is no `GET /academic-years/:id`.** See below — it is the single fact
-that most shapes this module.
+`GET /academic-years/:id` reads one year directly (G2, built after this module
+first shipped).
 
 ---
 
 ## Five facts that shape the module
 
-### 1. There is no read-by-id
+### 1. One year is read by id
 
-Eight endpoints are documented and a read of one record is not among them.
-`PATCH`, `DELETE` and the three transitions all take an `:id`; nothing returns a
-single year. The module doc and the collection agree, so this is an **absence**,
-not a disagreement — and inventing `GET /academic-years/:id` is exactly the
-plausible guess that ships a 404.
+`useAcademicYear(id, branchId)` calls `GET /academic-years/:id`. It was not
+documented when this module first shipped, so a record used to be resolved out
+of the branch list; the read now exists (G2). Consequences:
 
-So `useAcademicYear(id, branchId)` resolves a record **out of the documented
-branch list**. Three consequences, all visible in the UI:
+- a 404 means the year is absent or soft-deleted, and says so;
+- the owning branch comes from the record's `branchId`;
+- a single record refetches on its own — mutations invalidate its detail key.
 
-- viewing one year needs an **active branch**, so a detail link is not shareable
-  across branches;
-- "not found" means *not in this branch's list* — a weaker claim than a 404, and
-  the empty state says so;
-- there is no per-record refetch, which is why every mutation invalidates the
-  list.
+The request still carries `x-branch-id`, which OpenAPI marks required.
 
 ### 2. Everything is branch-scoped
 
@@ -176,9 +170,8 @@ decide alone, and withholds the actions the others govern.
 | 5 | The selected year cannot be deleted           | UI withholds the action; server enforces.     |
 
 Rule 2 is a **courtesy check**, not an authority: `findOverlappingYear` compares
-against the years the list returned, and the documentation does not say whether
-soft-deleted years are excluded — there is no `isDeleted` field to test. It
-catches the common mistake while the form is still open and says the server
+against the years the list returned, which excludes soft-deleted years and
+may be stale. It catches the common mistake while the form is still open and says the server
 decides.
 
 Nothing else is asserted. `name` has no documented format (the only sample is

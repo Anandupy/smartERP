@@ -18,7 +18,6 @@ import { GuideHelpTrigger } from "@/core/guides";
 import { LinkCard, StatCard } from "@/shared/components/data-display";
 import {
   ApiErrorState,
-  BackendPendingNote,
   Banner,
   EmptyState,
 } from "@/shared/components/feedback";
@@ -51,10 +50,9 @@ export interface AcademicYearDashboardScreenProps {
 /**
  * Academic year overview for the active branch.
  *
- * The counts are stated carefully. Every figure is a count of what
- * `GET /academic-years?branchId=` returned — the documentation does not say
- * whether soft-deleted years are excluded and there is no `isDeleted` field to
- * check, so no tile claims to be a total.
+ * Every figure is a count of what `GET /academic-years?branchId=` returned.
+ * That list excludes soft-deleted years (G5), so each count is the branch's
+ * live set.
  *
  * The three headline tiles are the three documented flags, and they are
  * deliberately **not** presented as one funnel: a year can be current and
@@ -161,12 +159,11 @@ export function AcademicYearDashboardScreen({
             />
           </div>
 
-          <BackendPendingNote>
-            these count what the branch&apos;s list endpoint returned. No{" "}
-            <code>isDeleted</code> field is documented, so whether soft-deleted
-            years are included is unknown and no figure here is a total. A year
-            can be current <em>and</em> locked, so the tiles overlap by design.
-          </BackendPendingNote>
+          <p className="text-muted-foreground text-sm">
+            These count the branch&apos;s live years — deleted years are
+            excluded. A year can be current <em>and</em> locked, so the tiles
+            overlap by design.
+          </p>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>

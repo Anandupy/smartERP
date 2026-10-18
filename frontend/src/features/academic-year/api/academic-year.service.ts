@@ -25,15 +25,14 @@ import type {
  * `headerRegistry` once the workspace scope is `ready`; the query parameter is
  * this module's to pass, and every caller is gated on having one.
  *
- * **There is deliberately no `get(id)`.** The contract documents eight
- * endpoints and a read-by-id is not among them — `PATCH`, `DELETE` and the
- * three transitions all take an `:id`, but nothing returns a single year. Both
- * the module doc and the collection agree, so this is an absence, not a
- * disagreement. Adding a plausible `GET /academic-years/:id` here would be
- * inventing an endpoint; `useAcademicYear` resolves a record out of the
- * documented list instead.
+ * `get(id)` is `GET /academic-years/:id`, added by the backend after the
+ * original contract (`backend/docs/core/frontend-contract-answers.md` §6, G2)
+ * and declared in the OpenAPI document; soft-deleted years answer 404.
  */
 export const academicYearService = {
+  /** `GET /academic-years/:id` → one year, or 404 when absent or deleted. */
+  get: (id: string) => api.get<AcademicYearDto>(`/academic-years/${id}`),
+
   /**
    * `GET /academic-years?branchId=` → every academic year of one branch.
    *

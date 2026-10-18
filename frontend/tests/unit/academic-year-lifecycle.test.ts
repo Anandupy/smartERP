@@ -90,19 +90,25 @@ describe("lifecycleActions", () => {
     );
   });
 
-  it("withholds every transition on a locked year", () => {
-    // Documented rule 4: a locked year cannot be modified, and all three
-    // transitions modify the record.
-    expect(availableLifecycleActions(lockedAcademicYearDto())).toHaveLength(0);
+  it("keeps activate and select legal on a locked year", () => {
+    // G4: the lock blocks PATCH /:id and DELETE /:id only.
+    const locked = lockedAcademicYearDto({ isActive: false });
+    expect(availableLifecycleActions(locked).map((a) => a.transition)).toEqual([
+      "activate",
+      "select",
+    ]);
   });
 
   it("explains each withheld transition rather than just hiding it", () => {
     const actions = lifecycleActions(lockedAcademicYearDto());
 
     expect(actions).toHaveLength(3);
-    for (const action of actions) {
-      expect(action.blockedReason).toBeTruthy();
-    }
+    expect(actions.find((a) => a.transition === "lock")?.blockedReason).toMatch(
+      /already locked/i,
+    );
+    expect(
+      actions.find((a) => a.transition === "activate")?.blockedReason,
+    ).toMatch(/already active/i);
   });
 
   it("does not re-offer a transition the year already reports", () => {

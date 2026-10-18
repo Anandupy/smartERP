@@ -39,10 +39,8 @@ export interface AcademicYearBoundaryProps {
  * so without one there is nothing to look in. That is a workspace problem
  * rather than a failure, and it reads as one.
  *
- * "Not found" is also a weaker claim here than elsewhere. There is no
- * `GET /academic-years/:id`, so the record is resolved out of the branch's
- * list — meaning the year is absent *from this branch*, which is not the same
- * as not existing. The empty state says exactly that instead of implying a 404.
+ * The record is read with `GET /academic-years/:id`; a 404 — absent or
+ * soft-deleted — is the "not found" state.
  */
 export function AcademicYearBoundary({
   id,
@@ -50,10 +48,12 @@ export function AcademicYearBoundary({
   fallback,
 }: AcademicYearBoundaryProps) {
   const branch = useAcademicYearBranch();
-  const { academicYear, isPending, error, refetch } = useAcademicYear(
-    id,
-    branch?.id ?? null,
-  );
+  const {
+    data: academicYear,
+    isPending,
+    error,
+    refetch,
+  } = useAcademicYear(id, branch?.id ?? null);
 
   if (!branch) {
     return (
@@ -71,10 +71,17 @@ export function AcademicYearBoundary({
   }
 
   if (isPending) {
-    return <>{fallback ?? <FormSkeleton fields={4} label="Loading academic year" />}</>;
+    return (
+      <>
+        {fallback ?? <FormSkeleton fields={4} label="Loading academic year" />}
+      </>
+    );
   }
 
   if (error) {
+    if (isApiError(error) && error.kind === "notFound") {
+      return <NotFound />;
+    }
     if (isApiError(error) && error.kind === "forbidden") {
       return (
         <ForbiddenState description="Your role does not have access to this branch's academic years." />
@@ -83,22 +90,24 @@ export function AcademicYearBoundary({
     return <ApiErrorState error={error} onRetry={() => refetch()} />;
   }
 
-  if (!academicYear) {
-    return (
-      <EmptyState
-        icon={CalendarDays}
-        title="Academic year not found"
-        description={`No year with this id is listed for ${branch.name}. It may belong to another branch, or it may have been deleted — the API documents a soft delete but no field that marks one.`}
-        action={
-          <Button asChild variant="outline">
-            <Link href={ROUTES.app.academicYears.directory}>
-              Back to directory
-            </Link>
-          </Button>
-        }
-      />
-    );
-  }
+  if (!academicYear) return <NotFound />;
 
-  return <>{children(academicYear, branch.id)}</>;
+  return <>{children(academicYear, academicYear.branchId ?? branch.id)}</>;
+}
+
+function NotFound() {
+  return (
+    <EmptyState
+      icon={CalendarDays}
+      title="Academic year not found"
+      description="No academic year with this id exists, or it has been deleted."
+      action={
+        <Button asChild variant="outline">
+          <Link href={ROUTES.app.academicYears.directory}>
+            Back to directory
+          </Link>
+        </Button>
+      }
+    />
+  );
 }

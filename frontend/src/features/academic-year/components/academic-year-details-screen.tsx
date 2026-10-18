@@ -20,7 +20,8 @@ import {
 } from "@/shared/components/data-display";
 import { BackendPendingNote, Banner } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
-import { formatDate } from "@/utils";
+import { useWorkspace } from "@/core/workspace";
+import { formatDate, formatDateTime } from "@/utils";
 
 import {
   ACADEMIC_YEAR_STATE_PRESENTATION,
@@ -92,8 +93,7 @@ function Details({
     {
       key: "duration",
       label: "Duration",
-      value:
-        progress.totalDays !== null ? `${progress.totalDays} days` : "—",
+      value: progress.totalDays !== null ? `${progress.totalDays} days` : "—",
     },
   ];
 
@@ -137,7 +137,7 @@ function Details({
           tone="warning"
           icon={Lock}
           title="This academic year is locked"
-          description="The documentation states a locked year cannot be modified or deleted, and the API documents no endpoint that unlocks one. Editing and every lifecycle action are withheld."
+          description="A locked year cannot be edited or deleted, and the API has no endpoint that unlocks one. It can still be activated or set as the current year."
         />
       ) : null}
 
@@ -214,22 +214,10 @@ function Details({
                 {
                   key: "branch",
                   label: "Owning branch",
-                  value: (
-                    <Link
-                      href={ROUTES.app.branches.detail(year.branchId)}
-                      className="text-primary underline-offset-4 hover:underline"
-                    >
-                      <code>{year.branchId}</code>
-                    </Link>
-                  ),
+                  value: <OwningBranch branchId={year.branchId} />,
                 },
               ]}
             />
-            <BackendPendingNote>
-              only the branch id is returned with a year — showing the branch
-              name would need it expanded in the response, and no response body
-              is documented.
-            </BackendPendingNote>
           </CardContent>
         </Card>
       </div>
@@ -265,14 +253,21 @@ function Details({
                 value: <code>{year.id}</code>,
                 wide: true,
               },
+              {
+                key: "createdAt",
+                label: "Created",
+                value: year.createdAt ? formatDateTime(year.createdAt) : "—",
+              },
+              {
+                key: "updatedAt",
+                label: "Last updated",
+                value: year.updatedAt ? formatDateTime(year.updatedAt) : "—",
+              },
             ]}
           />
-          <BackendPendingNote>
-            created and updated timestamps, and the author of the last change,
-            are not part of the academic year contract — there is no data
-            structure table and no response body. Change history is available
-            through the audit trail below.
-          </BackendPendingNote>
+          <p className="text-muted-foreground text-xs">
+            Who made each change is recorded in the audit trail below.
+          </p>
         </CardContent>
       </Card>
 
@@ -309,5 +304,25 @@ export function AcademicYearDetailsScreen({
     <AcademicYearBoundary id={id}>
       {(year) => <Details year={year} activityTrail={activityTrail} />}
     </AcademicYearBoundary>
+  );
+}
+
+/**
+ * The year's branch by name. A year carries only `branchId`; the name is
+ * taken from the active workspace branch when it is that branch, which is the
+ * only branch this screen can be reached from. Otherwise the id is shown —
+ * never a guessed name.
+ */
+function OwningBranch({ branchId }: { branchId: string }) {
+  const { branch } = useWorkspace();
+  const name = branch?.id === branchId ? branch.name : null;
+
+  return (
+    <Link
+      href={ROUTES.app.branches.detail(branchId)}
+      className="text-primary underline-offset-4 hover:underline"
+    >
+      {name ?? <code>{branchId}</code>}
+    </Link>
   );
 }

@@ -57,6 +57,17 @@ export interface AcademicYearDto {
   isSelected?: boolean | null;
   /** "Prevents further modification or deletion." Set by `PATCH /:id/lock`. */
   isLocked?: boolean | null;
+  /**
+   * Record metadata — `AcademicYearDto` in the OpenAPI document
+   * (`frontend-contract-answers.md` §4, G5/G16). Lists exclude soft-deleted
+   * years, so `isDeleted` is false on everything a list returns.
+   */
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  /** User id, or null. Not a name. */
+  createdBy?: string | null;
+  updatedBy?: string | null;
 }
 
 /**

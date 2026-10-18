@@ -90,35 +90,21 @@ export function useCurrentAcademicYear(branchId: string | null) {
 }
 
 /**
- * One academic year by id — **resolved from the branch list, not fetched.**
+ * One academic year by id — `GET /academic-years/:id` (G2).
  *
- * There is no `GET /academic-years/:id`. The collection documents eight
- * endpoints and a read-by-id is not among them: `PATCH`, `DELETE` and the three
- * transitions all take an `:id`, but nothing returns a single year. Both
- * sources agree on this, so it is an absence rather than a disagreement.
- *
- * Inventing the endpoint was the alternative and was rejected — it is precisely
- * the kind of plausible guess that ships a 404 to production. Instead the
- * documented branch list is the source, and the record is picked out of it.
- * Three consequences follow, and every one of them is visible in the UI:
- *
- * - The **active branch is required** to view a single year, so a detail link
- *   is not shareable across branches.
- * - "Not found" means *not in this branch's list*, which is a weaker statement
- *   than a 404 from a read endpoint — the year may exist elsewhere, or may have
- *   been soft-deleted, and the empty state says so.
- * - There is no per-record refetch. Invalidating the list is what refreshes a
- *   detail screen, which is why every mutation above invalidates it.
+ * It used to be picked out of the branch list because no read-by-id was
+ * documented; the backend has since exposed one, so a detail screen fetches
+ * the record itself, refetches it on its own, and a 404 means not found.
+ * `branchId` gates the read on an active workspace scope, which every
+ * request still needs for its scope headers.
  */
 export function useAcademicYear(id: string, branchId: string | null) {
-  const query = useAcademicYears(branchId);
-
-  const academicYear = useMemo(
-    () => query.academicYears.find((year) => year.id === id) ?? null,
-    [query.academicYears, id],
-  );
-
-  return { ...query, academicYear };
+  return useQuery({
+    queryKey: academicYearKeys.detail(id),
+    queryFn: () => academicYearService.get(id),
+    enabled: Boolean(id) && Boolean(branchId),
+    meta: { skipErrorToast: true },
+  });
 }
 
 export interface AcademicYearFilters {

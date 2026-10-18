@@ -2,16 +2,13 @@
  * Public surface of the Academic Year module.
  *
  * Scope: `/academic-years` — the administrative timeframes inside a branch. All
- * eight documented endpoints are wired: create, list, current, update, the
+ * nine documented endpoints are wired: create, list, current, read, update, the
  * three lifecycle transitions, and the documented soft delete.
  *
  * Five contract facts shape the module, and all five are visible in the UI:
  *
- * 1. **There is no `GET /academic-years/:id`.** The collection documents eight
- *    endpoints and a read-by-id is not among them. Rather than invent one, a
- *    single record is resolved out of the documented branch list — which is why
- *    every detail screen needs an active branch, and why "not found" is phrased
- *    as "not in this branch's list".
+ * 1. **One year is read with `GET /academic-years/:id`** (G2). A 404 means the
+ *    year is absent or soft-deleted, and a single record can be refetched.
  * 2. **Everything is branch-scoped.** `branchId` is a documented *required*
  *    parameter on both reads, and no endpoint lists years across branches. The
  *    active branch comes from `useWorkspace()` and nowhere else; without one,

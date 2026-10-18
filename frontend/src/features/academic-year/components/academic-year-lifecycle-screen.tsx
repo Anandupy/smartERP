@@ -425,8 +425,8 @@ export interface AcademicYearLifecycleScreenProps {
  * What the contract has none of is an **inverse**. There is no deactivate, no
  * deselect, no unlock and no restore, so this screen is built around making
  * that unmissable: the four missing transitions get a panel of their own rather
- * than being silently absent, every confirmation carries the warning, and a
- * locked year has all of its actions withheld with the documented reason.
+ * than being silently absent, and every confirmation carries the warning. The
+ * lock blocks edit and delete only; activate and select stay legal (G4).
  */
 export function AcademicYearLifecycleScreen({
   id,

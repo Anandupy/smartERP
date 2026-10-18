@@ -10,8 +10,9 @@ import {
 import {
   academicYearDto,
   lockedAcademicYearDto,
+  upcomingAcademicYearDto,
 } from "@tests/fixtures/academic-year";
-import { successEnvelope } from "@tests/fixtures/api";
+import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
 import { auditLogDto, auditLogPage } from "@tests/fixtures/audit";
 import { branchDto, secondBranchDto } from "@tests/fixtures/branch";
 import { maintenanceRuleDto } from "@tests/fixtures/maintenance";
@@ -151,6 +152,24 @@ export const adminHandlers = [
       successEnvelope([academicYearDto(), lockedAcademicYearDto()]),
     ),
   ),
+  // `GET /academic-years/:id` (G2) — after `current`, which it would
+  // otherwise swallow. Resolves the known fixtures; anything else is a 404.
+  http.get(`${base}/academic-years/:id`, ({ params }) => {
+    const year = [
+      academicYearDto(),
+      lockedAcademicYearDto(),
+      upcomingAcademicYearDto(),
+    ].find((candidate) => candidate.id === params.id);
+    return year
+      ? HttpResponse.json(successEnvelope(year))
+      : HttpResponse.json(
+          errorEnvelope({
+            code: "NOT_FOUND",
+            message: "Academic year not found",
+          }),
+          { status: 404 },
+        );
+  }),
   http.post(`${base}/academic-years`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json(successEnvelope(academicYearDto(body)), {

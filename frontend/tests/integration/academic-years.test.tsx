@@ -79,6 +79,20 @@ function withAcademicYears(...years: ReturnType<typeof academicYearDto>[]) {
     http.get(`${API_BASE}/academic-years`, () =>
       HttpResponse.json(successEnvelope(years)),
     ),
+    // The detail read (G2) serves the same records; `current` falls through.
+    http.get(`${API_BASE}/academic-years/:id`, ({ params }) => {
+      if (params.id === "current") return undefined;
+      const year = years.find((candidate) => candidate.id === params.id);
+      return year
+        ? HttpResponse.json(successEnvelope(year))
+        : HttpResponse.json(
+            errorEnvelope({
+              code: "NOT_FOUND",
+              message: "Academic year not found",
+            }),
+            { status: 404 },
+          );
+    }),
   );
 }
 
@@ -167,7 +181,9 @@ describe("Academic year directory", () => {
 
     await screen.findByText("2025-26");
 
-    await user.click(screen.getByRole("combobox", { name: /filter by status/i }));
+    await user.click(
+      screen.getByRole("combobox", { name: /filter by status/i }),
+    );
     await user.click(screen.getByRole("option", { name: "Locked" }));
 
     await waitFor(() => {
@@ -237,8 +253,8 @@ describe("Academic year directory", () => {
 });
 
 describe("Academic year directory — row actions", () => {
-  it("offers no lifecycle transition on a locked year", async () => {
-    // Documented rule 4: a locked year cannot be modified.
+  it("offers a locked year only the transitions the lock leaves legal", async () => {
+    // G4: the lock blocks edit and delete, not activate or select.
     const user = userEvent.setup();
     withActiveWorkspace();
     withAcademicYears(lockedAcademicYearDto());
@@ -250,12 +266,17 @@ describe("Academic year directory — row actions", () => {
       screen.getByRole("button", { name: /actions for 2024-25/i }),
     );
 
+    // Already active and already locked, so neither is offered again…
     expect(
       screen.queryByRole("menuitem", { name: /activate year/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("menuitem", { name: /lock year/i }),
     ).not.toBeInTheDocument();
+    // …but the lock does not stop it becoming the current year.
+    expect(
+      screen.getByRole("menuitem", { name: /set as current year/i }),
+    ).toBeInTheDocument();
   });
 
   it("disables edit and delete on a locked year", async () => {
@@ -341,7 +362,9 @@ describe("Academic year directory — row actions", () => {
     );
     await user.click(screen.getByRole("menuitem", { name: /lock year/i }));
     const dialog = await screen.findByRole("alertdialog");
-    await user.click(within(dialog).getByRole("button", { name: /lock year/i }));
+    await user.click(
+      within(dialog).getByRole("button", { name: /lock year/i }),
+    );
 
     await waitFor(() => expect(lockedId).toBe("ay-3"));
   });
@@ -355,12 +378,15 @@ describe("Academic year directory — row actions", () => {
 
     let body: string | null = null;
     server.use(
-      http.patch(`${API_BASE}/academic-years/:id/activate`, async ({ request }) => {
-        body = await request.text();
-        return HttpResponse.json(
-          successEnvelope(upcomingAcademicYearDto({ isActive: true })),
-        );
-      }),
+      http.patch(
+        `${API_BASE}/academic-years/:id/activate`,
+        async ({ request }) => {
+          body = await request.text();
+          return HttpResponse.json(
+            successEnvelope(upcomingAcademicYearDto({ isActive: true })),
+          );
+        },
+      ),
     );
 
     render(<AcademicYearDirectoryScreen />);
@@ -412,7 +438,8 @@ describe("Academic year dashboard", () => {
     expect(screen.getByText("Locked")).toBeInTheDocument();
   });
 
-  it("says the tiles are not totals", async () => {
+  it("says the tiles count live years, excluding deleted ones", async () => {
+    // G5: the list filters soft-deleted years, so a count is the live set.
     withActiveWorkspace();
     withAcademicYears(academicYearDto());
 
@@ -420,8 +447,11 @@ describe("Academic year dashboard", () => {
 
     await screen.findByText("Listed");
     expect(
-      await screen.findByText(/no figure here is a total/i),
+      await screen.findByText(/deleted years are\s+excluded/i),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/no figure here is a total/i),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the current year with its progress", async () => {
@@ -482,9 +512,7 @@ describe("Academic year details", () => {
     render(<AcademicYearDetailsScreen id="ay-1" />);
 
     await screen.findByRole("heading", { name: "2025-26", level: 1 });
-    expect(
-      screen.getByText(/status flags/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/status flags/i)).toBeInTheDocument();
   });
 
   it("shows an unreported flag as “Not reported”, never as “No”", async () => {
@@ -501,9 +529,7 @@ describe("Academic year details", () => {
 
     await screen.findByRole("heading", { name: "2025-26", level: 1 });
     expect(screen.getAllByText("Not reported").length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/no status was reported/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/no status was reported/i)).toBeInTheDocument();
   });
 
   it("replaces Edit with a locked marker on a locked year", async () => {
@@ -519,9 +545,9 @@ describe("Academic year details", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("explains that a missing record means missing from this branch", async () => {
-    // There is no `GET /academic-years/:id`, so the record is resolved out of
-    // the branch list and "not found" is a weaker claim than a 404 would be.
+  it("treats a 404 from GET /academic-years/:id as not found", async () => {
+    // G2: the year is read directly, so a 404 means absent or soft-deleted —
+    // not merely missing from the active branch's list.
     withActiveWorkspace();
     withAcademicYears(academicYearDto());
 
@@ -531,8 +557,11 @@ describe("Academic year details", () => {
       await screen.findByText("Academic year not found"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/may belong to another branch/i),
+      screen.getByText(/no academic year with this id exists/i),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/may belong to another branch/i),
+    ).not.toBeInTheDocument();
   });
 
   it("marks calendar events as pending rather than inventing them", async () => {
@@ -550,7 +579,7 @@ describe("Academic year details", () => {
   it("renders a forbidden state for a 403", async () => {
     withActiveWorkspace();
     server.use(
-      http.get(`${API_BASE}/academic-years`, () =>
+      http.get(`${API_BASE}/academic-years/:id`, () =>
         HttpResponse.json(
           errorEnvelope({ code: "FORBIDDEN", message: "Nope" }),
           { status: 403 },
@@ -575,9 +604,7 @@ describe("Academic year lifecycle", () => {
 
     await screen.findByText(/transitions the api does not document/i);
     for (const label of ["Deactivate", "Deselect", "Unlock", "Restore"]) {
-      expect(
-        screen.getByRole("button", { name: label }),
-      ).toBeDisabled();
+      expect(screen.getByRole("button", { name: label })).toBeDisabled();
     }
   });
 
@@ -670,7 +697,9 @@ describe("Academic year lifecycle", () => {
     );
 
     await waitFor(() => {
-      expect(routerMock.push).toHaveBeenCalledWith("/app/academic-years/directory");
+      expect(routerMock.push).toHaveBeenCalledWith(
+        "/app/academic-years/directory",
+      );
     });
   });
 });
@@ -788,9 +817,7 @@ describe("Create academic year", () => {
       screen.getByRole("button", { name: /create academic year/i }),
     );
 
-    expect(
-      await screen.findByText(/cannot overlap/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/cannot overlap/i)).toBeInTheDocument();
   });
 });
 
@@ -894,7 +921,9 @@ describe("Academic calendar", () => {
     render(<AcademicYearCalendarScreen />);
 
     expect(
-      await screen.findByText(/a month or week grid is deliberately not rendered/i),
+      await screen.findByText(
+        /a month or week grid is deliberately not rendered/i,
+      ),
     ).toBeInTheDocument();
   });
 

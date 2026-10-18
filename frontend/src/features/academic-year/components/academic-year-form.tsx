@@ -13,7 +13,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getErrorMessage } from "@/lib";
-import { BackendPendingNote, Banner, Spinner } from "@/shared/components/feedback";
+import {
+  BackendPendingNote,
+  Banner,
+  Spinner,
+} from "@/shared/components/feedback";
 import { formatDate } from "@/utils";
 
 import {
@@ -99,8 +103,8 @@ export function AcademicYearForm({
   const endDate = form.watch("endDate");
 
   // Documented validation rule 2, checked as a courtesy. The server is the
-  // authority — the list this compares against is not guaranteed to contain
-  // every year that exists, since no `isDeleted` field is documented.
+  // authority — the list this compares against excludes soft-deleted years
+  // and may be stale.
   const overlap = existingYears
     ? findOverlappingYear(existingYears, { startDate, endDate }, editingId)
     : null;

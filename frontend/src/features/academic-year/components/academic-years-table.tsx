@@ -62,8 +62,8 @@ export interface AcademicYearsTableProps {
  * column would imply the backend returned nothing when it was never asked.
  *
  * The row menu is built from `availableLifecycleActions`, so an action the
- * documented rules forbid is **absent rather than disabled** — a locked year
- * offers no transitions at all. Edit and delete are the exception and stay
+ * documented rules forbid is **absent rather than disabled** — a year is never
+ * offered a transition it already reports. Edit and delete are the exception and stay
  * visible with their reason as a tooltip, because their absence would otherwise
  * read as a missing feature rather than as a rule doing its job.
  */
