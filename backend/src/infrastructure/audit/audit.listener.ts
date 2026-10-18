@@ -66,6 +66,8 @@ export class AuditListener implements OnModuleInit {
     'workspace.menu_updated',
     'workspace.menu_deleted',
     'workspace.config_updated',
+    // F2 policy changes. Carries old and new values; never personal data.
+    'config.changed',
     'context.validation_failed',
     'context.access_denied',
     'context.selection_required',
