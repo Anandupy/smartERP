@@ -45,7 +45,10 @@ let resetRouterMock: (typeof import("@tests/mocks/next-navigation"))["resetRoute
 let routerMock: (typeof import("@tests/mocks/next-navigation"))["routerMock"];
 
 beforeAll(async () => {
-  vi.resetModules();
+  // No `vi.resetModules()` here: it gave the screens a fresh copy of
+  // `@/core/workspace`, so they read a different `useWorkspaceStore` from the
+  // one these specs write the active branch into — every screen saw no
+  // branch at all.
   vi.doMock("next/navigation", async () => {
     const { createNextNavigationMock } = await import("@tests/mocks/next-navigation");
     return createNextNavigationMock();
