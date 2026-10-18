@@ -63,6 +63,7 @@ describe("Application sidebar", () => {
       "System Settings",
       "Maintenance",
       "Audit Logs",
+      "Admissions",
     ]) {
       expect(await screen.findByRole("link", { name: label })).toBeVisible();
     }
@@ -123,9 +124,11 @@ describe("Application sidebar", () => {
     setPathname(ROUTES.app.root);
     withSidebar(<AppSidebar />);
 
-    expect(screen.queryByRole("link", { name: /Admissions/ })).toBeNull();
-    const admissions = await screen.findByText("Admissions");
-    expect(admissions.closest("[aria-disabled='true']")).not.toBeNull();
+    // Students is still `comingSoon`. (Admissions was the example until it
+    // shipped in 59f0386 — it is now in the shipped list above.)
+    expect(screen.queryByRole("link", { name: /Students/ })).toBeNull();
+    const students = await screen.findByText("Students");
+    expect(students.closest("[aria-disabled='true']")).not.toBeNull();
   });
 });
 
