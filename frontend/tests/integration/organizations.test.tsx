@@ -119,8 +119,8 @@ describe("Organization directory", () => {
   });
 
   it("explains why filtering to inactive returns nothing", async () => {
-    // The endpoint is documented to return active organizations only, so this
-    // empty result needs an explanation rather than a bare empty table.
+    // E2: the list excludes INACTIVE organizations, so this empty result
+    // needs an explanation rather than a bare empty table.
     const user = userEvent.setup();
     withOrganizations(organizationDto());
 
@@ -134,8 +134,35 @@ describe("Organization directory", () => {
 
     expect(await screen.findByText("None of these are listed")).toBeVisible();
     expect(
-      screen.getByText(/documented to return active organizations only/i),
+      screen.getByText(/returns active and suspended organizations only/i),
     ).toBeVisible();
+  });
+
+  it("lists a suspended organization instead of calling it unlisted", async () => {
+    // E2: SUSPENDED organizations are returned by the list.
+    const user = userEvent.setup();
+    withOrganizations(
+      organizationDto(),
+      organizationDto({
+        id: "org-suspended",
+        name: "Dormant Trust",
+        code: "DORM",
+        status: "SUSPENDED",
+      }),
+    );
+
+    render(<OrganizationDirectoryScreen />);
+    await screen.findByText("Horizon Education Trust");
+
+    await user.click(
+      screen.getByRole("combobox", { name: "Filter by status" }),
+    );
+    await user.click(await screen.findByRole("option", { name: "Suspended" }));
+
+    expect(await screen.findByText("Dormant Trust")).toBeVisible();
+    expect(
+      screen.queryByText("None of these are listed"),
+    ).not.toBeInTheDocument();
   });
 
   it("offers a way in when the directory is empty", async () => {
@@ -270,10 +297,12 @@ describe("Organization dashboard", () => {
     render(<OrganizationDashboardScreen />);
 
     expect(
-      await screen.findByText(
-        /an inactive or suspended count cannot be derived/i,
-      ),
+      await screen.findByText(/an inactive count\s+cannot be derived/i),
     ).toBeInTheDocument();
+    // E2: suspended organizations are listed, so they are not unknowable.
+    expect(
+      screen.queryByText(/suspended count cannot be derived/i),
+    ).not.toBeInTheDocument();
   });
 
   it("surfaces subscriptions that have lapsed or are about to", async () => {
@@ -359,7 +388,7 @@ describe("Organization details", () => {
 
     expect(await screen.findByText("Organization not found")).toBeVisible();
     expect(
-      screen.getByText(/directory lists active organizations only/i),
+      screen.getByText(/directory lists active and suspended organizations/i),
     ).toBeVisible();
   });
 });

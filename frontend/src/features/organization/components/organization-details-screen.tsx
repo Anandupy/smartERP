@@ -44,7 +44,7 @@ function ExpiryBanner({ organization }: { organization: OrganizationDto }) {
         tone="danger"
         icon={Clock}
         title="Master subscription has expired"
-        description={`The expiry date was ${organization.masterExpiryDate}. The platform documents no status change driven by this date — the organization's status is still ${organization.status ?? "unreported"}.`}
+        description={`The expiry date was ${organization.masterExpiryDate}. Expiry does not change status — the organization's status is still ${organization.status ?? "unreported"}, and it keeps working.`}
       />
     );
   }

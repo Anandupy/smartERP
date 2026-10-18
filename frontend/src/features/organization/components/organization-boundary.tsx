@@ -57,7 +57,7 @@ export function OrganizationBoundary({
         <EmptyState
           icon={Building2}
           title="Organization not found"
-          description="It may have been deactivated — the directory lists active organizations only."
+          description="It may have been deactivated — the directory lists active and suspended organizations only."
         />
       );
     }

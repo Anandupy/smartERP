@@ -119,10 +119,10 @@ export function OrganizationDashboardScreen({
           </div>
 
           <BackendPendingNote>
-            the endpoint is documented to list active organizations only, so a
-            platform-wide total and an inactive or suspended count cannot be
-            derived from it. Uptime and health figures have no documented source
-            at all.
+            the list returns active and suspended organizations but excludes
+            deactivated ones, so a platform-wide total and an inactive count
+            cannot be derived from it. Uptime and health figures have no
+            documented source at all.
           </BackendPendingNote>
 
           <Card>

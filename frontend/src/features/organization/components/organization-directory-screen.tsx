@@ -85,7 +85,8 @@ export function OrganizationDirectoryScreen() {
     setPage(1);
   };
 
-  const isNarrowedToUnlisted = status === "INACTIVE" || status === "SUSPENDED";
+  // E2: the list returns ACTIVE and SUSPENDED; only INACTIVE is excluded.
+  const isNarrowedToUnlisted = status === "INACTIVE";
 
   return (
     <div className="space-y-6">
@@ -158,7 +159,7 @@ export function OrganizationDirectoryScreen() {
               <EmptyState
                 icon={Building2}
                 title="None of these are listed"
-                description="GET /organizations is documented to return active organizations only, so inactive and suspended ones never reach this table."
+                description="GET /organizations returns active and suspended organizations only. A deactivated organization is excluded, and no parameter brings it back."
                 action={
                   <Button
                     type="button"

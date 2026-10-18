@@ -11,9 +11,9 @@
  *
  * 1. **The list endpoint documents no query parameters**, so search, filter,
  *    sort and paging happen in the client, and the directory says so.
- * 2. **The list is documented to return active organizations only**, so no
- *    screen reports a platform-wide total or an inactive count as if it knew
- *    one.
+ * 2. **The list returns `ACTIVE` and `SUSPENDED` organizations** and excludes
+ *    `INACTIVE` (E2), so no screen reports a platform-wide total or an
+ *    inactive count as if it knew one.
  * 3. **`status` is server-managed** — a documented field of the entity and of
  *    neither request body — so there is no status control anywhere, and the
  *    lifecycle screen marks suspension, reactivation, draft and permanent

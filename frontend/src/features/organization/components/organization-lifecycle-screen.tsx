@@ -8,11 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
-import {
-  BackendPendingBadge,
-  BackendPendingNote,
-  Banner,
-} from "@/shared/components/feedback";
+import { BackendPendingBadge, Banner } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
 
 import { useDeactivateOrganization } from "../hooks/use-organizations";
@@ -164,15 +160,14 @@ function Lifecycle({ organization }: { organization: OrganizationDto }) {
           {expiry === "expired" ? (
             <p className="text-destructive text-sm">
               This date has passed. The organization&apos;s status is still{" "}
-              {organization.status ?? "unreported"} — the platform documents no
-              status change driven by expiry.
+              {organization.status ?? "unreported"} — expiry does not change it,
+              and an expired organization keeps working.
             </p>
           ) : null}
-          <BackendPendingNote>
-            whether expiry changes an organization&apos;s status, and what it
-            changes it to, is not documented. No status is derived from this
-            date.
-          </BackendPendingNote>
+          <p className="text-muted-foreground text-sm">
+            Nothing reads this date: expiry changes no status and blocks
+            nothing.
+          </p>
         </CardContent>
       </Card>
 
