@@ -22,7 +22,7 @@ import {
 } from "@/shared/components/data-display";
 import { BackendPendingNote, Banner } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
-import { ancestorPath } from "@/utils";
+import { ancestorPath, formatDateTime } from "@/utils";
 
 import { PROGRAM_STATE_PRESENTATION, programState } from "../constants";
 import {
@@ -38,7 +38,10 @@ import {
   programAccessors,
 } from "../utils/program-hierarchy";
 import { ProgramBoundary } from "./program-boundary";
-import { DeleteProgramDialog, ToggleProgramStatusDialog } from "./program-dialogs";
+import {
+  DeleteProgramDialog,
+  ToggleProgramStatusDialog,
+} from "./program-dialogs";
 import { ProgramStatusBadge } from "./program-status-badge";
 
 export interface ProgramDetailsScreenProps {
@@ -140,7 +143,10 @@ function Details({
                   {path.map((ancestor, index) => (
                     <li key={ancestor.id} className="flex items-center gap-1">
                       {index > 0 ? (
-                        <span aria-hidden="true" className="text-muted-foreground">
+                        <span
+                          aria-hidden="true"
+                          className="text-muted-foreground"
+                        >
                           /
                         </span>
                       ) : null}
@@ -212,17 +218,12 @@ function Details({
                       href={ROUTES.app.branches.detail(program.branchId)}
                       className="text-primary underline-offset-4 hover:underline"
                     >
-                      <code>{program.branchId}</code>
+                      {program.branch?.name ?? <code>{program.branchId}</code>}
                     </Link>
                   ),
                 },
               ]}
             />
-            <BackendPendingNote>
-              only the branch id is returned with a program — showing the branch
-              name would need it expanded in the response, and no response body
-              is documented.
-            </BackendPendingNote>
           </CardContent>
         </Card>
 
@@ -281,8 +282,8 @@ function Details({
           </Button>
           <BackendPendingNote>
             no endpoint counts or lists academic units by program alone — the
-            list requires a branch <em>and</em> an academic year — so a per-program
-            total is not shown here.
+            list requires a branch <em>and</em> an academic year — so a
+            per-program total is not shown here.
           </BackendPendingNote>
         </CardContent>
       </Card>
@@ -331,13 +332,25 @@ function Details({
                 value: <code>{program.id}</code>,
                 wide: true,
               },
+              {
+                key: "created",
+                label: "Created",
+                value: program.createdAt
+                  ? formatDateTime(program.createdAt)
+                  : "—",
+              },
+              {
+                key: "updated",
+                label: "Last updated",
+                value: program.updatedAt
+                  ? formatDateTime(program.updatedAt)
+                  : "—",
+              },
             ]}
           />
-          <BackendPendingNote>
-            created and updated timestamps, and the author of the last change,
-            are not part of the program contract — there is no data structure
-            table and no response body.
-          </BackendPendingNote>
+          <p className="text-muted-foreground text-sm">
+            Who made each change is recorded in the audit trail below.
+          </p>
         </CardContent>
       </Card>
 
@@ -346,10 +359,6 @@ function Details({
           <h2 className="text-foreground text-sm font-medium">
             Audit trail &amp; activity
           </h2>
-          <BackendPendingNote>
-            the audit event map documents no <code>program.*</code> event, so
-            changes to this record may not appear below.
-          </BackendPendingNote>
           {activityTrail}
         </section>
       ) : null}

@@ -144,12 +144,13 @@ export function ProgramDashboardScreen({
             />
           </div>
 
+          <p className="text-muted-foreground text-sm">
+            These count the branch&apos;s live programs — deleted programs are
+            excluded.
+          </p>
           <BackendPendingNote>
-            these count what the branch&apos;s list endpoint returned. The
-            endpoints document a soft delete but no field marking one, so
-            whether deleted programs are included is unknown and no figure here
-            is a total. Enrolled-student and academic-unit counts per program
-            have no documented endpoint.
+            enrolled-student and academic-unit counts per program have no
+            documented endpoint.
           </BackendPendingNote>
 
           <Card>
@@ -267,11 +268,11 @@ export function ProgramDashboardScreen({
           <h2 className="text-foreground text-sm font-medium">
             Recent academic activity
           </h2>
-          <BackendPendingNote>
-            the audit event map documents no <code>program.*</code> event, so
-            program changes may not appear below. The trail shown is the{" "}
-            <code>ACADEMIC</code> module&apos;s.
-          </BackendPendingNote>
+          <p className="text-muted-foreground text-sm">
+            Program changes are recorded under the <code>ACADEMIC</code> module,
+            alongside academic years and units. A status change appears as an
+            update.
+          </p>
           {activityTrail}
         </section>
       ) : null}

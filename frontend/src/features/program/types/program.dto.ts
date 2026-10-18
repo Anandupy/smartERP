@@ -43,14 +43,18 @@
  * response body is documented, so an absent flag means "not reported" and never
  * `false`.
  */
+/** OpenAPI `ProgramDto.level` — a Prisma enum (H1, confirmed). */
+export const PROGRAM_LEVELS = ["SCHOOL", "COLLEGE", "DEGREE"] as const;
+
+export type ProgramLevel = (typeof PROGRAM_LEVELS)[number];
+
 export interface ProgramDto {
   id: string;
   branchId: string;
   name: string;
   /**
-   * **Postman only.** Absent from the module doc entirely, including from its
-   * uniqueness rule. The single recorded sample is `"SCHOOL"`, so no value set
-   * can be offered — see `docs/backend-gaps.md`.
+   * One of `PROGRAM_LEVELS`, or `null`. Typed `string` on read so a value the
+   * enum later gains still renders rather than failing the type.
    */
   level?: string | null;
   /** Documented in the concept and in uniqueness rule 1. Sample: `"English"`. */
@@ -61,6 +65,18 @@ export interface ProgramDto {
   parentId?: string | null;
   /** Server-managed. Changed only via `PATCH /programs/:id/status`. */
   isActive?: boolean | null;
+  /** Always `false` on a read: every list and `GET /:id` filter deleted ones. */
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  /** User ids. */
+  createdBy?: string | null;
+  updatedBy?: string | null;
+  /**
+   * The owning branch, hydrated by `GET /programs/:id` only
+   * (`ProgramDetailDto`, H14). Lists do not carry it.
+   */
+  branch?: { id: string; name: string; code?: string } | null;
   /**
    * Present only in the `GET /programs/tree` response, if at all.
    *

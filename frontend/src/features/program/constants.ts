@@ -21,7 +21,12 @@ export function programState(program: ProgramDto): ProgramState {
 
 export const PROGRAM_STATE_PRESENTATION: Record<
   ProgramState,
-  { label: string; tone: StatusBadgeTone; icon: LucideIcon; description: string }
+  {
+    label: string;
+    tone: StatusBadgeTone;
+    icon: LucideIcon;
+    description: string;
+  }
 > = {
   active: {
     label: "Active",
@@ -61,16 +66,24 @@ export const ANY_LEVEL = "ANY";
 /** Sentinel for "no parent", since a select cannot hold an empty value. */
 export const NO_PARENT = "NONE";
 
+/** Sentinel for "no level", for the same reason. */
+export const NO_LEVEL = "NONE";
+
+/** Readable names for `PROGRAM_LEVELS`. */
+export const PROGRAM_LEVEL_LABEL: Record<string, string> = {
+  SCHOOL: "School",
+  COLLEGE: "College",
+  DEGREE: "Degree",
+};
+
 /** Rows per page in the directory. Client-side — see the module docs. */
 export const DIRECTORY_PAGE_SIZE = 10;
 
 /**
  * The audit module records program events under this module name.
  *
- * The audit event map documents `ACADEMIC` for `academic_year.*` and
- * `academic_unit.*`. **No `program.*` event is documented at all**, so the
- * trail pinned here is the academic module's, and may contain nothing from this
- * one — which the screens say rather than implying an empty trail means no
- * activity.
+ * `program.created`, `.updated` and `.deleted` are logged under `ACADEMIC`
+ * (`backend/docs/core/audit.md`), alongside `academic_year.*` and
+ * `academic_unit.*`. The status toggle publishes `program.updated`.
  */
 export const PROGRAM_AUDIT_MODULE = "ACADEMIC";

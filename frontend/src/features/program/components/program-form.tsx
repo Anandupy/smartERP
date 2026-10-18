@@ -14,16 +14,25 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getErrorMessage } from "@/lib";
-import { BackendPendingNote, Banner, Spinner } from "@/shared/components/feedback";
+import { Banner, Spinner } from "@/shared/components/feedback";
 
-import { NO_PARENT } from "../constants";
+import { NO_LEVEL, NO_PARENT, PROGRAM_LEVEL_LABEL } from "../constants";
 import {
   findDuplicateProgram,
   programFormSchema,
   type ProgramFormValues,
 } from "../schemas/program.schema";
 import type { ProgramDto } from "../types/program.dto";
+import { PROGRAM_LEVELS } from "../types/program.dto";
 import { eligibleParents } from "../utils/program-hierarchy";
+
+const LEVEL_OPTIONS = [
+  { value: NO_LEVEL, label: "Not set" },
+  ...PROGRAM_LEVELS.map((level) => ({
+    value: level,
+    label: PROGRAM_LEVEL_LABEL[level],
+  })),
+];
 
 export interface ProgramFormProps {
   defaultValues: ProgramFormValues;
@@ -111,7 +120,11 @@ export function ProgramForm({
   ];
 
   const duplicate = existingPrograms
-    ? findDuplicateProgram(existingPrograms, { name, medium, stream }, editingId)
+    ? findDuplicateProgram(
+        existingPrograms,
+        { name, medium, stream },
+        editingId,
+      )
     : null;
 
   return (
@@ -192,21 +205,15 @@ export function ProgramForm({
               disabled={isSubmitting}
             />
             <div className="space-y-2 sm:col-span-2">
-              <TextField
+              <SelectField
                 control={form.control}
                 name="level"
                 label="Level"
-                placeholder="SCHOOL"
-                description="Optional. Free text."
+                options={LEVEL_OPTIONS}
+                description="Optional."
                 disabled={isSubmitting}
+                className="sm:max-w-xs"
               />
-              <BackendPendingNote>
-                <code>level</code> appears in the Postman request body but in no
-                part of the module documentation, including its uniqueness rule.
-                The only recorded value is <code>SCHOOL</code>, which is one
-                sample rather than a value set — so this is free text and not a
-                dropdown.
-              </BackendPendingNote>
             </div>
           </CardContent>
         </Card>

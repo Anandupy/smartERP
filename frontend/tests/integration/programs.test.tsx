@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiConfig } from "@/config";
+import { ROUTES } from "@/constants";
 import {
   createMemoryWorkspaceStorage,
   setWorkspaceStorage,
@@ -17,6 +18,7 @@ import {
   ProgramTreeScreen,
 } from "@/features/program";
 import { toWorkspaceAvailability } from "@/features/workspace";
+import { formatDateTime } from "@/utils";
 
 import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
 import {
@@ -96,7 +98,9 @@ describe("Program directory", () => {
     await screen.findByText("Higher Secondary Science");
     const [row] = bodyRows();
 
-    expect(within(row!).getByText("English · Science (PCM)")).toBeInTheDocument();
+    expect(
+      within(row!).getByText("English · Science (PCM)"),
+    ).toBeInTheDocument();
     expect(within(row!).getByText("SCHOOL")).toBeInTheDocument();
     expect(within(row!).getByText("Top level")).toBeInTheDocument();
     expect(within(row!).getByText("Active")).toBeInTheDocument();
@@ -161,12 +165,17 @@ describe("Program directory", () => {
     // invented vocabulary would hide real data behind non-matching options.
     const user = userEvent.setup();
     withActiveWorkspace();
-    withPrograms(programDto({ level: "SCHOOL" }), secondProgramDto({ level: "COLLEGE" }));
+    withPrograms(
+      programDto({ level: "SCHOOL" }),
+      secondProgramDto({ level: "COLLEGE" }),
+    );
 
     render(<ProgramDirectoryScreen />);
     await screen.findByText("Commerce");
 
-    await user.click(screen.getByRole("combobox", { name: /filter by level/i }));
+    await user.click(
+      screen.getByRole("combobox", { name: /filter by level/i }),
+    );
 
     expect(screen.getByRole("option", { name: "SCHOOL" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "COLLEGE" })).toBeInTheDocument();
@@ -180,7 +189,9 @@ describe("Program directory", () => {
     render(<ProgramDirectoryScreen />);
     await screen.findByText("Commerce");
 
-    await user.click(screen.getByRole("combobox", { name: /filter by status/i }));
+    await user.click(
+      screen.getByRole("combobox", { name: /filter by status/i }),
+    );
     await user.click(screen.getByRole("option", { name: "Inactive" }));
 
     await waitFor(() => {
@@ -412,16 +423,46 @@ describe("Program create and edit", () => {
     expect(body!.branchId).toBe("branch-1");
   });
 
-  it("marks level as a docs/Postman mismatch on the form", async () => {
+  it("offers level as the three documented values, not free text", async () => {
+    // H1: `level` is the enum SCHOOL | COLLEGE | DEGREE.
+    const user = userEvent.setup();
     withActiveWorkspace();
     withPrograms();
 
     render(<CreateProgramScreen />);
 
     await screen.findByLabelText(/program name/i);
+    await user.click(screen.getByRole("combobox", { name: /^level/i }));
+    const options = screen.getAllByRole("option").map((o) => o.textContent);
+    expect(options).toEqual(["Not set", "School", "College", "Degree"]);
     expect(
-      screen.getByText(/appears in the Postman request body but in no part/i),
-    ).toBeInTheDocument();
+      screen.queryByText(/appears in the Postman request body/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("sends the chosen level, and null when none is chosen", async () => {
+    const user = userEvent.setup();
+    let body: Record<string, unknown> | null = null;
+    withActiveWorkspace();
+    withPrograms();
+    server.use(
+      http.post(`${API_BASE}/programs`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(successEnvelope(programDto()), {
+          status: 201,
+        });
+      }),
+    );
+
+    render(<CreateProgramScreen />);
+
+    await user.type(await screen.findByLabelText(/program name/i), "Primary");
+    await user.click(screen.getByRole("combobox", { name: /^level/i }));
+    await user.click(screen.getByRole("option", { name: "College" }));
+    await user.click(screen.getByRole("button", { name: /create program/i }));
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body!.level).toBe("COLLEGE");
   });
 
   it("warns about a duplicate under documented rule 1", async () => {
@@ -438,9 +479,7 @@ describe("Program create and edit", () => {
     await user.type(screen.getByLabelText(/medium/i), "English");
     await user.type(screen.getByLabelText(/stream/i), "Science (PCM)");
 
-    expect(
-      await screen.findByText(/already exists/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/already exists/i)).toBeInTheDocument();
   });
 
   it("excludes the record and its descendants from the parent picker", async () => {
@@ -456,7 +495,9 @@ describe("Program create and edit", () => {
     await screen.findByDisplayValue("Higher Secondary Science");
     await user.click(screen.getByRole("combobox", { name: /parent program/i }));
 
-    expect(screen.getByRole("option", { name: /Commerce/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /Commerce/ }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("option", { name: /Physics Elective/ }),
     ).not.toBeInTheDocument();
@@ -560,6 +601,35 @@ describe("Program details", () => {
     ).toBeInTheDocument();
   });
 
+  it("names the hydrated branch and shows the record's timestamps", async () => {
+    // H14: GET /programs/:id hydrates `branch`; H13: timestamps are returned.
+    withActiveWorkspace();
+    withPrograms(programDto());
+    withProgram(
+      programDto({
+        branch: { id: "branch-1", name: "Main Campus" },
+        createdAt: "2026-01-05T08:00:00.000Z",
+        updatedAt: "2026-02-10T09:30:00.000Z",
+      }),
+    );
+
+    render(<ProgramDetailsScreen id="program-1" />);
+
+    expect(
+      await screen.findByRole("link", { name: "Main Campus" }),
+    ).toHaveAttribute("href", ROUTES.app.branches.detail("branch-1"));
+    expect(
+      screen.getByText(formatDateTime("2026-01-05T08:00:00.000Z")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(formatDateTime("2026-02-10T09:30:00.000Z")),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/only the branch id/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/documents no .*program\..* event/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("blocks deletion while an active child exists", async () => {
     withActiveWorkspace();
     withPrograms(programDto(), childProgramDto({ isActive: true }));
@@ -645,7 +715,8 @@ describe("Program details", () => {
 });
 
 describe("Program dashboard", () => {
-  it("counts what the endpoint returned and says it is not a total", async () => {
+  it("counts the live programs, excluding deleted ones", async () => {
+    // H5: the list filters soft-deleted programs.
     withActiveWorkspace();
     withPrograms(programDto(), secondProgramDto({ isActive: false }));
 
@@ -653,8 +724,11 @@ describe("Program dashboard", () => {
 
     await screen.findByText("Listed");
     expect(
-      await screen.findByText(/no figure here is a total/i),
+      await screen.findByText(/deleted programs are\s+excluded/i),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/no figure here is a total/i),
+    ).not.toBeInTheDocument();
   });
 
   it("counts top-level programs from the derived hierarchy", async () => {

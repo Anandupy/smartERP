@@ -179,8 +179,8 @@ export function ProgramTreeScreen() {
           <CardContent className="space-y-3 pt-4">
             <p className="text-muted-foreground text-sm">
               These programs name a parent that the branch&apos;s list does not
-              contain. They are shown here rather than promoted to the top level,
-              which would misrepresent where they sit.
+              contain. They are shown here rather than promoted to the top
+              level, which would misrepresent where they sit.
             </p>
             <ul className="divide-border divide-y">
               {orphans.map((program) => (
@@ -197,11 +197,10 @@ export function ProgramTreeScreen() {
                 </li>
               ))}
             </ul>
-            <BackendPendingNote>
-              the list endpoint documents a soft delete but no field marking one,
-              so a parent may have been deleted without the frontend being able
-              to tell.
-            </BackendPendingNote>
+            <p className="text-muted-foreground text-sm">
+              The list excludes deleted programs, so a missing parent has most
+              likely been deleted.
+            </p>
           </CardContent>
         </Card>
       ) : null}

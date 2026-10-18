@@ -1,9 +1,14 @@
-import { NO_PARENT } from "../constants";
+import { NO_LEVEL, NO_PARENT } from "../constants";
 import {
   programFormDefaults,
   type ProgramFormValues,
 } from "../schemas/program.schema";
-import type { CreateProgramRequest, ProgramDto } from "../types/program.dto";
+import {
+  PROGRAM_LEVELS,
+  type CreateProgramRequest,
+  type ProgramDto,
+  type ProgramLevel,
+} from "../types/program.dto";
 
 /**
  * The only translation between the program form and the wire.
@@ -22,6 +27,12 @@ import type { CreateProgramRequest, ProgramDto } from "../types/program.dto";
  * in neither request body.
  */
 
+function isProgramLevel(
+  value: string | null | undefined,
+): value is ProgramLevel {
+  return (PROGRAM_LEVELS as readonly string[]).includes(value ?? "");
+}
+
 /** `""` → `null` for the documented optional strings. */
 function optional(value: string): string | null {
   const trimmed = value.trim();
@@ -33,7 +44,7 @@ export function toProgramFormValues(program: ProgramDto): ProgramFormValues {
   return {
     ...programFormDefaults(program.branchId),
     name: program.name,
-    level: program.level ?? "",
+    level: isProgramLevel(program.level) ? program.level : NO_LEVEL,
     medium: program.medium ?? "",
     stream: program.stream ?? "",
     parentId: program.parentId ?? NO_PARENT,
@@ -53,7 +64,7 @@ export function toProgramRequest(
   return {
     branchId: values.branchId,
     name: values.name.trim(),
-    level: optional(values.level),
+    level: isProgramLevel(values.level) ? values.level : null,
     medium: optional(values.medium),
     stream: optional(values.stream),
     parentId: values.parentId === NO_PARENT ? null : values.parentId,

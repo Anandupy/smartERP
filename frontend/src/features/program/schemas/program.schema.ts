@@ -2,7 +2,8 @@ import { z } from "zod";
 
 import { nonEmptyString } from "@/schemas";
 
-import { NO_PARENT } from "../constants";
+import { NO_LEVEL, NO_PARENT } from "../constants";
+import { PROGRAM_LEVELS } from "../types/program.dto";
 
 /**
  * Form schema for creating and editing a program.
@@ -19,20 +20,19 @@ import { NO_PARENT } from "../constants";
  * | 4 | Cannot delete a program with active children             | The UI withholds delete and names them.    |
  *
  * Rule 1 is a **courtesy check** (`findDuplicateProgram`), not an authority:
- * the list it compares against is not guaranteed to be every program that
- * exists — the endpoint documents a soft delete and no flag for it. It catches
- * the common mistake while the form is open and says the server decides.
+ * the list it compares against excludes soft-deleted programs and may be stale.
+ * It catches the common mistake while the form is open and says the server
+ * decides.
  *
- * Nothing else is asserted. `level`, `medium` and `stream` have no documented
- * format, length or vocabulary — `level`'s only recorded sample is `"SCHOOL"`,
- * and it is absent from the module doc entirely — so imposing one would reject
- * a legitimate value with no backend to blame.
+ * `level` is one of the three `PROGRAM_LEVELS` or unset (`NO_LEVEL`) — a
+ * Prisma enum, so anything else is rejected server-side (H1). `medium` and
+ * `stream` have no documented format, length or vocabulary, so none is imposed.
  */
 export const programFormSchema = z.object({
   branchId: nonEmptyString,
   name: nonEmptyString,
-  /** Postman-only field. Free text: one sample is not a value set. */
-  level: z.string().trim(),
+  /** One of `PROGRAM_LEVELS`, or `NO_LEVEL`. */
+  level: z.union([z.enum(PROGRAM_LEVELS), z.literal(NO_LEVEL), z.literal("")]),
   medium: z.string().trim(),
   stream: z.string().trim(),
   /** `NONE` means the program sits at the top level. */
@@ -89,15 +89,14 @@ export function findDuplicateProgram(
  *
  * `branchId` is seeded by the caller from the active workspace, and `parentId`
  * starts at "no parent" — the documentation calls the hierarchy optional, so a
- * top-level program is the ordinary case. Nothing else is pre-filled: seeding
- * `level` with the Postman sample would put `SCHOOL` into a university's
- * record.
+ * top-level program is the ordinary case. Nothing else is pre-filled: a
+ * default `level` would put `SCHOOL` into a university's record.
  */
 export function programFormDefaults(branchId = ""): ProgramFormValues {
   return {
     branchId,
     name: "",
-    level: "",
+    level: NO_LEVEL,
     medium: "",
     stream: "",
     parentId: NO_PARENT,
