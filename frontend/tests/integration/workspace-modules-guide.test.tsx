@@ -33,9 +33,13 @@ const { resetRouterMock, setPathname, setSearchParams } = await import(
 const API_BASE = apiConfig.baseURL.replace(/\/$/, "");
 
 /** Signs a user in with the given roles, mirroring `workspace-admin-modules.test.tsx`. */
+// One stable array: an inline default is a new array on every render,
+// which re-fires the setSession effect below and loops forever.
+const SUPER_ADMIN_ROLES = ["SUPER_ADMIN"];
+
 function SignedIn({
   children,
-  roles = ["SUPER_ADMIN"],
+  roles = SUPER_ADMIN_ROLES,
 }: {
   children: React.ReactNode;
   roles?: string[];
