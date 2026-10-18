@@ -51,7 +51,9 @@ export function StatCard({
         ) : null}
 
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-muted-foreground truncate text-xs font-medium tracking-wide uppercase">
+          {/* Label and hint wrap rather than truncate: "ACTIVE CONFIGUR…" hid
+              what was being counted. Only the figure keeps a fixed scale. */}
+          <p className="text-muted-foreground text-xs leading-snug font-medium tracking-wide text-balance uppercase">
             {label}
           </p>
           {isLoading ? (
@@ -67,7 +69,9 @@ export function StatCard({
             </p>
           )}
           {hint ? (
-            <div className="text-muted-foreground truncate text-xs">{hint}</div>
+            <div className="text-muted-foreground text-xs leading-snug">
+              {hint}
+            </div>
           ) : null}
         </div>
 
