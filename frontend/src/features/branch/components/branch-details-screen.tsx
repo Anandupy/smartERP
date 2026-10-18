@@ -21,6 +21,7 @@ import {
 } from "@/shared/components/data-display";
 import { BackendPendingNote } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
+import { formatDateTime } from "@/utils";
 
 import {
   BRANCH_STATE_PRESENTATION,
@@ -231,17 +232,14 @@ function Details({
                       )}
                       className="text-primary underline-offset-4 hover:underline"
                     >
-                      <code>{branch.organizationId}</code>
+                      {branch.organization?.name ?? (
+                        <code>{branch.organizationId}</code>
+                      )}
                     </Link>
                   ),
                 },
               ]}
             />
-            <BackendPendingNote>
-              only the organization id is returned with a branch — the parent
-              name would need it to be expanded in the response, and no response
-              body is documented.
-            </BackendPendingNote>
           </CardContent>
         </Card>
 
@@ -298,6 +296,20 @@ function Details({
                 value: <code>{branch.id}</code>,
               },
               {
+                key: "created",
+                label: "Created",
+                value: branch.createdAt
+                  ? formatDateTime(branch.createdAt)
+                  : "—",
+              },
+              {
+                key: "updated",
+                label: "Last updated",
+                value: branch.updatedAt
+                  ? formatDateTime(branch.updatedAt)
+                  : "—",
+              },
+              {
                 key: "logo",
                 label: "Logo URL",
                 value: branch.logoUrl || "—",
@@ -305,10 +317,12 @@ function Details({
               },
             ]}
           />
+          <p className="text-muted-foreground text-sm">
+            Who made each change is recorded in the audit trail below.
+          </p>
           <BackendPendingNote>
-            created and updated timestamps, the author of the last change, and
             student, faculty and programme counts are not part of the branch
-            contract. Change history is available through the audit trail below.
+            contract.
           </BackendPendingNote>
         </CardContent>
       </Card>

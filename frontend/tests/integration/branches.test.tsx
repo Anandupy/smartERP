@@ -22,6 +22,7 @@ import {
   CreateBranchScreen,
   EditBranchScreen,
 } from "@/features/branch";
+import { formatDateTime } from "@/utils";
 
 import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
 import { branchDto, secondBranchDto } from "@tests/fixtures/branch";
@@ -387,6 +388,32 @@ describe("Branch details", () => {
     // Fields the design shows but the contract has no room for.
     expect(screen.queryByText(/Total Students/i)).toBeNull();
     expect(screen.queryByText(/Faculty Members/i)).toBeNull();
+  });
+
+  it("names the hydrated organization and shows the record's timestamps", async () => {
+    // F11: GET /branches/:id hydrates `organization`; F8: timestamps returned.
+    withBranch(
+      branchDto({
+        organization: { id: "org-1", name: "Horizon Education Trust" },
+        createdAt: "2026-01-05T08:00:00.000Z",
+        updatedAt: "2026-02-10T09:30:00.000Z",
+      }),
+    );
+
+    render(<BranchDetailsScreen id="branch-1" />);
+
+    expect(
+      await screen.findByRole("link", { name: "Horizon Education Trust" }),
+    ).toHaveAttribute("href", ROUTES.app.organizations.detail("org-1"));
+    expect(
+      screen.getByText(formatDateTime("2026-01-05T08:00:00.000Z")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(formatDateTime("2026-02-10T09:30:00.000Z")),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/only the organization id is returned/i),
+    ).not.toBeInTheDocument();
   });
 
   it("explains the structure mode from the documentation", async () => {

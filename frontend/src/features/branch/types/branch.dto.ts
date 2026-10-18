@@ -94,6 +94,16 @@ export interface BranchDto {
   isActive?: boolean | null;
   /** Server-managed. Set by the documented soft delete. */
   isDeleted?: boolean | null;
+  createdAt?: string;
+  updatedAt?: string;
+  /** User ids. */
+  createdBy?: string | null;
+  updatedBy?: string | null;
+  /**
+   * The parent organization, hydrated by `GET /branches` and
+   * `GET /branches/:id` (`BranchWithOrganizationDto`, F11).
+   */
+  organization?: { id: string; name: string; code?: string } | null;
 }
 
 /**

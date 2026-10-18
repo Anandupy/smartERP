@@ -16,7 +16,6 @@ import { ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
 import {
   BackendPendingBadge,
-  BackendPendingNote,
   Banner,
 } from "@/shared/components/feedback";
 import { PageHeader } from "@/shared/components/layout";
@@ -170,12 +169,12 @@ function Lifecycle({ branch }: { branch: BranchDto }) {
           <p className="text-muted-foreground text-sm">
             {BRANCH_STATE_PRESENTATION[state].description}
           </p>
-          <BackendPendingNote>
-            the status endpoint takes no request body, so it flips the active
+          <p className="text-muted-foreground text-sm">
+            The status endpoint takes no request body, so it flips the active
             flag rather than setting a chosen value. That makes it
             non-idempotent — this app never retries it and never fires it
             speculatively.
-          </BackendPendingNote>
+          </p>
         </CardContent>
       </Card>
 
