@@ -24,7 +24,6 @@ export { MaintenanceSupportScreen } from "./components/maintenance-support-scree
 export { SystemInformationScreen } from "./components/system-information-screen";
 
 // Composable pieces
-export { SettingsNav, type SettingsNavProps } from "./components/settings-nav";
 export {
   SettingsBoundary,
   type SettingsBoundaryProps,

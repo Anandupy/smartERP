@@ -53,3 +53,23 @@ emits no routes for it.
 Mobile-first, no fixed widths. Breakpoints (`constants/breakpoints.ts`) cover
 320 → 1920px and back the `useBreakpoint`/`useIsMobile` hooks. `Container` uses
 fluid padding and max-width caps; layouts stack on mobile and expand on `lg`.
+
+## One persistent sidebar
+
+CampusFlow has one persistent primary application sidebar: `AppSidebar`, in
+`AppLayout`. Feature-specific layouts must not render a second persistent
+vertical navigation sidebar. Related pages use the existing overview cards,
+contextual links, or compact horizontal tabs where appropriate.
+
+- A nested route layout must not exist only to wrap its pages in navigation,
+  and must not reserve a grid track, width or margin for one.
+- A module's sections are reached from its overview page (`LinkCard`s built
+  from the module's sections constant) and left through the header's
+  breadcrumbs, which link every parent level.
+- Before adding a nested layout or a new navigation pattern, inspect
+  `AppLayout` and the shared layout components.
+
+System Settings (`SETTINGS_SECTIONS`), Account & Security
+(`SECURITY_SECTIONS`) and Branch Settings (`BRANCH_SETTINGS_SECTIONS`) follow
+this: each overview links every section, and no layout under `app/(app)/app`
+adds navigation.

@@ -10,7 +10,6 @@
 
 export { SECURITY_SECTIONS, type SecuritySection } from "./constants";
 
-export { SecurityNav } from "./components/security-nav";
 
 export { SecurityDashboardScreen } from "./components/dashboard/security-dashboard-screen";
 export { ActiveSessionsScreen } from "./components/sessions/active-sessions-screen";

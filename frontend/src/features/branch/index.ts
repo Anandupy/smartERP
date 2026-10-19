@@ -53,10 +53,6 @@ export {
   type BranchSettingsScreenProps,
 } from "./settings/branch-settings-screens";
 export {
-  BranchSettingsNav,
-  type BranchSettingsNavProps,
-} from "./settings/branch-settings-nav";
-export {
   BRANCH_SETTINGS_SECTIONS,
   type BranchSettingsSection,
 } from "./settings/settings-sections";

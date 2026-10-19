@@ -271,6 +271,11 @@ Before committing, confirm:
 - **Mobile-first, no fixed pixel layout widths.** Support 320→1920px.
 - Use breakpoints from `constants/breakpoints.ts` and the `useBreakpoint`/
   `useIsMobile` hooks; use `Container`/responsive utilities, not magic numbers.
+- **One persistent sidebar.** CampusFlow has one persistent primary
+  application sidebar. Feature-specific layouts must not render a second
+  persistent vertical navigation sidebar; related pages use the existing
+  overview cards, contextual links, or compact horizontal tabs where
+  appropriate — [`docs/layouts.md`](./docs/layouts.md#one-persistent-sidebar).
 - See [`docs/layouts.md`](./docs/layouts.md).
 
 ## 20. Future Workspace Theme Rules
