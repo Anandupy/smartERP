@@ -292,7 +292,8 @@ wire shapes into features. Full detail: [`docs/response-handling.md`](./docs/res
 // success
 { success: true,  message: string | null, data: T, meta: ApiMeta | null, error: null }
 // failure
-{ success: false, code: string, message: string, requestId?: string, timestamp?: string }
+{ success: false, message: string, error: { code, details }, requestId?, timestamp? }
+// (older failures put `code` at the top level; both are read)
 ```
 
 - The backend is **versioned**. `NEXT_PUBLIC_API_URL` is the unversioned root and

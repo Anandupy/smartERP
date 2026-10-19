@@ -4,7 +4,11 @@
  * The backend always returns exactly one of two shapes:
  *
  *   success → { success: true,  message, data, meta, error: null }
- *   failure → { success: false, code, message, requestId, timestamp }
+ *   failure → { success: false, message, data: null, meta, error: { code, details },
+ *               requestId, timestamp }
+ *
+ * Older failures carried `code` at the top level instead of in `error`; both
+ * are still read (backend/docs/core/response-contract.md §2).
  *
  * These types describe the wire format only. Concrete DTOs (`data` payloads)
  * live in feature modules — there is no business logic here.
@@ -38,8 +42,14 @@ export interface ApiResponse<TData> {
 /** Backend failure envelope. */
 export interface ApiErrorResponse {
   success: false;
-  code: string;
   message: string;
+  /** The machine code and whatever structured detail the failure carries. */
+  error?: {
+    code?: string;
+    details?: Record<string, unknown> | null;
+  } | null;
+  /** The pre-contract position of the code. */
+  code?: string;
   requestId?: string;
   timestamp?: string;
 }

@@ -22,12 +22,16 @@ interface ApiResponse<TData> {
 ```ts
 interface ApiErrorResponse {
   success: false;
-  code: string;
   message: string;
+  error?: { code?: string; details?: Record<string, unknown> | null } | null;
+  code?: string; // the older, pre-contract position of the code
   requestId?: string;
   timestamp?: string;
 }
 ```
+
+The backend puts the code in `error.code` (`backend/docs/core/response-contract.md`).
+Older failures carried it at the top level; `normalizeError` reads both.
 
 Runtime guards `isApiResponse` / `isApiErrorResponse` discriminate an unknown
 body by its `success` flag.
@@ -50,11 +54,11 @@ The response interceptor converts every failure into a typed **`ApiError`**:
 | ------------- | ------------------------------------------------------------------------------------------------------- |
 | `kind`        | coarse category derived from HTTP status (`forbidden`, `validation`, `server`, `network`, `timeout`, …) |
 | `status`      | HTTP status (or `null` for network/timeout)                                                             |
-| `code`        | `code` from the failure envelope                                                                        |
+| `code`        | `error.code` from the failure envelope (top-level `code` for the older shape)                           |
 | `message`     | `message` from the failure envelope                                                                     |
 | `requestId`   | envelope `requestId`, falling back to the `X-Request-Id` response header                                |
 | `timestamp`   | envelope `timestamp`                                                                                    |
-| `fieldErrors` | best-effort `errors`/`details` array for form binding                                                   |
+| `fieldErrors` | best-effort `errors`/`details` array, or `error.details.field` paired with the envelope `message`       |
 
 `lib/getErrorMessage(error)` maps `kind` (or a server validation message) to
 user-facing copy; `getFieldErrors(error)` extracts field issues for forms.

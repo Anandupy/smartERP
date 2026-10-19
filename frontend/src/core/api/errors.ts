@@ -65,13 +65,54 @@ function messageFromBody(body: unknown, fallback: string): string {
   return fallback;
 }
 
+/** The envelope's `error` object, when the body has one. */
+function errorObjectOf(body: unknown): Record<string, unknown> | undefined {
+  if (!body || typeof body !== "object") return undefined;
+  const error = (body as Record<string, unknown>).error;
+  return error && typeof error === "object"
+    ? (error as Record<string, unknown>)
+    : undefined;
+}
+
+/**
+ * The machine code: `error.code` in the current envelope, top-level `code` in
+ * the older one. Losing it made every non-validation failure fall back to
+ * generic copy, hiding the backend's own explanation.
+ */
+function codeFromBody(body: unknown): string | undefined {
+  if (!body || typeof body !== "object") return undefined;
+  const topLevel = (body as Record<string, unknown>).code;
+  if (typeof topLevel === "string") return topLevel;
+  const nested = errorObjectOf(body)?.code;
+  return typeof nested === "string" ? nested : undefined;
+}
+
 /**
  * Best-effort extraction of field-level validation errors. Looks for an
- * `errors`/`details` array of `{ field | path, message }` on the failure body.
+ * `errors`/`details` array of `{ field | path, message }` on the failure body,
+ * or a single `error.details.field`, which names the field the envelope's own
+ * `message` is about.
  */
 function fieldErrorsFromBody(body: unknown): FieldError[] | undefined {
   if (!body || typeof body !== "object") return undefined;
   const record = body as Record<string, unknown>;
+
+  const details = errorObjectOf(body)?.details;
+  if (
+    details &&
+    typeof details === "object" &&
+    !Array.isArray(details) &&
+    typeof (details as Record<string, unknown>).field === "string" &&
+    typeof record.message === "string"
+  ) {
+    return [
+      {
+        field: (details as Record<string, unknown>).field as string,
+        message: record.message,
+      },
+    ];
+  }
+
   const errors = record.errors ?? record.details;
   if (!Array.isArray(errors)) return undefined;
 
@@ -148,7 +189,7 @@ function normalizeAxiosError(error: AxiosError): NormalizedApiError {
       kind: kindFromStatus(status),
       status,
       message: data.message,
-      code: data.code,
+      code: codeFromBody(data),
       requestId: data.requestId ?? requestId,
       timestamp: data.timestamp,
       fieldErrors: fieldErrorsFromBody(data),
