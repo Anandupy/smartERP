@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { nonEmptyString } from "@/schemas";
+import { nonEmptyString, optionalAadhaarSchema } from "@/schemas";
 
 /**
  * Form schema for the Applicant Information step ("New Admission").
@@ -40,7 +40,7 @@ export const applicantFormSchema = z.object({
   disabilityStatus: z.boolean(),
   disabilityTypeId: z.string(),
   disabilityNotes: z.string().trim(),
-  aadhaarNo: z.string().trim(),
+  aadhaarNo: optionalAadhaarSchema,
   penNo: z.string().trim(),
   apaarId: z.string().trim(),
 

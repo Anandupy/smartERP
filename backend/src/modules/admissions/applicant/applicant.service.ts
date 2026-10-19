@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { RowLockService } from '@/infrastructure/database/row-lock.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { OutboxPublisher } from '@/infrastructure/outbox/outbox.publisher';
 import { NumberingService } from '@/infrastructure/numbering/numbering.service';
@@ -15,7 +16,11 @@ import {
 } from '@/common/events';
 import { ResourceScope, scopedWhere } from '@/common/scope/resource-scope';
 import { AdmissionApplicationStatus } from '@/generated/client';
+import { PersonService } from '@/modules/identity/person/person.service';
 import { UserRole } from '@/common/enums/role.enum';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
+import { AuthorizationService } from '@/modules/authorization/authorization.service';
+import { RoleType } from '@/generated/client';
 import {
   CreateApplicantDto,
   QueryApplicantDto,
@@ -55,6 +60,9 @@ export class ApplicantService {
     private readonly numberingService: NumberingService,
     private readonly eventBus: EventBus,
     private readonly outbox: OutboxPublisher,
+    private readonly rowLock: RowLockService,
+    private readonly persons: PersonService,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   private getDisplayName(
@@ -246,6 +254,7 @@ export class ApplicantService {
     dto: UpdateApplicantDto,
     scope: ResourceScope,
     userId?: string,
+    role?: string | null,
   ) {
     const applicant = await this.findOne(id, scope);
 
@@ -280,6 +289,42 @@ export class ApplicantService {
     }
 
     const updatedApplicant = await this.prisma.$transaction(async (tx) => {
+      if (dto.aadhaarNo) {
+        // Under the row lock, because submission resolves the identity under
+        // the same lock: whichever commits first, the personId read here is the
+        // one that stands, and an edit cannot slip a different Aadhaar past an
+        // identity resolved a moment earlier.
+        const locked = await this.rowLock.lockRow(tx, {
+          table: 'Applicant',
+          id,
+          scope: {
+            organizationId: scope.organizationId,
+            branchId: scope.branchId,
+          },
+          columns: ['personId'],
+        });
+
+        if (locked?.personId) {
+          await this.persons.reconcileGovernmentId(
+            scope.organizationId,
+            locked.personId as string,
+            dto.aadhaarNo,
+            {
+              field: 'aadhaarNo',
+              mayAttach: () =>
+                userId && role
+                  ? this.authorization.hasPermission(
+                      userId,
+                      role as RoleType,
+                      PERMISSIONS.Person.AttachGovernmentId,
+                    )
+                  : Promise.resolve(false),
+            },
+            tx,
+          );
+        }
+      }
+
       const result = await tx.applicant.updateMany({
         where: { id, ...scopedWhere(scope), deletedAt: null },
         data: updatedData,

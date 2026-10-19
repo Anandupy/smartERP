@@ -612,6 +612,73 @@ describe('Configurable admission workflows (e2e)', () => {
     });
   });
 
+  describe('Aadhaar on PATCH /admissions/applicants/:id', () => {
+    // Synthetic values: format-valid, never issued.
+    const RECORDED = '234567890123';
+    const OTHER = '345678901234';
+
+    it('refuses a value the identity index would refuse, with the reason', async () => {
+      const applicant = await draft();
+      const response = await http()
+        .patch(`/admissions/applicants/${applicant.id}`)
+        .set(as(adminToken))
+        .set(ctx)
+        .send({ aadhaarNo: '012345678901' })
+        .expect(400);
+      // A string behind the global filter, Nest's array without it.
+      expect([response.body.message].flat()).toEqual([
+        'Aadhaar number must be 12 digits and cannot start with 0 or 1.',
+      ]);
+    });
+
+    it('refuses a submitted application an Aadhaar its identity does not record', async () => {
+      const applicant = await draft();
+      await applicants.update(applicant.id, { aadhaarNo: RECORDED } as never, {
+        organizationId: orgId,
+        branchId,
+        academicYearId: yearId,
+      });
+      await http()
+        .post(`/admissions/applicants/${applicant.id}/workflow/transition`)
+        .set(as(adminToken))
+        .set(ctx)
+        .send({ action: 'submit' })
+        .expect(201);
+
+      const response = await http()
+        .patch(`/admissions/applicants/${applicant.id}`)
+        .set(as(adminToken))
+        .set(ctx)
+        .send({ aadhaarNo: OTHER })
+        .expect(409);
+
+      expect(codeOf(response.body)).toBe('GOVERNMENT_ID_MISMATCH');
+      expect(response.body.message).toBe(
+        'Aadhaar number does not match the existing identity record. Please verify the details.',
+      );
+      // `error.details.field` behind the global filter, top-level without it.
+      expect(response.body.error?.details?.field ?? response.body.field).toBe(
+        'aadhaarNo',
+      );
+      const raw = JSON.stringify(response.body);
+      expect(raw).not.toContain(OTHER);
+      expect(raw).not.toContain(RECORDED);
+
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.aadhaarNo).toBe(RECORDED);
+
+      // Re-sending the recorded value is not a change and is accepted.
+      await http()
+        .patch(`/admissions/applicants/${applicant.id}`)
+        .set(as(adminToken))
+        .set(ctx)
+        .send({ aadhaarNo: RECORDED })
+        .expect(200);
+    });
+  });
+
   describe('POST /admissions/applicants/:id/direct-admit', () => {
     it('admits a draft in one call under SIMPLE_ADMISSION', async () => {
       const applicant = await draft();

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { nonEmptyString } from "@/schemas";
+import { nonEmptyString, optionalAadhaarSchema } from "@/schemas";
 
 /**
  * Form schema for creating/editing a guardian — the 16 fields the Postman
@@ -12,6 +12,8 @@ import { nonEmptyString } from "@/schemas";
  * Only `firstName`, `lastName` and `mobilePrimary` are required — nothing
  * else has a documented required/optional rule beyond the DTO's own
  * nullability, so no format is invented for a rule the backend never stated.
+ * Aadhaar is the exception: its format is the backend's stated rule
+ * (`backend/docs/modules/admissions.md` §12.9), checked here for convenience.
  */
 export const guardianFormSchema = z.object({
   dob: z.string().trim(),
@@ -23,7 +25,7 @@ export const guardianFormSchema = z.object({
   email: z.string().trim(),
   occupation: z.string().trim(),
   income: z.string().trim(),
-  aadhaarNo: z.string().trim(),
+  aadhaarNo: optionalAadhaarSchema,
   addressLine1: z.string().trim(),
   addressLine2: z.string().trim(),
   city: z.string().trim(),

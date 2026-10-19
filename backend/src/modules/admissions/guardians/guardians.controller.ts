@@ -123,6 +123,7 @@ export class GuardiansController {
       id,
       dto,
       resourceScopeOf(req.context),
+      { userId: req.userId, role: req.context.role },
     );
     return { data, message: 'Guardian updated successfully' };
   }

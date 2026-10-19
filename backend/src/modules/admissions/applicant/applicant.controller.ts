@@ -194,6 +194,7 @@ export class ApplicantController {
       dto,
       resourceScopeOf(req.context),
       req.userId ?? undefined,
+      req.context.role,
     );
     return { data, message: 'Applicant updated successfully' };
   }

@@ -243,6 +243,9 @@ All are scoped: an applicant outside the request's organization and branch is
 | `UNSUPPORTED_REQUIREMENT_STAGE` | 400 | A requirement at a stage no transition checks |
 | `CONFIGURATION_INVALID` | 500 | A stored policy value fails validation — fail closed |
 | `APPLICANT_NOT_DELETABLE` | 403 | `DELETE /applicants/:id` on anything but a `DRAFT` (`status`); also when the draft was submitted concurrently |
+| `GOVERNMENT_ID_MISMATCH` | 409 | An applicant or guardian edit supplies an Aadhaar that differs from the one its linked Person records (`field: aadhaarNo`). Neither value is echoed |
+| `GOVERNMENT_ID_ATTACH_FORBIDDEN` | 403 | The edit would record a first Aadhaar on the linked Person, and the caller lacks `person.attach_government_id` (`field: aadhaarNo`) |
+| `GOVERNMENT_ID_ALREADY_ASSOCIATED` | 409 | That first Aadhaar already belongs to another Person (`field: aadhaarNo` when raised from an edit) |
 
 ### 12.7 Verification
 
@@ -271,3 +274,27 @@ draft submitted between the read and the write is refused with
 unchanged; no migration. Withdraw and cancel from `SUBMITTED` onward are
 unchanged.
 
+### 12.9 Aadhaar on the role records
+
+`Applicant.aadhaarNo` and `Guardian.aadhaarNo` are validated with the identity
+index's own rule (`AADHAAR_PATTERN`: twelve digits, not starting with 0 or 1),
+so a value submission would discard can no longer be stored. Once the record is
+linked to a Person that records a government identifier, an edit supplying a
+different Aadhaar is refused with `409 GOVERNMENT_ID_MISMATCH` — the same rule
+as `GOVERNMENT_ID_ALREADY_SET`: correcting a recorded identifier is a separate,
+audited operation.
+
+When the linked Person has **no** identifier yet, the edit records it on the
+Person as well, through `PersonService.attachGovernmentId` in the same
+transaction (blind index, encrypted copy, `person.government_id_attached`
+event) — so the role record and the identity agree, or neither changes.
+Attaching is its own capability: the caller must hold
+`person.attach_government_id` (granted to `SUPER_ADMIN` by default), otherwise
+`403 GOVERNMENT_ID_ATTACH_FORBIDDEN`. A value already held by another Person
+is `409 GOVERNMENT_ID_ALREADY_ASSOCIATED`.
+
+Locking order: the applicant (or guardian) row, then the Person row.
+`attachGovernmentId` locks the Person row too, so a direct
+`POST /persons/:id/government-id` and an edit racing it are serialised —
+whichever locks first wins and the other is refused. Drafts have no Person
+and are unaffected.

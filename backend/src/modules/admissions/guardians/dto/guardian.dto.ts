@@ -10,6 +10,10 @@ import {
   Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  AADHAAR_FORMAT_MESSAGE,
+  AADHAAR_PATTERN,
+} from '@/infrastructure/crypto/government-id';
 
 export class CreateGuardianDto {
   @ApiPropertyOptional({
@@ -66,10 +70,12 @@ export class CreateGuardianDto {
   @IsOptional()
   income?: number;
 
-  @ApiPropertyOptional({ description: 'Aadhaar number (12 digits)' })
+  @ApiPropertyOptional({
+    description: 'Aadhaar number (12 digits, not starting with 0 or 1)',
+  })
   @IsString()
   @IsOptional()
-  @Matches(/^\d{12}$/, { message: 'Aadhaar number must be exactly 12 digits' })
+  @Matches(AADHAAR_PATTERN, { message: AADHAAR_FORMAT_MESSAGE })
   aadhaarNo?: string;
 
   @ApiPropertyOptional({ description: 'Address line 1' })
@@ -158,10 +164,12 @@ export class UpdateGuardianDto {
   @IsOptional()
   income?: number;
 
-  @ApiPropertyOptional({ description: 'Aadhaar number (12 digits)' })
+  @ApiPropertyOptional({
+    description: 'Aadhaar number (12 digits, not starting with 0 or 1)',
+  })
   @IsString()
   @IsOptional()
-  @Matches(/^\d{12}$/, { message: 'Aadhaar number must be exactly 12 digits' })
+  @Matches(AADHAAR_PATTERN, { message: AADHAAR_FORMAT_MESSAGE })
   aadhaarNo?: string;
 
   @ApiPropertyOptional({ description: 'Address line 1' })

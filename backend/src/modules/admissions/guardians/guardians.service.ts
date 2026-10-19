@@ -1,5 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { RowLockService } from '@/infrastructure/database/row-lock.service';
+import { PERMISSIONS } from '@/common/constants/permission.constants';
+import { AuthorizationService } from '@/modules/authorization/authorization.service';
+import { RoleType } from '@/generated/client';
 import { OutboxPublisher } from '@/infrastructure/outbox/outbox.publisher';
 import { PersonService } from '@/modules/identity/person/person.service';
 import { GuardianshipService } from './guardianship.service';
@@ -24,6 +28,8 @@ export class GuardiansService {
     private readonly outbox: OutboxPublisher,
     private readonly persons: PersonService,
     private readonly guardianships: GuardianshipService,
+    private readonly rowLock: RowLockService,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   /**
@@ -106,8 +112,29 @@ export class GuardiansService {
    * not an error, when the guardian is already linked: re-supplying a DOB on
    * an already-resolved guardian is not this endpoint's job.
    */
-  async update(id: string, dto: UpdateGuardianDto, scope: ResourceScope) {
+  async update(
+    id: string,
+    dto: UpdateGuardianDto,
+    scope: ResourceScope,
+    actor: { userId?: string | null; role?: string | null } = {},
+  ) {
     return this.prisma.$transaction(async (tx) => {
+      // An Aadhaar edit and a retroactive link both depend on whether the
+      // guardian already has a Person. Serialising them on the row means the
+      // read below is the state the write lands on, so two concurrent edits
+      // cannot leave the guardian's Aadhaar disagreeing with its identity.
+      if (dto.aadhaarNo || dto.dob) {
+        await this.rowLock.lockRow(tx, {
+          table: 'Guardian',
+          id,
+          scope: {
+            organizationId: scope.organizationId,
+            branchId: scope.branchId,
+          },
+          columns: ['personId'],
+        });
+      }
+
       const current = await tx.guardian.findFirst({
         where: { id, ...scopedWhere(scope), deletedAt: null },
       });
@@ -118,6 +145,26 @@ export class GuardiansService {
       const { dob, ...fields } = dto;
       let personId = current.personId;
       let linkedNow = false;
+
+      if (fields.aadhaarNo && current.personId) {
+        await this.persons.reconcileGovernmentId(
+          scope.organizationId,
+          current.personId,
+          fields.aadhaarNo,
+          {
+            field: 'aadhaarNo',
+            mayAttach: () =>
+              actor.userId && actor.role
+                ? this.authorization.hasPermission(
+                    actor.userId,
+                    actor.role as RoleType,
+                    PERMISSIONS.Person.AttachGovernmentId,
+                  )
+                : Promise.resolve(false),
+          },
+          tx,
+        );
+      }
 
       if (dob && !current.personId) {
         const resolved = await this.persons.resolve(

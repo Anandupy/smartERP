@@ -21,6 +21,16 @@ export const GOVERNMENT_ID_DOMAIN: Record<GovernmentIdType, string> = {
 export const PHONE_DOMAIN = 'phone';
 
 /**
+ * A canonical Aadhaar: twelve digits, never starting with 0 or 1. Shared with
+ * the request DTOs so a value the identity index would refuse is refused at
+ * the boundary, rather than accepted there and quietly dropped at submission.
+ */
+export const AADHAAR_PATTERN = /^[2-9]\d{11}$/;
+
+export const AADHAAR_FORMAT_MESSAGE =
+  'Aadhaar number must be 12 digits and cannot start with 0 or 1.';
+
+/**
  * Canonicalise, or reject.
  *
  * Deliberately strict rather than forgiving: silently normalising arbitrary
@@ -61,18 +71,11 @@ export function normalizeGovernmentId(
 function normalizeAadhaar(raw: string): string {
   const stripped = raw.replace(/[\s-]/g, '');
 
-  if (!/^\d{12}$/.test(stripped)) {
+  if (!AADHAAR_PATTERN.test(stripped)) {
     throw new BadRequestException({
       error: 'GOVERNMENT_ID_INVALID',
       // Never echoes the value back: an error message is not the place to
       // repeat an identifier, and the caller already knows what it sent.
-      message: 'The supplied government identifier is not valid.',
-    });
-  }
-
-  if (/^[01]/.test(stripped)) {
-    throw new BadRequestException({
-      error: 'GOVERNMENT_ID_INVALID',
       message: 'The supplied government identifier is not valid.',
     });
   }

@@ -333,6 +333,14 @@ how a **draft** is closed, and only a draft: a submitted application is
 withdrawn or cancelled instead (backend BP-17). The hub offers "Delete draft"
 when the actions read reports `deleteDraft.available`.
 
+Once an applicant has an identity (from submission on), a `PATCH` supplying an
+Aadhaar that differs from the one the Person records is refused with
+`409 GOVERNMENT_ID_MISMATCH` (`details.field: aadhaarNo`), shown beside the
+field. If the Person has no Aadhaar yet, the edit records it on the Person too
+— only for a caller holding `person.attach_government_id`, otherwise
+`403 GOVERNMENT_ID_ATTACH_FORBIDDEN`, also shown beside the field. Guardians
+follow the same rules.
+
 ---
 
 ## 4. Applicant workflow — the thirteen-state machine

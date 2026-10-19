@@ -13,6 +13,7 @@ import { ApplicantService } from '@/modules/admissions/applicant/applicant.servi
 import { GuardiansService } from '@/modules/admissions/guardians/guardians.service';
 import { GuardianshipService } from '@/modules/admissions/guardians/guardianship.service';
 import { PersonService } from '@/modules/identity/person/person.service';
+import { AuthorizationService } from '@/modules/authorization/authorization.service';
 import { EventBus } from '@/infrastructure/events/event-bus.interface';
 import { ResourceScope } from '@/common/scope/resource-scope';
 import {
@@ -75,6 +76,24 @@ describe('Admissions Module Foundation - Unit Tests', () => {
     return Promise.resolve([]);
   };
 
+  const mockPersons = {
+    resolve: jest.fn(),
+    reconcileGovernmentId: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockAuthorization = {
+    hasPermission: jest.fn().mockResolvedValue(true),
+  };
+
+  /** The identity check's own refusal, as `PersonService` raises it. */
+  const mismatch = () =>
+    new ConflictException({
+      error: 'GOVERNMENT_ID_MISMATCH',
+      message:
+        'Aadhaar number does not match the existing identity record. Please verify the details.',
+      field: 'aadhaarNo',
+    });
+
   const mockPrisma: any = {
     religion: {
       findFirst: jest.fn(),
@@ -118,6 +137,8 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
+      findFirstOrThrow: jest.fn(),
     },
     relationType: { findFirst: jest.fn() },
     applicantGuardianMapping: {
@@ -155,7 +176,8 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         OutboxPublisher,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EventBus, useValue: mockEventBus },
-        { provide: PersonService, useValue: { resolve: jest.fn() } },
+        { provide: PersonService, useValue: mockPersons },
+        { provide: AuthorizationService, useValue: mockAuthorization },
         {
           provide: GuardianshipService,
           useValue: {
@@ -496,6 +518,134 @@ describe('Admissions Module Foundation - Unit Tests', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
+    describe('Aadhaar on an edit', () => {
+      // Synthetic, format-valid, never issued.
+      const OTHER = '345678901234';
+
+      beforeEach(() => {
+        mockPrisma.applicant.findFirst.mockResolvedValue({
+          id: 'app-1',
+          admissionStatus: 'SUBMITTED',
+          firstName: 'John',
+          lastName: 'Doe',
+        });
+        mockPrisma.applicant.updateMany.mockResolvedValue({ count: 1 });
+        mockPrisma.applicant.findFirstOrThrow.mockResolvedValue({
+          id: 'app-1',
+          displayName: 'John Doe',
+        });
+      });
+
+      it('checks it against the identity read under the row lock', async () => {
+        rawQuery.lockResult = [{ id: 'app-1', personId: 'person-1' }];
+
+        await applicantService.update(
+          'app-1',
+          { aadhaarNo: OTHER } as any,
+          SCOPE,
+        );
+
+        const lockSql = rawQuery.mock.calls.find(([sql]) =>
+          String(sql).includes('FOR UPDATE'),
+        );
+        expect(lockSql?.[0]).toContain('"Applicant"');
+        expect(mockPersons.reconcileGovernmentId).toHaveBeenCalledWith(
+          'org-1',
+          'person-1',
+          OTHER,
+          expect.objectContaining({ field: 'aadhaarNo' }),
+          mockPrisma,
+        );
+        // Checked before the write, inside the same transaction.
+        expect(
+          mockPersons.reconcileGovernmentId.mock.invocationCallOrder[0],
+        ).toBeLessThan(
+          mockPrisma.applicant.updateMany.mock.invocationCallOrder[0],
+        );
+      });
+
+      it('asks whether the caller may attach a first Aadhaar, and only when the identity needs one', async () => {
+        rawQuery.lockResult = [{ id: 'app-1', personId: 'person-1' }];
+
+        await applicantService.update(
+          'app-1',
+          { aadhaarNo: OTHER } as any,
+          SCOPE,
+          'user-1',
+          'BRANCH_ADMIN',
+        );
+
+        // Lazy: nothing is asked until the identity turns out to have none.
+        expect(mockAuthorization.hasPermission).not.toHaveBeenCalled();
+        const { mayAttach } =
+          mockPersons.reconcileGovernmentId.mock.calls[0][3];
+        await expect(mayAttach()).resolves.toBe(true);
+        expect(mockAuthorization.hasPermission).toHaveBeenCalledWith(
+          'user-1',
+          'BRANCH_ADMIN',
+          'person.attach_government_id',
+        );
+      });
+
+      it('never lets an anonymous caller attach', async () => {
+        rawQuery.lockResult = [{ id: 'app-1', personId: 'person-1' }];
+
+        await applicantService.update(
+          'app-1',
+          { aadhaarNo: OTHER } as any,
+          SCOPE,
+        );
+
+        const { mayAttach } =
+          mockPersons.reconcileGovernmentId.mock.calls[0][3];
+        await expect(mayAttach()).resolves.toBe(false);
+        expect(mockAuthorization.hasPermission).not.toHaveBeenCalled();
+      });
+
+      it('writes nothing and emits nothing when the identity disagrees', async () => {
+        rawQuery.lockResult = [{ id: 'app-1', personId: 'person-1' }];
+        mockPersons.reconcileGovernmentId.mockRejectedValueOnce(mismatch());
+
+        await expect(
+          applicantService.update('app-1', { aadhaarNo: OTHER } as any, SCOPE),
+        ).rejects.toMatchObject({
+          status: 409,
+          response: { error: 'GOVERNMENT_ID_MISMATCH', field: 'aadhaarNo' },
+        });
+
+        expect(mockPrisma.applicant.updateMany).not.toHaveBeenCalled();
+        expect(mockPrisma.outboxEvent.create).not.toHaveBeenCalled();
+      });
+
+      it('has nothing to compare for an application with no identity yet', async () => {
+        rawQuery.lockResult = [{ id: 'app-1', personId: null }];
+
+        await applicantService.update(
+          'app-1',
+          { aadhaarNo: OTHER } as any,
+          SCOPE,
+        );
+
+        expect(mockPersons.reconcileGovernmentId).not.toHaveBeenCalled();
+        expect(mockPrisma.applicant.updateMany).toHaveBeenCalled();
+      });
+
+      it('takes no lock and makes no check for an edit that leaves Aadhaar alone', async () => {
+        await applicantService.update(
+          'app-1',
+          { firstName: 'Johnny' } as any,
+          SCOPE,
+        );
+
+        expect(mockPersons.reconcileGovernmentId).not.toHaveBeenCalled();
+        expect(
+          rawQuery.mock.calls.some(([sql]) =>
+            String(sql).includes('FOR UPDATE'),
+          ),
+        ).toBe(false);
+      });
+    });
+
     describe('deleting', () => {
       it('soft-deletes a draft, with the status part of the write', async () => {
         mockPrisma.applicant.findFirst.mockResolvedValue({
@@ -583,6 +733,81 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         ).toMatchObject({ branchId: 'branch-2' });
         expect(mockPrisma.applicant.updateMany).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('Guardian Aadhaar on an edit', () => {
+    const OTHER = '345678901234';
+    const guardianRow = (personId: string | null) => ({
+      id: 'g-1',
+      personId,
+      firstName: 'Anil',
+      middleName: null,
+      lastName: 'Sharma',
+      mobilePrimary: '9999999999',
+      aadhaarNo: '234567890123',
+    });
+
+    beforeEach(() => {
+      mockPrisma.guardian.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.guardian.findFirstOrThrow.mockResolvedValue(guardianRow(null));
+    });
+
+    it('locks the guardian and checks a linked one against its identity', async () => {
+      mockPrisma.guardian.findFirst.mockResolvedValue(guardianRow('person-9'));
+
+      await guardiansService.update('g-1', { aadhaarNo: OTHER } as any, SCOPE);
+
+      const lockSql = rawQuery.mock.calls.find(([sql]) =>
+        String(sql).includes('FOR UPDATE'),
+      );
+      expect(lockSql?.[0]).toContain('"Guardian"');
+      expect(mockPersons.reconcileGovernmentId).toHaveBeenCalledWith(
+        'org-1',
+        'person-9',
+        OTHER,
+        expect.objectContaining({ field: 'aadhaarNo' }),
+        mockPrisma,
+      );
+    });
+
+    it("passes the caller's own permission check for a first Aadhaar", async () => {
+      mockPrisma.guardian.findFirst.mockResolvedValue(guardianRow('person-9'));
+
+      await guardiansService.update('g-1', { aadhaarNo: OTHER } as any, SCOPE, {
+        userId: 'user-7',
+        role: 'ORG_ADMIN',
+      });
+
+      const { mayAttach } = mockPersons.reconcileGovernmentId.mock.calls[0][3];
+      await mayAttach();
+      expect(mockAuthorization.hasPermission).toHaveBeenCalledWith(
+        'user-7',
+        'ORG_ADMIN',
+        'person.attach_government_id',
+      );
+    });
+
+    it('writes nothing when the identity disagrees', async () => {
+      mockPrisma.guardian.findFirst.mockResolvedValue(guardianRow('person-9'));
+      mockPersons.reconcileGovernmentId.mockRejectedValueOnce(mismatch());
+
+      await expect(
+        guardiansService.update('g-1', { aadhaarNo: OTHER } as any, SCOPE),
+      ).rejects.toMatchObject({
+        response: { error: 'GOVERNMENT_ID_MISMATCH' },
+      });
+      expect(mockPrisma.guardian.updateMany).not.toHaveBeenCalled();
+      expect(mockPrisma.outboxEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('has nothing to compare for an unlinked guardian', async () => {
+      mockPrisma.guardian.findFirst.mockResolvedValue(guardianRow(null));
+
+      await guardiansService.update('g-1', { aadhaarNo: OTHER } as any, SCOPE);
+
+      expect(mockPersons.reconcileGovernmentId).not.toHaveBeenCalled();
+      expect(mockPrisma.guardian.updateMany).toHaveBeenCalled();
     });
   });
 

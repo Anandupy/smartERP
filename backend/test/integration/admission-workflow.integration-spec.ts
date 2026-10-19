@@ -18,6 +18,7 @@ import { PersonService } from '@/modules/identity/person/person.service';
 import { NumberingService } from '@/infrastructure/numbering/numbering.service';
 import { OutboxRelay } from '@/infrastructure/outbox/outbox.relay';
 import { ResourceScope } from '@/common/scope/resource-scope';
+import { IdentityHashService } from '@/infrastructure/crypto/identity-hash.service';
 
 /**
  * Phase 3 — the admission domain against real Postgres.
@@ -1511,6 +1512,259 @@ describe('Admission workflow (integration)', () => {
           expect(row.admissionStatus).toBe('SUBMITTED');
           expect(row.deletedAt).toBeNull();
         }
+      }
+    });
+  });
+
+  describe('Aadhaar after identity resolution', () => {
+    it('refuses an edit to an Aadhaar the identity does not record, and changes nothing', async () => {
+      const recorded = aadhaar();
+      const applicant = await newApplicant(scopeA, { aadhaarNo: recorded });
+      await act(applicant.id, WorkflowAction.SUBMIT);
+
+      const other = aadhaar();
+      const failure = await applicants
+        .update(applicant.id, { aadhaarNo: other } as never, scopeA)
+        .then(
+          () => null,
+          (error: unknown) => error,
+        );
+
+      expect(failure).toBeInstanceOf(ConflictException);
+      expect(failure).toMatchObject({
+        response: {
+          error: 'GOVERNMENT_ID_MISMATCH',
+          message:
+            'Aadhaar number does not match the existing identity record. Please verify the details.',
+          field: 'aadhaarNo',
+        },
+      });
+      const serialized = JSON.stringify(
+        (failure as ConflictException).getResponse(),
+      );
+      expect(serialized).not.toContain(other);
+      expect(serialized).not.toContain(recorded);
+
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.aadhaarNo).toBe(recorded);
+      expect(
+        await prisma.outboxEvent.count({
+          where: { aggregateId: applicant.id, eventName: 'applicant.updated' },
+        }),
+      ).toBe(0);
+    });
+
+    it('accepts the recorded Aadhaar, and any Aadhaar while still a draft', async () => {
+      const recorded = aadhaar();
+      const applicant = await newApplicant(scopeA, { aadhaarNo: recorded });
+
+      // A draft has no identity yet: a correction is just a correction.
+      const corrected = aadhaar();
+      await applicants.update(
+        applicant.id,
+        { aadhaarNo: corrected } as never,
+        scopeA,
+      );
+      await act(applicant.id, WorkflowAction.SUBMIT);
+
+      const updated = await applicants.update(
+        applicant.id,
+        { aadhaarNo: corrected, middleName: 'Anil' } as never,
+        scopeA,
+      );
+      expect(updated.middleName).toBe('Anil');
+    });
+
+    describe('an identity with no Aadhaar on record', () => {
+      const STAFF = {
+        userId: '00000000-0000-4000-8000-0000000000b2',
+        role: 'STAFF',
+      };
+
+      /** Submitted without an Aadhaar: the Person it resolved to has none. */
+      async function submittedWithoutAadhaar() {
+        const applicant = await newApplicant();
+        const submitted = await act(applicant.id, WorkflowAction.SUBMIT);
+        const person = await prisma.person.findUniqueOrThrow({
+          where: { id: submitted.personId! },
+        });
+        expect(person.govtIdHash).toBeNull();
+        return submitted;
+      }
+
+      it('records a first Aadhaar on the identity too, in the same transaction', async () => {
+        const hashes = moduleRef.get(IdentityHashService);
+        const applicant = await submittedWithoutAadhaar();
+        const value = aadhaar();
+
+        await applicants.update(
+          applicant.id,
+          { aadhaarNo: value } as never,
+          scopeA,
+          ADMIN.userId,
+          ADMIN.role,
+        );
+
+        const row = await prisma.applicant.findUniqueOrThrow({
+          where: { id: applicant.id },
+        });
+        expect(row.aadhaarNo).toBe(value);
+        const person = await prisma.person.findUniqueOrThrow({
+          where: { id: applicant.personId! },
+          include: { sensitive: true },
+        });
+        expect(person.govtIdHash).toBe(
+          hashes.governmentIdIndex(orgId, 'AADHAAR', value).blindIndex,
+        );
+        expect(person.sensitive?.aadhaarLast4).toBe(value.slice(-4));
+        expect(
+          await prisma.outboxEvent.count({
+            where: {
+              aggregateId: applicant.personId!,
+              eventName: 'person.government_id_attached',
+            },
+          }),
+        ).toBe(1);
+      });
+
+      it('refuses a caller without the attach permission, and changes neither record', async () => {
+        const applicant = await submittedWithoutAadhaar();
+
+        await expect(
+          applicants.update(
+            applicant.id,
+            { aadhaarNo: aadhaar() } as never,
+            scopeA,
+            STAFF.userId,
+            STAFF.role,
+          ),
+        ).rejects.toMatchObject({
+          status: 403,
+          response: {
+            error: 'GOVERNMENT_ID_ATTACH_FORBIDDEN',
+            field: 'aadhaarNo',
+          },
+        });
+
+        const row = await prisma.applicant.findUniqueOrThrow({
+          where: { id: applicant.id },
+        });
+        expect(row.aadhaarNo).toBeNull();
+        const person = await prisma.person.findUniqueOrThrow({
+          where: { id: applicant.personId! },
+        });
+        expect(person.govtIdHash).toBeNull();
+      });
+
+      it("refuses an Aadhaar that is another identity's, and changes neither record", async () => {
+        const taken = aadhaar();
+        const other = await newApplicant(scopeA, { aadhaarNo: taken });
+        await act(other.id, WorkflowAction.SUBMIT);
+        const applicant = await submittedWithoutAadhaar();
+
+        const failure = await applicants
+          .update(
+            applicant.id,
+            { aadhaarNo: taken } as never,
+            scopeA,
+            ADMIN.userId,
+            ADMIN.role,
+          )
+          .then(
+            () => null,
+            (error: unknown) => error,
+          );
+
+        expect(failure).toMatchObject({
+          status: 409,
+          response: {
+            error: 'GOVERNMENT_ID_ALREADY_ASSOCIATED',
+            field: 'aadhaarNo',
+          },
+        });
+        expect(JSON.stringify(failure)).not.toContain(taken);
+        const row = await prisma.applicant.findUniqueOrThrow({
+          where: { id: applicant.id },
+        });
+        expect(row.aadhaarNo).toBeNull();
+      });
+
+      it('an edit racing a direct attach never leaves the two records disagreeing', async () => {
+        const hashes = moduleRef.get(IdentityHashService);
+
+        for (let round = 0; round < 5; round += 1) {
+          const applicant = await submittedWithoutAadhaar();
+          const viaEdit = aadhaar();
+          const viaAttach = aadhaar();
+
+          const [edited, attached] = await Promise.allSettled([
+            applicants.update(
+              applicant.id,
+              { aadhaarNo: viaEdit } as never,
+              scopeA,
+              ADMIN.userId,
+              ADMIN.role,
+            ),
+            persons.attachGovernmentId(
+              orgId,
+              applicant.personId!,
+              'AADHAAR',
+              viaAttach,
+            ),
+          ]);
+
+          // Whichever locked the identity first wins; the other is refused.
+          expect(
+            [edited.status, attached.status].filter((s) => s === 'fulfilled'),
+          ).toHaveLength(1);
+          const row = await prisma.applicant.findUniqueOrThrow({
+            where: { id: applicant.id },
+          });
+          const person = await prisma.person.findUniqueOrThrow({
+            where: { id: applicant.personId! },
+          });
+          if (row.aadhaarNo) {
+            expect(person.govtIdHash).toBe(
+              hashes.governmentIdIndex(orgId, 'AADHAAR', row.aadhaarNo)
+                .blindIndex,
+            );
+          } else {
+            expect(person.govtIdHash).toBe(
+              hashes.governmentIdIndex(orgId, 'AADHAAR', viaAttach).blindIndex,
+            );
+          }
+        }
+      });
+    });
+
+    it('a submission racing an Aadhaar edit never leaves them disagreeing', async () => {
+      const hashes = moduleRef.get(IdentityHashService);
+
+      for (let round = 0; round < 5; round += 1) {
+        const applicant = await newApplicant(scopeA, { aadhaarNo: aadhaar() });
+        const edited = aadhaar();
+
+        await Promise.allSettled([
+          act(applicant.id, WorkflowAction.SUBMIT),
+          applicants.update(
+            applicant.id,
+            { aadhaarNo: edited } as never,
+            scopeA,
+          ),
+        ]);
+
+        const row = await prisma.applicant.findUniqueOrThrow({
+          where: { id: applicant.id },
+        });
+        expect(row.personId).not.toBeNull();
+        const person = await prisma.person.findUniqueOrThrow({
+          where: { id: row.personId! },
+        });
+        expect(person.govtIdHash).toBe(
+          hashes.governmentIdIndex(orgId, 'AADHAAR', row.aadhaarNo!).blindIndex,
+        );
       }
     });
   });

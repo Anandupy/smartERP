@@ -3,6 +3,8 @@ import { NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { AppModule } from '@/app.module';
 import { GuardiansService } from '@/modules/admissions/guardians/guardians.service';
+import { IdentityHashService } from '@/infrastructure/crypto/identity-hash.service';
+import { PersonService } from '@/modules/identity/person/person.service';
 import { ResourceScope } from '@/common/scope/resource-scope';
 
 /**
@@ -161,6 +163,16 @@ describe('Guardian tenant scoping (integration)', () => {
     await prisma.guardian.deleteMany({
       where: { organizationId: { in: [orgA, orgB] } },
     });
+    // Guardians created with a DOB resolve a Person, which holds the org.
+    await prisma.personSensitive.deleteMany({
+      where: { person: { organizationId: { in: [orgA, orgB] } } },
+    });
+    await prisma.person.deleteMany({
+      where: { organizationId: { in: [orgA, orgB] } },
+    });
+    await prisma.organizationDataKey.deleteMany({
+      where: { organizationId: { in: [orgA, orgB] } },
+    });
     await prisma.relationType.deleteMany({ where: { id: relationTypeId } });
     await prisma.applicant.deleteMany({
       where: { organizationId: { in: [orgA, orgB] } },
@@ -244,6 +256,220 @@ describe('Guardian tenant scoping (integration)', () => {
         scopeA,
       );
       expect(updated.firstName).toBe('Updated');
+    });
+  });
+
+  describe('Aadhaar and the linked identity', () => {
+    // Synthetic, format-valid, never issued; distinct per run.
+    let seq = 0;
+    const aadhaar = () => {
+      seq += 1;
+      return `3${suffix.slice(-8)}${String(seq).padStart(3, '0')}`;
+    };
+
+    const linkedGuardian = async (lastName: string, aadhaarNo: string) =>
+      guardians.create(
+        {
+          firstName: 'Guardian',
+          lastName: `${lastName}${suffix}`,
+          dob: '1985-06-01',
+          aadhaarNo,
+          mobilePrimary:
+            '9' + Math.floor(100000000 + Math.random() * 899999999),
+        } as any,
+        scopeA,
+      );
+
+    it('refuses a different Aadhaar on a linked guardian and changes nothing', async () => {
+      const recorded = aadhaar();
+      const guardian = await linkedGuardian('Mismatch', recorded);
+      expect(guardian.personId).not.toBeNull();
+
+      const other = aadhaar();
+      const failure = await guardians
+        .update(guardian.id, { aadhaarNo: other } as any, scopeA)
+        .then(
+          () => null,
+          (error: unknown) => error,
+        );
+
+      expect(failure).toMatchObject({
+        status: 409,
+        response: {
+          error: 'GOVERNMENT_ID_MISMATCH',
+          message:
+            'Aadhaar number does not match the existing identity record. Please verify the details.',
+          field: 'aadhaarNo',
+        },
+      });
+      const serialized = JSON.stringify(
+        (failure as { response: unknown }).response,
+      );
+      expect(serialized).not.toContain(other);
+      expect(serialized).not.toContain(recorded);
+
+      const row = await prisma.guardian.findUniqueOrThrow({
+        where: { id: guardian.id },
+      });
+      expect(row.aadhaarNo).toBe(recorded);
+    });
+
+    it('accepts the recorded Aadhaar again, alongside other edits', async () => {
+      const recorded = aadhaar();
+      const guardian = await linkedGuardian('Same', recorded);
+
+      const updated = await guardians.update(
+        guardian.id,
+        { aadhaarNo: recorded, occupation: 'Engineer' } as any,
+        scopeA,
+      );
+      expect(updated.occupation).toBe('Engineer');
+    });
+
+    it('checks scope before identity: another tenant gets 404', async () => {
+      const guardian = await linkedGuardian('Scope', aadhaar());
+
+      await expect(
+        guardians.update(guardian.id, { aadhaarNo: aadhaar() } as any, scopeB),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    describe('a linked identity with no Aadhaar on record', () => {
+      const ADMIN = {
+        userId: '00000000-0000-4000-8000-0000000000a1',
+        role: 'SUPER_ADMIN',
+      };
+
+      async function linkedWithoutAadhaar(lastName: string) {
+        const guardian = await guardians.create(
+          {
+            firstName: 'Guardian',
+            lastName: `${lastName}${suffix}`,
+            dob: '1985-06-01',
+            mobilePrimary:
+              '9' + Math.floor(100000000 + Math.random() * 899999999),
+          } as any,
+          scopeA,
+        );
+        expect(guardian.personId).not.toBeNull();
+        return guardian;
+      }
+
+      it('records a first Aadhaar on the identity too', async () => {
+        const hashes = moduleRef.get(IdentityHashService);
+        const guardian = await linkedWithoutAadhaar('Attach');
+        const value = aadhaar();
+
+        await guardians.update(
+          guardian.id,
+          { aadhaarNo: value } as any,
+          scopeA,
+          ADMIN,
+        );
+
+        const person = await prisma.person.findUniqueOrThrow({
+          where: { id: guardian.personId! },
+        });
+        expect(person.govtIdHash).toBe(
+          hashes.governmentIdIndex(orgA, 'AADHAAR', value).blindIndex,
+        );
+      });
+
+      it('refuses a caller without the attach permission, and changes neither record', async () => {
+        const guardian = await linkedWithoutAadhaar('NoAttach');
+
+        await expect(
+          guardians.update(
+            guardian.id,
+            { aadhaarNo: aadhaar() } as any,
+            scopeA,
+            {
+              userId: '00000000-0000-4000-8000-0000000000b2',
+              role: 'BRANCH_ADMIN',
+            },
+          ),
+        ).rejects.toMatchObject({
+          status: 403,
+          response: { error: 'GOVERNMENT_ID_ATTACH_FORBIDDEN' },
+        });
+
+        const row = await prisma.guardian.findUniqueOrThrow({
+          where: { id: guardian.id },
+        });
+        expect(row.aadhaarNo).toBeNull();
+        const person = await prisma.person.findUniqueOrThrow({
+          where: { id: guardian.personId! },
+        });
+        expect(person.govtIdHash).toBeNull();
+      });
+
+      it('an edit racing a direct attach leaves exactly one winner', async () => {
+        const persons = moduleRef.get(PersonService);
+        const hashes = moduleRef.get(IdentityHashService);
+        const guardian = await linkedWithoutAadhaar('AttachRace');
+        const viaEdit = aadhaar();
+        const viaAttach = aadhaar();
+
+        const results = await Promise.allSettled([
+          guardians.update(
+            guardian.id,
+            { aadhaarNo: viaEdit } as any,
+            scopeA,
+            ADMIN,
+          ),
+          persons.attachGovernmentId(
+            orgA,
+            guardian.personId!,
+            'AADHAAR',
+            viaAttach,
+          ),
+        ]);
+
+        expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+        const row = await prisma.guardian.findUniqueOrThrow({
+          where: { id: guardian.id },
+        });
+        const person = await prisma.person.findUniqueOrThrow({
+          where: { id: guardian.personId! },
+        });
+        expect(person.govtIdHash).toBe(
+          hashes.governmentIdIndex(orgA, 'AADHAAR', row.aadhaarNo ?? viaAttach)
+            .blindIndex,
+        );
+      });
+    });
+
+    it('a retroactive link racing an Aadhaar edit never leaves them disagreeing', async () => {
+      const hashes = moduleRef.get(IdentityHashService);
+      const first = aadhaar();
+      const guardian = await guardians.create(
+        {
+          firstName: 'Guardian',
+          lastName: `Race${suffix}`,
+          aadhaarNo: first,
+          mobilePrimary:
+            '9' + Math.floor(100000000 + Math.random() * 899999999),
+        } as any,
+        scopeA,
+      );
+      expect(guardian.personId).toBeNull();
+
+      const second = aadhaar();
+      await Promise.allSettled([
+        guardians.update(guardian.id, { dob: '1985-06-01' } as any, scopeA),
+        guardians.update(guardian.id, { aadhaarNo: second } as any, scopeA),
+      ]);
+
+      const row = await prisma.guardian.findUniqueOrThrow({
+        where: { id: guardian.id },
+      });
+      expect(row.personId).not.toBeNull();
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: row.personId! },
+      });
+      expect(person.govtIdHash).toBe(
+        hashes.governmentIdIndex(orgA, 'AADHAAR', row.aadhaarNo!).blindIndex,
+      );
     });
   });
 

@@ -38,3 +38,17 @@ export const phoneNumberSchema = z
   .string()
   .trim()
   .regex(/^\d{6,12}$/, "Digits only");
+
+/**
+ * An optional Aadhaar as the backend's DTOs accept it: empty, or twelve digits
+ * not starting with 0 or 1 (`AADHAAR_PATTERN`, backend
+ * `infrastructure/crypto/government-id.ts`). A convenience only — the backend
+ * enforces the same rule, and whether a value matches the identity already on
+ * record is the backend's call alone (`409 GOVERNMENT_ID_MISMATCH`).
+ */
+export const optionalAadhaarSchema = z
+  .string()
+  .trim()
+  .refine((value) => value === "" || /^[2-9]\d{11}$/.test(value), {
+    message: "Aadhaar number must be 12 digits and cannot start with 0 or 1.",
+  });

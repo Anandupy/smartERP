@@ -14,6 +14,8 @@ export const LOCKABLE_TABLES = [
   'Applicant',
   'Enrollment',
   'AcademicYear',
+  'Guardian',
+  'Person',
 ] as const;
 
 export type LockableTable = (typeof LOCKABLE_TABLES)[number];

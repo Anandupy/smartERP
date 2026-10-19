@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
@@ -10,6 +12,7 @@ import { Prisma } from '@/generated/client';
 import { GovernmentIdType, MatchDecision } from '@/generated/client';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { PrismaTransactionClient } from '@/infrastructure/database/prisma-transaction.types';
+import { RowLockService } from '@/infrastructure/database/row-lock.service';
 import { IdentityHashService } from '@/infrastructure/crypto/identity-hash.service';
 import { IdentityCryptoService } from '@/infrastructure/crypto/identity-crypto.service';
 import { lastFour } from '@/infrastructure/crypto/government-id';
@@ -59,6 +62,7 @@ export class PersonService {
     private readonly hashes: IdentityHashService,
     private readonly crypto: IdentityCryptoService,
     private readonly outbox: OutboxPublisher,
+    private readonly rowLock: RowLockService,
   ) {}
 
   /**
@@ -363,10 +367,15 @@ export class PersonService {
     tx?: PrismaTransactionClient,
   ): Promise<{ personId: string; last4: string }> {
     const run = async (client: PrismaTransactionClient) => {
-      const person = await client.person.findFirst({
-        where: { id: personId, organizationId },
-        select: { id: true, govtIdHash: true },
-      });
+      // Locked, not merely read: two attaches — or an attach and a role
+      // record's edit reconciling against this identity — would otherwise
+      // both see "no identifier yet" and each act on it.
+      const person = (await this.rowLock.lockRow(client, {
+        table: 'Person',
+        id: personId,
+        scope: { organizationId },
+        columns: ['govtIdHash'],
+      })) as { id: string; govtIdHash: string | null } | null;
 
       if (!person) {
         // Out of scope is indistinguishable from absent, deliberately.
@@ -431,6 +440,102 @@ export class PersonService {
     };
 
     return tx ? run(tx) : this.prisma.$transaction(run);
+  }
+
+  /**
+   * Keep a role record's government identifier and its identity in step.
+   *
+   * The role records (Applicant, Guardian) still carry their own copy of the
+   * identifier. When an edit supplies one for a record already linked to a
+   * Person:
+   *
+   * - the Person already records one → it must be the same. A different value
+   *   is refused (`GOVERNMENT_ID_MISMATCH`): correcting a recorded identifier
+   *   is a separate, audited operation, the rule `GOVERNMENT_ID_ALREADY_SET`
+   *   states for `attachGovernmentId`.
+   * - the Person records none → the value is attached to it, through
+   *   `attachGovernmentId` and in the caller's transaction, so both records
+   *   say the same thing or neither changes. Attaching is its own capability
+   *   (`person.attach_government_id`); a caller without it is refused rather
+   *   than left with a role record the identity does not agree with.
+   *
+   * The Person row is locked first, as `attachGovernmentId` locks it, so this
+   * and a concurrent attach are serialised. Neither value is echoed back or
+   * logged. `field` names the caller's own field, so a client can show the
+   * message beside it.
+   */
+  async reconcileGovernmentId(
+    organizationId: string,
+    personId: string,
+    rawValue: string,
+    options: {
+      mayAttach: () => Promise<boolean>;
+      field?: string;
+      type?: GovernmentIdType;
+    },
+    tx: PrismaTransactionClient,
+  ): Promise<void> {
+    const type = options.type ?? GovernmentIdType.AADHAAR;
+    const withField = <T extends object>(payload: T) =>
+      options.field ? { ...payload, field: options.field } : payload;
+
+    const person = (await this.rowLock.lockRow(tx, {
+      table: 'Person',
+      id: personId,
+      scope: { organizationId },
+      columns: ['govtIdHash'],
+    })) as { id: string; govtIdHash: string | null } | null;
+
+    if (!person) {
+      throw new NotFoundException('Person not found');
+    }
+
+    if (person.govtIdHash) {
+      const { blindIndex } = this.hashes.governmentIdIndex(
+        organizationId,
+        type,
+        rawValue,
+      );
+      if (!this.hashes.matches(person.govtIdHash, blindIndex)) {
+        throw new ConflictException(
+          withField({
+            error: 'GOVERNMENT_ID_MISMATCH',
+            message:
+              'Aadhaar number does not match the existing identity record. Please verify the details.',
+          }),
+        );
+      }
+      return;
+    }
+
+    if (!(await options.mayAttach())) {
+      throw new ForbiddenException(
+        withField({
+          error: 'GOVERNMENT_ID_ATTACH_FORBIDDEN',
+          message:
+            'This identity has no Aadhaar on record yet. Recording one needs the permission to attach government identifiers.',
+        }),
+      );
+    }
+
+    try {
+      await this.attachGovernmentId(
+        organizationId,
+        personId,
+        type,
+        rawValue,
+        tx,
+      );
+    } catch (error) {
+      // Same refusal, pointed at the field the caller edited.
+      if (error instanceof HttpException && options.field) {
+        const response = error.getResponse();
+        if (typeof response === 'object' && response !== null) {
+          throw new HttpException(withField(response), error.getStatus());
+        }
+      }
+      throw error;
+    }
   }
 
   /**
