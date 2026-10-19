@@ -92,7 +92,9 @@ export const ACTION_PRESENTATION: Record<
     isDestructive: true,
   },
   cancel: {
-    label: "Cancel",
+    // Not just "Cancel": that is also what a dialog's dismiss button says,
+    // and the two must never be confused on a destructive action.
+    label: "Cancel application",
     description:
       "Ends the application on the institution's decision, not the applicant's.",
     isDestructive: true,

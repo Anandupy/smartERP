@@ -1383,4 +1383,135 @@ describe('Admission workflow (integration)', () => {
       expect(unchanged.personId).toBeNull();
     });
   });
+
+  describe('closing a draft (BP-17)', () => {
+    it.each([WorkflowAction.WITHDRAW, WorkflowAction.CANCEL])(
+      'refuses to %s a draft as an illegal transition, not a constraint violation',
+      async (action) => {
+        const applicant = await newApplicant();
+
+        await expect(act(applicant.id, action)).rejects.toMatchObject({
+          status: 400,
+          response: { error: 'INVALID_TRANSITION', from: 'DRAFT', action },
+        });
+
+        const row = await prisma.applicant.findUniqueOrThrow({
+          where: { id: applicant.id },
+        });
+        expect(row.admissionStatus).toBe('DRAFT');
+        expect(row.withdrawnAt).toBeNull();
+        expect(row.cancelledAt).toBeNull();
+        expect(
+          await prisma.workflowHistory.count({
+            where: { entityId: applicant.id },
+          }),
+        ).toBe(0);
+      },
+    );
+
+    it.each([
+      [WorkflowAction.WITHDRAW, 'WITHDRAWN', 'withdrawnAt'],
+      [WorkflowAction.CANCEL, 'CANCELLED', 'cancelledAt'],
+    ] as const)(
+      'still lets a submitted application %s, with history and event',
+      async (action, status, stamp) => {
+        const applicant = await newApplicant();
+        await act(applicant.id, WorkflowAction.SUBMIT);
+
+        const closed = await act(applicant.id, action, scopeA, 'family moved');
+
+        expect(closed.admissionStatus).toBe(status);
+        expect(closed[stamp]).not.toBeNull();
+        expect(closed.personId).not.toBeNull();
+        const history = await prisma.workflowHistory.findFirstOrThrow({
+          where: { entityId: applicant.id, actionType: action },
+        });
+        expect(history).toMatchObject({
+          oldStatus: 'SUBMITTED',
+          newStatus: status,
+          remarks: 'family moved',
+        });
+        expect(
+          await prisma.outboxEvent.count({
+            where: {
+              aggregateId: applicant.id,
+              eventName: `applicant.${status === 'WITHDRAWN' ? 'withdrawn' : 'cancelled'}`,
+            },
+          }),
+        ).toBe(1);
+      },
+    );
+
+    it('deletes a draft softly, leaving the row and no identity behind', async () => {
+      const applicant = await newApplicant();
+
+      await applicants.remove(applicant.id, scopeA, ADMIN.userId);
+
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.deletedAt).not.toBeNull();
+      expect(row.admissionStatus).toBe('DRAFT');
+      expect(row.personId).toBeNull();
+      await expect(applicants.findOne(applicant.id, scopeA)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('refuses to delete a submitted application', async () => {
+      const applicant = await newApplicant();
+      await act(applicant.id, WorkflowAction.SUBMIT);
+
+      await expect(
+        applicants.remove(applicant.id, scopeA),
+      ).rejects.toMatchObject({
+        status: 403,
+        response: { error: 'APPLICANT_NOT_DELETABLE', status: 'SUBMITTED' },
+      });
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.deletedAt).toBeNull();
+    });
+
+    it("cannot delete another branch's draft", async () => {
+      const applicant = await newApplicant(scopeB);
+
+      await expect(applicants.remove(applicant.id, scopeA)).rejects.toThrow(
+        NotFoundException,
+      );
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.deletedAt).toBeNull();
+    });
+
+    it('a delete racing a submission leaves exactly one outcome', async () => {
+      for (let round = 0; round < 5; round += 1) {
+        const applicant = await newApplicant();
+
+        const [removed, submitted] = await Promise.allSettled([
+          applicants.remove(applicant.id, scopeA),
+          act(applicant.id, WorkflowAction.SUBMIT),
+        ]);
+
+        const row = await prisma.applicant.findUniqueOrThrow({
+          where: { id: applicant.id },
+        });
+        if (removed.status === 'fulfilled') {
+          // Deleted as a draft; the submission saw a deleted row.
+          expect(submitted.status).toBe('rejected');
+          expect(row).toMatchObject({
+            admissionStatus: 'DRAFT',
+            personId: null,
+          });
+          expect(row.deletedAt).not.toBeNull();
+        } else {
+          expect(submitted.status).toBe('fulfilled');
+          expect(row.admissionStatus).toBe('SUBMITTED');
+          expect(row.deletedAt).toBeNull();
+        }
+      }
+    });
+  });
 });

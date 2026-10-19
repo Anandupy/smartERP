@@ -495,6 +495,95 @@ describe('Admissions Module Foundation - Unit Tests', () => {
         applicantService.update('app-1', { firstName: 'X' } as any, SCOPE),
       ).rejects.toThrow(ForbiddenException);
     });
+
+    describe('deleting', () => {
+      it('soft-deletes a draft, with the status part of the write', async () => {
+        mockPrisma.applicant.findFirst.mockResolvedValue({
+          id: 'app-1',
+          admissionStatus: 'DRAFT',
+        });
+        mockPrisma.applicant.updateMany.mockResolvedValue({ count: 1 });
+
+        await expect(
+          applicantService.remove('app-1', SCOPE, 'user-1'),
+        ).resolves.toEqual({ id: 'app-1' });
+
+        const write = mockPrisma.applicant.updateMany.mock.calls[0][0];
+        expect(write.where).toMatchObject({
+          id: 'app-1',
+          organizationId: 'org-1',
+          branchId: 'branch-1',
+          deletedAt: null,
+          admissionStatus: 'DRAFT',
+        });
+        expect(write.data).toMatchObject({
+          deletedAt: expect.any(Date),
+          updatedBy: 'user-1',
+        });
+        const outboxed = mockPrisma.outboxEvent.create.mock.calls[0][0].data;
+        expect(outboxed.eventName).toBe('applicant.deleted');
+      });
+
+      it.each([
+        'SUBMITTED',
+        'UNDER_REVIEW',
+        'WAITLISTED',
+        'SEAT_CONFIRMED',
+        'CANCELLED',
+        'ADMITTED',
+      ])('refuses an application in %s without touching it', async (status) => {
+        mockPrisma.applicant.findFirst.mockResolvedValue({
+          id: 'app-1',
+          admissionStatus: status,
+        });
+
+        await expect(
+          applicantService.remove('app-1', SCOPE),
+        ).rejects.toMatchObject({
+          status: 403,
+          response: { error: 'APPLICANT_NOT_DELETABLE', status },
+        });
+        expect(mockPrisma.applicant.updateMany).not.toHaveBeenCalled();
+        expect(mockPrisma.outboxEvent.create).not.toHaveBeenCalled();
+      });
+
+      it('refuses a draft submitted between the read and the write', async () => {
+        mockPrisma.applicant.findFirst
+          .mockResolvedValueOnce({ id: 'app-1', admissionStatus: 'DRAFT' })
+          .mockResolvedValueOnce({ admissionStatus: 'SUBMITTED' });
+        mockPrisma.applicant.updateMany.mockResolvedValue({ count: 0 });
+
+        await expect(
+          applicantService.remove('app-1', SCOPE),
+        ).rejects.toMatchObject({
+          response: { error: 'APPLICANT_NOT_DELETABLE', status: 'SUBMITTED' },
+        });
+        expect(mockPrisma.outboxEvent.create).not.toHaveBeenCalled();
+      });
+
+      it('answers 404 for a draft deleted between the read and the write', async () => {
+        mockPrisma.applicant.findFirst
+          .mockResolvedValueOnce({ id: 'app-1', admissionStatus: 'DRAFT' })
+          .mockResolvedValueOnce(null);
+        mockPrisma.applicant.updateMany.mockResolvedValue({ count: 0 });
+
+        await expect(
+          applicantService.remove('app-1', SCOPE),
+        ).rejects.toBeInstanceOf(NotFoundException);
+      });
+
+      it("cannot reach another branch's draft", async () => {
+        mockPrisma.applicant.findFirst.mockResolvedValue(null);
+
+        await expect(
+          applicantService.remove('app-1', OTHER_BRANCH_SCOPE),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        expect(
+          mockPrisma.applicant.findFirst.mock.calls[0][0].where,
+        ).toMatchObject({ branchId: 'branch-2' });
+        expect(mockPrisma.applicant.updateMany).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('Guardian mapping', () => {

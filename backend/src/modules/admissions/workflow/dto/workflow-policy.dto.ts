@@ -91,6 +91,19 @@ export class DirectAdmissionAvailabilityDto {
   @ApiProperty() available!: boolean;
 }
 
+export class DeleteDraftAvailabilityDto {
+  @ApiProperty({
+    description:
+      'The caller is SUPER_ADMIN, ORG_ADMIN or BRANCH_ADMIN and holds admissions.delete.',
+  })
+  permitted!: boolean;
+  @ApiProperty({
+    description:
+      'Permitted, and the application is a DRAFT. Performed by DELETE /admissions/applicants/:id.',
+  })
+  available!: boolean;
+}
+
 /**
  * What the caller may do next. Advice, accurate as of the read: every action
  * is re-validated under the applicant lock when it runs.
@@ -111,6 +124,8 @@ export class WorkflowActionsDto {
   actions!: WorkflowActionDescriptorDto[];
   @ApiProperty({ type: DirectAdmissionAvailabilityDto })
   directAdmission!: DirectAdmissionAvailabilityDto;
+  @ApiProperty({ type: DeleteDraftAvailabilityDto })
+  deleteDraft!: DeleteDraftAvailabilityDto;
 }
 
 export class ChecklistItemDto {

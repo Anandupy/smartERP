@@ -265,9 +265,12 @@ export const TRANSITIONS: readonly TransitionRule[] = [
   {
     // Applicant-initiated. Kept distinct from CANCELLED because who walked away
     // changes the refund and the reporting.
+    //
+    // Not from DRAFT: a draft has not entered the workflow and has no identity,
+    // which every non-draft status requires (`applicant_person_from_submitted_check`).
+    // An unfinished draft is closed by deleting it.
     action: WorkflowAction.WITHDRAW,
     from: [
-      S.DRAFT,
       S.SUBMITTED,
       S.UNDER_REVIEW,
       S.DOCUMENT_PENDING,
@@ -283,10 +286,9 @@ export const TRANSITIONS: readonly TransitionRule[] = [
     event: 'applicant.withdrawn',
   },
   {
-    // Institution-initiated.
+    // Institution-initiated. Not from DRAFT, for the same reason as withdraw.
     action: WorkflowAction.CANCEL,
     from: [
-      S.DRAFT,
       S.SUBMITTED,
       S.UNDER_REVIEW,
       S.DOCUMENT_PENDING,

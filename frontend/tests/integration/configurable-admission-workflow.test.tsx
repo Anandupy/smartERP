@@ -1,7 +1,8 @@
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { useEffect } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiConfig } from "@/config";
 import { useAuth } from "@/core/auth";
@@ -21,7 +22,11 @@ import {
   childUnitDto,
   secondChildUnitDto,
 } from "@tests/fixtures/academic-unit";
-import { errorEnvelope, successEnvelope } from "@tests/fixtures/api";
+import {
+  errorEnvelope,
+  failureEnvelope,
+  successEnvelope,
+} from "@tests/fixtures/api";
 import {
   admissionPolicyDto,
   applicantDto,
@@ -29,6 +34,7 @@ import {
   workflowActionsDto,
 } from "@tests/fixtures/applicant";
 import { identityDto } from "@tests/fixtures/workspace";
+import { resetRouterMock, routerMock } from "@tests/mocks/next-navigation";
 import { server } from "@tests/mocks/server";
 import { render, screen, waitFor, within } from "@tests/setup/render";
 
@@ -262,6 +268,226 @@ describe("Backend-driven workflow actions", () => {
       await screen.findByRole("button", { name: /complete admission/i }),
     ).toBeDisabled();
     expect(screen.getByText(/transfer certificate/i)).toBeInTheDocument();
+  });
+});
+
+describe("Closing an application", () => {
+  const APPLICANT_URL = `${API_BASE}/admissions/applicants/applicant-1`;
+  const TRANSITION_URL = `${APPLICANT_URL}/workflow/transition`;
+
+  beforeEach(() => {
+    resetRouterMock();
+    vi.spyOn(toast, "success");
+    vi.spyOn(toast, "error");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const draftActions = () =>
+    workflowActionsDto({
+      status: "DRAFT",
+      actions: [workflowActionDto("submit", { to: "SUBMITTED" })],
+      deleteDraft: { permitted: true, available: true },
+    });
+
+  const submittedActions = () =>
+    workflowActionsDto({
+      status: "SUBMITTED",
+      actions: [
+        workflowActionDto("startReview", { to: "UNDER_REVIEW" }),
+        workflowActionDto("withdraw", { to: "WITHDRAWN", remarks: "REQUIRED" }),
+        workflowActionDto("cancel", { to: "CANCELLED", remarks: "REQUIRED" }),
+      ],
+      deleteDraft: { permitted: true, available: false },
+    });
+
+  it("offers Delete draft for a draft, never withdraw or cancel, and deletes after confirmation", async () => {
+    const user = userEvent.setup();
+    withActions("applicant-1", draftActions());
+    let deletes = 0;
+    server.use(
+      http.delete(APPLICANT_URL, () => {
+        deletes += 1;
+        return HttpResponse.json(
+          successEnvelope(null, { message: "Applicant deleted successfully" }),
+        );
+      }),
+    );
+
+    renderHub({ admissionStatus: "DRAFT", personId: null });
+
+    await user.click(
+      await screen.findByRole("button", { name: "Delete draft" }),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Withdraw" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Cancel application" }),
+    ).not.toBeInTheDocument();
+
+    const dialog = await screen.findByRole("alertdialog", {
+      name: "Delete this draft?",
+    });
+    // The user can tell which record is affected.
+    expect(dialog).toHaveTextContent("APP-2026-0001");
+    expect(dialog).toHaveTextContent("Riya Sharma");
+    expect(deletes).toBe(0);
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Delete draft" }),
+    );
+
+    await waitFor(() =>
+      expect(routerMock.replace).toHaveBeenCalledWith(
+        "/app/admissions/applicants",
+      ),
+    );
+    expect(deletes).toBe(1);
+    expect(toast.success).toHaveBeenCalledWith("Draft deleted");
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("shows the backend's refusal of a delete and never a success", async () => {
+    const user = userEvent.setup();
+    withActions("applicant-1", draftActions());
+    const message =
+      "Only a draft application can be deleted; this application is SUBMITTED. A submitted application is closed by withdrawing or cancelling it.";
+    server.use(
+      http.delete(APPLICANT_URL, () =>
+        HttpResponse.json(
+          failureEnvelope({
+            code: "APPLICANT_NOT_DELETABLE",
+            message,
+            details: { status: "SUBMITTED" },
+          }),
+          { status: 403 },
+        ),
+      ),
+    );
+
+    renderHub({ admissionStatus: "DRAFT", personId: null });
+
+    await user.click(
+      await screen.findByRole("button", { name: "Delete draft" }),
+    );
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Delete draft" }),
+    );
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(message));
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(routerMock.replace).not.toHaveBeenCalled();
+    // The dialog stays, and its controls recover for another attempt.
+    expect(
+      within(dialog).getByRole("button", { name: "Delete draft" }),
+    ).toBeEnabled();
+  });
+
+  it("does not offer Delete draft once the application is submitted", async () => {
+    withActions("applicant-1", submittedActions());
+
+    renderHub({ admissionStatus: "SUBMITTED" });
+
+    expect(
+      await screen.findByRole("button", { name: "Withdraw" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Delete draft" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("withdraws only with a reason, and sends it", async () => {
+    const user = userEvent.setup();
+    withActions("applicant-1", submittedActions());
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(TRANSITION_URL, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(
+          successEnvelope(applicantDto({ admissionStatus: "WITHDRAWN" })),
+        );
+      }),
+    );
+
+    renderHub({ admissionStatus: "SUBMITTED" });
+
+    await user.click(await screen.findByRole("button", { name: "Withdraw" }));
+    const dialog = await screen.findByRole("alertdialog", {
+      name: "Withdraw?",
+    });
+    expect(dialog).toHaveTextContent(/applicant walked away/i);
+
+    await user.click(within(dialog).getByRole("button", { name: "Withdraw" }));
+    expect(
+      within(dialog).getByText("A reason is required for this action."),
+    ).toBeInTheDocument();
+    expect(bodies).toHaveLength(0);
+
+    await user.type(
+      within(dialog).getByRole("textbox", { name: /remarks/i }),
+      "  Family relocated  ",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Withdraw" }));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "Application moved to WITHDRAWN",
+      ),
+    );
+    expect(bodies).toEqual([
+      { action: "withdraw", remarks: "Family relocated" },
+    ]);
+  });
+
+  it("shows the backend's refusal of a cancellation and never a success", async () => {
+    const user = userEvent.setup();
+    withActions("applicant-1", submittedActions());
+    server.use(
+      http.post(TRANSITION_URL, () =>
+        HttpResponse.json(
+          failureEnvelope({
+            code: "INVALID_TRANSITION",
+            message: "Cannot cancel an application in state WITHDRAWN.",
+            details: { from: "WITHDRAWN", action: "cancel" },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    renderHub({ admissionStatus: "SUBMITTED" });
+
+    await user.click(
+      await screen.findByRole("button", { name: "Cancel application" }),
+    );
+    const dialog = await screen.findByRole("alertdialog", {
+      name: "Cancel application?",
+    });
+    // Distinct from withdrawal: this is the institution's decision.
+    expect(dialog).toHaveTextContent(/institution's decision/i);
+    await user.type(
+      within(dialog).getByRole("textbox", { name: /remarks/i }),
+      "Duplicate form",
+    );
+    // The dismiss control is never also called "Cancel".
+    expect(
+      within(dialog).getByRole("button", { name: "Go back" }),
+    ).toBeInTheDocument();
+    await user.click(
+      within(dialog).getByRole("button", { name: "Cancel application" }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Cannot cancel an application in state WITHDRAWN.",
+      ),
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(dialog).toBeInTheDocument();
   });
 });
 

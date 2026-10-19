@@ -244,8 +244,8 @@ describe('Applicant workflow', () => {
   describe('legal transitions', () => {
     const legal: Array<[S, WorkflowAction, S]> = [
       [S.DRAFT, WorkflowAction.SUBMIT, S.SUBMITTED],
-      [S.DRAFT, WorkflowAction.CANCEL, S.CANCELLED],
-      [S.DRAFT, WorkflowAction.WITHDRAW, S.WITHDRAWN],
+      [S.SUBMITTED, WorkflowAction.CANCEL, S.CANCELLED],
+      [S.SUBMITTED, WorkflowAction.WITHDRAW, S.WITHDRAWN],
       [S.SUBMITTED, WorkflowAction.START_REVIEW, S.UNDER_REVIEW],
       [S.SUBMITTED, WorkflowAction.REJECT, S.REJECTED],
       [S.UNDER_REVIEW, WorkflowAction.REQUEST_DOCUMENTS, S.DOCUMENT_PENDING],
@@ -320,6 +320,10 @@ describe('Applicant workflow', () => {
       [S.DRAFT, WorkflowAction.CONFIRM_SEAT],
       [S.DRAFT, WorkflowAction.START_REVIEW],
       [S.DRAFT, WorkflowAction.REJECT],
+      // A draft is closed by deleting it: it has no identity, which every
+      // non-draft status requires (BP-17).
+      [S.DRAFT, WorkflowAction.WITHDRAW],
+      [S.DRAFT, WorkflowAction.CANCEL],
       [S.SUBMITTED, WorkflowAction.APPROVE],
       [S.SUBMITTED, WorkflowAction.CONFIRM_SEAT],
       [S.UNDER_REVIEW, WorkflowAction.CONFIRM_SEAT],
@@ -1020,8 +1024,9 @@ describe('Applicant workflow', () => {
           'defer:APPROVED>DEFERRED',
           'expireOffer:APPROVED>CANCELLED',
           'reject:DOCUMENT_PENDING|FEE_PENDING|SUBMITTED|UNDER_REVIEW|WAITLISTED>REJECTED',
-          'withdraw:APPROVED|DOCUMENT_PENDING|DRAFT|FEE_PENDING|SEAT_CONFIRMED|SUBMITTED|UNDER_REVIEW|WAITLISTED>WITHDRAWN',
-          'cancel:APPROVED|DOCUMENT_PENDING|DRAFT|FEE_PENDING|SEAT_CONFIRMED|SUBMITTED|UNDER_REVIEW|WAITLISTED>CANCELLED',
+          // DRAFT left both deliberately (BP-17): a draft is deleted instead.
+          'withdraw:APPROVED|DOCUMENT_PENDING|FEE_PENDING|SEAT_CONFIRMED|SUBMITTED|UNDER_REVIEW|WAITLISTED>WITHDRAWN',
+          'cancel:APPROVED|DOCUMENT_PENDING|FEE_PENDING|SEAT_CONFIRMED|SUBMITTED|UNDER_REVIEW|WAITLISTED>CANCELLED',
           'admit:SEAT_CONFIRMED>ADMITTED',
           'forceReopen:CANCELLED>UNDER_REVIEW',
         ].sort(),
@@ -1451,6 +1456,65 @@ describe('Applicant workflow', () => {
         fromCurrentState: true,
         permitted: true,
         available: true,
+      });
+    });
+
+    it('offers deleting a draft, and never withdraw or cancel on one', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(
+        applicantRow(S.DRAFT, { personId: null, submittedAt: null }),
+      );
+
+      const result = await workflow.describeActions('app-1', SCOPE, ACTOR);
+
+      expect(result.actions.map((a) => a.action)).toEqual([
+        WorkflowAction.SUBMIT,
+      ]);
+      expect(result.deleteDraft).toEqual({ permitted: true, available: true });
+      expect(hasPermission).toHaveBeenCalledWith(
+        'user-1',
+        'BRANCH_ADMIN',
+        'admissions.delete',
+      );
+    });
+
+    it('does not offer deleting anything past a draft', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(
+        applicantRow(S.SUBMITTED),
+      );
+
+      const result = await workflow.describeActions('app-1', SCOPE, ACTOR);
+
+      expect(result.deleteDraft).toEqual({ permitted: true, available: false });
+      expect(result.actions.map((a) => a.action)).toEqual(
+        expect.arrayContaining([
+          WorkflowAction.WITHDRAW,
+          WorkflowAction.CANCEL,
+        ]),
+      );
+    });
+
+    it('does not offer deleting a draft to a role the endpoint refuses, whatever its permissions', async () => {
+      mockPrisma.applicant.findFirst.mockResolvedValue(
+        applicantRow(S.DRAFT, { personId: null, submittedAt: null }),
+      );
+
+      const staff = await workflow.describeActions('app-1', SCOPE, {
+        userId: 'user-2',
+        role: 'STAFF',
+      });
+      expect(staff.deleteDraft).toEqual({ permitted: false, available: false });
+
+      hasPermission.mockImplementation(
+        async (_u: string, _r: string, p: string) => p !== 'admissions.delete',
+      );
+      const withoutPermission = await workflow.describeActions(
+        'app-1',
+        SCOPE,
+        ACTOR,
+      );
+      expect(withoutPermission.deleteDraft).toEqual({
+        permitted: false,
+        available: false,
       });
     });
 

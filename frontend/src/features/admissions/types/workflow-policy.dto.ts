@@ -86,6 +86,15 @@ export interface WorkflowActionsDto {
     permitted: boolean;
     available: boolean;
   };
+  /**
+   * Deleting a draft (`DELETE /admissions/applicants/:id`) — the only way to
+   * close one; withdraw and cancel start at SUBMITTED. Optional: absent from
+   * a backend that predates it, which then simply offers no delete.
+   */
+  deleteDraft?: {
+    permitted: boolean;
+    available: boolean;
+  };
 }
 
 export type ChecklistItemStatus =

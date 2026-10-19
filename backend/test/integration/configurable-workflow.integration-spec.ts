@@ -853,8 +853,8 @@ describe('Configurable admission workflows (integration)', () => {
     });
 
     it('refuses a terminal application', async () => {
-      // Submitted first: cancelling a bare DRAFT is refused by the database
-      // (see docs/modules/admissions.md, "Known pre-existing defect").
+      // Submitted first: a DRAFT is not cancelled but deleted
+      // (docs/modules/admissions.md §12.8, BP-17).
       const applicant = await draft('A');
       await act(applicant.id, 'A', WorkflowAction.SUBMIT);
       await act(

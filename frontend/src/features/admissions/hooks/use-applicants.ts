@@ -107,20 +107,23 @@ export function useUpdateApplicant(id: string) {
 }
 
 /**
- * Delete an applicant — the documented soft delete, only reachable from
- * `DRAFT` or `CANCELLED` per the applicant lock rule.
+ * Delete a draft — the soft delete, which the backend allows from `DRAFT`
+ * only (a submitted application is withdrawn or cancelled instead). The
+ * caller decides whether to offer it from the actions read's `deleteDraft`.
+ *
+ * Only the lists are invalidated: refetching the deleted record's own detail
+ * would just answer 404 while the caller is navigating away from it. Errors
+ * are left to the caller, which shows them beside the action.
  */
 export function useDeleteApplicant() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { skipErrorToast: true },
     mutationFn: (id: string) => applicantService.remove(id),
-    onSuccess: async (_result, id) => {
-      await invalidateKeys(queryClient, [
-        applicantKeys.lists(),
-        applicantKeys.detail(id),
-      ]);
-      toast.success("Application deleted");
+    onSuccess: async () => {
+      await invalidateKeys(queryClient, [applicantKeys.lists()]);
+      toast.success("Draft deleted");
     },
   });
 }

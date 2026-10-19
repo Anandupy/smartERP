@@ -15,7 +15,7 @@ import {
   ApiBearerAuth,
   ApiHeader,
 } from '@nestjs/swagger';
-import { ApplicantService } from './applicant.service';
+import { ApplicantService, DRAFT_DELETE_ROLES } from './applicant.service';
 import { ApplicantPreferenceService } from './applicant-preference.service';
 import { SetProgramPreferencesDto } from './dto/preference.dto';
 import {
@@ -199,9 +199,14 @@ export class ApplicantController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.BRANCH_ADMIN)
+  @Roles(...DRAFT_DELETE_ROLES)
   @RequirePermission(PERMISSIONS.Admissions.Delete)
-  @ApiOperation({ summary: 'Soft delete applicant' })
+  @ApiOperation({
+    summary: 'Soft delete a draft applicant',
+    description:
+      'Only a DRAFT may be deleted — anything submitted is closed by withdraw or cancel. ' +
+      'Refused with 403 APPLICANT_NOT_DELETABLE otherwise, including when the draft was submitted concurrently.',
+  })
   @ApiEmptyEnvelope({ message: 'Applicant deleted successfully' })
   @ApiStandardErrors(404)
   async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {

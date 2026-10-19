@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -8,11 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { ROUTES } from "@/constants";
 import { getErrorMessage } from "@/lib";
 import { InlineError } from "@/shared/components/feedback";
 import { ConfirmDialog } from "@/shared/components/overlay";
 
-import { useApplicantWorkflowTransition } from "../hooks/use-applicants";
+import {
+  useApplicantWorkflowTransition,
+  useDeleteApplicant,
+} from "../hooks/use-applicants";
 import type { ApplicantDto, WorkflowAction } from "../types/applicant.dto";
 import type {
   WorkflowActionAvailability,
@@ -50,6 +55,11 @@ type TransitionAction = WorkflowActionAvailability & { action: WorkflowAction };
  *
  * `admit` never appears here: it is performed by the dedicated admission flow
  * (`via: "ADMIT"`), not the generic transition endpoint.
+ *
+ * A draft is closed by deleting it, not by withdraw or cancel (which start at
+ * SUBMITTED). "Delete draft" is offered only when the same read reports
+ * `deleteDraft.available`, and the delete endpoint re-checks that the
+ * application is still a draft when it runs.
  */
 export function ApplicantWorkflowActions({
   applicant,
@@ -61,7 +71,10 @@ export function ApplicantWorkflowActions({
 }: ApplicantWorkflowActionsProps) {
   const [pending, setPending] = useState<TransitionAction | null>(null);
   const [remarks, setRemarks] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const transition = useApplicantWorkflowTransition(applicant.id);
+  const deleteDraft = useDeleteApplicant();
+  const router = useRouter();
 
   if (isPending) {
     return (
@@ -90,7 +103,9 @@ export function ApplicantWorkflowActions({
       !hidden?.has(a.action as WorkflowAction),
   );
 
-  if (offered.length === 0) return null;
+  const canDeleteDraft = actions?.deleteDraft?.available === true;
+
+  if (offered.length === 0 && !canDeleteDraft) return null;
 
   const close = () => {
     setPending(null);
@@ -123,6 +138,16 @@ export function ApplicantWorkflowActions({
             </Button>
           );
         })}
+        {canDeleteDraft ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="text-destructive"
+            onClick={() => setConfirmingDelete(true)}
+          >
+            Delete draft
+          </Button>
+        ) : null}
       </div>
 
       {blocked.length > 0 ? (
@@ -160,6 +185,7 @@ export function ApplicantWorkflowActions({
         title={presentation ? `${presentation.label}?` : ""}
         description={presentation?.description ?? ""}
         confirmLabel={presentation?.label ?? "Confirm"}
+        cancelLabel="Go back"
         isPending={transition.isPending}
         onConfirm={async () => {
           if (!pending || remarksInvalid) return;
@@ -197,6 +223,38 @@ export function ApplicantWorkflowActions({
           ) : null}
         </div>
       </ConfirmDialog>
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={(open) => {
+          if (!open) setConfirmingDelete(false);
+        }}
+        destructive
+        title="Delete this draft?"
+        description={
+          <>
+            Deletes the draft application{" "}
+            <span className="text-foreground font-medium">
+              {applicant.applicationNo ?? applicant.displayName}
+            </span>{" "}
+            for {applicant.displayName}. A draft has not been submitted, so it
+            is deleted rather than withdrawn or cancelled. It will no longer
+            appear in the applicant list.
+          </>
+        }
+        confirmLabel="Delete draft"
+        cancelLabel="Go back"
+        isPending={deleteDraft.isPending}
+        onConfirm={async () => {
+          try {
+            await deleteDraft.mutateAsync(applicant.id);
+            setConfirmingDelete(false);
+            router.replace(ROUTES.app.admissions.applicants.directory);
+          } catch (caught) {
+            toast.error(getErrorMessage(caught));
+          }
+        }}
+      />
     </div>
   );
 }

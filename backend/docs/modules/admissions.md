@@ -224,7 +224,7 @@ The standard `POST …/admit` is unchanged.
 | Endpoint | Permission | Purpose |
 | :--- | :--- | :--- |
 | `GET /v1/admissions/workflow/policy` | `admissions.view` | Effective profile and switches for the request's branch, with the tier that answered each |
-| `GET /v1/admissions/applicants/:id/workflow/actions` | `admissions.view` | Every action legal from the current state: `permitted` for this caller, `blockedBy` (the same codes the action would fail with — `DOCUMENTS_INCOMPLETE` with `missing`, `POLICY_DISABLED`, `DEFERMENT_DISABLED`, `MAKER_CHECKER_VIOLATION`, `OFFER_EXPIRED`), `via: TRANSITION \| ADMIT`, and `directAdmission` availability. Advice only — every action is re-validated under the row lock |
+| `GET /v1/admissions/applicants/:id/workflow/actions` | `admissions.view` | Every action legal from the current state: `permitted` for this caller, `blockedBy` (the same codes the action would fail with — `DOCUMENTS_INCOMPLETE` with `missing`, `POLICY_DISABLED`, `DEFERMENT_DISABLED`, `MAKER_CHECKER_VIOLATION`, `OFFER_EXPIRED`), `via: TRANSITION \| ADMIT`, `directAdmission` availability, and `deleteDraft` (`permitted`/`available` — `SUPER_ADMIN`/`ORG_ADMIN`/`BRANCH_ADMIN` with `admissions.delete`, on a `DRAFT`). Advice only — every action is re-validated under the row lock |
 | `GET /v1/admissions/applicants/:id/checklist` | `admissions.view` | Every requirement binding the applicant with `VERIFIED` / `PENDING_VERIFICATION` / `REJECTED` / `MISSING`, by the guard's own matching rules |
 | `GET/PUT/DELETE /v1/config/values/:key` | see [`configuration.md`](./configuration.md) | Policy history and changes |
 
@@ -242,6 +242,7 @@ All are scoped: an applicant outside the request's organization and branch is
 | `DOCUMENTS_INCOMPLETE` | 409 | Mandatory documents missing or unverified (`missing`) |
 | `UNSUPPORTED_REQUIREMENT_STAGE` | 400 | A requirement at a stage no transition checks |
 | `CONFIGURATION_INVALID` | 500 | A stored policy value fails validation — fail closed |
+| `APPLICANT_NOT_DELETABLE` | 403 | `DELETE /applicants/:id` on anything but a `DRAFT` (`status`); also when the draft was submitted concurrently |
 
 ### 12.7 Verification
 
@@ -256,11 +257,17 @@ profiles, rollback at every failure point, concurrency, mid-flight policy
 changes, F2 invariants as raw SQL) and
 `test/e2e/configurable-workflow.e2e-spec.ts` (HTTP boundary).
 
-### 12.8 Known pre-existing defect (not changed)
+### 12.8 Closing a draft (BP-17, resolved 2026-10-19)
 
-`cancel` and `withdraw` list `DRAFT` as a from-state, but a draft has no
-`personId` and `applicant_person_from_submitted_check` refuses any other
-status without one, so cancelling or withdrawing a draft fails with a raw
-constraint error. Recorded in [`../backend pending.md`](../backend%20pending.md)
-as BP-17; the fix (allow the terminal states in the CHECK, or delete drafts
-instead) is a business decision.
+`cancel` and `withdraw` used to list `DRAFT` as a from-state, but a draft has
+no `personId` and `applicant_person_from_submitted_check` refuses every other
+status without one, so closing a draft that way failed with a raw `23514`
+surfaced as a 500. Decision: a draft has not entered the workflow, so it is
+**deleted**, not withdrawn or cancelled. `DRAFT` was removed from both rules
+(now `400 INVALID_TRANSITION`), and `DELETE /v1/admissions/applicants/:id`
+soft-deletes a `DRAFT` only — the status is part of the write's `WHERE`, so a
+draft submitted between the read and the write is refused with
+`403 APPLICANT_NOT_DELETABLE` rather than deleted. Both CHECK constraints are
+unchanged; no migration. Withdraw and cancel from `SUBMITTED` onward are
+unchanged.
+

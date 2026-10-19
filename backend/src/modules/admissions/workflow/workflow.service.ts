@@ -24,6 +24,7 @@ import { ResourceScope, scopedWhere } from '@/common/scope/resource-scope';
 import { ChecklistService } from '@/modules/documents/checklist.service';
 import { ADMISSION_CONFIG_KEYS } from '@/modules/configuration/config.registry';
 import { PERMISSIONS } from '@/common/constants/permission.constants';
+import { DRAFT_DELETE_ROLES } from '@/modules/admissions/applicant/applicant.service';
 import {
   AdmissionConfigProvider,
   AdmissionPolicy,
@@ -106,6 +107,16 @@ export interface WorkflowActionsResult {
     fromCurrentState: boolean;
     /** Whether the caller holds every permission the walked steps need. */
     permitted: boolean;
+    available: boolean;
+  };
+  /**
+   * Deleting a draft — not a transition (nothing enters the workflow), but
+   * the only way to close one, so it is described here beside the actions.
+   */
+  deleteDraft: {
+    /** The caller's role and permissions allow deleting an applicant. */
+    permitted: boolean;
+    /** Permitted, and the application is still a draft. */
     available: boolean;
   };
 }
@@ -470,6 +481,10 @@ export class WorkflowService {
       await Promise.all(DIRECT_ADMISSION_PERMISSIONS.map(holds))
     ).every(Boolean);
 
+    const deletePermitted =
+      (DRAFT_DELETE_ROLES as readonly string[]).includes(actor.role ?? '') &&
+      (await holds(PERMISSIONS.Admissions.Delete));
+
     return {
       applicantId: applicant.id,
       status,
@@ -481,6 +496,10 @@ export class WorkflowService {
         fromCurrentState,
         permitted,
         available: offered && fromCurrentState && permitted,
+      },
+      deleteDraft: {
+        permitted: deletePermitted,
+        available: deletePermitted && status === 'DRAFT',
       },
     };
   }

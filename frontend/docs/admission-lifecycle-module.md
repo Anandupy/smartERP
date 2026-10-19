@@ -319,7 +319,7 @@ only an institution running an allotment round would.
 | `GET` | `/v1/admissions/applicants` | Real search/filter/sort/paging, §3.3 |
 | `GET` | `/v1/admissions/applicants/:id` | Expanded read, §3.2 |
 | `PATCH` | `/v1/admissions/applicants/:id` | Full-body convention, no partial-update rule documented |
-| `DELETE` | `/v1/admissions/applicants/:id` | Soft delete; only reachable from `DRAFT` or `CANCELLED` (§3.7) |
+| `DELETE` | `/v1/admissions/applicants/:id` | Soft delete of a `DRAFT` only; anything else is `403 APPLICANT_NOT_DELETABLE` (§3.7) |
 | `POST` | `/v1/admissions/applicants/:applicantId/admit` | §4 |
 | `POST` | `/v1/admissions/applicants/check-duplicates` | Advisory only — `{ hasDuplicates, matches }`, matches on Aadhaar/mobile/name+DOB |
 | `GET`/`POST` | `/v1/admissions/applicants/:id/preferences` | §3.5 |
@@ -329,7 +329,9 @@ only an institution running an allotment round would.
 The applicant is **frozen once it leaves `DRAFT` or `SUBMITTED`**; once
 `APPROVED`, direct edits are fully locked. `admissionStatus` is editable only
 via the workflow transition endpoint — never a general `PATCH`. Soft delete is
-blocked once the applicant has reached `APPROVED`, `REJECTED` or `CANCELLED`.
+how a **draft** is closed, and only a draft: a submitted application is
+withdrawn or cancelled instead (backend BP-17). The hub offers "Delete draft"
+when the actions read reports `deleteDraft.available`.
 
 ---
 
@@ -393,8 +395,8 @@ mutation of the deferred row.
 | `defer` | APPROVED | DEFERRED | `admissions.approve` | **required** | `DEFERMENT_ENABLED` | **off by default** |
 | `expireOffer` | APPROVED | CANCELLED | `admissions.approve` | optional | `OFFER_EXPIRED` | **`systemOnly`** |
 | `reject` | SUBMITTED…WAITLISTED | REJECTED | `admissions.reject` | **required** | — | |
-| `withdraw` | any of 8 non-terminal states | WITHDRAWN | `admissions.update` | **required** | — | applicant-initiated |
-| `cancel` | any of 8 non-terminal states | CANCELLED | `admissions.approve` | **required** | — | institution-initiated |
+| `withdraw` | any of 7 non-terminal states after `DRAFT` | WITHDRAWN | `admissions.update` | **required** | — | applicant-initiated |
+| `cancel` | any of 7 non-terminal states after `DRAFT` | CANCELLED | `admissions.approve` | **required** | — | institution-initiated |
 | `admit` | SEAT_CONFIRMED | ADMITTED | `admissions.approve` + `student.create` | optional | — | **`orchestratedOnly`** |
 | `forceReopen` | CANCELLED | UNDER_REVIEW | `admissions.approve` | **required** | — | audit `severity: WARN` |
 

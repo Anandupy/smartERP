@@ -15,6 +15,7 @@ import {
 } from '@/common/events';
 import { ResourceScope, scopedWhere } from '@/common/scope/resource-scope';
 import { AdmissionApplicationStatus } from '@/generated/client';
+import { UserRole } from '@/common/enums/role.enum';
 import {
   CreateApplicantDto,
   QueryApplicantDto,
@@ -36,6 +37,16 @@ const FROZEN_STATUSES: AdmissionApplicationStatus[] = [
   'WITHDRAWN',
   'CANCELLED',
 ];
+
+/**
+ * Who may delete a draft. Shared by the endpoint's `@Roles` and the workflow
+ * actions read, so the screen never offers a delete the endpoint refuses.
+ */
+export const DRAFT_DELETE_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.ORG_ADMIN,
+  UserRole.BRANCH_ADMIN,
+] as const;
 
 @Injectable()
 export class ApplicantService {
@@ -337,22 +348,41 @@ export class ApplicantService {
     };
   }
 
+  /**
+   * Soft-delete a draft.
+   *
+   * Only a `DRAFT`: it has not entered the workflow, has no identity and no
+   * history, and deleting it is how an unfinished form is closed. Anything
+   * submitted is closed through the workflow instead — withdraw or cancel —
+   * so its history and identity survive.
+   *
+   * The status is part of the write's `WHERE`, not only the read before it,
+   * so a draft submitted between the two is not deleted on a stale view.
+   */
   async remove(id: string, scope: ResourceScope, userId?: string) {
     const applicant = await this.findOne(id, scope);
 
-    if (FROZEN_STATUSES.includes(applicant.admissionStatus)) {
-      throw new ForbiddenException(
-        `Cannot delete applicant in status ${applicant.admissionStatus}`,
-      );
+    if (applicant.admissionStatus !== 'DRAFT') {
+      throw this.notDeletable(applicant.admissionStatus);
     }
 
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.applicant.updateMany({
-        where: { id, ...scopedWhere(scope), deletedAt: null },
+        where: {
+          id,
+          ...scopedWhere(scope),
+          deletedAt: null,
+          admissionStatus: 'DRAFT',
+        },
         data: { deletedAt: new Date(), updatedBy: userId },
       });
 
       if (result.count !== 1) {
+        const current = await tx.applicant.findFirst({
+          where: { id, ...scopedWhere(scope), deletedAt: null },
+          select: { admissionStatus: true },
+        });
+        if (current) throw this.notDeletable(current.admissionStatus);
         throw new NotFoundException('Applicant not found');
       }
 
@@ -362,6 +392,14 @@ export class ApplicantService {
       );
 
       return { id };
+    });
+  }
+
+  private notDeletable(status: AdmissionApplicationStatus) {
+    return new ForbiddenException({
+      error: 'APPLICANT_NOT_DELETABLE',
+      message: `Only a draft application can be deleted; this application is ${status}. A submitted application is closed by withdrawing or cancelling it.`,
+      status,
     });
   }
 

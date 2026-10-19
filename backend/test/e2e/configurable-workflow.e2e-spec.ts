@@ -446,9 +446,17 @@ describe('Configurable admission workflows (e2e)', () => {
         .expect(200);
       expect(admin.body.data.profile).toBe('SIMPLE_ADMISSION');
       expect(admin.body.data.directAdmission.available).toBe(true);
-      expect(
-        admin.body.data.actions.map((a: { action: string }) => a.action),
-      ).toEqual(expect.arrayContaining(['submit', 'withdraw', 'cancel']));
+      const draftActions = admin.body.data.actions.map(
+        (a: { action: string }) => a.action,
+      );
+      // A draft is closed by deleting it, never by withdraw or cancel.
+      expect(draftActions).toContain('submit');
+      expect(draftActions).not.toContain('withdraw');
+      expect(draftActions).not.toContain('cancel');
+      expect(admin.body.data.deleteDraft).toEqual({
+        permitted: true,
+        available: true,
+      });
 
       const staff = await http()
         .get(`/admissions/applicants/${applicant.id}/workflow/actions`)
@@ -456,10 +464,28 @@ describe('Configurable admission workflows (e2e)', () => {
         .set(ctx)
         .expect(200);
       expect(staff.body.data.directAdmission.permitted).toBe(false);
-      const cancel = staff.body.data.actions.find(
+      expect(staff.body.data.deleteDraft).toEqual({
+        permitted: false,
+        available: false,
+      });
+
+      await http()
+        .post(`/admissions/applicants/${applicant.id}/workflow/transition`)
+        .set(as(adminToken))
+        .set(ctx)
+        .send({ action: 'submit' })
+        .expect(201);
+
+      const submitted = await http()
+        .get(`/admissions/applicants/${applicant.id}/workflow/actions`)
+        .set(as(staffToken))
+        .set(ctx)
+        .expect(200);
+      const cancel = submitted.body.data.actions.find(
         (a: { action: string }) => a.action === 'cancel',
       );
       expect(cancel).toMatchObject({ permitted: false, available: false });
+      expect(submitted.body.data.deleteDraft.available).toBe(false);
     });
 
     it('reports the checklist the guards use', async () => {
@@ -483,6 +509,106 @@ describe('Configurable admission workflows (e2e)', () => {
         .set(as(adminToken))
         .set(otherCtx)
         .expect(404);
+    });
+  });
+
+  describe('closing a draft', () => {
+    const transition = (id: string, action: string, token = adminToken) =>
+      http()
+        .post(`/admissions/applicants/${id}/workflow/transition`)
+        .set(as(token))
+        .set(ctx)
+        .send({ action, remarks: 'applicant changed their mind' });
+
+    it('refuses to withdraw or cancel a draft with a 400, not a database error', async () => {
+      const applicant = await draft();
+
+      for (const action of ['withdraw', 'cancel']) {
+        const response = await transition(applicant.id, action).expect(400);
+        expect(codeOf(response.body)).toBe('INVALID_TRANSITION');
+        expect(response.body.message).toBe(
+          `Cannot ${action} an application in state DRAFT.`,
+        );
+      }
+
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.admissionStatus).toBe('DRAFT');
+      expect(
+        await prisma.workflowHistory.count({
+          where: { entityId: applicant.id },
+        }),
+      ).toBe(0);
+    });
+
+    it('deletes a draft softly, and only once', async () => {
+      const applicant = await draft();
+
+      await http()
+        .delete(`/admissions/applicants/${applicant.id}`)
+        .set(as(adminToken))
+        .set(ctx)
+        .expect(200);
+
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.deletedAt).not.toBeNull();
+      expect(row.admissionStatus).toBe('DRAFT');
+      expect(
+        await prisma.outboxEvent.count({
+          where: { aggregateId: applicant.id, eventName: 'applicant.deleted' },
+        }),
+      ).toBe(1);
+
+      await http()
+        .delete(`/admissions/applicants/${applicant.id}`)
+        .set(as(adminToken))
+        .set(ctx)
+        .expect(404);
+    });
+
+    it('refuses to delete a submitted application, and leaves it untouched', async () => {
+      const applicant = await draft();
+      await transition(applicant.id, 'submit').expect(201);
+
+      const response = await http()
+        .delete(`/admissions/applicants/${applicant.id}`)
+        .set(as(adminToken))
+        .set(ctx)
+        .expect(403);
+      expect(codeOf(response.body)).toBe('APPLICANT_NOT_DELETABLE');
+
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.deletedAt).toBeNull();
+      expect(row.admissionStatus).toBe('SUBMITTED');
+
+      // The submitted application is still closed the normal way.
+      const withdrawn = await transition(applicant.id, 'withdraw').expect(201);
+      expect(withdrawn.body.data.admissionStatus).toBe('WITHDRAWN');
+    });
+
+    it('refuses staff, and another tenant cannot see the draft at all', async () => {
+      const applicant = await draft();
+
+      await http()
+        .delete(`/admissions/applicants/${applicant.id}`)
+        .set(as(staffToken))
+        .set(ctx)
+        .expect(403);
+      await http()
+        .delete(`/admissions/applicants/${applicant.id}`)
+        .set(as(adminToken))
+        .set(otherCtx)
+        .expect(404);
+
+      const row = await prisma.applicant.findUniqueOrThrow({
+        where: { id: applicant.id },
+      });
+      expect(row.deletedAt).toBeNull();
     });
   });
 

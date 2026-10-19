@@ -390,15 +390,18 @@ SEC-01 – SEC-09.
 
 ### BP-17 — Cancelling or withdrawing a DRAFT fails at the database
 - **Module:** Admissions / workflow
-- **Status:** `OPEN` — found 2026-10-17 while testing configurable workflows; not changed.
-- **Evidence:** `cancel` and `withdraw` include `DRAFT` in their from-states
-  (`workflow.transitions.ts`), but a draft has no `personId` (Person is
-  resolved at `submit`) and `applicant_person_from_submitted_check` requires
-  one for every status except `DRAFT`. The update is refused with a raw
-  `23514`, surfaced as a 500.
-- **Required action:** business decision — permit `CANCELLED`/`WITHDRAWN`
-  without a person in the CHECK (they are terminal and never reach Student),
-  or remove `DRAFT` from both rules and let a draft be deleted instead.
+- **Status:** `RESOLVED` — 2026-10-19.
+- **Evidence:** `cancel` and `withdraw` included `DRAFT` in their from-states,
+  but a draft has no `personId` (Person is resolved at `submit`) and
+  `applicant_person_from_submitted_check` requires one for every status except
+  `DRAFT`. The update was refused with a raw `23514`, surfaced as a 500. The
+  driver's error text carries the whole failing row, so a draft holding an
+  Aadhaar would have put it in the server log.
+- **Resolution:** product decision — a draft is deleted, not withdrawn or
+  cancelled. `DRAFT` removed from both rules; the soft delete is now
+  `DRAFT`-only and atomic against a concurrent submission; the actions read
+  reports `deleteDraft`. CHECK constraints unchanged, no migration. See
+  [`modules/admissions.md`](./modules/admissions.md) §12.8.
 
 ---
 
