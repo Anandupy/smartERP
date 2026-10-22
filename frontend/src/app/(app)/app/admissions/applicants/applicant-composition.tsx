@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import {
   AcademicUnitPicker,
@@ -40,7 +40,11 @@ import {
 import { PersonPanel } from "@/features/person";
 import { ProgramPicker, useProgramBranch, usePrograms } from "@/features/program";
 import { EmptyState } from "@/shared/components/feedback";
-import type { ApplicantDto } from "@/features/admissions";
+import type {
+  AdmissionOcrMasterLabels,
+  ApplicantDto,
+  ResolveOcrMasters,
+} from "@/features/admissions";
 
 /**
  * Where Admissions meets Admission Masters, Program, Academic Unit,
@@ -329,13 +333,82 @@ function DocumentsSummary({
   );
 }
 
+/** Case/punctuation-insensitive key; class names lose "Std"/"Class" and ordinals ("1st" → "1"). */
+function matchKey(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/\b(std|standard|class|grade)\b\.?/g, " ")
+    .replace(/(\d+)(st|nd|rd|th)\b/g, "$1")
+    .replace(/[^a-z0-9+-]/g, "");
+}
+
+type Candidate = { id: string; name: string; code?: string | null; isActive?: boolean | null };
+
+/** The id of the active record whose name or code matches `label`, if exactly one does. */
+function findByLabel(records: readonly Candidate[], label: string): string | null {
+  const key = matchKey(label);
+  if (!key) return null;
+  const matches = records.filter(
+    (record) =>
+      record.isActive !== false &&
+      (matchKey(record.name) === key || (record.code ? matchKey(record.code) === key : false)),
+  );
+  return matches.length === 1 ? matches[0].id : null;
+}
+
+/**
+ * Resolves labels read off a scanned paper form ("Female", "OBC", "Std 1") to
+ * this branch's admission-master and program ids. A label that matches no
+ * record — or more than one — is reported back so the clerk picks it by hand.
+ */
+function useOcrMasterResolver(): ResolveOcrMasters {
+  const genders = useAdmissionMasterList("genders").masters;
+  const religions = useAdmissionMasterList("religions").masters;
+  const castes = useAdmissionMasterList("castes").masters;
+  const categories = useAdmissionMasterList("categories").masters;
+  const languages = useAdmissionMasterList("languages").masters;
+  const bloodGroups = useAdmissionMasterList("blood-groups").masters;
+  const disabilities = useAdmissionMasterList("disabilities").masters;
+  const branch = useProgramBranch();
+  const { programs } = usePrograms(branch?.id ?? null);
+
+  return useCallback(
+    (labels: AdmissionOcrMasterLabels) => {
+      const lookups: [keyof AdmissionOcrMasterLabels, string, string, readonly Candidate[]][] = [
+        ["gender", MASTER_FIELD_NAMES.genders, "Gender", genders],
+        ["religion", MASTER_FIELD_NAMES.religions, "Religion", religions],
+        ["caste", MASTER_FIELD_NAMES.castes, "Caste", castes],
+        ["category", MASTER_FIELD_NAMES.categories, "Category", categories],
+        ["motherTongue", MASTER_FIELD_NAMES.languages, "Mother tongue", languages],
+        ["bloodGroup", MASTER_FIELD_NAMES["blood-groups"], "Blood group", bloodGroups],
+        ["disabilityType", MASTER_FIELD_NAMES.disabilities, "Disability type", disabilities],
+        ["classAppliedFor", "programId", "Programme", programs],
+      ];
+
+      const values: Record<string, string> = {};
+      const unmatched: string[] = [];
+      for (const [labelKey, field, title, records] of lookups) {
+        const label = labels[labelKey].trim();
+        if (!label) continue;
+        const id = findByLabel(records, label);
+        if (id) values[field] = id;
+        else unmatched.push(`${title} "${label}"`);
+      }
+      return { values, unmatched };
+    },
+    [genders, religions, castes, categories, languages, bloodGroups, disabilities, programs],
+  );
+}
+
 /** Create, with all ten pickers slotted into the form. */
 export function CreateApplicantRoute() {
   const masters = useApplicantMasterPickers();
+  const resolveOcrMasters = useOcrMasterResolver();
 
   return (
     <CreateApplicantScreen
       {...masters}
+      resolveOcrMasters={resolveOcrMasters}
       programPicker={
         <ProgramPicker description="The programme this applicant is applying for." />
       }

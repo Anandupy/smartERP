@@ -47,6 +47,12 @@ export interface ApplicantFormProps {
   disabilityTypePicker: React.ReactNode;
   admissionSourcePicker: React.ReactNode;
   quotaPicker: React.ReactNode;
+
+  /**
+   * Rendered inside the form, above the first section — e.g. the admission
+   * form scanner, which fills fields through `useFormContext()`.
+   */
+  header?: React.ReactNode;
 }
 
 /**
@@ -79,6 +85,7 @@ export function ApplicantForm({
   disabilityTypePicker,
   admissionSourcePicker,
   quotaPicker,
+  header,
 }: ApplicantFormProps) {
   const [submitError, setSubmitError] = useState<unknown>(null);
 
@@ -119,6 +126,8 @@ export function ApplicantForm({
             <AlertDescription>{getErrorMessage(submitError)}</AlertDescription>
           </Alert>
         ) : null}
+
+        {header}
 
         <Card>
           <CardHeader className="border-b">

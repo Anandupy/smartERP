@@ -9,9 +9,16 @@ import { useCreateApplicant } from "../hooks/use-applicants";
 import { useAdmissionPolicy } from "../hooks/use-workflow-policy";
 import { toApplicantRequest } from "../mappers/applicant.mapper";
 import { applicantFormDefaults } from "../schemas/applicant.schema";
+import {
+  AdmissionOcrUploader,
+  type ResolveOcrMasters,
+} from "./admission-ocr-uploader";
 import { ApplicantForm, type ApplicantFormProps } from "./applicant-form";
 
-export type CreateApplicantScreenProps = Pick<
+export type CreateApplicantScreenProps = {
+  /** Maps scanned labels to master/program ids — see `AdmissionOcrUploader`. */
+  resolveOcrMasters?: ResolveOcrMasters;
+} & Pick<
   ApplicantFormProps,
   | "programPicker"
   | "genderPicker"
@@ -40,8 +47,14 @@ export type CreateApplicantScreenProps = Pick<
  * read, this behaves exactly as the standard process does — a draft is saved
  * and the hub opens — and the backend still decides whether direct admission
  * is allowed.
+ *
+ * A filled paper form can be scanned first (`AdmissionOcrUploader`), which
+ * pre-fills the fields; the clerk still reviews and submits as usual.
  */
-export function CreateApplicantScreen(props: CreateApplicantScreenProps) {
+export function CreateApplicantScreen({
+  resolveOcrMasters,
+  ...props
+}: CreateApplicantScreenProps) {
   const router = useRouter();
   const create = useCreateApplicant();
   const { data: policy } = useAdmissionPolicy();
@@ -60,6 +73,7 @@ export function CreateApplicantScreen(props: CreateApplicantScreenProps) {
 
       <ApplicantForm
         {...props}
+        header={<AdmissionOcrUploader resolveMasters={resolveOcrMasters} />}
         defaultValues={applicantFormDefaults()}
         submitLabel={isSimple ? "Continue to admission" : "Save draft"}
         onCancel={() => router.push(ROUTES.app.admissions.applicants.directory)}
