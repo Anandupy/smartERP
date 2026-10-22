@@ -345,15 +345,39 @@ function matchKey(value: string): string {
 type Candidate = { id: string; name: string; code?: string | null; isActive?: boolean | null };
 
 /** The id of the active record whose name or code matches `label`, if exactly one does. */
+function editDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return row[b.length];
+}
+
+/**
+ * The id of the active record whose name or code matches `label`. An exact
+ * match wins; otherwise a scanned label may differ by an OCR slip ("Enqlish",
+ * "Junior K6") — 1 character, or 2 for long names — provided exactly one
+ * record is that close.
+ */
 function findByLabel(records: readonly Candidate[], label: string): string | null {
   const key = matchKey(label);
   if (!key) return null;
-  const matches = records.filter(
-    (record) =>
-      record.isActive !== false &&
-      (matchKey(record.name) === key || (record.code ? matchKey(record.code) === key : false)),
-  );
-  return matches.length === 1 ? matches[0].id : null;
+  const active = records.filter((record) => record.isActive !== false);
+  const keys = (record: Candidate) => [matchKey(record.name), ...(record.code ? [matchKey(record.code)] : [])];
+
+  const exact = active.filter((record) => keys(record).includes(key));
+  if (exact.length > 0) return exact.length === 1 ? exact[0].id : null;
+
+  const allowed = key.length >= 8 ? 2 : key.length >= 4 ? 1 : 0;
+  if (allowed === 0) return null;
+  const close = active.filter((record) => keys(record).some((k) => editDistance(k, key) <= allowed));
+  return close.length === 1 ? close[0].id : null;
 }
 
 /**

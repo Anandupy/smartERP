@@ -14,7 +14,13 @@ import {
 } from "@/assets/icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getTokenStorage } from "@/core/auth";
 
 import type {
@@ -42,6 +48,7 @@ export interface AdmissionOcrUploaderProps {
 
 const ACCEPTED = "image/jpeg,image/png,image/webp,application/pdf";
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_FILES = 3;
 
 /** Human labels for the fields the model may flag as uncertain. */
 const FIELD_LABELS: Record<string, string> = {
@@ -58,7 +65,9 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 /** The OCR result flattened onto the applicant form's own text/boolean fields. */
-function toFormValues(result: AdmissionOcrResult): Partial<ApplicantFormValues> {
+function toFormValues(
+  result: AdmissionOcrResult,
+): Partial<ApplicantFormValues> {
   return {
     ...result.student,
     ...result.contact,
@@ -75,7 +84,10 @@ function toFormValues(result: AdmissionOcrResult): Partial<ApplicantFormValues> 
  * clerk already typed survives, and only fields the scan actually read are
  * touched. Nothing is saved until the clerk reviews and submits.
  */
-export function AdmissionOcrUploader({ resolveMasters, disabled = false }: AdmissionOcrUploaderProps) {
+export function AdmissionOcrUploader({
+  resolveMasters,
+  disabled = false,
+}: AdmissionOcrUploaderProps) {
   const form = useFormContext<ApplicantFormValues>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -83,13 +95,18 @@ export function AdmissionOcrUploader({ resolveMasters, disabled = false }: Admis
   const [scanned, setScanned] = useState<{
     fileName: string;
     result: AdmissionOcrResult;
+    engine: AdmissionOcrResponse["engine"];
+    notices: string[];
     filled: number;
     unmatched: string[];
   } | null>(null);
 
   const fillForm = useCallback(
     (result: AdmissionOcrResult) => {
-      const resolved = resolveMasters?.(result.masterLabels) ?? { values: {}, unmatched: [] };
+      const resolved = resolveMasters?.(result.masterLabels) ?? {
+        values: {},
+        unmatched: [],
+      };
       const patch = { ...toFormValues(result), ...resolved.values };
       let filled = 0;
 
@@ -109,23 +126,29 @@ export function AdmissionOcrUploader({ resolveMasters, disabled = false }: Admis
   );
 
   const scan = useCallback(
-    async (file: File) => {
-      if (isScanning || disabled) return;
+    async (files: File[]) => {
+      if (isScanning || disabled || files.length === 0) return;
       setError(null);
 
-      if (!ACCEPTED.split(",").includes(file.type)) {
+      if (files.length > MAX_FILES) {
+        setError(
+          `Choose at most ${MAX_FILES} files: one PDF, or one photo per page.`,
+        );
+        return;
+      }
+      if (files.some((file) => !ACCEPTED.split(",").includes(file.type))) {
         setError("Upload a JPG, PNG, WebP or PDF of the admission form.");
         return;
       }
-      if (file.size > MAX_FILE_BYTES) {
-        setError("The file is larger than 10 MB. Send a smaller photo or scan.");
+      if (files.some((file) => file.size > MAX_FILE_BYTES)) {
+        setError("A file is larger than 10 MB. Send a smaller photo or scan.");
         return;
       }
 
       setIsScanning(true);
       try {
         const body = new FormData();
-        body.append("file", file);
+        for (const file of files) body.append("file", file);
         const token = getTokenStorage().getAccessToken();
         const res = await fetch("/api/admissions/ocr", {
           method: "POST",
@@ -133,18 +156,37 @@ export function AdmissionOcrUploader({ resolveMasters, disabled = false }: Admis
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
         const payload = (await res.json().catch(() => null)) as
-          | (AdmissionOcrResponse & { error?: string })
-          | null;
+          (AdmissionOcrResponse & { error?: string }) | null;
 
         if (!res.ok || !payload?.result) {
-          throw new Error(payload?.error ?? `The form could not be scanned (HTTP ${res.status}).`);
+          throw new Error(
+            payload?.error ??
+              `The form could not be scanned (HTTP ${res.status}).`,
+          );
         }
 
         const { filled, unmatched } = fillForm(payload.result);
-        setScanned({ fileName: file.name || "Pasted image", result: payload.result, filled, unmatched });
-        toast.success(`Filled ${filled} fields from the scanned form. Check them before saving.`);
+        const fileName =
+          files.length === 1
+            ? files[0].name || "Pasted image"
+            : `${files.length} pages`;
+        setScanned({
+          fileName,
+          result: payload.result,
+          engine: payload.engine,
+          notices: payload.notices ?? [],
+          filled,
+          unmatched,
+        });
+        toast.success(
+          `Filled ${filled} fields from the scanned form. Check them before saving.`,
+        );
       } catch (scanError) {
-        setError(scanError instanceof Error ? scanError.message : "The form could not be scanned.");
+        setError(
+          scanError instanceof Error
+            ? scanError.message
+            : "The form could not be scanned.",
+        );
       } finally {
         setIsScanning(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -162,18 +204,21 @@ export function AdmissionOcrUploader({ resolveMasters, disabled = false }: Admis
       const file = item?.getAsFile();
       if (!file) return;
       event.preventDefault();
-      void scan(file);
+      void scan([file]);
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
   }, [scan]);
 
-  const uncertain = scanned?.result.uncertainFields.map((f) => FIELD_LABELS[f] ?? f) ?? [];
+  const uncertain =
+    scanned?.result.uncertainFields.map((f) => FIELD_LABELS[f] ?? f) ?? [];
   const parents = scanned?.result.parents;
   const parentLines = parents
     ? [
-        parents.fatherName && `Father: ${parents.fatherName}${parents.fatherMobile ? ` (${parents.fatherMobile})` : ""}`,
-        parents.motherName && `Mother: ${parents.motherName}${parents.motherMobile ? ` (${parents.motherMobile})` : ""}`,
+        parents.fatherName &&
+          `Father: ${parents.fatherName}${parents.fatherMobile ? ` (${parents.fatherMobile})` : ""}`,
+        parents.motherName &&
+          `Mother: ${parents.motherName}${parents.motherMobile ? ` (${parents.motherMobile})` : ""}`,
       ].filter(Boolean)
     : [];
 
@@ -185,8 +230,9 @@ export function AdmissionOcrUploader({ resolveMasters, disabled = false }: Admis
           Scan a filled admission form
         </CardTitle>
         <CardDescription>
-          Upload or paste (Ctrl+V) a photo or scan of the parent&apos;s filled form. The fields
-          below fill in automatically — check them before saving.
+          Upload or paste (Ctrl+V) a photo or scan of the parent&apos;s filled
+          form. The fields below fill in automatically — check them before
+          saving.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
@@ -197,21 +243,33 @@ export function AdmissionOcrUploader({ resolveMasters, disabled = false }: Admis
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
-            const file = event.dataTransfer.files?.[0];
-            if (file) void scan(file);
+            void scan(Array.from(event.dataTransfer.files ?? []));
           }}
           className="border-input hover:border-primary hover:bg-muted/40 flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isScanning ? (
             <>
-              <LoaderCircle aria-hidden="true" className="text-primary size-6 animate-spin" />
-              <span className="text-sm font-medium">Reading the form… this takes 10–30 seconds</span>
+              <LoaderCircle
+                aria-hidden="true"
+                className="text-primary size-6 animate-spin"
+              />
+              <span className="text-sm font-medium">
+                Reading the form… this can take up to a minute
+              </span>
             </>
           ) : (
             <>
-              <Upload aria-hidden="true" className="text-muted-foreground size-6" />
-              <span className="text-sm font-medium">Click to upload, or drop the form here</span>
-              <span className="text-muted-foreground text-xs">JPG, PNG, WebP or PDF · up to 10 MB</span>
+              <Upload
+                aria-hidden="true"
+                className="text-muted-foreground size-6"
+              />
+              <span className="text-sm font-medium">
+                Click to upload, or drop the form here
+              </span>
+              <span className="text-muted-foreground text-xs">
+                One PDF, or a photo of each page (select both) · JPG, PNG, WebP
+                · up to 10 MB each
+              </span>
             </>
           )}
         </button>
@@ -219,11 +277,9 @@ export function AdmissionOcrUploader({ resolveMasters, disabled = false }: Admis
           ref={fileInputRef}
           type="file"
           accept={ACCEPTED}
+          multiple
           className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) void scan(file);
-          }}
+          onChange={(event) => void scan(Array.from(event.target.files ?? []))}
         />
 
         {error ? (
@@ -241,20 +297,31 @@ export function AdmissionOcrUploader({ resolveMasters, disabled = false }: Admis
               Filled {scanned.filled} fields from {scanned.fileName}
             </AlertTitle>
             <AlertDescription className="space-y-1">
+              <p className="text-muted-foreground text-xs">
+                {scanned.engine === "claude"
+                  ? "Read with Claude vision."
+                  : "Read with the offline scanner — check every field, especially handwriting."}
+              </p>
+              {scanned.notices.map((notice) => (
+                <p key={notice}>{notice}</p>
+              ))}
               {uncertain.length > 0 ? (
                 <p>
-                  <strong>Check carefully:</strong> {uncertain.join(", ")} — hard to read on the form.
+                  <strong>Check carefully:</strong> {uncertain.join(", ")} —
+                  hard to read on the form.
                 </p>
               ) : null}
               {scanned.unmatched.length > 0 ? (
                 <p>
-                  <strong>Select manually:</strong> {scanned.unmatched.join(", ")} — no matching
-                  master record in this branch.
+                  <strong>Select manually:</strong>{" "}
+                  {scanned.unmatched.join(", ")} — no matching master record in
+                  this branch.
                 </p>
               ) : null}
               {parentLines.length > 0 ? (
                 <p>
-                  <strong>Add as guardians after saving:</strong> {parentLines.join(" · ")}
+                  <strong>Add as guardians after saving:</strong>{" "}
+                  {parentLines.join(" · ")}
                 </p>
               ) : null}
               <Button

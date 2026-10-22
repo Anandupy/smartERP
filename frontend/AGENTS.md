@@ -128,7 +128,11 @@ Full detail: [`docs/coding-standards.md`](./docs/coding-standards.md). Essential
   another feature's internals**. Import a feature only through its `index.ts`.
 - Cross-feature needs are **promoted up** into `shared`/`core`, never imported sideways.
 - `components/ui` and `shared` contain **no business logic**.
-- Only `config/*` reads `process.env` (via the validated `env` module).
+- Only `config/*` reads `process.env` (via the validated `env` module; server-only
+  secrets via `config/server-env`, which must never be imported by client code).
+- A feature's Node-only code (native modules, secrets) is exposed through a
+  second entry point, `features/<name>/server.ts` (guarded by `server-only`),
+  imported only by route handlers — never re-exported from `index.ts`.
 
 ## 8. Module Development Workflow
 

@@ -79,4 +79,8 @@ export type AdmissionOcrMasterLabels = AdmissionOcrResult["masterLabels"];
 
 export interface AdmissionOcrResponse {
   result: AdmissionOcrResult;
+  /** Which reader produced the result: the free offline one or Claude vision. */
+  engine: "offline" | "claude";
+  /** Messages for the clerk, e.g. that Claude was unavailable. */
+  notices: string[];
 }

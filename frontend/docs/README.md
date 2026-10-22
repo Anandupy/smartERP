@@ -34,6 +34,7 @@ without restructuring.
 25. [Workspace Admin Module](./workspace-admin-module.md)
 26. [Admission Masters Module](./admission-masters-module.md)
 27. [Applicant Admission Lifecycle](./admission-lifecycle-module.md)
+    · [Admission Form Scanning (OCR)](./admission-form-scanning.md)
 28. [Documents Management Module](./documents-management-module.md)
 29. [Numbering Module](./numbering-module.md)
 30. [Backend Contract Gaps](./backend-gaps.md)

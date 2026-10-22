@@ -75,7 +75,10 @@ export {
   type AdmissionOcrUploaderProps,
   type ResolveOcrMasters,
 } from "./components/admission-ocr-uploader";
-export type { AdmissionOcrMasterLabels } from "./schemas/admission-ocr.schema";
+export type {
+  AdmissionOcrMasterLabels,
+  AdmissionOcrResponse,
+} from "./schemas/admission-ocr.schema";
 export { ApplicantForm, type ApplicantFormProps } from "./components/applicant-form";
 export {
   ApplicantsTable,
