@@ -9,6 +9,7 @@ import { SmtpEmailProvider } from './smtp/smtp-email.provider';
 import { StubSMSProvider } from './stub/stub-sms.provider';
 import { AndroidGatewaySmsProvider } from './android-gateway/android-gateway-sms.provider';
 import { Fast2SmsProvider } from './fast2sms/fast2sms.provider';
+import { TextBeeSmsProvider } from './textbee/textbee-sms.provider';
 import { StubWhatsAppProvider } from './stub/stub-whatsapp.provider';
 import { StubPushProvider } from './stub/stub-push.provider';
 
@@ -22,6 +23,7 @@ export class ProviderFactory {
     private readonly stubSmsProvider: StubSMSProvider,
     private readonly androidGatewaySmsProvider: AndroidGatewaySmsProvider,
     private readonly fast2SmsProvider: Fast2SmsProvider,
+    private readonly textBeeSmsProvider: TextBeeSmsProvider,
     private readonly stubWhatsappProvider: StubWhatsAppProvider,
     private readonly stubPushProvider: StubPushProvider,
   ) {}
@@ -35,6 +37,17 @@ export class ProviderFactory {
   }
 
   getSmsProvider(_providerType?: ProviderType): SMSProvider {
+    const textBeeKey =
+      this.configService.get<string>('TEXTBEE_API_KEY') ||
+      process.env.TEXTBEE_API_KEY;
+
+    if (textBeeKey && textBeeKey.startsWith('txb_')) {
+      this.logger.debug(
+        '[ProviderFactory] Using TextBee Free Android SMS Provider',
+      );
+      return this.textBeeSmsProvider;
+    }
+
     const fast2smsKey =
       this.configService.get<string>('FAST2SMS_API_KEY') ||
       process.env.FAST2SMS_API_KEY;
