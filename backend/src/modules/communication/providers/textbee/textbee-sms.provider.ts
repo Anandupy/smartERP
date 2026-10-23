@@ -38,8 +38,17 @@ export class TextBeeSmsProvider implements SMSProvider {
     const rawDigits = options.to.replace(/\D/g, '').slice(-10);
     const formattedRecipient = `+91${rawDigits}`;
 
+    // Ensure professional CampusFlow ERP Header
+    let formattedMessage = options.message.trim();
+    if (
+      !formattedMessage.startsWith('[CampusFlow') &&
+      !formattedMessage.startsWith('CampusFlow')
+    ) {
+      formattedMessage = `[CampusFlow]\n${formattedMessage}`;
+    }
+
     this.logger.log(
-      `[TextBee SMS] Preparing physical dispatch to ${formattedRecipient}: "${options.message}" (device: ${deviceId || 'default'})`,
+      `[TextBee SMS] Preparing physical dispatch to ${formattedRecipient}: "${formattedMessage}" (device: ${deviceId || 'default'})`,
     );
 
     if (apiKey && apiKey.trim() && apiKey.startsWith('txb_')) {
@@ -49,7 +58,7 @@ export class TextBeeSmsProvider implements SMSProvider {
 
         const payload: Record<string, any> = {
           recipients: [formattedRecipient],
-          message: options.message,
+          message: formattedMessage,
         };
         if (deviceId && deviceId.trim()) {
           payload.deviceId = deviceId.trim();

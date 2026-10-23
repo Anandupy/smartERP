@@ -30,7 +30,7 @@ async function testTextBee() {
     const devData = await devRes.json();
     console.log(`\nDevice Info:`, JSON.stringify(devData, null, 2));
 
-    const message = `Congratulations! Your admission is done. - Shree Siddhi Vinayagar English High School`;
+    const message = `[CampusFlow]\nCongratulations! Your admission is done. - Shree Siddhi Vinayagar English High School`;
 
     console.log(`\nDispatching live SMS via TextBee to ${formattedNumber}...`);
     const startTime = Date.now();
