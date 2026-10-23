@@ -23,6 +23,7 @@ import { CommunicationConfigService } from './config/communication-config.servic
 // Providers & Strategies
 import { SmtpEmailProvider } from './providers/smtp/smtp-email.provider';
 import { StubSMSProvider } from './providers/stub/stub-sms.provider';
+import { AndroidGatewaySmsProvider } from './providers/android-gateway/android-gateway-sms.provider';
 import { StubWhatsAppProvider } from './providers/stub/stub-whatsapp.provider';
 import { StubPushProvider } from './providers/stub/stub-push.provider';
 import { ProviderFactory } from './providers/provider.factory';
@@ -31,11 +32,14 @@ import { ExponentialBackoffRetryStrategy } from './retry/exponential-backoff.str
 // Events & Subscribers
 import { CommunicationSubscriber } from './events/communication.subscriber';
 
+import { SmsController } from './sms/sms.controller';
+
 @Module({
   imports: [ConfigModule, PrismaModule, EventsModule],
   controllers: [
     TemplateController,
     OtpController,
+    SmsController,
     InAppNotificationController,
     NotificationPreferenceController,
     DeliveryLogController,
@@ -51,6 +55,7 @@ import { CommunicationSubscriber } from './events/communication.subscriber';
     CommunicationConfigService,
     SmtpEmailProvider,
     StubSMSProvider,
+    AndroidGatewaySmsProvider,
     StubWhatsAppProvider,
     StubPushProvider,
     ProviderFactory,

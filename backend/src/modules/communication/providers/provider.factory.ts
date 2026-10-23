@@ -6,6 +6,7 @@ import { WhatsAppProvider } from '../interfaces/whatsapp-provider.interface';
 import { PushProvider } from '../interfaces/push-provider.interface';
 import { SmtpEmailProvider } from './smtp/smtp-email.provider';
 import { StubSMSProvider } from './stub/stub-sms.provider';
+import { AndroidGatewaySmsProvider } from './android-gateway/android-gateway-sms.provider';
 import { StubWhatsAppProvider } from './stub/stub-whatsapp.provider';
 import { StubPushProvider } from './stub/stub-push.provider';
 
@@ -16,6 +17,7 @@ export class ProviderFactory {
   constructor(
     private readonly smtpEmailProvider: SmtpEmailProvider,
     private readonly stubSmsProvider: StubSMSProvider,
+    private readonly androidGatewaySmsProvider: AndroidGatewaySmsProvider,
     private readonly stubWhatsappProvider: StubWhatsAppProvider,
     private readonly stubPushProvider: StubPushProvider,
   ) {}
@@ -28,8 +30,13 @@ export class ProviderFactory {
     }
   }
 
-  getSmsProvider(_providerType?: ProviderType): SMSProvider {
-    return this.stubSmsProvider;
+  getSmsProvider(providerType?: ProviderType): SMSProvider {
+    switch (providerType) {
+      case ProviderType.CUSTOM:
+        return this.androidGatewaySmsProvider;
+      default:
+        return this.androidGatewaySmsProvider;
+    }
   }
 
   getWhatsappProvider(_providerType?: ProviderType): WhatsAppProvider {

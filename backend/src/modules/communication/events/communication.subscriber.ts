@@ -271,53 +271,81 @@ export class CommunicationSubscriber implements OnModuleInit {
       const { identifier, rawOtp, purpose, email } = event.payload;
       const targetEmail =
         email || (identifier.includes('@') ? identifier : null);
-
-      if (!targetEmail) {
-        this.logger.warn(
-          `No target email address resolved for OTP delivery (Identifier: ${identifier}, Purpose: ${purpose})`,
-        );
-        return;
-      }
+      const isMobile = /^[+]?\d{10,13}$/.test(
+        (identifier || '').replace(/[\s-]/g, ''),
+      );
 
       const config = await this.configService.getConfig();
-      if (!config.emailEnabled) return;
 
-      const variables = {
-        otp: rawOtp || '',
-        purpose: purpose || 'Verification',
-        organizationName: 'CampusFlow ERP',
-      };
+      // 1. Dispatch via SMS if identifier is mobile number
+      if (isMobile && config.smsEnabled) {
+        const smsProvider = this.providerFactory.getSmsProvider(
+          config.defaultSmsProvider,
+        );
+        const smsMessage = `Your CampusFlow ERP verification OTP is: ${rawOtp}. Valid for 10 minutes. Please do not share this code with anyone.`;
 
-      const template = await this.templateService.resolveTemplate(
-        'OTP_VERIFICATION',
-        CommunicationChannel.EMAIL,
-      );
+        const smsResult = await smsProvider.sendSms({
+          to: identifier,
+          message: smsMessage,
+        });
 
-      const rendered = this.templateService.renderTemplate(template, variables);
-      const emailProvider = this.providerFactory.getEmailProvider(
-        config.defaultEmailProvider,
-      );
+        await this.deliveryLogService.logDelivery({
+          channel: CommunicationChannel.SMS,
+          provider: smsResult.provider,
+          recipient: identifier,
+          subject: `OTP Verification SMS (${purpose || 'Auth'})`,
+          status: smsResult.success
+            ? DeliveryStatus.SENT
+            : DeliveryStatus.FAILED,
+          latencyMs: smsResult.latencyMs,
+          errorCode: smsResult.errorCode,
+          errorMessage: smsResult.errorMessage,
+          metadata: { eventId: event.eventId, purpose },
+        });
+      }
 
-      const result = await emailProvider.sendEmail({
-        to: targetEmail,
-        subject: rendered.subject || 'One-Time Password (OTP) Verification',
-        bodyHtml: rendered.bodyHtml,
-        bodyText: rendered.bodyText,
-      });
+      // 2. Dispatch via Email if email address resolved
+      if (targetEmail && config.emailEnabled) {
+        const variables = {
+          otp: rawOtp || '',
+          purpose: purpose || 'Verification',
+          organizationName: 'CampusFlow ERP',
+        };
 
-      await this.deliveryLogService.logDelivery({
-        channel: CommunicationChannel.EMAIL,
-        provider: result.provider,
-        recipient: targetEmail,
-        subject: rendered.subject,
-        templateId: template.id,
-        templateVersion: template.version,
-        status: result.success ? DeliveryStatus.SENT : DeliveryStatus.FAILED,
-        latencyMs: result.latencyMs,
-        errorCode: result.errorCode,
-        errorMessage: result.errorMessage,
-        metadata: { eventId: event.eventId },
-      });
+        const template = await this.templateService.resolveTemplate(
+          'OTP_VERIFICATION',
+          CommunicationChannel.EMAIL,
+        );
+
+        const rendered = this.templateService.renderTemplate(
+          template,
+          variables,
+        );
+        const emailProvider = this.providerFactory.getEmailProvider(
+          config.defaultEmailProvider,
+        );
+
+        const result = await emailProvider.sendEmail({
+          to: targetEmail,
+          subject: rendered.subject || 'One-Time Password (OTP) Verification',
+          bodyHtml: rendered.bodyHtml,
+          bodyText: rendered.bodyText,
+        });
+
+        await this.deliveryLogService.logDelivery({
+          channel: CommunicationChannel.EMAIL,
+          provider: result.provider,
+          recipient: targetEmail,
+          subject: rendered.subject,
+          templateId: template.id,
+          templateVersion: template.version,
+          status: result.success ? DeliveryStatus.SENT : DeliveryStatus.FAILED,
+          latencyMs: result.latencyMs,
+          errorCode: result.errorCode,
+          errorMessage: result.errorMessage,
+          metadata: { eventId: event.eventId },
+        });
+      }
     } catch (error: any) {
       this.logger.error(
         `Error handling OTP event (${event.eventName}): ${error.message}`,
@@ -332,14 +360,92 @@ export class CommunicationSubscriber implements OnModuleInit {
   }
 
   private async handleApplicantCreated(event: any) {
-    this.logger.debug(
-      `[Communication Subscriber] Processing applicant.created event for ${event?.payload?.applicantId}`,
-    );
+    try {
+      const payload = event?.payload || {};
+      const mobile =
+        payload.primaryMobile || payload.mobile || payload.contact?.primaryMobile;
+      const studentName =
+        payload.fullName ||
+        payload.studentName ||
+        `${payload.firstName || ''} ${payload.lastName || ''}`.trim() ||
+        'Student';
+      const code = payload.applicantCode || payload.code || '';
+
+      this.logger.log(
+        `[Communication Subscriber] Processing applicant.created event for student: ${studentName}`,
+      );
+
+      if (mobile) {
+        const config = await this.configService.getConfig();
+        if (config.smsEnabled) {
+          const smsProvider = this.providerFactory.getSmsProvider(
+            config.defaultSmsProvider,
+          );
+          const appText = code ? ` Reg/App No: ${code}.` : '';
+          const smsBody = `Dear Parent, admission application for ${studentName} has been received successfully at Shree Siddhi Vinayagar English High School.${appText} We will update you shortly.`;
+
+          const result = await smsProvider.sendSms({
+            to: mobile,
+            message: smsBody,
+          });
+
+          await this.deliveryLogService.logDelivery({
+            channel: CommunicationChannel.SMS,
+            provider: result.provider,
+            recipient: mobile,
+            subject: 'Admission Application Received SMS',
+            status: result.success
+              ? DeliveryStatus.SENT
+              : DeliveryStatus.FAILED,
+            latencyMs: result.latencyMs,
+            metadata: { event: 'applicant.created', studentName },
+          });
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(
+        `[Communication Subscriber] Error in handleApplicantCreated SMS: ${err.message}`,
+      );
+    }
   }
 
   private async handleAdmissionTransitioned(event: any) {
-    this.logger.debug(
-      `[Communication Subscriber] Processing admission.transitioned event for ${event?.payload?.applicantId}`,
-    );
+    try {
+      const payload = event?.payload || {};
+      const mobile = payload.primaryMobile || payload.mobile;
+      const studentName = payload.studentName || 'Student';
+      const toState = payload.toState || payload.status || 'Updated';
+
+      if (mobile) {
+        const config = await this.configService.getConfig();
+        if (config.smsEnabled) {
+          const smsProvider = this.providerFactory.getSmsProvider(
+            config.defaultSmsProvider,
+          );
+          const smsBody = `Dear Parent, admission status for ${studentName} at Shree Siddhi Vinayagar High School has been updated to: ${toState}. Login to portal for details.`;
+
+          const result = await smsProvider.sendSms({
+            to: mobile,
+            message: smsBody,
+          });
+
+          await this.deliveryLogService.logDelivery({
+            channel: CommunicationChannel.SMS,
+            provider: result.provider,
+            recipient: mobile,
+            subject: `Admission Status Updated (${toState})`,
+            status: result.success
+              ? DeliveryStatus.SENT
+              : DeliveryStatus.FAILED,
+            latencyMs: result.latencyMs,
+            metadata: { event: 'admission.transitioned', toState },
+          });
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(
+        `[Communication Subscriber] Error in handleAdmissionTransitioned SMS: ${err.message}`,
+      );
+    }
   }
 }
