@@ -30,19 +30,30 @@ export class TextBeeSmsProvider implements SMSProvider {
     const apiKey =
       this.configService.get<string>('TEXTBEE_API_KEY') ||
       process.env.TEXTBEE_API_KEY;
+    const deviceId =
+      this.configService.get<string>('TEXTBEE_DEVICE_ID') ||
+      process.env.TEXTBEE_DEVICE_ID;
 
     // Ensure E.164 formatted number (+91XXXXXXXXXX)
     const rawDigits = options.to.replace(/\D/g, '').slice(-10);
     const formattedRecipient = `+91${rawDigits}`;
 
     this.logger.log(
-      `[TextBee SMS] Preparing physical dispatch to ${formattedRecipient}: "${options.message}"`,
+      `[TextBee SMS] Preparing physical dispatch to ${formattedRecipient}: "${options.message}" (device: ${deviceId || 'default'})`,
     );
 
     if (apiKey && apiKey.trim() && apiKey.startsWith('txb_')) {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const payload: Record<string, any> = {
+          recipients: [formattedRecipient],
+          message: options.message,
+        };
+        if (deviceId && deviceId.trim()) {
+          payload.deviceId = deviceId.trim();
+        }
 
         const response = await fetch(
           'https://api.textbee.dev/api/v1/gateway/send-sms',
@@ -52,10 +63,7 @@ export class TextBeeSmsProvider implements SMSProvider {
               'x-api-key': apiKey.trim(),
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              recipients: [formattedRecipient],
-              message: options.message,
-            }),
+            body: JSON.stringify(payload),
             signal: controller.signal,
           },
         );

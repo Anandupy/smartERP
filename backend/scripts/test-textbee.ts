@@ -7,6 +7,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 async function testTextBee() {
   const apiKey =
     process.env.TEXTBEE_API_KEY || 'txb_PhJ2bMAtTRRgnqvgDUhHdrTtpqcnfMmh';
+  const deviceId = process.env.TEXTBEE_DEVICE_ID || '6adb7f5da4996b8ebf8eba74';
   const targetNumber = process.argv[2] || '+919082807803';
   const formattedNumber = targetNumber.startsWith('+')
     ? targetNumber
@@ -16,22 +17,22 @@ async function testTextBee() {
   console.log(`  TextBee Live SMS Testing Utility`);
   console.log(`========================================`);
   console.log(`Target Phone: ${formattedNumber}`);
-  console.log(`API Key: ${apiKey.substring(0, 8)}...${apiKey.slice(-4)}`);
+  console.log(`Device ID:    ${deviceId}`);
+  console.log(`API Key:      ${apiKey.substring(0, 8)}...${apiKey.slice(-4)}`);
 
-  // First, check devices
   try {
     const devRes = await fetch(
-      'https://api.textbee.dev/api/v1/gateway/devices',
+      `https://api.textbee.dev/api/v1/gateway/devices/${deviceId}`,
       {
         headers: { 'x-api-key': apiKey },
       },
     );
     const devData = await devRes.json();
-    console.log(`\nLinked Devices:`, JSON.stringify(devData, null, 2));
+    console.log(`\nDevice Info:`, JSON.stringify(devData, null, 2));
 
-    const message = `SSVHS Admission Update: Dear Parent, admission test notification for Shree Siddhi Vinayagar English High School. Status: CONFIRMED.`;
+    const message = `Congratulations! Your admission is done. - Shree Siddhi Vinayagar English High School`;
 
-    console.log(`\nDispatching live SMS via TextBee Cloud API...`);
+    console.log(`\nDispatching live SMS via TextBee to ${formattedNumber}...`);
     const startTime = Date.now();
     const smsRes = await fetch(
       'https://api.textbee.dev/api/v1/gateway/send-sms',
@@ -44,6 +45,7 @@ async function testTextBee() {
         body: JSON.stringify({
           recipients: [formattedNumber],
           message: message,
+          deviceId: deviceId,
         }),
       },
     );
