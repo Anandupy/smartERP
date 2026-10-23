@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { env } from "@/config/env";
 import { serverEnv } from "@/config/server-env";
 import type { AdmissionOcrResponse } from "@/features/admissions";
 import {
@@ -8,6 +7,8 @@ import {
   readAdmissionForm,
   type UploadedForm,
 } from "@/features/admissions/server";
+
+import { isAuthenticated } from "./session";
 
 /**
  * `POST /api/admissions/ocr` — reads one filled paper admission form (a PDF,
@@ -34,20 +35,6 @@ const ACCEPTED_TYPES = [
 
 function errorResponse(status: number, message: string) {
   return NextResponse.json({ error: message }, { status });
-}
-
-/** True when the backend accepts the caller's bearer token. */
-async function isAuthenticated(authorization: string | null): Promise<boolean> {
-  if (!authorization?.startsWith("Bearer ")) return false;
-  try {
-    const res = await fetch(
-      `${env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "")}/${env.NEXT_PUBLIC_API_VERSION}/auth/me`,
-      { headers: { Authorization: authorization }, cache: "no-store" },
-    );
-    return res.ok;
-  } catch {
-    return false;
-  }
 }
 
 export async function POST(req: NextRequest) {

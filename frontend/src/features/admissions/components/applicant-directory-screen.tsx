@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { FileText, Plus } from "@/assets/icons";
+import { FileText, Plus, Upload } from "@/assets/icons";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -79,12 +79,20 @@ export function ApplicantDirectoryScreen() {
         title="Applicants"
         description="Manage admission applications and track each applicant through the admission lifecycle."
         actions={
-          <Button asChild>
-            <Link href={ROUTES.app.admissions.applicants.create}>
-              <Plus />
-              New admission
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href={ROUTES.app.admissions.applicants.bulkImport}>
+                <Upload />
+                Bulk entry from PDF
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href={ROUTES.app.admissions.applicants.create}>
+                <Plus />
+                New admission
+              </Link>
+            </Button>
+          </div>
         }
       />
 

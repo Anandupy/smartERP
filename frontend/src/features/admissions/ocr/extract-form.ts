@@ -253,6 +253,8 @@ function valueIn(
   ctx: ExtractionContext,
   page: FormPage,
   region: Box,
+  /** Keep words that are also printed tick-box options ("SC", "RTE"). */
+  keepPrinted = false,
 ): ReadValue {
   const tokens = page.tokens.filter(
     (token) =>
@@ -260,7 +262,7 @@ function valueIn(
       !isLabelToken(ctx, page, token) &&
       !isTick(token.text) &&
       !isSectionHeading(token.text) &&
-      !PRINTED_WORDS.has(normaliseKey(token.text)),
+      (keepPrinted || !PRINTED_WORDS.has(normaliseKey(token.text))),
   );
   const text = rows(tokens)
     .map((row) => joinRow(row))
@@ -470,7 +472,13 @@ const titleCase = (text: string) =>
 /** Removes the division from "Class 2 - Div A" — programmes are per class. */
 const stripDivision = (text: string) =>
   text
-    .replace(/[\s,-]*\b(div|division|di[nuv])\b\.?\s*[a-z0-9]?\s*$/i, "")
+    // A neighbouring "Date: …" read into the same line.
+    .replace(/\s*\bdate\b.*$/i, "")
+    // "- Div A", "Div. B", "-DivB", OCR'd "OivA" / "DiN A".
+    .replace(/(^|[\s,-]+)[do][il1]?[vnu](ision)?\.?\s*[a-z]\s*$/i, "")
+    // "Class1" -> "Class 1".
+    .replace(/([a-z])(\d)/gi, "$1 $2")
+    .replace(/\s+/g, " ")
     .trim();
 
 /** Letters commonly read in place of a digit. */
@@ -599,12 +607,42 @@ export async function extractAdmissionForm(
   // Tick boxes. Category may also be written in by hand ("General").
   const gender = tickedOption(ctx, "gender", OPTIONS.gender, 2.4);
   if (gender?.uncertain) uncertain.add("gender");
-  const categoryWritten = below(ctx, "category", 2.4, 0.45);
+  // Category is either ticked (printed Gen / SC / ST / OBC / EWS-RTE boxes) or
+  // written in ("General", "RTE", "SC"). A written "SC" or "RTE" is also a
+  // printed option word, so it is only discarded when the full printed list
+  // is there, i.e. on the tick-box layout.
+  const categoryLabel = ctx.labels.get("category");
+  const categoryArea = categoryLabel
+    ? valueIn(
+        ctx,
+        categoryLabel.page,
+        belowRegion(ctx, categoryLabel, 2.4, 0.45),
+        true,
+      )
+    : null;
+  const printedOptions = new Set(
+    (categoryArea?.tokens ?? [])
+      .flatMap((t) => words(t))
+      .map((w) => normaliseKey(w.text))
+      .filter((w) =>
+        OPTIONS.category.some(
+          (o) => o.word === w || w === "EWS" || w === "RTE",
+        ),
+      ),
+  );
+  const categoryWritten =
+    printedOptions.size >= 3 ? below(ctx, "category", 2.4, 0.45) : categoryArea;
   const categoryTick = tickedOption(ctx, "category", OPTIONS.category, 4.6);
   const category = categoryTick?.value ?? text("category", categoryWritten);
   if (categoryTick?.uncertain && !categoryTick.value) uncertain.add("category");
   const disability = tickedOption(ctx, "disability", OPTIONS.yesNo, 2.4);
   const transport = tickedOption(ctx, "transport", OPTIONS.yesNo, 2.4);
+  const admissionSource = tickedOption(
+    ctx,
+    "admissionSource",
+    OPTIONS.admissionSource,
+    3.6,
+  );
 
   // Parents' table and the previous-school table (page 2).
   const fatherName = text(
@@ -618,6 +656,15 @@ export async function extractAdmissionForm(
   const fatherMobile =
     cell(ctx, "mobileRow", "fatherColumn", "motherColumn")?.text ?? "";
   const motherMobile = cell(ctx, "mobileRow", "motherColumn")?.text ?? "";
+  const fatherOccupation =
+    cell(ctx, "occupationRow", "fatherColumn", "motherColumn")?.text ?? "";
+  const motherOccupation =
+    cell(ctx, "occupationRow", "motherColumn")?.text ?? "";
+  const fatherAadhaar =
+    cell(ctx, "aadhaarRow", "fatherColumn", "motherColumn")?.text ?? "";
+  const motherAadhaar = cell(ctx, "aadhaarRow", "motherColumn")?.text ?? "";
+  // One income for the family, written across both parents' columns.
+  const annualIncome = cell(ctx, "incomeRow", "fatherColumn")?.text ?? "";
 
   const previousSchoolName = text(
     "previousSchoolName",
@@ -680,8 +727,19 @@ export async function extractAdmissionForm(
       bloodGroup,
       disabilityType: "",
       classAppliedFor,
+      admissionSource: admissionSource?.value ?? "",
     },
-    parents: { fatherName, fatherMobile, motherName, motherMobile },
+    parents: {
+      fatherName,
+      fatherMobile,
+      fatherOccupation,
+      fatherAadhaar,
+      motherName,
+      motherMobile,
+      motherOccupation,
+      motherAadhaar,
+      annualIncome,
+    },
     uncertainFields: [...uncertain],
   };
 

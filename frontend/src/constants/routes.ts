@@ -269,6 +269,8 @@ export const ROUTES = Object.freeze({
       applicants: {
         directory: "/app/admissions/applicants",
         create: "/app/admissions/applicants/new",
+        /** Bulk entry: one PDF of many filled forms, reviewed in a queue. */
+        bulkImport: "/app/admissions/applicants/import",
         detail: (id: string) => `/app/admissions/applicants/${id}`,
         edit: (id: string) => `/app/admissions/applicants/${id}/edit`,
         /** After a SIMPLE_ADMISSION registration: open the one-step admission. */

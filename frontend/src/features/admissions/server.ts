@@ -15,5 +15,6 @@ export {
   type ReadAdmissionFormResult,
 } from "./ocr/read-admission-form";
 export { isClaudeReadable } from "./ocr/claude-reader";
+export { readAdmissionBatch } from "./ocr/read-batch";
 export type { UploadedForm } from "./ocr/load-pages";
 export { AdmissionScanError } from "./ocr/scan-error";

@@ -45,9 +45,7 @@
  */
 
 // Screens
-export {
-  ApplicantDirectoryScreen,
-} from "./components/applicant-directory-screen";
+export { ApplicantDirectoryScreen } from "./components/applicant-directory-screen";
 export {
   CreateApplicantScreen,
   type CreateApplicantScreenProps,
@@ -78,8 +76,16 @@ export {
 export type {
   AdmissionOcrMasterLabels,
   AdmissionOcrResponse,
+  AdmissionOcrResult,
 } from "./schemas/admission-ocr.schema";
-export { ApplicantForm, type ApplicantFormProps } from "./components/applicant-form";
+export {
+  ApplicantForm,
+  type ApplicantFormProps,
+} from "./components/applicant-form";
+export {
+  BulkImportScreen,
+  type BulkImportScreenProps,
+} from "./components/bulk-import-screen";
 export {
   ApplicantsTable,
   type ApplicantsTableProps,

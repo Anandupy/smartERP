@@ -113,6 +113,17 @@ describe("extractAdmissionForm — digital PDF text layer", () => {
     expect(result.address.currentAddressLine2).toBe("");
   });
 
+  it("reads a category written in, even when it is also a printed option word", async () => {
+    const page = textLayerPage();
+    page.tokens = page.tokens.map((t) =>
+      t.text === "General" ? { ...t, text: "RTE" } : t,
+    );
+
+    const { result } = await extractAdmissionForm([page]);
+
+    expect(result.masterLabels.category).toBe("RTE");
+  });
+
   it("leaves a field empty rather than guessing when its label is missing", async () => {
     const page = textLayerPage();
     page.tokens = page.tokens.filter((t) => t.text !== "RELIGION *");

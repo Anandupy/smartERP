@@ -14,6 +14,7 @@ import {
 } from "@/assets/icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -24,26 +25,24 @@ import {
 import { getTokenStorage } from "@/core/auth";
 
 import type {
-  AdmissionOcrMasterLabels,
   AdmissionOcrResponse,
   AdmissionOcrResult,
 } from "../schemas/admission-ocr.schema";
 import type { ApplicantFormValues } from "../schemas/applicant.schema";
+import { scanFormPatch, type ResolveOcrMasters } from "../utils/scan-to-form";
 
-/**
- * Resolves the labels read off the paper form ("Female", "Hindu", "Std 1")
- * to this branch's admission-master and program ids. Supplied by the route
- * composition — Admissions cannot see Admission Masters or Program itself
- * (AGENTS.md §28). `unmatched` lists the labels no record matched.
- */
-export type ResolveOcrMasters = (labels: AdmissionOcrMasterLabels) => {
-  values: Partial<ApplicantFormValues>;
-  unmatched: string[];
-};
+export type { ResolveOcrMasters } from "../utils/scan-to-form";
 
 export interface AdmissionOcrUploaderProps {
   resolveMasters?: ResolveOcrMasters;
   disabled?: boolean;
+  /** Called with every successful scan, so the screen can act on it at save. */
+  onScanned?: (result: AdmissionOcrResult) => void;
+  /**
+   * When set, the scanned parents are added as guardians on save; the
+   * uploader shows a checkbox bound to it so the clerk can opt out.
+   */
+  addGuardians?: { checked: boolean; onChange: (checked: boolean) => void };
 }
 
 const ACCEPTED = "image/jpeg,image/png,image/webp,application/pdf";
@@ -64,19 +63,6 @@ const FIELD_LABELS: Record<string, string> = {
   currentAddressLine1: "Address",
 };
 
-/** The OCR result flattened onto the applicant form's own text/boolean fields. */
-function toFormValues(
-  result: AdmissionOcrResult,
-): Partial<ApplicantFormValues> {
-  return {
-    ...result.student,
-    ...result.contact,
-    ...result.address,
-    ...result.previousEducation,
-    ...result.facilities,
-  };
-}
-
 /**
  * "Scan admission form" — reads a photo/scan of a filled paper form and
  * fills the New Admission form in place. Rendered inside `ApplicantForm`
@@ -87,6 +73,8 @@ function toFormValues(
 export function AdmissionOcrUploader({
   resolveMasters,
   disabled = false,
+  onScanned,
+  addGuardians,
 }: AdmissionOcrUploaderProps) {
   const form = useFormContext<ApplicantFormValues>();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -99,20 +87,19 @@ export function AdmissionOcrUploader({
     notices: string[];
     filled: number;
     unmatched: string[];
+    defaulted: string[];
   } | null>(null);
 
   const fillForm = useCallback(
     (result: AdmissionOcrResult) => {
-      const resolved = resolveMasters?.(result.masterLabels) ?? {
-        values: {},
-        unmatched: [],
-      };
-      const patch = { ...toFormValues(result), ...resolved.values };
+      const { patch, unmatched, defaulted } = scanFormPatch(
+        result,
+        resolveMasters,
+      );
       let filled = 0;
 
+      // Only what the scan read: anything the clerk already typed survives.
       for (const [key, value] of Object.entries(patch)) {
-        // Only write what the scan read: blanks and `false` leave the field as it was.
-        if (value === "" || value === false || value === undefined) continue;
         form.setValue(key as Path<ApplicantFormValues>, value as never, {
           shouldDirty: true,
           shouldValidate: false,
@@ -120,7 +107,7 @@ export function AdmissionOcrUploader({
         filled += 1;
       }
 
-      return { filled, unmatched: resolved.unmatched };
+      return { filled, unmatched, defaulted };
     },
     [form, resolveMasters],
   );
@@ -165,7 +152,7 @@ export function AdmissionOcrUploader({
           );
         }
 
-        const { filled, unmatched } = fillForm(payload.result);
+        const { filled, unmatched, defaulted } = fillForm(payload.result);
         const fileName =
           files.length === 1
             ? files[0].name || "Pasted image"
@@ -177,7 +164,9 @@ export function AdmissionOcrUploader({
           notices: payload.notices ?? [],
           filled,
           unmatched,
+          defaulted,
         });
+        onScanned?.(payload.result);
         toast.success(
           `Filled ${filled} fields from the scanned form. Check them before saving.`,
         );
@@ -192,7 +181,7 @@ export function AdmissionOcrUploader({
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     },
-    [disabled, fillForm, isScanning],
+    [disabled, fillForm, isScanning, onScanned],
   );
 
   // Paste a photo copied from WhatsApp Web with Ctrl+V anywhere on the page.
@@ -311,6 +300,12 @@ export function AdmissionOcrUploader({
                   hard to read on the form.
                 </p>
               ) : null}
+              {scanned.defaulted.length > 0 ? (
+                <p>
+                  <strong>Default used — confirm:</strong>{" "}
+                  {scanned.defaulted.join("; ")}.
+                </p>
+              ) : null}
               {scanned.unmatched.length > 0 ? (
                 <p>
                   <strong>Select manually:</strong>{" "}
@@ -318,7 +313,21 @@ export function AdmissionOcrUploader({
                   this branch.
                 </p>
               ) : null}
-              {parentLines.length > 0 ? (
+              {parentLines.length > 0 && addGuardians ? (
+                <label className="flex items-start gap-2 pt-1">
+                  <Checkbox
+                    checked={addGuardians.checked}
+                    onCheckedChange={(checked) =>
+                      addGuardians.onChange(checked === true)
+                    }
+                    aria-label="Add parents as guardians when saving"
+                  />
+                  <span>
+                    <strong>Add as guardians when saving:</strong>{" "}
+                    {parentLines.join(" · ")}
+                  </span>
+                </label>
+              ) : parentLines.length > 0 ? (
                 <p>
                   <strong>Add as guardians after saving:</strong>{" "}
                   {parentLines.join(" · ")}

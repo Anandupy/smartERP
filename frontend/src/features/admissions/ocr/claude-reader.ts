@@ -33,7 +33,7 @@ Rules:
 - Names: split the student's name into first, middle (usually the father's name on Indian forms) and last name / surname, in Title Case.
 - Dates: convert the date of birth to YYYY-MM-DD. Indian forms write DD/MM/YYYY.
 - Aadhaar: 12 digits, no spaces. Mobile numbers: 10 digits without +91 or a leading 0. PIN code: 6 digits.
-- masterLabels: copy the gender, religion, caste, category, mother tongue, blood group, disability type and the class/standard applied for exactly as written or ticked on the form (e.g. "Female", "Hindu", "OBC", "Marathi", "B+", "Std 1").
+- masterLabels: copy the gender, religion, caste, category, mother tongue, blood group, disability type, the class/standard applied for and the ticked admission source exactly as written or ticked on the form (e.g. "Female", "Hindu", "OBC", "Marathi", "B+", "Std 1", "Walk-in").
 - Ticked checkboxes for bus/transport and hostel set transportRequired / hostelRequired.
 - If the images are not an admission form, return every field empty and put "not_an_admission_form" in uncertainFields.`;
 

@@ -61,13 +61,22 @@ export const admissionOcrSchema = z.object({
     bloodGroup: z.string(),
     disabilityType: z.string(),
     classAppliedFor: z.string(),
+    /** The ticked "Admission source" option, e.g. "Walk-in", "Website". */
+    admissionSource: z.string(),
   }),
   /** Not part of the applicant form — shown so the clerk can add guardians next. */
+  /** The parents' table — added as guardians when the applicant is saved. */
   parents: z.object({
     fatherName: z.string(),
     fatherMobile: z.string(),
+    fatherOccupation: z.string(),
+    fatherAadhaar: z.string(),
     motherName: z.string(),
     motherMobile: z.string(),
+    motherOccupation: z.string(),
+    motherAadhaar: z.string(),
+    /** As written, e.g. "Rs. 18,50,000/- per annum". */
+    annualIncome: z.string(),
   }),
   /** Field names the model could not read with confidence. */
   uncertainFields: z.array(z.string()),
@@ -84,3 +93,18 @@ export interface AdmissionOcrResponse {
   /** Messages for the clerk, e.g. that Claude was unavailable. */
   notices: string[];
 }
+
+/** One line of the `/api/admissions/ocr/batch` stream. */
+export type AdmissionBatchEvent =
+  | { type: "start"; totalPages: number }
+  | { type: "progress"; page: number; totalPages: number }
+  | {
+      type: "form";
+      index: number;
+      /** 1-based page numbers in the PDF. */
+      pages: number[];
+      result?: AdmissionOcrResult;
+      error?: string;
+    }
+  | { type: "done"; forms: number; skippedPages: number[] }
+  | { type: "error"; error: string };

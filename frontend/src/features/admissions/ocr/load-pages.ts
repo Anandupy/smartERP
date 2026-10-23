@@ -84,20 +84,26 @@ async function ocrPage(
   };
 }
 
-async function loadPdf(
+/**
+ * Yields a PDF's pages one at a time (up to `maxPages`), with the page count
+ * up front, so a long batch can report progress and free each page's pixels
+ * once it has been read.
+ */
+export async function* pdfPages(
   bytes: Buffer,
+  maxPages: number,
   modelDir?: string,
-): Promise<LoadedPage[]> {
+): AsyncGenerator<{ page: LoadedPage; number: number; total: number }> {
   const pdfjs = await loadPdfJs();
   const task = pdfjs.getDocument({
     data: new Uint8Array(bytes),
     useSystemFonts: false,
   });
   const doc = await task.promise;
+  const total = Math.min(doc.numPages, maxPages);
 
-  const pages: LoadedPage[] = [];
   try {
-    for (let number = 1; number <= Math.min(doc.numPages, 4); number++) {
+    for (let number = 1; number <= total; number++) {
       const page = await doc.getPage(number);
       const viewport = page.getViewport({ scale: RENDER_SCALE });
 
@@ -121,12 +127,16 @@ async function loadPdf(
         });
       }
       if (countLabels(tokens) >= MIN_TEXT_LAYER_LABELS) {
-        pages.push({
-          width: viewport.width,
-          height: viewport.height,
-          source: "text-layer",
-          tokens,
-        });
+        yield {
+          page: {
+            width: viewport.width,
+            height: viewport.height,
+            source: "text-layer",
+            tokens,
+          },
+          number,
+          total,
+        };
         continue;
       }
 
@@ -144,11 +154,20 @@ async function loadPdf(
         viewport,
       }).promise;
       const image = await decodeImage(canvas.toBuffer("image/png"));
-      pages.push(await ocrPage(image, modelDir));
+      yield { page: await ocrPage(image, modelDir), number, total };
     }
   } finally {
     await task.destroy();
   }
+}
+
+async function loadPdf(
+  bytes: Buffer,
+  modelDir?: string,
+): Promise<LoadedPage[]> {
+  const pages: LoadedPage[] = [];
+  // A single form is at most a few pages; bulk PDFs go through pdfPages().
+  for await (const { page } of pdfPages(bytes, 4, modelDir)) pages.push(page);
   return pages;
 }
 

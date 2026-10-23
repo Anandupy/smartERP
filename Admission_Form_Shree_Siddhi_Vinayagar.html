@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Official Admission Form - Shree Siddhi Vinayagar English High School</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm 8mm 10mm;
+    }
+    *, *:before, *:after {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+      color: #111827;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+      font-size: 8.5pt;
+      line-height: 1.35;
+    }
+    .page {
+      width: 100%;
+      height: 100%;
+      page-break-after: always;
+      position: relative;
+    }
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    /* Header styling */
+    .school-header {
+      border: 1.5px solid #1e3a1e;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: #fbfdfa;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+    .trust-name {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: #1e3a1e;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 2px;
+    }
+    .school-name {
+      font-size: 15pt;
+      font-weight: 900;
+      color: #14532d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+      margin: 0;
+      line-height: 1.15;
+    }
+    .school-affil {
+      font-size: 7.5pt;
+      color: #4b5563;
+      text-align: center;
+      margin-top: 3px;
+      font-weight: 500;
+    }
+    .form-title-badge {
+      text-align: center;
+      margin: 4px 0 0 0;
+    }
+    .form-title {
+      display: inline-block;
+      background: #1e3a1e;
+      color: #ffffff;
+      font-size: 10pt;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 3px 20px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    /* Top Reference Bar */
+    .ref-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 8pt;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .ref-item span {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* Sections */
+    .section-title {
+      background: #14532d;
+      color: #ffffff;
+      font-size: 8.5pt;
+      font-weight: 700;
+      padding: 3px 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-top: 6px;
+      margin-bottom: 4px;
+      border-radius: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 5px 8px;
+      margin-bottom: 4px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+    }
+    .field-lbl {
+      font-size: 7pt;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .field-val-line {
+      border-bottom: 1px dashed #9ca3af;
+      height: 18px;
+      display: flex;
+      align-items: flex-end;
+      font-size: 8.5pt;
+      padding-left: 2px;
+      color: #1f2937;
+    }
+    .field-val-box {
+      border: 1px solid #94a3b8;
+      border-radius: 3px;
+      height: 19px;
+      background: #ffffff;
+    }
+
+    /* UpperCase Letter Boxes (Aadhaar / PRN / Mobile) */
+    .digit-boxes {
+      display: flex;
+      gap: 2px;
+      margin-top: 1px;
+    }
+    .digit-box {
+      width: 14px;
+      height: 17px;
+      border: 1px solid #64748b;
+      border-radius: 2px;
+      text-align: center;
+      font-size: 8pt;
+      font-weight: 700;
+    }
+
+    /* Photo box */
+    .photo-box {
+      width: 90px;
+      height: 110px;
+      border: 1.5px dashed #4b5563;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 6.5pt;
+      color: #6b7280;
+      background: #fdfdfd;
+      padding: 4px;
+      margin-left: 10px;
+    }
+
+    /* Table styles for previous education & parent details */
+    .compact-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 4px 0;
+      font-size: 7.5pt;
+    }
+    .compact-table th, .compact-table td {
+      border: 1px solid #94a3b8;
+      padding: 3.5px 5px;
+      text-align: left;
+    }
+    .compact-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #1e293b;
+      text-transform: uppercase;
+    }
+
+    /* Checkbox list */
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      font-size: 7.5pt;
+      align-items: center;
+      padding-top: 2px;
+    }
+    .cb-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cb-box {
+      width: 11px;
+      height: 11px;
+      border: 1.2px solid #374151;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    /* Declaration */
+    .declaration-text {
+      font-size: 7pt;
+      color: #374151;
+      text-align: justify;
+      line-height: 1.35;
+      margin: 4px 0 6px 0;
+      padding: 5px 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+    }
+
+    .sign-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 14px;
+      padding: 0 10px;
+    }
+    .sign-col {
+      text-align: center;
+      font-size: 7.5pt;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .sign-line {
+      width: 140px;
+      border-top: 1px solid #374151;
+      margin-bottom: 3px;
+    }
+
+    /* Office use box */
+    .office-box {
+      border: 1.5px solid #14532d;
+      border-radius: 5px;
+      padding: 6px 8px;
+      margin-top: 8px;
+      background: #fbfdfa;
+    }
+    .office-header {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: #14532d;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 3px;
+    }
+
+    /* Logo SVG */
+    .school-logo-svg {
+      width: 75px;
+      height: 75px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1 ==================== -->
+  <div class="page">
+    
+    <!-- Top Header -->
+    <div class="school-header">
+      <!-- Left Logo SVG (Accurate Lotus & Book Emblem) -->
+      <svg class="school-logo-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lotusGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ea580c"/>
+            <stop offset="50%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#16a34a"/>
+          </linearGradient>
+          <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#14532d"/>
+            <stop offset="100%" stop-color="#15803d"/>
+          </linearGradient>
+        </defs>
+        <!-- Outer Green Arc -->
+        <path d="M 25 140 A 80 80 0 0 1 175 140" fill="none" stroke="#16532d" stroke-width="20" stroke-linecap="round"/>
+        <!-- Lotus Center Petal -->
+        <path d="M 100 45 C 90 70 85 95 100 120 C 115 95 110 70 100 45 Z" fill="url(#lotusGrad)"/>
+        <!-- Lotus Inner Petals -->
+        <path d="M 75 65 C 75 90 85 110 100 125 C 85 110 65 95 75 65 Z" fill="#f97316"/>
+        <path d="M 125 65 C 125 90 115 110 100 125 C 115 110 135 95 125 65 Z" fill="#f97316"/>
+        <!-- Lotus Outer Petals -->
+        <path d="M 55 90 C 65 110 80 125 100 130 C 75 125 50 110 55 90 Z" fill="#eab308"/>
+        <path d="M 145 90 C 135 110 120 125 100 130 C 125 125 150 110 145 90 Z" fill="#eab308"/>
+        <!-- Infinity Loop base -->
+        <path d="M 70 135 C 50 145 60 165 85 155 C 100 148 100 148 115 155 C 140 165 150 145 130 135 C 115 145 100 135 85 135 Z" fill="none" stroke="#15803d" stroke-width="6"/>
+        <!-- Open Book Base -->
+        <path d="M 20 170 Q 100 155 100 175 Q 100 155 180 170 Q 100 185 20 170 Z" fill="url(#leafGrad)"/>
+      </svg>
+
+      <!-- Center Title -->
+      <div style="flex-grow: 1; padding: 0 10px;">
+        <div class="trust-name">P. K. KRISHNAN EDUCATIONAL TRUST</div>
+        <h1 class="school-name">SHREE SIDDHI VINAYAGAR ENGLISH HIGH SCHOOL</h1>
+        <div class="school-affil">
+          Recognized by Govt. of Maharashtra &bull; Affiliated to Maharashtra State Board / SSC<br>
+          Near Marol Naka / Fire Brigade, Andheri (E), Mumbai - 400059 &bull; Ph: 022-2821XXXX / 9082807803
+        </div>
+        <div class="form-title-badge">
+          <span class="form-title">STUDENT ADMISSION FORM</span>
+        </div>
+      </div>
+
+      <!-- Right Photo Frame -->
+      <div class="photo-box">
+        <strong>AFFIX RECENT PHOTO</strong>
+        <span style="margin-top: 4px;">Passport Size<br>(3.5cm x 4.5cm)<br>Self-Attested</span>
+      </div>
+    </div>
+
+    <!-- Application Meta Bar -->
+    <div class="ref-bar">
+      <div class="ref-item">Academic Year: <span>2026 – 2027</span></div>
+      <div class="ref-item">Form / App No: <span style="font-family: monospace; color:#b91c1c;">SSV-2026-___________</span></div>
+      <div class="ref-item">Class Applied For: <span>___________________</span></div>
+      <div class="ref-item">Date: <span>____ / ____ / 2026</span></div>
+    </div>
+
+    <!-- Section A: Student Basic Information -->
+    <div class="section-title">
+      <span>1. Student's Personal Information (In Block Letters)</span>
+      <span style="font-size: 6.5pt; font-weight: normal; text-transform: none;">*As per Municipal Birth Certificate / School Leaving Certificate</span>
+    </div>
+
+    <div class="form-grid">
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">First Name *</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Middle / Father's Name</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Last Name / Surname *</span>
+        <div class="field-val-line"></div>
+      </div>
+
+      <div class="field" style="grid-column: span 3;">
+        <span class="field-lbl">Date of Birth (DD-MM-YYYY) *</span>
+        <div class="digit-boxes">
+          <div class="digit-box">D</div><div class="digit-box">D</div>
+          <span style="line-height: 18px; margin: 0 1px;">-</span>
+          <div class="digit-box">M</div><div class="digit-box">M</div>
+          <span style="line-height: 18px; margin: 0 1px;">-</span>
+          <div class="digit-box">Y</div><div class="digit-box">Y</div><div class="digit-box">Y</div><div class="digit-box">Y</div>
+        </div>
+      </div>
+      <div class="field" style="grid-column: span 6;">
+        <span class="field-lbl">Date of Birth (In Words)</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 3;">
+        <span class="field-lbl">Gender *</span>
+        <div class="checkbox-group" style="margin-top: 3px;">
+          <div class="cb-item"><span class="cb-box"></span> Male</div>
+          <div class="cb-item"><span class="cb-box"></span> Female</div>
+          <div class="cb-item"><span class="cb-box"></span> Other</div>
+        </div>
+      </div>
+
+      <div class="field" style="grid-column: span 3;">
+        <span class="field-lbl">Place of Birth (City/State)</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 3;">
+        <span class="field-lbl">Religion *</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 3;">
+        <span class="field-lbl">Caste & Sub-Caste</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 3;">
+        <span class="field-lbl">Category *</span>
+        <div class="checkbox-group" style="margin-top: 3px;">
+          <div class="cb-item"><span class="cb-box"></span> Gen</div>
+          <div class="cb-item"><span class="cb-box"></span> SC</div>
+          <div class="cb-item"><span class="cb-box"></span> ST</div>
+          <div class="cb-item"><span class="cb-box"></span> OBC</div>
+          <div class="cb-item"><span class="cb-box"></span> EWS/RTE</div>
+        </div>
+      </div>
+
+      <div class="field" style="grid-column: span 3;">
+        <span class="field-lbl">Mother Tongue *</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 2;">
+        <span class="field-lbl">Blood Group *</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Aadhaar Card Number (12 Digits) *</span>
+        <div class="digit-boxes">
+          <div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div>
+          <span style="line-height: 18px; margin: 0 1px;">-</span>
+          <div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div>
+          <span style="line-height: 18px; margin: 0 1px;">-</span>
+          <div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div>
+        </div>
+      </div>
+      <div class="field" style="grid-column: span 3;">
+        <span class="field-lbl">APAAR ID / PRN (If allocated)</span>
+        <div class="field-val-line"></div>
+      </div>
+
+      <div class="field" style="grid-column: span 5;">
+        <span class="field-lbl">Specially Abled / Divyangjan?</span>
+        <div class="checkbox-group">
+          <div class="cb-item"><span class="cb-box"></span> No</div>
+          <div class="cb-item"><span class="cb-box"></span> Yes (If yes, specify): ________________</div>
+        </div>
+      </div>
+      <div class="field" style="grid-column: span 7;">
+        <span class="field-lbl">Identification Marks (Mole / Scar)</span>
+        <div class="field-val-line"></div>
+      </div>
+    </div>
+
+    <!-- Section B: Contact & Residential Address -->
+    <div class="section-title">
+      <span>2. Contact Information & Residential Address</span>
+    </div>
+
+    <div class="form-grid">
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Primary Mobile Number (For School SMS/WhatsApp) *</span>
+        <div class="digit-boxes">
+          <div class="digit-box">+</div><div class="digit-box">9</div><div class="digit-box">1</div>
+          <span style="line-height: 18px; margin: 0 2px;"></span>
+          <div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div>
+          <div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div>
+        </div>
+      </div>
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Alternate Mobile Number</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Primary Email Address</span>
+        <div class="field-val-line"></div>
+      </div>
+
+      <div class="field" style="grid-column: span 12;">
+        <span class="field-lbl">Residential Address Line 1 (Flat/Room No., Building/Chawl Name) *</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 6;">
+        <span class="field-lbl">Address Line 2 (Road / Landmark / Area)</span>
+        <div class="field-val-line"></div>
+      </div>
+      <div class="field" style="grid-column: span 2;">
+        <span class="field-lbl">City *</span>
+        <div class="field-val-line">Mumbai</div>
+      </div>
+      <div class="field" style="grid-column: span 2;">
+        <span class="field-lbl">State *</span>
+        <div class="field-val-line">Maharashtra</div>
+      </div>
+      <div class="field" style="grid-column: span 2;">
+        <span class="field-lbl">Pincode *</span>
+        <div class="digit-boxes">
+          <div class="digit-box">4</div><div class="digit-box">0</div><div class="digit-box">0</div>
+          <div class="digit-box"></div><div class="digit-box"></div><div class="digit-box"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section C: Parent / Guardian Details -->
+    <div class="section-title">
+      <span>3. Parents & Guardian Details</span>
+    </div>
+
+    <table class="compact-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Particulars</th>
+          <th style="width: 37%;">Father's Details</th>
+          <th style="width: 38%;">Mother's Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Full Name (In Block Letters)</strong></td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><strong>Educational Qualification</strong></td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><strong>Occupation / Designation</strong></td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><strong>Office / Workplace Address</strong></td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><strong>Mobile Number *</strong></td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><strong>Aadhaar Card Number</strong></td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><strong>Annual Family Income</strong></td>
+          <td colspan="2">Rs. _____________________________ [ ] &lt; 1 Lakh &nbsp; [ ] 1-3 Lakhs &nbsp; [ ] 3-8 Lakhs &nbsp; [ ] &gt; 8 Lakhs</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="font-size: 7pt; color: #64748b; text-align: right; margin-top: 4px;">
+      Shree Siddhi Vinayagar English High School &bull; Admission Form Page 1 of 2
+    </div>
+
+  </div>
+
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page">
+    
+    <!-- Mini Header on Page 2 -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #14532d; padding-bottom: 4px; margin-bottom: 6px;">
+      <div style="font-size: 9pt; font-weight: 800; color: #14532d; text-transform: uppercase;">
+        SHREE SIDDHI VINAYAGAR ENGLISH HIGH SCHOOL &bull; ADMISSION FORM 2026-27
+      </div>
+      <div style="font-size: 7.5pt; color: #475569;">
+        Applicant Name: ____________________________________
+      </div>
+    </div>
+
+    <!-- Section D: Previous Education -->
+    <div class="section-title">
+      <span>4. Previous Academic Background</span>
+    </div>
+
+    <table class="compact-table">
+      <thead>
+        <tr>
+          <th style="width: 35%;">Name of Previous School / Pre-School</th>
+          <th style="width: 20%;">Board / Affiliation</th>
+          <th style="width: 15%;">Last Class</th>
+          <th style="width: 15%;">% Marks / Grade</th>
+          <th style="width: 15%;">Leaving TC No.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="height: 22px;">&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Section E: Admission Context & Facilities -->
+    <div class="section-title">
+      <span>5. Admission Context & Requirements (As Per ERP System)</span>
+    </div>
+
+    <div class="form-grid">
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Programme Applied For *</span>
+        <div class="checkbox-group">
+          <div class="cb-item"><span class="cb-box"></span> Pre-Primary (Jr/Sr KG)</div>
+          <div class="cb-item"><span class="cb-box"></span> Primary (1st - 4th)</div>
+          <div class="cb-item"><span class="cb-box"></span> Secondary (5th - 10th)</div>
+        </div>
+      </div>
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Admission Source *</span>
+        <div class="checkbox-group">
+          <div class="cb-item"><span class="cb-box"></span> Direct Walk-in</div>
+          <div class="cb-item"><span class="cb-box"></span> School Website</div>
+          <div class="cb-item"><span class="cb-box"></span> Parent / Student Ref</div>
+          <div class="cb-item"><span class="cb-box"></span> Social Media / Other</div>
+        </div>
+      </div>
+      <div class="field" style="grid-column: span 4;">
+        <span class="field-lbl">Admission Quota *</span>
+        <div class="checkbox-group">
+          <div class="cb-item"><span class="cb-box"></span> General Quota</div>
+          <div class="cb-item"><span class="cb-box"></span> RTE 25% Quota</div>
+          <div class="cb-item"><span class="cb-box"></span> Management Quota</div>
+          <div class="cb-item"><span class="cb-box"></span> Sibling / Staff Quota</div>
+        </div>
+      </div>
+
+      <div class="field" style="grid-column: span 6; margin-top: 4px;">
+        <span class="field-lbl">School Transport / Bus Facility Required?</span>
+        <div class="checkbox-group">
+          <div class="cb-item"><span class="cb-box"></span> Yes &nbsp;&nbsp; Pick-up Stop: __________________________________</div>
+          <div class="cb-item"><span class="cb-box"></span> No</div>
+        </div>
+      </div>
+      <div class="field" style="grid-column: span 6; margin-top: 4px;">
+        <span class="field-lbl">Sibling studying in this school (if any)?</span>
+        <div style="font-size: 7.5pt;">Name: _______________________________ Std: ______ Div: _____ G.R. No: _______</div>
+      </div>
+    </div>
+
+    <!-- Section F: Enclosures / Document Checklist -->
+    <div class="section-title">
+      <span>6. Mandatory Enclosures / Document Checklist</span>
+      <span style="font-size: 6.5pt; font-weight: normal; text-transform: none;">Tick (✓) documents attached</span>
+    </div>
+
+    <div class="checkbox-group" style="padding: 4px 6px; background: #fdfdfd; border: 1px solid #e2e8f0; border-radius: 4px;">
+      <div class="cb-item" style="width: 48%;"><span class="cb-box"></span> 1. Original Birth Certificate (Pre-Primary & 1st Std)</div>
+      <div class="cb-item" style="width: 48%;"><span class="cb-box"></span> 2. Original School Leaving Certificate / Transfer Certificate (TC)</div>
+      <div class="cb-item" style="width: 48%;"><span class="cb-box"></span> 3. Copy of Student's Aadhaar Card</div>
+      <div class="cb-item" style="width: 48%;"><span class="cb-box"></span> 4. Copy of Father's & Mother's Aadhaar Card</div>
+      <div class="cb-item" style="width: 48%;"><span class="cb-box"></span> 5. Previous Year's Marksheet / Progress Card</div>
+      <div class="cb-item" style="width: 48%;"><span class="cb-box"></span> 6. Caste Certificate & Validity (For SC/ST/OBC/VJNT)</div>
+      <div class="cb-item" style="width: 48%;"><span class="cb-box"></span> 7. 4 Recent Passport Size Colour Photographs</div>
+      <div class="cb-item" style="width: 48%;"><span class="cb-box"></span> 8. Address Proof (Electricity Bill / Rent Agreement / Ration Card)</div>
+    </div>
+
+    <!-- Section G: Declaration & Undertaking -->
+    <div class="section-title">
+      <span>7. Declaration & Rules Acceptance by Parent / Guardian</span>
+    </div>
+
+    <div class="declaration-text">
+      1. I hereby declare that the particulars given above are correct to the best of my knowledge and belief. If any information or document is found to be false or incorrect, the admission of my ward may be cancelled immediately without refund of fees.<br>
+      2. I agree to abide by all the rules, discipline, regulations, and fee policies of Shree Siddhi Vinayagar English High School as amended from time to time.<br>
+      3. I understand that the date of birth once entered in the General Register (G.R.) will strictly not be altered under any circumstances.<br>
+      4. I will ensure regular attendance, discipline, and punctuality of my ward in the school.
+    </div>
+
+    <div class="sign-row">
+      <div class="sign-col">
+        <div style="height: 25px;"></div>
+        <div class="sign-line"></div>
+        Signature of Student
+      </div>
+      <div class="sign-col">
+        <div style="height: 25px;"></div>
+        <div class="sign-line"></div>
+        Signature of Mother
+      </div>
+      <div class="sign-col">
+        <div style="height: 25px;"></div>
+        <div class="sign-line"></div>
+        Signature of Father / Guardian
+      </div>
+    </div>
+    <div style="font-size: 7.5pt; margin-top: 6px; padding: 0 10px;">
+      Date: ______ / ______ / 2026 &nbsp;&nbsp;&bull;&nbsp;&nbsp; Place: Mumbai
+    </div>
+
+    <!-- Section H: Office Use Only -->
+    <div class="office-box">
+      <div class="office-header">
+        ★ FOR OFFICE & SCHOOL ADMINISTRATION USE ONLY (CAMPUSFLOW ERP VERIFICATION) ★
+      </div>
+
+      <div class="form-grid" style="font-size: 8pt; margin-bottom: 2px;">
+        <div class="field" style="grid-column: span 3;">
+          <span class="field-lbl">Admission Status</span>
+          <div style="font-size: 7.5pt; margin-top: 2px;">[ ] Granted &nbsp; [ ] Rejected &nbsp; [ ] Prov.</div>
+        </div>
+        <div class="field" style="grid-column: span 3;">
+          <span class="field-lbl">Admitted to Standard & Div</span>
+          <div class="field-val-line">Class: _________ &nbsp; Div: _____</div>
+        </div>
+        <div class="field" style="grid-column: span 3;">
+          <span class="field-lbl">Student Code (STD Code)</span>
+          <div class="field-val-line" style="font-family: monospace; font-weight: bold;">STD - ____________</div>
+        </div>
+        <div class="field" style="grid-column: span 3;">
+          <span class="field-lbl">Admission No. (ADD No.)</span>
+          <div class="field-val-line" style="font-family: monospace; font-weight: bold;">ADD - ____________</div>
+        </div>
+
+        <div class="field" style="grid-column: span 3; margin-top: 4px;">
+          <span class="field-lbl">General Register (G.R.) No.</span>
+          <div class="field-val-line" style="font-weight: bold;">G.R. No: ____________</div>
+        </div>
+        <div class="field" style="grid-column: span 3; margin-top: 4px;">
+          <span class="field-lbl">Fee Receipt No. & Amount</span>
+          <div class="field-val-line">Rcpt: _________ Rs: ______</div>
+        </div>
+        <div class="field" style="grid-column: span 3; margin-top: 4px;">
+          <span class="field-lbl">Admission Date</span>
+          <div class="field-val-line">____ / ____ / 2026</div>
+        </div>
+        <div class="field" style="grid-column: span 3; margin-top: 4px;">
+          <span class="field-lbl">ERP Data Entry Verified</span>
+          <div class="field-val-line">[ ] Done by: ____________</div>
+        </div>
+      </div>
+
+      <div class="sign-row" style="margin-top: 15px; margin-bottom: 2px;">
+        <div class="sign-col">
+          <div class="sign-line" style="width: 130px;"></div>
+          Admission Clerk / Scrutiny
+        </div>
+        <div class="sign-col">
+          <div class="sign-line" style="width: 130px;"></div>
+          Admin / Headmistress
+        </div>
+        <div class="sign-col">
+          <div class="sign-line" style="width: 130px;"></div>
+          Principal (With School Stamp)
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size: 7pt; color: #64748b; text-align: right; margin-top: 5px;">
+      Shree Siddhi Vinayagar English High School &bull; Admission Form Page 2 of 2
+    </div>
+
+  </div>
+
+</body>
+</html>

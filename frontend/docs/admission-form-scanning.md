@@ -109,6 +109,61 @@ ask parents for a straight, well-lit photo of each page, or use a scanner app.
 - First scan after a server start loads the models (~1–2 s); a photo-based
   form then takes ~10–15 s on a modest laptop.
 
+## Parents added as guardians on save
+
+The scan also reads the parents' table (name, mobile, occupation, Aadhaar,
+annual family income). When the clerk saves the new applicant — and leaves
+**Add as guardians when saving** ticked — each parent is:
+
+1. **Reused** if a guardian in the branch already has the same mobile and
+   first name (a sibling's parent), otherwise **created** with the family's
+   residential address from the form (titles such as "Dr." / "Smt." are
+   stripped; an Aadhaar without 12 digits is dropped).
+2. **Linked** with the branch's **Father** / **Mother** relation type. The
+   first parent is primary and financial guardian (and carries the family
+   income); both are emergency contacts allowed to pick up.
+
+A parent without a 10-digit mobile, or a branch without Father / Mother
+relation types (add them under Admission Masters), produces a warning
+instead; the applicant is always saved first, and a guardian failure never
+undoes it. Code: `scanned-guardians.ts` (pure plan) and
+`useAddScannedGuardians` in `applicant-composition.tsx` — the route is where
+Admissions and Guardians meet (AGENTS.md §28).
+
+## Bulk entry from one PDF
+
+**Admissions → Applicants → Bulk entry from PDF**
+(`/app/admissions/applicants/import`). The office scans a whole bundle of
+filled forms into one PDF (up to 80 pages / 40 MB); each student is read and
+listed in a review queue while the rest is still being read.
+
+- **Splitting** (`ocr/page-kind.ts`, `ocr/read-batch.ts`): every page carrying
+  the form's page-1 labels starts a new student; the page-2 that follows is
+  attached. Any other page (cover sheet, attached certificate) is skipped and
+  reported. Bulk entry always uses the offline reader.
+- **Streaming**: `POST /api/admissions/ocr/batch` returns newline-delimited
+  JSON `AdmissionBatchEvent`s (`start`, `progress`, one `form` per student,
+  `done`); `useBulkScan` renders them as they arrive. Leaving the page stops
+  the read.
+- **Queue** (`BulkImportScreen`): **Ready** = every required field read, no
+  doubtful field, no default used; **Needs check** lists exactly what to look
+  at. _Review & save_ opens the normal applicant form pre-filled in a side
+  panel; _Save all ready_ saves the Ready rows one by one. Every save also adds
+  the parents as guardians.
+- Measured: a digital 10-student PDF is read in ~2 s, 30 students (60 pages)
+  in a few seconds; scanned bundles take ~10 s per student.
+
+## Master fields: matched or defaulted
+
+The route's resolver (`useOcrMasterResolver`) matches the scanned gender,
+religion, caste, category, mother tongue, blood group, programme and admission
+source (now read from the form's tick boxes) to the branch's records. When a
+label matches nothing, it **fills a sensible default** (e.g. the first gender,
+"Walk-in") so the clerk has less to pick — but every defaulted field is
+reported (`defaulted`) and shown as **"Default used — confirm"** in the
+scanner and as **Needs check** in the bulk queue, so a default is never saved
+unseen by "Save all ready".
+
 ## Route
 
 `POST /api/admissions/ocr` (`src/app/api/admissions/ocr/route.ts`) —

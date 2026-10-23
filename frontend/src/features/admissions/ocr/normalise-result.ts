@@ -126,6 +126,8 @@ export function normaliseOcrResult(
       ...result.parents,
       fatherMobile: cleanDigits(result.parents.fatherMobile, 10),
       motherMobile: cleanDigits(result.parents.motherMobile, 10),
+      fatherAadhaar: cleanDigits(result.parents.fatherAadhaar, 12),
+      motherAadhaar: cleanDigits(result.parents.motherAadhaar, 12),
     },
     uncertainFields: [...uncertain],
   };

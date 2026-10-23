@@ -52,6 +52,9 @@ export const LABELS = {
   particulars: { key: "PARTICULARS" },
   fullNameRow: { key: "FULLNAME", maxExtra: 16 },
   qualificationRow: { key: "EDUCATIONALQUALIFICATION" },
+  occupationRow: { key: "OCCUPATIONDESIGNATION" },
+  workplaceRow: { key: "OFFICEWORKPLACEADDRESS" },
+  incomeRow: { key: "ANNUALFAMILYINCOME" },
   mobileRow: { key: "MOBILENUMBER" },
   aadhaarRow: { key: "AADHAARCARDNUMBER" },
   previousSchool: { key: "NAMEOFPREVIOUSSCHOOL", maxExtra: 12 },
@@ -81,6 +84,13 @@ export const OPTIONS = {
     { word: "ST", value: "ST" },
     { word: "OBC", value: "OBC" },
     { word: "EWSRTE", value: "EWS" },
+  ],
+  /** Ticks sit left of each option's first word. */
+  admissionSource: [
+    { word: "DIRECT", value: "Walk-in" },
+    { word: "SCHOOL", value: "Website" },
+    { word: "PARENT", value: "Parent Reference" },
+    { word: "SOCIAL", value: "Social Media" },
   ],
   yesNo: [
     { word: "YES", value: "Yes" },
@@ -112,3 +122,25 @@ export const PRINTED_WORDS = new Set([
   "STOP",
   "RS",
 ]);
+
+/**
+ * Labels that only appear on page 1 / page 2 of the form, used to split a
+ * PDF of many filled forms into one form per student: every page 1 starts a
+ * new student; the page 2 that follows belongs to them.
+ */
+export const PAGE_MARKERS = {
+  first: [
+    "FIRSTNAME",
+    "DATEOFBIRTHDDMMYYYY",
+    "MOTHERTONGUE",
+    "RESIDENTIALADDRESSLINE1",
+    "PARTICULARS",
+  ],
+  second: [
+    "NAMEOFPREVIOUSSCHOOL",
+    "PROGRAMMEAPPLIEDFOR",
+    "ADMISSIONSOURCE",
+    "LEAVINGTCNO",
+    "SCHOOLTRANSPORT",
+  ],
+} as const;
