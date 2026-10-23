@@ -24,6 +24,7 @@ import { CommunicationConfigService } from './config/communication-config.servic
 import { SmtpEmailProvider } from './providers/smtp/smtp-email.provider';
 import { StubSMSProvider } from './providers/stub/stub-sms.provider';
 import { AndroidGatewaySmsProvider } from './providers/android-gateway/android-gateway-sms.provider';
+import { Fast2SmsProvider } from './providers/fast2sms/fast2sms.provider';
 import { StubWhatsAppProvider } from './providers/stub/stub-whatsapp.provider';
 import { StubPushProvider } from './providers/stub/stub-push.provider';
 import { ProviderFactory } from './providers/provider.factory';
@@ -56,6 +57,7 @@ import { SmsController } from './sms/sms.controller';
     SmtpEmailProvider,
     StubSMSProvider,
     AndroidGatewaySmsProvider,
+    Fast2SmsProvider,
     StubWhatsAppProvider,
     StubPushProvider,
     ProviderFactory,
